@@ -1,4 +1,4 @@
-/** Phase 0 debug overlay: sanity and FX-cap sliders, effect toggles on keys 1–9, H hides it. */
+/** Debug overlay: sanity and FX-cap sliders, effect toggles on keys 1–9, H hides it, plus the page's control hints. */
 
 import { EFFECTS, type EffectId, type FxState } from '../render/fx';
 
@@ -47,7 +47,7 @@ function slider(name: string, max: number, step: number, value: number, set: (v:
   return row;
 }
 
-export function createDebugPanel(state: FxState): DebugPanel {
+export function createDebugPanel(state: FxState, hints: readonly string[]): DebugPanel {
   const root = div(
     'position:fixed;top:8px;left:8px;padding:6px 10px;background:rgba(5,5,6,.75);color:#d9d0b8;' +
       'font:12px/1.5 monospace;user-select:none;z-index:1',
@@ -71,8 +71,8 @@ export function createDebugPanel(state: FxState): DebugPanel {
       rows[i].style.opacity = state.enabled[id] ? '1' : '0.5';
     });
   paint();
-  const stats = div('opacity:.7');
-  root.append(...rows, stats, div('opacity:.5', '1–9 toggle · H hide · drag/wheel orbit · O auto-orbit'));
+  const stats = div('opacity:.7;white-space:pre-line');
+  root.append(...rows, stats, ...['1–9 toggle · H hide', ...hints].map((h) => div('opacity:.5', h)));
   document.body.append(root);
 
   addEventListener('keydown', (e) => {

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fbm } from '../core/noise';
 import { createRng, type Rng } from '../core/rng';
+import { tileUv } from '../render/meshKit';
 import { ANOMALY } from '../render/palette';
 import { createWorldMaterial } from '../render/worldMaterial';
 import { createHeightfield, type HeightFn } from './heightfield';
@@ -77,12 +78,6 @@ function terrain(height: HeightFn): THREE.Mesh {
   geo.computeVertexNormals();
   const uv = size / tile;
   return new THREE.Mesh(geo, createWorldMaterial({ texture: 'rot', uvScale: [uv, uv], vertexColors: true }));
-}
-
-/** Scales a geometry's UVs so the texture repeats every 2 m. */
-function tileUv(geo: THREE.BufferGeometry, width: number, height: number): void {
-  const uv = geo.getAttribute('uv');
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * width) / 2, (uv.getY(i) * height) / 2);
 }
 
 function pillars(rng: Rng, height: HeightFn): THREE.Mesh {

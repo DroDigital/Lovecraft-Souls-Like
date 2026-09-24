@@ -55,6 +55,8 @@ export const LIGHT = {
   ambient: [0.19, 0.19, 0.21] as Vec3,
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
+  echoGlowRange: 6, // a dropped Echo's faint light
+  echoGlowIntensity: 0.6,
 };
 
 /** Debug orbit camera of the Phase 0 look-test scene. */
@@ -71,4 +73,87 @@ export const ORBIT = {
   zoomMin: 0.3,
   zoomMax: 2.5,
   minHeightAboveGround: 1.5,
+};
+
+/** The player character (spec §3B). Speeds in m/s, turn rates in rad/s. */
+export const PLAYER = {
+  hp: 160,
+  poise: 30,
+  stamina: 100,
+  radius: 0.4, // capsule
+  height: 1.8,
+  aimHeight: 1.3, // where lock-on and shots aim
+  eyeHeight: 1.6, // line-of-sight origin
+  walkSpeed: 4.2,
+  sprintSpeed: 6.4,
+  guardSpeed: 2.2,
+  turnRate: 12,
+  dodgeTapFrames: 14, // dodge button: released sooner = roll/backstep, held longer = sprint
+  pickupRadius: 1.2, // touching an Echo drop recovers it
+};
+
+export const STAMINA = {
+  regen: 40, // per second
+  regenDelay: 36, // frames of no regen after any spending
+  guardRegen: 0.35, // regen multiplier while guarding
+  sprintDrain: 18, // per second
+};
+
+export const COMBAT = {
+  bufferMs: 150, // input buffer window: one queued action
+  comboGrace: 8, // frames after an attack ends in which the next press still continues its chain
+  guardArcDeg: 120, // block and parry only stop hits from inside this frontal arc
+  riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe
+  poiseReset: 120, // frames without poise damage before poise refills
+  dummyReset: 180, // frames without damage before the immortal training dummy heals
+  muzzleHeight: 1.35,
+  shotRadius: 0.2, // revolver bullet radius for the hit test
+};
+
+export const LOCK = {
+  range: 25, // metres, with line of sight
+  breakRange: 27, // a held lock breaks beyond this (2 m hysteresis)
+  angleWeight: 12, // score = distance + angleWeight × |angle from camera forward| (metres per radian)
+  graceFrames: 30, // frames out of sight before the lock breaks
+};
+
+/** Third-person camera: orbits a pivot above the player and pulls in on collision. */
+export const CAMERA = {
+  pivotHeight: 1.55,
+  distance: 4.2,
+  minDistance: 0.5,
+  shoulder: 0.45, // metres the boom hangs to the right of the player, so a lock target is not hidden behind them
+  margin: 0.3, // keeps the lens this far off walls
+  clearance: 0.25, // metres above the ground
+  pitch: 0.25, // rad, positive looks down
+  pitchMin: -0.35,
+  pitchMax: 1.05,
+  easeOut: 4, // m/s the boom grows back after a pull-in
+  follow: 7, // 1/s: how fast the camera swings toward the lock target (or recentres)
+  lockPitch: 0.15,
+  lockLift: 0.5, // metres: looks further down on close lock targets, to see them over the player
+  recenterFrames: 20, // lock pressed with no target: swing behind the player
+};
+
+export const INPUT = {
+  deadzone: 0.2, // gamepad sticks
+  mouseSensitivity: 0.0025, // rad per pixel
+  stickLookSpeed: 3.2, // rad/s at full deflection
+  keyLookSpeed: 2.4, // rad/s (arrow keys)
+  flickPixels: 60, // mouse flick that switches lock target
+  flickDecay: 0.8, // per step
+  flickCooldown: 12, // steps between flick switches
+  stickFlick: 0.7, // right-stick flick threshold...
+  stickRearm: 0.35, // ...and the level it must return under before the next flick
+};
+
+/** Hit feedback and figure animation in the renderer. */
+export const FEEDBACK = {
+  flashSeconds: 0.12, // a struck figure flashes...
+  flashLevel: 0.7, // ...this much toward full-bright
+  flinchSeconds: 0.25,
+  tracerSeconds: 0.07, // revolver tracer
+  shakeMetres: 0.07, // jitter during hitstop
+  strideMetres: 1.5, // ground covered per walk cycle
+  echoGlowHeight: 0.6, // light above an Echo drop
 };
