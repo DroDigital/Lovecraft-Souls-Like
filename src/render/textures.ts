@@ -1,6 +1,6 @@
 /**
- * Procedural 64×64 world textures (spec §2): stone, wood, rot, wet flesh, water.
- * Pure (no Three.js): tileable RGBA8 pixels built only from the muted base palette.
+ * Procedural 64×64 world textures (spec §2): stone, floor slabs, wood, rot, wet flesh, water,
+ * figure cloth. Pure (no Three.js): tileable RGBA8 pixels built only from the muted base palette.
  */
 
 import { fbm } from '../core/noise';
@@ -8,7 +8,7 @@ import { hash2 } from '../core/rng';
 import { BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 
 export const TEXTURE_SIZE = 64;
-export const TEXTURE_KINDS = ['stone', 'wood', 'rot', 'flesh', 'water'] as const;
+export const TEXTURE_KINDS = ['stone', 'slab', 'wood', 'rot', 'flesh', 'water', 'cloth'] as const;
 export type TextureKind = (typeof TEXTURE_KINDS)[number];
 
 /** Colour at texture coordinate (u, v) in [0, 1). Must tile across the edges. */
@@ -31,6 +31,24 @@ const stone: TexelFn = (u, v, seed) => {
   c = mixRgb(c, BASE.bone, 0.3 * grain);
   if (crack > 0.93) c = scaleRgb(c, 0.55);
   if (mortar < 1.2) c = scaleRgb(BASE.charcoal, 0.7);
+  return c;
+};
+
+/** Floor flagstones: 2 × 2 slabs of 32 texels in staggered rows, grout darker than the slab (never black),
+ *  faint grain, and a few thin, low-contrast cracks. */
+const slab: TexelFn = (u, v, seed) => {
+  const y = v * 2;
+  const row = Math.floor(y);
+  const x = u * 2 + (row % 2) * 0.5;
+  const col = Math.floor(x);
+  const grout = Math.min(edgePx(x - col, 32), edgePx(y - row, 32));
+  const tone = hash2(col % 2, row, seed);
+  const grain = fbm(u * 8, v * 8, seed, 2, 8);
+  const crack = 1 - Math.abs(2 * fbm(u * 4, v * 4, seed + 7, 3, 4) - 1);
+  let c = mixRgb(BASE.seaGrey, BASE.bone, 0.15 + 0.2 * tone);
+  c = scaleRgb(c, 0.88 + 0.16 * grain);
+  if (crack > 0.975 && hash2(col % 2, row, seed + 5) < 0.5) c = scaleRgb(c, 0.8);
+  if (grout < 1) c = scaleRgb(c, 0.55);
   return c;
 };
 
@@ -79,7 +97,15 @@ const water: TexelFn = (u, v, seed) => {
   return c;
 };
 
-const TEXELS: Record<TextureKind, TexelFn> = { stone, wood, rot, flesh, water };
+/** Figure cloth: near-flat mid grey in broad value blocks (4-texel folds, 8-texel patches), so tinted parts read as shapes. */
+const cloth: TexelFn = (u, v, seed) => {
+  const fold = hash2(Math.floor(u * 16), 0, seed);
+  const patch = hash2(Math.floor(u * 8), Math.floor(v * 8), seed + 1);
+  const k = 0.5 * (0.86 + 0.16 * fold + 0.12 * patch);
+  return [k, k, k];
+};
+
+const TEXELS: Record<TextureKind, TexelFn> = { stone, slab, wood, rot, flesh, water, cloth };
 
 const to8 = (x: number): number => Math.round(Math.min(1, Math.max(0, x)) * 255);
 

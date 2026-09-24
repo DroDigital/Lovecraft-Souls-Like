@@ -1,6 +1,8 @@
 /** Shared test helpers: scripted input frames and a game whose Deep One is driven by hand. */
 
+import { expect } from 'vitest';
 import type { Entity } from '../src/core/ecs';
+import { REACTIONS, type MoveDef, type MoveSet, type Window } from '../src/data/moves';
 import { emptyInput, type Button, type InputFrame } from '../src/core/input';
 import type { Game } from '../src/systems/components';
 import { createGame, stepGame } from '../src/systems/game';
@@ -38,3 +40,26 @@ export function place(g: Game, id: Entity, x: number, z: number, yaw: number): v
 }
 
 export const range = (from: number, to: number): number[] => Array.from({ length: to - from }, (_, i) => from + i);
+
+const windows = (m: MoveDef): Window[] =>
+  [m.iframes, m.parry, m.interrupt, m.hit?.window, m.motion?.window, m.track?.window].filter((w) => w !== undefined);
+
+/** Every reaction exists; every window, cancel, hitstop and combo link is valid. */
+export function expectValidMoveSet(set: MoveSet): void {
+  for (const reaction of Object.keys(REACTIONS)) expect(set[reaction], reaction).toBeDefined();
+  for (const [id, m] of Object.entries(set)) {
+    expect(m.frames, id).toBeGreaterThan(0);
+    for (const [from, to] of windows(m)) {
+      expect(from, id).toBeGreaterThanOrEqual(0);
+      expect(to, id).toBeGreaterThan(from);
+      expect(to, id).toBeLessThanOrEqual(m.frames);
+    }
+    if (m.cancel !== undefined) expect(m.cancel, id).toBeLessThan(m.frames);
+    for (const stop of [m.hit?.hitstop, m.shot?.hitstop]) {
+      if (stop !== undefined) expect([2, 3, 4], id).toContain(stop);
+    }
+    if (m.shot) expect(m.shot.frame, id).toBeLessThan(m.frames);
+    if (m.interrupt && m.hit) expect(m.interrupt[1], `${id} interrupt is a wind-up`).toBeLessThanOrEqual(m.hit.window[0]);
+    for (const next of Object.values(m.combo ?? {})) expect(set[next], `${id} → ${next}`).toBeDefined();
+  }
+}

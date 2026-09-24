@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ANOMALY, ANOMALY_HUES, buildPalette, rgbToHsv } from '../src/render/palette';
+import { ANOMALY, ANOMALY_HUES, buildPalette, gradeTint, rgbToHsv } from '../src/render/palette';
 
 const anomalies = Object.values(ANOMALY);
 const isAnomalyShade = (c: readonly number[]): boolean =>
@@ -20,6 +20,18 @@ describe('palette', () => {
     for (const c of palette) {
       if (rgbToHsv(c)[1] > 0.55) expect(isAnomalyShade(c)).toBe(true);
     }
+  });
+
+  it('grades shadows cold grey-green and lights warm bone, both at low saturation, and its ramp follows', () => {
+    const [cold, warm] = [gradeTint(0), gradeTint(1)];
+    expect(cold[1]).toBeGreaterThan(cold[2]); // green over blue over red
+    expect(cold[2]).toBeGreaterThan(cold[0]);
+    expect(warm[0]).toBeGreaterThan(warm[1]); // red over green over blue
+    expect(warm[1]).toBeGreaterThan(warm[2]);
+    for (const c of [cold, warm]) expect(rgbToHsv(c)[1]).toBeLessThan(0.3);
+    const [dark, light] = [palette[4], palette[20]]; // the ramp runs from index 0 (black) to 23
+    expect(dark[1]).toBeGreaterThan(dark[0]);
+    expect(light[0]).toBeGreaterThan(light[2]);
   });
 
   it('knows the anomaly hues', () => {

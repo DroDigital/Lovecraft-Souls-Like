@@ -1,18 +1,10 @@
 /**
  * Phase 1 combatants: a training dummy and one placeholder Deep One (spec §5, Phase 1).
- * Phase 2's registry replaces them with roster entries, sprites and behaviour archetypes.
+ * They stay as the default arena's sparring partners; roster creatures arrive via `?spawn` (Phase 2).
  */
 
+import { brainOf, type BrainDef } from './archetypes';
 import { REACTIONS, type MoveSet } from './moves';
-
-export interface BrainDef {
-  aggro: number; // metres: wakes when the player is this close and in sight
-  leash: number; // metres from home: gives up and walks back beyond this
-  stop: number; // metres: stops closing in at this distance
-  turnRate: number; // rad/s
-  cooldown: readonly [min: number, max: number]; // frames between attacks
-  attacks: readonly { move: string; weight: number; range: readonly [min: number, max: number] }[];
-}
 
 export interface CombatantDef {
   name: string;
@@ -55,17 +47,10 @@ export const DEEP_ONE: CombatantDef = {
   height: 1.95,
   aimHeight: 1.35,
   bounty: 150,
-  brain: {
-    aggro: 15,
-    leash: 28,
-    stop: 1.5,
-    turnRate: 6,
-    cooldown: [30, 75],
-    attacks: [
-      { move: 'claw', weight: 3, range: [0, 2.2] },
-      { move: 'lunge', weight: 2, range: [2.8, 5.5] },
-    ],
-  },
+  brain: brainOf('pack_hunter', { aggro: 15, leash: 28, range: [0, 1.5], strafe: 0, turnRate: 6, cooldown: [30, 75] }, [
+    { move: 'claw', weight: 3, range: [0, 2.2] },
+    { move: 'lunge', weight: 2, range: [2.8, 5.5] },
+  ]),
   moves: {
     ...REACTIONS,
     death: { frames: 80, hold: true },

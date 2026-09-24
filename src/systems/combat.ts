@@ -10,7 +10,7 @@ import { segSegDist2, wrapAngle, yawOf, type V3 } from '../core/geom';
 import type { HitDef } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
-import type { Actor, Game, Health, HitOutcome, Poise, Stamina } from './components';
+import { isConcealed, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
 import { absorb } from './stamina';
 
 /** What a blow carries into resolution; melee hits and revolver shots both fit. */
@@ -80,13 +80,14 @@ export function hitCentre(pos: V3, yaw: number, hit: HitDef, p: number): V3 {
   return { x: pos.x + Math.sin(a) * hit.reach, y: pos.y + hit.height, z: pos.z + Math.cos(a) * hit.reach };
 }
 
-/** Living, hostile combatants with a body. */
+/** Living, hostile, unconcealed combatants with a body. */
 export function targetsOf(g: Game, id: Entity): Entity[] {
   const { combatant, health, dead, body } = g.ecs.c;
   const faction = combatant.get(id)?.faction;
   const out: Entity[] = [];
   for (const [t, c] of combatant) {
-    if (c.faction !== faction && !dead.has(t) && body.has(t) && (health.get(t)?.hp ?? 0) > 0) out.push(t);
+    if (c.faction === faction || dead.has(t) || !body.has(t) || isConcealed(g, t)) continue;
+    if ((health.get(t)?.hp ?? 0) > 0) out.push(t);
   }
   return out;
 }

@@ -1,19 +1,25 @@
-/** Entry: the Phase 1 combat arena, or the Phase 0 look test at `?look`. */
+/** Entry: the combat arena (`?spawn=<id>[&variant=eldritch|boss]` adds a roster creature), `?bestiary`, or the `?look` test. */
 
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput } from './core/input';
 import { startLoop } from './core/loop';
 import { FX, LIGHT, RENDER, SIM } from './data/tuning';
+import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
+import { createCreatureViews } from './render/creatureViews';
 import { placeCamera } from './render/followCamera';
 import { allEffectsOn, computeFx, lensAt, type FxState } from './render/fx';
+import { lightArena, placeLantern } from './render/lantern';
 import { applyLens } from './render/lens';
 import { ANOMALY } from './render/palette';
 import { createPipeline } from './render/pipeline';
 import { updatePostUniforms } from './render/postPass';
+import { buildAtlas } from './render/sprites/atlas';
 import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
 import type { Game } from './systems/components';
+import { resolveCreature } from './systems/creatures';
 import { createGame, stepGame } from './systems/game';
+import { startBestiary } from './ui/bestiary';
 import { createDebugPanel } from './ui/debugPanel';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
@@ -35,18 +41,33 @@ function playerStats(g: Game): string {
   return `${a.move ?? (a.guard ? 'guard' : 'free')}:${a.frame} · stamina ${s.value.toFixed(0)}\nlock ${lock}`;
 }
 
-/** `debug` exposes the game as `window.game` for console poking and scripted checks. */
-function startArena(debug: boolean): void {
+interface ArenaOptions {
+  debug: boolean; // exposes the game as `window.game` for console poking and scripted checks
+  creature?: string;
+  variant?: Variant;
+}
+
+/** A hint line naming the spawned creature (or the problem with the request). */
+function spawnHint({ creature, variant }: ArenaOptions): string[] {
+  if (creature === undefined) return ['?bestiary: pick a creature to fight'];
+  const def = resolveCreature(creature, variant);
+  return [def ? `spawned: ${def.name} (${def.tier.replace(/_/g, ' ')}) · ?bestiary` : `unknown creature "${creature}${variant ? `#${variant}` : ''}" · ?bestiary`];
+}
+
+function startArena(opts: ArenaOptions): void {
+  const { debug, creature, variant } = opts;
   const state: FxState = { sanity: 100, cap: FX.capDefault, anomalyProximity: 0, enabled: allEffectsOn() };
   const pipeline = createPipeline(document.body);
   const canvas = pipeline.renderer.domElement;
-  const game = createGame();
+  const game = createGame({ creature, variant });
   const scene = createArenaScene();
   const views = createActorViews(scene, game);
+  const creatures = createCreatureViews(scene, game, buildAtlas());
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const hud = createHud(game, canvas);
-  const panel = createDebugPanel(state, HINTS);
+  const panel = createDebugPanel(state, [...HINTS, ...spawnHint(opts)]);
+  lightArena();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
@@ -71,6 +92,8 @@ function startArena(debug: boolean): void {
         if (lowRes !== state.enabled.pixelate) pipeline.resize((lowRes = state.enabled.pixelate));
         placeCamera(camera, game, alpha);
         views.update(alpha, time);
+        placeLantern(game, alpha);
+        creatures.update(alpha, time, camera);
 
         const fx = computeFx(state);
         const lens = lensAt(fx, time);
@@ -96,5 +119,13 @@ function startArena(debug: boolean): void {
 }
 
 const params = new URLSearchParams(location.search);
+const variant = params.get('variant');
 if (params.has('look')) startLookTest();
-else startArena(params.has('debug'));
+else if (params.has('bestiary')) startBestiary();
+else {
+  startArena({
+    debug: params.has('debug'),
+    creature: params.get('spawn') ?? undefined,
+    variant: variant === 'eldritch' || variant === 'boss' ? variant : undefined,
+  });
+}

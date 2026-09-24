@@ -1,10 +1,11 @@
-/** The Phase 1 game: builds the arena world and runs the systems in their fixed order each 60 Hz step. */
+/** The arena game (Phase 1, plus a `?spawn` roster creature from Phase 2): builds the arena world and runs the systems in their fixed order each 60 Hz step. */
 
 import { createEcs } from '../core/ecs';
 import { createEventBus } from '../core/events';
 import type { InputFrame } from '../core/input';
 import { createRng } from '../core/rng';
 import { ARENA } from '../data/arena';
+import type { Variant } from '../data/registry';
 import { DEEP_ONE, TRAINING_DUMMY } from '../data/placeholders';
 import { CAMERA, SIM } from '../data/tuning';
 import { createArenaWorld } from '../world/arena';
@@ -13,6 +14,7 @@ import { brainSystem } from './brain';
 import { createCameraRig, stepCamera } from './camera';
 import { meleeSystem } from './combat';
 import { createStores, type Game, type GameEvents } from './components';
+import { resolveCreature, spawnCreature } from './creatures';
 import { deathSystem, registerDeath } from './death';
 import { createBuffer } from './inputBuffer';
 import { aimPoint, lockSystem } from './lockOn';
@@ -22,7 +24,14 @@ import { shotSystem } from './revolver';
 import { spawnCombatant, spawnPlayer } from './spawn';
 import { vitalsSystem } from './vitals';
 
-export function createGame(seed = ARENA.seed): Game {
+export interface GameOptions {
+  seed?: number;
+  /** A roster creature to fight (it replaces the placeholder Deep One) or fight beside (allies). */
+  creature?: string;
+  variant?: Variant;
+}
+
+export function createGame({ seed = ARENA.seed, creature, variant }: GameOptions = {}): Game {
   const ecs = createEcs(createStores());
   const world = createArenaWorld();
   const id = spawnPlayer({ ecs, world }, ARENA.spawn);
@@ -37,7 +46,10 @@ export function createGame(seed = ARENA.seed): Game {
     frame: 0,
   };
   spawnCombatant(g, TRAINING_DUMMY, ARENA.dummy, 'enemy');
-  spawnCombatant(g, DEEP_ONE, ARENA.deepOne, 'enemy');
+  const def = creature === undefined ? undefined : resolveCreature(creature, variant);
+  if (def?.tier === 'ally') spawnCreature(g, creature!, ARENA.ally, variant);
+  if (def && def.tier !== 'ally') spawnCreature(g, creature!, ARENA.deepOne, variant);
+  else spawnCombatant(g, DEEP_ONE, ARENA.deepOne, 'enemy');
   registerDeath(g);
   cameraSystem(g, 0, 0, 0);
   return g;

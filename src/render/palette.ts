@@ -3,6 +3,9 @@
  * colours in the game. Colours are sRGB triples in 0..1 and shaders use them as-is.
  */
 
+import type { CreaturePalette } from '../data/schema';
+import { GRADE } from '../data/tuning';
+
 export type Rgb = readonly [number, number, number];
 
 export function hexToRgb(hex: string): Rgb {
@@ -49,8 +52,21 @@ export function rgbToHsv(c: Rgb): Rgb {
   return [h, max > 0 ? d / max : 0, max];
 }
 
-/** Bone tint normalised to luma 1, so `luma * BONE_TINT` desaturates toward sepia. */
-export const BONE_TINT: Rgb = scaleRgb(BASE.bone, 1 / luma(BASE.bone));
+const unitLuma = (c: Rgb): Rgb => scaleRgb(c, 1 / luma(c));
+
+/** Split-tone grade tints, normalised to luma 1: fog and shadows lean cold grey-green, lit areas warm bone/sepia. */
+export const COLD_TINT: Rgb = unitLuma(hexToRgb('#4e5b56'));
+export const WARM_TINT: Rgb = unitLuma(hexToRgb('#d6c4a0'));
+
+/** The characters' 1-px rim light: a pale, cold edge. */
+export const RIM: Rgb = hexToRgb('#a3aea8');
+
+/** The grade's tint at luma `l` (the post shader mirrors this), so `l * gradeTint(l)` is the graded colour. */
+export function gradeTint(l: number): Rgb {
+  const [lo, hi] = GRADE.split;
+  const t = Math.min(1, Math.max(0, (l - lo) / (hi - lo)));
+  return mixRgb(COLD_TINT, WARM_TINT, t * t * (3 - 2 * t));
+}
 
 /** Hues of the three anomaly colours, for colour isolation. */
 export const ANOMALY_HUES: Rgb = [
@@ -59,11 +75,12 @@ export const ANOMALY_HUES: Rgb = [
   rgbToHsv(ANOMALY.green)[0],
 ];
 
-/** Quantisation palette (at most 64 colours): sepia ramp, sea-grey, rust, anomaly ramps. */
+/** Quantisation palette (at most 64 colours): the graded ramp (cold darks to warm lights), sea-grey, rust, anomaly ramps. */
 export function buildPalette(): Rgb[] {
   const out: Rgb[] = [];
   for (let i = 0; i < 24; i++) {
-    const t = scaleRgb(BONE_TINT, Math.pow(i / 23, 1.5));
+    const l = Math.pow(i / 23, 1.5);
+    const t = scaleRgb(gradeTint(l), l);
     out.push([Math.min(t[0], 1), Math.min(t[1], 1), Math.min(t[2], 1)]);
   }
   for (const base of [BASE.seaGrey, BASE.rust]) {
@@ -77,3 +94,19 @@ export function buildPalette(): Rgb[] {
   }
   return out;
 }
+
+/** Muted creature palettes (dark, mid, light), all low-saturation: only `glow` markings carry colour. */
+export const CREATURE_COLORS: Readonly<Record<CreaturePalette, { dark: Rgb; mid: Rgb; light: Rgb }>> = {
+  sea: { dark: hexToRgb('#26312f'), mid: hexToRgb('#52625d'), light: hexToRgb('#8c9a90') },
+  bone: { dark: hexToRgb('#4a4538'), mid: hexToRgb('#9a927c'), light: hexToRgb('#d9d0b8') },
+  charcoal: { dark: hexToRgb('#121114'), mid: hexToRgb('#2e2c32'), light: hexToRgb('#4e4b54') },
+  rust: { dark: hexToRgb('#2e1e18'), mid: hexToRgb('#5e3a2c'), light: hexToRgb('#8f6a58') },
+  flesh: { dark: hexToRgb('#4a3530'), mid: hexToRgb('#8a6a60'), light: hexToRgb('#c4a393') },
+  fungus: { dark: hexToRgb('#4a3a3e'), mid: hexToRgb('#8a6d72'), light: hexToRgb('#bfa3a6') },
+  rubber: { dark: hexToRgb('#0d0d10'), mid: hexToRgb('#24242c'), light: hexToRgb('#40404c') },
+  pallid: { dark: hexToRgb('#5a5a58'), mid: hexToRgb('#a8a8a2'), light: hexToRgb('#e2e0d8') },
+  mold: { dark: hexToRgb('#232a20'), mid: hexToRgb('#45503c'), light: hexToRgb('#717c62') },
+  sand: { dark: hexToRgb('#3e3526'), mid: hexToRgb('#7a6a4c'), light: hexToRgb('#b3a27c') },
+  ichor: { dark: hexToRgb('#0b0b0e'), mid: hexToRgb('#1e1c24'), light: hexToRgb('#383442') },
+  stone: { dark: hexToRgb('#34343a'), mid: hexToRgb('#66666a'), light: hexToRgb('#9a9894') },
+};
