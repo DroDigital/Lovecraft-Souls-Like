@@ -28,6 +28,7 @@ export interface Figure {
   flash: THREE.Object3D | null; // muzzle flash
   hip: number; // pelvis height
   hunch: number; // resting forward lean (radians)
+  character?: 'player' | 'creature'; // rim-lit in the post pass (Echo drops are not characters)
   materials: THREE.ShaderMaterial[];
 }
 
@@ -64,13 +65,14 @@ function skeleton(rig: Rig, f: Frame): Figure {
     flash: null,
     hip: f.hip,
     hunch: f.hunch ?? 0,
+    character: rig === 'echo' ? undefined : 'creature',
     materials: [],
   };
 }
 
-/** Adds a mesh with its own world material, so a hit flash lights only this figure. Everything but Echoes is a character (rim-lit). */
+/** Adds a mesh with its own world material, so a hit flash lights only this figure. */
 function part(fig: Figure, parent: THREE.Object3D, geo: THREE.BufferGeometry, texture: TextureKind, emissive = 0): THREE.Mesh {
-  const material = createWorldMaterial({ texture, uvScale: [0.5, 0.5], emissive, vertexColors: true, character: fig.rig !== 'echo' });
+  const material = createWorldMaterial({ texture, uvScale: [0.5, 0.5], emissive, vertexColors: true, character: fig.character });
   fig.materials.push(material);
   const mesh = new THREE.Mesh(geo, material);
   parent.add(mesh);
@@ -83,12 +85,14 @@ const cylinder = (r0: number, r1: number, h: number, y: number, c: Rgb): THREE.B
 
 /**
  * A 1920s investigator in coat and fedora: sword-cane in the right hand, revolver in the left, a lantern
- * at the belt. Built from large value blocks on flat cloth: dark coat, hat and trousers, pale face and
- * hands, one light belt.
+ * at the belt. Built from large value blocks on flat cloth: dark coat, hat and trousers, sleeves a step
+ * lighter, pale face and hands, one light belt.
  */
 function investigator(): Figure {
   const f = skeleton('humanoid', { hip: 0.92, shoulder: [0.28, 0.58], hipX: 0.11, neck: [0.64, 0] });
+  f.character = 'player';
   const coat = shade(mixRgb(BASE.charcoal, BASE.seaGrey, 0.1), 2);
+  const sleeve = shade(mixRgb(BASE.charcoal, BASE.seaGrey, 0.3), 2); // a step lighter, so attack and block poses read
   const dark = shade(BASE.charcoal, 2);
   const pale = shade(BASE.bone, 2);
   const belt = shade(mixRgb(BASE.rust, BASE.bone, 0.3), 1.6);
@@ -101,7 +105,7 @@ function investigator(): Figure {
   part(f, f.head, box(0.2, 0.24, 0.22, 0, 0.13, 0.01, pale), 'cloth');
   part(f, f.head, mergeGeometries([cylinder(0.21, 0.21, 0.03, 0.26, dark), cylinder(0.12, 0.13, 0.15, 0.34, dark)]), 'cloth');
   for (const arm of [f.armR, f.armL]) {
-    part(f, arm, mergeGeometries([box(0.12, 0.58, 0.13, 0, -0.29, 0, coat), box(0.09, 0.1, 0.1, 0, -0.63, 0.01, pale)]), 'cloth');
+    part(f, arm, mergeGeometries([box(0.12, 0.58, 0.13, 0, -0.29, 0, sleeve), box(0.09, 0.1, 0.1, 0, -0.63, 0.01, pale)]), 'cloth');
   }
   part(f, f.armR, box(0.035, 0.8, 0.035, 0, -1.0, 0.02, shade(BASE.bone, 0.9)), 'wood');
   part(f, f.armL, box(0.05, 0.2, 0.09, 0, -0.68, 0.02, dark), 'cloth');
@@ -111,23 +115,14 @@ function investigator(): Figure {
   return f;
 }
 
-/** Placeholder Deep One: hunched, broad, a flat fish head with pale staring eyes, a dorsal fin, long clawed arms. */
+/** Placeholder Deep One: hunched, broad, a flat fish head with pale staring eyes that glint, a dorsal fin, long clawed arms. */
 function deepOne(): Figure {
   const f = skeleton('humanoid', { hip: 0.82, hunch: 0.38, shoulder: [0.33, 0.6], hipX: 0.13, neck: [0.66, 0.1] });
-  const hide = shade(mixRgb(BASE.seaGrey, BASE.charcoal, 0.7), 1.1); // dark wet hide: reads against the lantern-lit floor
+  const hide = shade(mixRgb(BASE.seaGrey, BASE.bone, 0.4), 1.7); // pale grey-green: never merges with the dark player
   const eye = shade(BASE.bone, 1.15);
   part(f, f.torso, mergeGeometries([box(0.54, 0.7, 0.38, 0, 0.35, 0, hide), box(0.04, 0.6, 0.34, 0, 0.42, -0.24, shade(hide, 0.7))]), 'flesh');
-  part(
-    f,
-    f.head,
-    mergeGeometries([
-      box(0.36, 0.26, 0.42, 0, 0.12, 0.08, hide),
-      box(0.1, 0.1, 0.1, -0.16, 0.17, 0.25, eye),
-      box(0.1, 0.1, 0.1, 0.16, 0.17, 0.25, eye),
-      box(0.28, 0.03, 0.03, 0, 0.03, 0.3, shade(BASE.charcoal, 1.5)),
-    ]),
-    'flesh',
-  );
+  part(f, f.head, mergeGeometries([box(0.36, 0.26, 0.42, 0, 0.12, 0.08, hide), box(0.28, 0.03, 0.03, 0, 0.03, 0.3, shade(BASE.charcoal, 1.5))]), 'flesh');
+  part(f, f.head, mergeGeometries([box(0.1, 0.1, 0.1, -0.16, 0.17, 0.25, eye), box(0.1, 0.1, 0.1, 0.16, 0.17, 0.25, eye)]), 'cloth', 0.85);
   const claws = (x: number): THREE.BufferGeometry => box(0.03, 0.18, 0.03, x, -0.95, 0.03, shade(BASE.bone, 0.9));
   for (const arm of [f.armR, f.armL]) {
     part(f, arm, mergeGeometries([box(0.14, 0.86, 0.15, 0, -0.43, 0, hide), claws(-0.05), claws(0), claws(0.05)]), 'flesh');

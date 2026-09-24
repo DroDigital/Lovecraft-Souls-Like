@@ -3,7 +3,7 @@ import { ENTITIES } from '../src/data/registry';
 import { CREATURE_PALETTES } from '../src/data/schema';
 import { buildAssembly } from '../src/render/assemblies';
 import { ANOMALY, CREATURE_COLORS, rgbToHsv, type Rgb } from '../src/render/palette';
-import { GLOW, LIT } from '../src/render/sprites/raster';
+import { GLINT, GLOW, LIT } from '../src/render/sprites/raster';
 import { buildAtlas, CELL, cellOrigin, drawSprite, SPRITE_STATES, spriteKey, spriteRecipes } from '../src/render/sprites/atlas';
 
 const atlas = buildAtlas();
@@ -18,6 +18,7 @@ function cellPixels(cell: number): Uint8Array {
 }
 
 const opaque = (px: Uint8Array): number => px.filter((_, i) => i % 4 === 3 && px[i] > 0).length;
+const glints = (cell: number): boolean => cellPixels(cell).some((a, i) => i % 4 === 3 && a === GLINT);
 
 describe('sprite atlas', () => {
   it('holds every sprite entity and every sprite variant', () => {
@@ -43,17 +44,22 @@ describe('sprite atlas', () => {
     expect(drawSprite(r, 'attack', 1).px).toEqual(drawSprite(r, 'attack', 1).px);
   });
 
-  it('only glow markings carry anomaly colour; everything else stays muted', () => {
+  it('only glow markings carry anomaly colour; everything else (eye glints too) stays muted', () => {
     const hues = Object.values(ANOMALY).map((x) => rgbToHsv(x)[0]);
     const bad: string[] = [];
     for (let i = 0; i < atlas.data.length && bad.length < 5; i += 4) {
       const a = atlas.data[i + 3];
       if (a === 0) continue;
       const [h, s] = rgbToHsv([atlas.data[i] / 255, atlas.data[i + 1] / 255, atlas.data[i + 2] / 255] as Rgb);
-      const ok = a === GLOW ? hues.some((x) => Math.abs(x - h) < 0.02) : a === LIT && s < 0.6;
+      const ok = a === GLOW ? hues.some((x) => Math.abs(x - h) < 0.02) : (a === LIT || a === GLINT) && s < 0.6;
       if (!ok) bad.push(`pixel ${i / 4}: alpha ${a}, hue ${h.toFixed(3)}, saturation ${s.toFixed(2)}`);
     }
     expect(bad).toEqual([]);
+  });
+
+  it('gives creatures without glow markings self-lit eye glints', () => {
+    const blind = recipes.filter(({ key, recipe: r }) => !r.glow && (r.eyes ?? 1) > 0 && !glints(atlas.frames.get(key)!.idle[0]));
+    expect(blind.map((r) => r.key)).toEqual([]);
   });
 
   it('keeps creature palettes desaturated', () => {

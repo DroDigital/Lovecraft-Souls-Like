@@ -63,7 +63,7 @@ export function drawSprite(r: SpriteRecipe, state: SpriteState, frame: number, s
     dark: { rgb: pal.dark },
     light: { rgb: pal.light },
     claw: { rgb: scaleRgb(pal.light, 0.9) },
-    eye: r.glow ? { rgb: ANOMALY[r.glow], glow: true } : { rgb: PALE_EYE },
+    eye: r.glow ? { rgb: ANOMALY[r.glow], glow: true } : { rgb: PALE_EYE, glint: true },
   });
   outline(c, scaleRgb(pal.dark, 0.35));
   return c;

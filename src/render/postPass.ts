@@ -24,7 +24,7 @@ function createUniforms(source: THREE.Texture, palette: Float32Array) {
     uWarm: { value: new THREE.Vector3(...WARM_TINT) },
     uSplit: { value: new THREE.Vector2(...GRADE.split) },
     uRimColor: { value: new THREE.Vector3(...RIM) },
-    uRimAmount: { value: GRADE.rim },
+    uRimAmount: { value: new THREE.Vector2(GRADE.rim, GRADE.rimCreature) },
     uRimBackdrop: { value: new THREE.Vector2(...GRADE.rimBackdrop) },
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
     uQuantize: { value: 0 },

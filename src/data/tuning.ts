@@ -53,7 +53,9 @@ export const LIGHT = {
   dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use); the ?look test's light
   color: [0.7, 0.68, 0.63] as Vec3,
   ambient: [0.19, 0.19, 0.21] as Vec3,
-  nightAmbient: [0.018, 0.024, 0.022] as Vec3, // the arena has no moon: a faint cold ambient, and the lantern
+  nightAmbient: [0.018, 0.024, 0.022] as Vec3, // the arena at night: a faint cold ambient...
+  nightMoon: [0.2, 0.24, 0.26] as Vec3, // ...a very dim cold moon, so architecture beyond the lantern reads as faint shapes...
+  nightMoonDir: [-0.7, 0.35, 0.45] as Vec3, // ...low in the sky, so it finds walls and pillars more than the floor
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
   echoGlowRange: 6, // a dropped Echo's faint light
@@ -66,18 +68,22 @@ export const LANTERN = {
   color: [1, 0.82, 0.58] as Vec3,
   intensity: 1.5,
   range: 6, // metres; nothing beyond is lit
-  hard: 0.75, // the cut-off starts at this fraction of the range and ends at the range
+  hard: 0.75, // the edge band starts at this fraction of the range and ends at the range (ordered-dithered)
+  ragged: 0.12, // the edge band's distance wanders by up to this fraction around the lantern
   decay: 0.05, // inverse-square falloff inside the range, per m², so the pool is brightest at the player
   facing: 0.5, // weight of N·L: surfaces turned away keep 1 - facing of the light
-  height: 1, // metres above the player's feet
-  forward: 0.3, // metres ahead of the player
+  height: 0.9, // metres above the player's feet: it hangs at the belt...
+  forward: 0.25, // ...ahead of the player...
+  side: 0.3, // ...and to their left, so the pool is brightest on that side
 };
 
 /** Post colour grade (spec §2): split toning by luma, and the characters' rim light. */
 export const GRADE = {
   split: [0.03, 0.2] as const, // luma: cold grey-green shadows and fog at the first, warm bone/sepia lights from the second
-  rim: 0.4, // strength of the 1-px rim on characters (fades with their fog)...
-  rimBackdrop: [0.03, 0.15] as const, // ...over backdrops at most this much brighter than them (luma)
+  rim: 0.4, // strength of the player's 1-px rim...
+  rimCreature: 0.6, // ...and every other character's, stronger so a creature never merges with the dark player...
+  rimBackdrop: [0.03, 0.15] as const, // ...where the neighbour (backdrop or the other kind) is at most this much brighter (luma)
+  rimFade: [9, 15] as const, // metres from the camera over which the rim fades out: far creatures are silhouettes and eyes
 };
 
 /** Debug orbit camera of the Phase 0 look-test scene. */

@@ -42,7 +42,7 @@ export function buildAssembly(r: AssemblyRecipe, seed = 1): Assembly {
   const root = new THREE.Group();
   const materials: THREE.ShaderMaterial[] = [];
   const mat = (emissive = 0): THREE.ShaderMaterial => {
-    const m = createWorldMaterial({ texture: 'flesh', seed: seed + 3, uvScale: [3, 3], emissive, vertexColors: true, character: true });
+    const m = createWorldMaterial({ texture: 'flesh', seed: seed + 3, uvScale: [3, 3], emissive, vertexColors: true, character: 'creature' });
     materials.push(m);
     return m;
   };

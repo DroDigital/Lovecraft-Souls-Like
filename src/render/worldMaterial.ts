@@ -1,7 +1,7 @@
 /** World materials: one shared uniform set (updated once per frame) + a procedural texture each. */
 
 import * as THREE from 'three';
-import { FX, LANTERN, LIGHT, type Vec3 } from '../data/tuning';
+import { FX, GRADE, LANTERN, LIGHT, type Vec3 } from '../data/tuning';
 import type { FxParams } from './fx';
 import { ANOMALY } from './palette';
 import { WORLD_FRAG, WORLD_VERT } from './shaders/world';
@@ -33,9 +33,12 @@ export const worldUniforms = {
   uLanternRange: { value: LANTERN.range },
   uLanternHard: { value: LANTERN.hard },
   uLanternDecay: { value: LANTERN.decay },
+  uLanternRagged: { value: LANTERN.ragged },
   uLanternFacing: { value: LANTERN.facing },
   uCharacterLight: { value: LIGHT.character },
   uMarkCharacters: { value: 0 }, // 1: characters mark alpha for the post pass's rim; 0 keeps direct-to-canvas renders opaque
+  uRimNear: { value: GRADE.rimFade[0] },
+  uRimFar: { value: GRADE.rimFade[1] },
   uFogNear: { value: 0 },
   uFogFar: { value: 1 },
   uFogAmount: { value: 0 },
@@ -49,7 +52,7 @@ export interface WorldMaterialOptions {
   uvScroll?: readonly [number, number]; // texture units per second (water)
   emissive?: number; // 0 = vertex-lit, 1 = fully self-lit
   vertexColors?: boolean;
-  character?: boolean; // gets the post pass's rim light
+  character?: 'player' | 'creature'; // gets the post pass's rim light (the two kinds are rimmed against each other too)
 }
 
 const textures = new Map<string, THREE.DataTexture>();
@@ -81,7 +84,7 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
       uUvScale: { value: new THREE.Vector2(su, sv) },
       uUvScroll: { value: new THREE.Vector2(du, dv) },
       uEmissive: { value: o.emissive ?? 0 },
-      uCharacter: { value: o.character ? 1 : 0 },
+      uCharacter: { value: o.character === 'player' ? 2 : o.character ? 1 : 0 },
     },
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,

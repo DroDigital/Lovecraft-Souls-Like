@@ -2,7 +2,8 @@
  * A tiny software rasteriser for the sprite generator (pure, no Three.js): shaded ellipses,
  * tapered capsules and polygons written into an RGBA cell, then a dark outline pass. Shapes are
  * shaded as if they were rounded, lit from the upper left, with a little seeded grit. Alpha marks
- * the pixel kind: 0 empty, LIT lit by the world, GLOW self-lit (anomaly-coloured markings).
+ * the pixel kind: 0 empty, LIT lit by the world, GLOW self-lit (anomaly-coloured markings), GLINT
+ * self-lit but muted (eye glints).
  */
 
 import { hash2 } from '../../core/rng';
@@ -10,6 +11,7 @@ import type { Rgb } from '../palette';
 
 export const LIT = 255;
 export const GLOW = 160;
+export const GLINT = 208;
 
 export interface Canvas {
   w: number;
@@ -18,10 +20,11 @@ export interface Canvas {
   seed: number;
 }
 
-/** How a shape is painted: its colour, and whether it glows (unshaded, self-lit). */
+/** How a shape is painted: its colour, and whether it glows or glints (both unshaded and self-lit). */
 export interface Ink {
   rgb: Rgb;
   glow?: boolean;
+  glint?: boolean;
 }
 
 export const createCanvas = (w: number, h: number, seed = 0): Canvas => ({ w, h, px: new Uint8Array(w * h * 4), seed });
@@ -40,12 +43,13 @@ const lambert = (nx: number, ny: number, nz: number): number => 0.5 + 0.7 * Math
 function put(c: Canvas, x: number, y: number, ink: Ink, k: number): void {
   if (x < 0 || y < 0 || x >= c.w || y >= c.h) return;
   const i = (y * c.w + x) * 4;
-  const grit = ink.glow ? 1 : 1 + (hash2(x, y, c.seed) - 0.5) * 0.14;
-  const s = (ink.glow ? 1 : k) * grit;
+  const self = ink.glow || ink.glint;
+  const grit = self ? 1 : 1 + (hash2(x, y, c.seed) - 0.5) * 0.14;
+  const s = (self ? 1 : k) * grit;
   c.px[i] = to8(ink.rgb[0] * s);
   c.px[i + 1] = to8(ink.rgb[1] * s);
   c.px[i + 2] = to8(ink.rgb[2] * s);
-  c.px[i + 3] = ink.glow ? GLOW : LIT;
+  c.px[i + 3] = ink.glow ? GLOW : ink.glint ? GLINT : LIT;
 }
 
 /** A filled ellipse centred at (cx, cy), radii (rx, ry), turned by `rot` radians. */

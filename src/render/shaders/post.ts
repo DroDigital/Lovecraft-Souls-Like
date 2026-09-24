@@ -2,7 +2,8 @@
  * The single fullscreen post pass (spec §2): sanity warp (UV ripple + chromatic split),
  * split-tone grade with colour isolation, the characters' 1-px rim light, palette quantisation
  * with 4×4 Bayer dithering. It renders at the low-res size; the browser upscales the canvas
- * nearest-neighbour. Scene alpha marks characters: fog/2 on them (at most 0.5), 1 elsewhere.
+ * nearest-neighbour. Scene alpha marks characters: creatures 0..0.25, the player 0.5..0.75 (rising
+ * as their rim fades out with distance), everything else 1.
  */
 
 export const POST_VERT = /* glsl */ `
@@ -28,7 +29,7 @@ uniform vec3 uCold;
 uniform vec3 uWarm;
 uniform vec2 uSplit;
 uniform vec3 uRimColor;
-uniform float uRimAmount;
+uniform vec2 uRimAmount; // player, creatures
 uniform vec2 uRimBackdrop;
 uniform vec3 uAnomalyHues;
 uniform float uQuantize;
@@ -65,17 +66,25 @@ vec3 isolate(vec3 c) {
   return mix(graded, vivid, mask);
 }
 
-// 2. Rim light: a character pixel whose left, right or upper neighbour is backdrop that is not
-// clearly brighter than it gets a pale edge, fading with the character's fog.
+// 0 = world, 1 = creature, 2 = the player.
+float kindOf(float a) {
+  return a > 0.875 ? 0.0 : a > 0.375 ? 2.0 : 1.0;
+}
+
+// 2. Rim light: a character pixel whose left, right or upper neighbour is backdrop or the other kind
+// of character, and not clearly brighter, gets a pale edge (creatures a stronger one). It fades out
+// with distance, so far creatures read as silhouettes and eye glints.
 vec3 rim(vec3 col, vec4 centre, vec2 uv, vec2 px) {
-  if (centre.a > 0.75) return col;
+  float kind = kindOf(centre.a);
+  if (kind == 0.0) return col;
   float l = dot(centre.rgb, LUMA);
   float edge = 0.0;
   for (int i = 0; i < 3; i++) {
     vec4 n = texture(tScene, uv + (i == 0 ? vec2(-px.x, 0.0) : i == 1 ? vec2(px.x, 0.0) : vec2(0.0, px.y)));
-    if (n.a > 0.75) edge = max(edge, 1.0 - smoothstep(uRimBackdrop.x, uRimBackdrop.y, dot(n.rgb, LUMA) - l));
+    if (kindOf(n.a) != kind) edge = max(edge, 1.0 - smoothstep(uRimBackdrop.x, uRimBackdrop.y, dot(n.rgb, LUMA) - l));
   }
-  return mix(col, uRimColor, uRimAmount * (1.0 - 2.0 * centre.a) * edge);
+  float near = 1.0 - 4.0 * (kind == 2.0 ? centre.a - 0.5 : centre.a);
+  return mix(col, uRimColor, (kind == 2.0 ? uRimAmount.x : uRimAmount.y) * near * edge);
 }
 
 // 3. Palette quantisation with 4x4 Bayer dithering.

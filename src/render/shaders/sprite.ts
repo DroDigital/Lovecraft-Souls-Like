@@ -2,7 +2,8 @@
  * Creature billboards (spec §2): instanced quads that turn about the vertical axis to face the
  * camera, Doom-style, sampling the sprite atlas. They share the world's vertex snapping, light
  * (ambient, moon and lantern, without normals) and fog. Atlas alpha marks lit pixels (1) and
- * self-lit glow markings (~0.63); transparency is dithered. Output alpha can mark a character (see world.ts).
+ * self-lit pixels (glow markings ~0.63, eye glints ~0.82); transparency is dithered. Output alpha can mark a
+ * creature for the post pass's rim (see post.ts).
  */
 
 import { LANTERN_GLSL } from './world';
@@ -15,6 +16,8 @@ uniform float uFogFar;
 uniform vec3 uAmbient;
 uniform vec3 uLightColor;
 uniform float uCharacterLight;
+uniform float uRimNear;
+uniform float uRimFar;
 
 attribute vec4 aCell; // u0, v0 (top), u1, v1 (bottom)
 attribute vec4 aInfo; // flash, opacity, flip, unused
@@ -22,6 +25,7 @@ attribute vec4 aInfo; // flash, opacity, flip, unused
 varying vec2 vUv;
 varying vec3 vLight;
 varying float vFog;
+varying float vRim;
 varying float vFlash;
 varying float vOpacity;
 ${LANTERN_GLSL}
@@ -40,8 +44,9 @@ void main() {
   gl_Position = clip;
   float u = aInfo.z > 0.5 ? 1.0 - uv.x : uv.x;
   vUv = vec2(mix(aCell.x, aCell.z, u), mix(aCell.y, aCell.w, 1.0 - uv.y));
-  vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(distance(wp, uLanternPos))) * uCharacterLight;
+  vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(uLanternPos - wp)) * uCharacterLight;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
+  vRim = 1.0 - smoothstep(uRimNear, uRimFar, -vp.z);
   vFlash = aInfo.x;
   vOpacity = aInfo.y;
 }
@@ -56,6 +61,7 @@ uniform float uMarkCharacters;
 varying vec2 vUv;
 varying vec3 vLight;
 varying float vFog;
+varying float vRim;
 varying float vFlash;
 varying float vOpacity;
 
@@ -72,6 +78,6 @@ void main() {
   vec3 col = glow ? t.rgb : t.rgb * vLight;
   col = mix(col, vec3(1.0), vFlash);
   float fog = vFog * uFogAmount;
-  gl_FragColor = vec4(mix(col, uFogColor, fog * (glow ? 0.5 : 1.0)), uMarkCharacters > 0.5 ? 0.5 * fog : 1.0);
+  gl_FragColor = vec4(mix(col, uFogColor, fog * (glow ? 0.5 : 1.0)), uMarkCharacters > 0.5 ? 0.25 * (1.0 - vRim) : 1.0);
 }
 `;
