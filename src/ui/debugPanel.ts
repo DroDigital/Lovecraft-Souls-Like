@@ -32,6 +32,7 @@ export interface Binding {
 
 export interface PanelOptions {
   sanity?: Binding; // default: the FxState's own sanity
+  cap?: Binding; // default: the FxState's own cap
   insight?: Binding;
   actions?: readonly { label: string; run(): void }[];
 }
@@ -85,7 +86,7 @@ export function createDebugPanel(state: FxState, hints: readonly string[], opts:
   );
   const sliders = [
     slider('sanity', 100, 1, opts.sanity ?? { get: () => state.sanity, set: (v) => (state.sanity = v) }),
-    slider('fx cap', 1, 0.05, { get: () => state.cap, set: (v) => (state.cap = v) }),
+    slider('fx cap', 1, 0.05, opts.cap ?? { get: () => state.cap, set: (v) => (state.cap = v) }),
     ...(opts.insight ? [slider('insight', 9, 1, opts.insight)] : []),
   ];
   root.append(...sliders.map((s) => s.row));

@@ -17,3 +17,15 @@ export function bar(parent: HTMLElement, colour: string): HTMLDivElement {
   const frame = el(`position:relative;height:6px;margin:4px 0;border:1px solid ${BONE}55;background:#0008`, '', parent);
   return el(`height:100%;width:100%;background:${colour}`, '', frame);
 }
+
+/** Writes only what changed, so an unchanged HUD costs the page no style or layout work. */
+export function setText(e: HTMLElement, text: string): void {
+  if (e.textContent !== text) e.textContent = text;
+}
+
+export function setStyle(e: HTMLElement, key: 'width' | 'background' | 'opacity' | 'display' | 'left' | 'top', value: string): void {
+  if (e.style[key] !== value) e.style[key] = value;
+}
+
+/** A bar fill's width for `value` of `max`, to a tenth of a percent. */
+export const percent = (value: number, max: number): string => `${Math.max(0, Math.min(100, (100 * value) / max)).toFixed(1)}%`;

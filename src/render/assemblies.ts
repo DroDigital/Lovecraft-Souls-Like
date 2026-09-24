@@ -1,13 +1,15 @@
 /**
  * Colossal bosses as low-poly primitive assemblies (spec §2), built from their AssemblyRecipe:
  * a lathed body (or a mound of lathes, or a congeries of spheres), segment-chain tentacles that
- * sway, membranous wings, and eyes. Animated procedurally; no skeletal assets.
+ * sway, membranous wings, and eyes. Animated procedurally; no skeletal assets. The parts are batched
+ * into one mesh per material (rigidBatch.ts), so a colossus costs a few draw calls.
  */
 
 import * as THREE from 'three';
 import { createRng } from '../core/rng';
 import type { AssemblyRecipe } from '../data/schema';
 import { tint } from './meshKit';
+import { batchRigid } from './rigidBatch';
 import { ANOMALY, CREATURE_COLORS, scaleRgb, type Rgb } from './palette';
 import { createWorldMaterial } from './worldMaterial';
 
@@ -127,6 +129,7 @@ export function buildAssembly(r: AssemblyRecipe, seed = 1): Assembly {
     chains.push({ base, joints, phase: rng() * Math.PI * 2 });
   }
 
+  const batch = batchRigid(root); // one draw per material, not one per segment
   return {
     root,
     materials,
@@ -141,6 +144,7 @@ export function buildAssembly(r: AssemblyRecipe, seed = 1): Assembly {
           j.rotation.set(sway - lash * 0.25, 0, Math.cos(time * 0.9 + c.phase + k) * 0.15);
         });
       }
+      batch.update();
     },
   };
 }

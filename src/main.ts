@@ -1,15 +1,21 @@
 /**
- * Entry: the open world (saved to localStorage; `?fresh` starts anew), the combat arena (`?arena`, or
- * `?spawn=<id>[&variant=eldritch|boss]` to add a roster creature), `?bestiary`, or the `?look` test.
+ * Entry: the title screen, then the open world (saved to localStorage; `?fresh` skips the title and
+ * starts anew), the combat arena (`?arena`, or `?spawn=<id>[&variant=eldritch|boss]` to add a roster
+ * creature), `?bestiary`, or the `?look` test. `?debug` shows the debug panel (as the arena does)
+ * and exposes the game on `window`. Settings and the audio engine outlive the title screen.
  */
 
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
-import { FX, LIGHT, RENDER, SIM, UPGRADES, type UpgradeId } from './data/tuning';
+import { STINGERS } from './data/sounds';
+import { LIGHT, RENDER, SIM, UPGRADES, type UpgradeId } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
-import { createAudioFx } from './render/audioFx';
+import { createDrones, type Drones } from './render/audio/drones';
+import { createAudioEngine, type AudioEngine } from './render/audio/engine';
+import { createGameAudio } from './render/audio/gameAudio';
+import { playSound } from './render/audio/synth';
 import { createCreatureViews } from './render/creatureViews';
 import { createFightViews } from './render/fightViews';
 import { placeCamera } from './render/followCamera';
@@ -30,25 +36,21 @@ import { resolveCreature } from './systems/creatures';
 import { createGame, createWorldGame, stepGame } from './systems/game';
 import { buyUpgrade, changeInsight, upgradeName } from './systems/insight';
 import { setSanity } from './systems/sanity';
-import { clearSave, loadSave } from './systems/save';
+import { clearSave, loadSave, type SaveStore } from './systems/save';
 import { browserStore, startAutosave } from './ui/autosave';
 import { startBestiary } from './ui/bestiary';
 import { createDebugPanel, type PanelOptions } from './ui/debugPanel';
 import { createEndingCard } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
+import { setMenuSound } from './ui/menuKit';
+import { createPauseMenu } from './ui/pauseMenu';
+import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
+import { showTitle } from './ui/titleScreen';
 import { createArenaScene } from './world/arenaScene';
 
-const HINTS = [
-  'click: mouse look · WASD move',
-  'LMB light · ⇧LMB heavy · F revolver',
-  'RMB block · ⇧RMB parry',
-  'Space dodge, hold: sprint',
-  'Q lock-on · ←/→ switch target',
-  'R Laudanum (restores sanity)',
-];
-const WORLD_HINTS = ['E rest at an Elder Sign · pass a gate', '?arena: the combat arena · ?fresh: new game'];
+const HINTS = ['Esc: pause, settings, controls', '?arena: the combat arena · ?fresh: new game'];
 
 function playerStats(g: Game): string {
   const c = g.ecs.c;
@@ -56,6 +58,15 @@ function playerStats(g: Game): string {
   const s = c.stamina.get(g.player.id)!;
   const lock = g.lock.target === null ? '—' : (c.combatant.get(g.lock.target)?.name ?? '?');
   return `${a.move ?? (a.guard ? 'guard' : 'free')}:${a.frame} · stamina ${s.value.toFixed(0)}\nlock ${lock}`;
+}
+
+/** What outlives the title screen: the settings (kept in localStorage) and the audio. */
+interface Shell {
+  settings: Settings;
+  change(id: SettingId, v: number): void;
+  store: SaveStore | null;
+  engine: AudioEngine;
+  drones: Drones;
 }
 
 interface StartOptions {
@@ -82,10 +93,11 @@ function spawnHint({ creature, variant }: StartOptions): string[] {
   return [`spawned: ${def.name} (${def.tier.replace(/_/g, ' ')})${veil ? ` · unseen until ${veil}` : ''} · ?bestiary`];
 }
 
-/** Arena debug controls: sanity and insight sliders that drive the game, and upgrade purchases. */
-function panelOptions(game: Game): PanelOptions {
+/** Debug controls: sanity, FX cap and insight sliders that drive the game, and upgrade purchases. */
+function panelOptions(game: Game, shell: Shell): PanelOptions {
   return {
     sanity: { get: () => game.mind.sanity, set: (v) => setSanity(game, v) },
+    cap: { get: () => shell.settings.fxCap, set: (v) => shell.change('fxCap', v) },
     insight: { get: () => game.mind.insight, set: (v) => changeInsight(game, v - game.mind.insight, 'debug', 'debug panel') },
     actions: (Object.keys(UPGRADES) as UpgradeId[]).map((id) => ({
       label: `spend ${UPGRADES[id].cost} insight: ${upgradeName(id)}`,
@@ -94,38 +106,54 @@ function panelOptions(game: Game): PanelOptions {
   };
 }
 
-function startGame(opts: StartOptions): void {
+function startGame(opts: StartOptions, shell: Shell): void {
   const { debug, creature, variant } = opts;
-  const state: FxState = { sanity: 100, cap: FX.capDefault, anomalyProximity: 0, enabled: allEffectsOn() };
+  const { settings } = shell;
+  const state: FxState = { sanity: 100, cap: settings.fxCap, anomalyProximity: 0, enabled: allEffectsOn() };
   const pipeline = createPipeline(document.body);
   const canvas = pipeline.renderer.domElement;
-  const store = opts.arena ? null : browserStore();
+  const store = opts.arena ? null : shell.store;
   if (store && opts.fresh) clearSave(store);
   const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined });
   const world = opts.arena ? null : createWorldScene();
   const scene = world?.scene ?? createArenaScene();
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game);
   const ending = createEndingCard(game);
+  const pause = createPauseMenu({
+    settings,
+    change: shell.change,
+    resume: () => {
+      try {
+        const r: unknown = canvas.requestPointerLock();
+        if (r instanceof Promise) r.catch(() => undefined);
+      } catch {
+        // No pointer lock: a click on the canvas captures the mouse, as ever.
+      }
+    },
+    quit: () => void (location.href = location.pathname),
+  });
   if (store) startAutosave(game, store);
   const views = createActorViews(scene, game);
   const creatures = createCreatureViews(scene, game, buildAtlas());
   const hidden = createHiddenViews(scene, game);
   const fights = createFightViews(scene, game);
   const fxController = createFxController(game);
-  const audio = createAudioFx();
+  const audio = createGameAudio(shell.engine, shell.drones, game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const hud = createHud(game, canvas);
-  const panel = createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(opts) : WORLD_HINTS)], panelOptions(game));
+  const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(opts) : [])], panelOptions(game, shell)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
-  if (debug) Object.assign(window, { game, world });
+  if (debug) Object.assign(window, { game, world, audio: shell.engine });
 
   let lowRes = state.enabled.pixelate;
-  pipeline.resize(lowRes);
-  addEventListener('resize', () => pipeline.resize(lowRes));
+  let scale = settings.resolution;
+  const resize = (): void => pipeline.resize(lowRes, scale);
+  resize();
+  addEventListener('resize', resize);
 
   let simTime = 0;
   let frames = 0;
@@ -134,13 +162,20 @@ function startGame(opts: StartOptions): void {
   startLoop(
     {
       step(dt) {
+        const frame = input.poll(); // polled even when unused, so no press is left latched for later
+        if (pause.open) return; // the world stands still
         simTime += dt;
-        const frame = input.poll();
         stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
       },
-      render(alpha) {
+      render(blend) {
+        const alpha = pause.open ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
-        if (lowRes !== state.enabled.pixelate) pipeline.resize((lowRes = state.enabled.pixelate));
+        input.sensitivity = settings.sensitivity;
+        state.cap = settings.fxCap;
+        if (lowRes !== state.enabled.pixelate || scale !== settings.resolution) {
+          [lowRes, scale] = [state.enabled.pixelate, settings.resolution];
+          resize();
+        }
         placeCamera(camera, game, alpha);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z);
@@ -154,15 +189,15 @@ function startGame(opts: StartOptions): void {
         const fx = computeFx(state);
         applyReality(fx, game.reality);
         lightReality(game.reality);
-        audio.update(fx, time);
+        audio.update(fx, time, camera, pause.open);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
         updatePostUniforms(pipeline.post, fx, time, pipeline.size);
         pipeline.render(scene, camera);
         hud.update(camera);
+        if (!panel) return;
         panel.refresh();
-
         frames++;
         const now = performance.now();
         if (now - statsAt >= 500) {
@@ -178,16 +213,53 @@ function startGame(opts: StartOptions): void {
   );
 }
 
+/** Settings, the audio engine and the drones, made once for the page. */
+function createShell(): Shell {
+  const store = browserStore();
+  const settings = loadSettings(store);
+  const engine = createAudioEngine(settings.volume);
+  setMenuSound(() => playSound(engine, STINGERS.select));
+  const change = (id: SettingId, v: number): void => {
+    settings[id] = clampSetting(id, v);
+    storeSettings(store, settings);
+    if (id === 'volume') engine.setVolume(settings.volume);
+  };
+  return { settings, change, store, engine, drones: createDrones(engine) };
+}
+
+/** The title screen, humming its drone, until a choice starts the world. */
+function title(opts: StartOptions, shell: Shell): void {
+  let open = true;
+  shell.drones.set('title', false);
+  const hum = (): void => {
+    if (!open) return;
+    shell.drones.update(null, performance.now() / 1000);
+    requestAnimationFrame(hum);
+  };
+  hum();
+  showTitle({
+    hasSave: !!(shell.store && loadSave(shell.store)),
+    settings: shell.settings,
+    change: shell.change,
+    start(fresh) {
+      open = false;
+      startGame({ ...opts, fresh }, shell);
+    },
+  });
+}
+
 const params = new URLSearchParams(location.search);
 const variant = params.get('variant');
 if (params.has('look')) startLookTest();
 else if (params.has('bestiary')) startBestiary();
 else {
-  startGame({
+  const opts: StartOptions = {
     debug: params.has('debug'),
     arena: params.has('arena') || params.has('spawn'),
     fresh: params.has('fresh'),
     creature: params.get('spawn') ?? undefined,
     variant: variant === 'eldritch' || variant === 'boss' ? variant : undefined,
-  });
+  };
+  if (opts.arena || opts.fresh) startGame(opts, createShell());
+  else title(opts, createShell());
 }

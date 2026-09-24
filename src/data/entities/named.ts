@@ -93,7 +93,7 @@ export const NAMED = tier('named', [
     eldritchVariant: { sprite: { silhouette: 'crustacean', palette: 'fungus', wings: 2 } },
   },
   {
-    id: 'the_hound', name: 'The Hound', source: 'The Hound', regions: ['arkham'], canonLooks: false,
+    id: 'the_hound', name: 'The Hound', source: 'The Hound', regions: ['arkham'], canonLooks: false, voice: 'bay',
     sprite: { silhouette: 'quadruped', palette: 'bone', scale: 2.4, eyes: 2, wings: 2, glow: 'green' },
     ...scripted('pack_hunter', phases(ph(1, { bite: 2, lunge: 1, charge: 1 }), ph(0.4, { bite: 2, lunge: 2, charge: 1, roar: 1 }))),
     stats: st(1300, 140, 32, 5.4, 2, 8), drops: { echoes: 1500 }, insightOnSight: 1,
@@ -117,13 +117,13 @@ export const NAMED = tier('named', [
     stats: st(1700, 160, 32, 3.8, 3, 9), drops: { echoes: 2200 }, insightOnSight: 2,
   },
   {
-    id: 'zann_window_thing', name: "The Thing Beyond Erich Zann's Window", source: 'The Music of Erich Zann', regions: ['beyond'], canonLooks: false,
+    id: 'zann_window_thing', name: "The Thing Beyond Erich Zann's Window", source: 'The Music of Erich Zann', regions: ['beyond'], canonLooks: false, voice: 'viol',
     sprite: { silhouette: 'orb', palette: 'charcoal', scale: 4, eyes: 0, tentacles: 4, glow: 'purple' },
     ...scripted('stationary_horror', phases(ph(1, { wind_push: 2, darkness: 1, roar: 1 }, { hooks: ['darkness'] }), ph(0.5, { wind_push: 2, roar: 2, projectile_fan: 1 }, { hooks: ['darkness', 'camera_warp'] }))),
     stats: st(2000, 1000, 30, 0, 4, 12), resist: ['slash', 'blunt', 'shot'], drops: { echoes: 2000 }, insightOnSight: 2,
   },
   {
-    id: 'voice_in_the_tomb', name: 'The Voice in the Tomb', source: 'The Statement of Randolph Carter', regions: ['arkham'], canonLooks: false,
+    id: 'voice_in_the_tomb', name: 'The Voice in the Tomb', source: 'The Statement of Randolph Carter', regions: ['arkham'], canonLooks: false, voice: 'whisper',
     sprite: { silhouette: 'spectre', palette: 'charcoal', scale: 2.6, eyes: 0 },
     behavior: { archetype: 'stationary_horror', attacks: ['roar', 'grab'] },
     stats: st(1000, 1000, 26, 0, 3, 10), drops: { echoes: 1000 }, insightOnSight: 1,

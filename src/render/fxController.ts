@@ -2,7 +2,7 @@
  * FX controller hook (spec §3A): each frame the investigator's sanity and the nearest anomaly
  * (glowing horrors, dropped Echoes, shown hidden-layer stone) fill the FxState, and a band change
  * for the worse sends a pulse of warp. main.ts turns the state into shader uniforms and audio
- * detune/distortion (`computeFx` → `update*Uniforms`, audioFx.ts). Pure: no Three.js.
+ * detune/distortion (`computeFx` → `update*Uniforms`, render/audio/). Pure: no Three.js.
  */
 
 import { dist3, type V3 } from '../core/geom';

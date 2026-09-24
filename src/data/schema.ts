@@ -4,6 +4,8 @@
  * and optional sanity/boss overrides. Pure types, no Three.js.
  */
 
+import type { VoiceId } from './voices';
+
 export const TIERS = ['lesser', 'greater', 'named', 'great_old_one', 'outer_god', 'ally'] as const;
 export type Tier = (typeof TIERS)[number];
 
@@ -204,6 +206,7 @@ export interface EntityDef {
   bossVariant?: EntityOverride; // a boss version of a regular entry (Elder Shoggoth, Polyp Swarm)
   hidden?: { minInsight?: number; maxSanity?: number };
   bossScript?: BossScript;
+  voice?: VoiceId | 'silent'; // its call (Phase 6); without one, its tier's (voices.ts)
 }
 
 /** Partial overrides, merged one level deep. */

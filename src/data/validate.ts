@@ -1,6 +1,6 @@
 /**
  * validateRegistry (spec §3C): every roster id has a definition (and nothing else is defined),
- * every reference resolves (archetype, attack, region, summon, reality hook, variant), and every
+ * every reference resolves (archetype, attack, region, summon, reality hook, variant, voice), and every
  * number is in range. Returns a list of problems; empty means the registry is sound.
  */
 
@@ -9,6 +9,7 @@ import { REGIONS } from './regions';
 import { applyOverride, ENTITIES, paramsOf } from './registry';
 import { ROSTER } from './roster';
 import { SANITY } from './tuning';
+import { VOICES } from './voices';
 import {
   ARENA_CHANGES,
   ATTACK_IDS,
@@ -118,6 +119,7 @@ function checkDef(report: Report, d: EntityDef, ids: ReadonlySet<string>, varian
     if (gives !== null && gives !== d.insightOnSight > 0) report(`${d.tier} entities ${gives ? 'must' : 'must not'} grant insight on sight`);
   }
   if (d.tier === 'ally' && d.drops.echoes !== 0) report('allies drop nothing');
+  if (d.voice !== undefined && d.voice !== 'silent' && !(d.voice in VOICES)) report(`unknown voice ${d.voice}`);
   if (d.hidden) {
     num(report, 'hidden.minInsight', d.hidden.minInsight, 0, 99, true);
     const max = d.hidden.maxSanity;

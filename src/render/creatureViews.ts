@@ -92,13 +92,16 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const right = new THREE.Vector3();
+  const at = new THREE.Vector3();
+  const scale = new THREE.Vector3();
+  const seen = new Set<Entity>(); // reused each frame: no garbage per frame
 
   return {
     update(alpha, time, camera) {
       camera.updateMatrixWorld();
       right.setFromMatrixColumn(camera.matrixWorld, 0);
       let n = 0;
-      const seen = new Set<Entity>();
+      seen.clear();
       for (const [id, model] of g.ecs.c.model) {
         if (!model.startsWith(MODEL_PREFIX)) continue;
         const [cid, variant] = model.slice(MODEL_PREFIX.length).split('#') as [string, Variant | undefined];
@@ -135,7 +138,7 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
         const facingRight = Math.sin(tr.yaw) * right.x + Math.cos(tr.yaw) * right.z >= 0;
         info.setXYZW(n, flash, look.opacity, facingRight ? 0 : 1, def.sprite.outside ? 1 : 0);
         const size = def.sprite.scale;
-        batch.setMatrixAt(n++, m4.compose(new THREE.Vector3(x, y - look.sink * size * 0.3, z), q, new THREE.Vector3(size, size, 1)));
+        batch.setMatrixAt(n++, m4.compose(at.set(x, y - look.sink * size * 0.3, z), q, scale.set(size, size, 1)));
       }
       for (const [id, asm] of assemblies) {
         if (seen.has(id)) continue;

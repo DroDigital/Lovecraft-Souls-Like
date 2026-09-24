@@ -16,13 +16,13 @@ export const ALLIES = tier('ally', [
     stats: st(400, 60, 22, 3.6, 0, 0), drops: { echoes: 0 }, insightOnSight: 0,
   },
   {
-    id: 'cats_of_ulthar', name: 'Cats of Ulthar', source: 'The Cats of Ulthar', regions: ['dreamlands'], canonLooks: true,
+    id: 'cats_of_ulthar', name: 'Cats of Ulthar', source: 'The Cats of Ulthar', regions: ['dreamlands'], canonLooks: true, voice: 'meow',
     sprite: { silhouette: 'quadruped', palette: 'sand', scale: 1, eyes: 2 },
     behavior: { archetype: 'ally', params: { range: [0, 1.4] }, attacks: ['bite', 'lunge'] },
     stats: st(300, 20, 14, 5.5, 0, 0), drops: { echoes: 0 }, insightOnSight: 0,
   },
   {
-    id: 'pickman', name: 'Richard Upton Pickman', source: "Pickman's Model", regions: ['dreamlands', 'providence'], canonLooks: true,
+    id: 'pickman', name: 'Richard Upton Pickman', source: "Pickman's Model", regions: ['dreamlands', 'providence'], canonLooks: true, voice: 'meep',
     sprite: { silhouette: 'hunched', palette: 'mold', scale: 2.2, eyes: 2 },
     behavior: { archetype: 'ally', attacks: ['bite', 'sweep'] },
     stats: st(900, 80, 26, 4, 0, 0), drops: { echoes: 0 }, insightOnSight: 1,
