@@ -1,8 +1,22 @@
 /**
- * World material GLSL (spec §2): Gouraud vertex lighting, PS1 vertex snapping, affine
- * texture wobble (uv·w passed through, divided per fragment), fog fading to near-black, and
- * sanity-driven non-Euclidean vertex displacement.
+ * World material GLSL (spec §2): Gouraud vertex lighting (ambient, moon, glow, the player's
+ * lantern), PS1 vertex snapping, affine texture wobble (uv·w passed through, divided per
+ * fragment), fog fading to near-black, and sanity-driven non-Euclidean vertex displacement.
+ * With uMarkCharacters on, alpha marks characters for the post pass's rim light: fog/2 on them, 1 elsewhere.
  */
+
+/** The player's lantern (world and sprite shaders): inverse-square decay, cut off steeply at the range. */
+export const LANTERN_GLSL = /* glsl */ `
+uniform vec3 uLanternPos;
+uniform vec3 uLanternColor;
+uniform float uLanternRange;
+uniform float uLanternHard;
+uniform float uLanternDecay;
+
+float lanternAt(float d) {
+  return (1.0 - smoothstep(uLanternRange * uLanternHard, uLanternRange, d)) / (1.0 + uLanternDecay * d * d);
+}
+`;
 
 export const WORLD_VERT = /* glsl */ `
 uniform float uTime;
@@ -21,6 +35,9 @@ uniform vec3 uAmbient;
 uniform vec3 uGlowPos;
 uniform vec3 uGlowColor;
 uniform float uGlowRange;
+uniform float uLanternFacing;
+uniform float uCharacter;
+uniform float uCharacterLight;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform float uEmissive;
@@ -31,7 +48,7 @@ varying vec2 vUv;
 varying vec3 vUvw;
 varying vec3 vLight;
 varying float vFog;
-
+${LANTERN_GLSL}
 // Non-Euclidean distortion. Nothing moves near the camera, so combat stays readable.
 vec3 displace(vec3 wp) {
   vec3 rel = wp - uCamPos;
@@ -71,6 +88,11 @@ void main() {
   float gd = length(toGlow);
   float fall = clamp(1.0 - gd / uGlowRange, 0.0, 1.0);
   light += uGlowColor * fall * fall * (0.35 + 0.65 * max(dot(wn, toGlow / max(gd, 0.001)), 0.0));
+  // Characters take a fixed share of the lantern (no N·L, like sprites), so their values hold as they turn.
+  vec3 toLamp = uLanternPos - wp.xyz;
+  float ld = length(toLamp);
+  float facing = mix(1.0, max(dot(wn, toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
+  light += uLanternColor * lanternAt(ld) * mix(facing, uCharacterLight, uCharacter);
   vec3 tint = vec3(1.0);
 #ifdef USE_COLOR
   tint = color;
@@ -85,6 +107,8 @@ uniform sampler2D uMap;
 uniform float uAffine;
 uniform vec3 uFogColor;
 uniform float uFogAmount;
+uniform float uCharacter;
+uniform float uMarkCharacters;
 
 varying vec2 vUv;
 varying vec3 vUvw;
@@ -95,6 +119,7 @@ void main() {
   // WebGL2 has no noperspective: uv·w / w interpolates affinely, like the PS1.
   vec2 uv = mix(vUv, vUvw.xy / vUvw.z, uAffine);
   vec3 col = texture(uMap, uv).rgb * vLight;
-  gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
+  float fog = vFog * uFogAmount;
+  gl_FragColor = vec4(mix(col, uFogColor, fog), uCharacter * uMarkCharacters > 0.5 ? 0.5 * fog : 1.0);
 }
 `;

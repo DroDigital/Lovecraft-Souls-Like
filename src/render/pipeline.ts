@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { FX, RENDER } from '../data/tuning';
 import { createPostPass, type PostPass } from './postPass';
+import { worldUniforms } from './worldMaterial';
 
 export interface Pipeline {
   renderer: THREE.WebGLRenderer;
@@ -34,6 +35,7 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     depthBuffer: true,
   });
   const post = createPostPass(target.texture);
+  worldUniforms.uMarkCharacters.value = 1; // the post pass reads characters from the target's alpha
   const size = new THREE.Vector2(RENDER.width, RENDER.height);
 
   return {

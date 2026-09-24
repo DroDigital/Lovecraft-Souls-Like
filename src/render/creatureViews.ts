@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import type { Entity } from '../core/ecs';
 import { wrapAngle } from '../core/geom';
 import type { Variant } from '../data/registry';
-import { FEEDBACK, LIGHT, SIM } from '../data/tuning';
+import { FEEDBACK, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { MODEL_PREFIX, resolveCreature } from '../systems/creatures';
@@ -67,9 +67,9 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
   tex.minFilter = THREE.NearestFilter;
   tex.generateMipmaps = false;
   tex.needsUpdate = true;
-  const u = worldUniforms;
   const material = new THREE.ShaderMaterial({
-    uniforms: { uAtlas: { value: tex }, uLight: { value: LIGHT.sprite }, uRes: u.uRes, uSnap: u.uSnap, uFogNear: u.uFogNear, uFogFar: u.uFogFar, uFogColor: u.uFogColor, uFogAmount: u.uFogAmount },
+    // The shared world uniform objects (snap, fog, light), so the world's per-frame updates reach sprites too.
+    uniforms: { ...worldUniforms, uAtlas: { value: tex } },
     vertexShader: SPRITE_VERT,
     fragmentShader: SPRITE_FRAG,
   });

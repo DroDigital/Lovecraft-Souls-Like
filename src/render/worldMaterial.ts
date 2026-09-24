@@ -1,7 +1,7 @@
 /** World materials: one shared uniform set (updated once per frame) + a procedural texture each. */
 
 import * as THREE from 'three';
-import { FX, LIGHT, type Vec3 } from '../data/tuning';
+import { FX, LANTERN, LIGHT, type Vec3 } from '../data/tuning';
 import type { FxParams } from './fx';
 import { ANOMALY } from './palette';
 import { WORLD_FRAG, WORLD_VERT } from './shaders/world';
@@ -28,6 +28,14 @@ export const worldUniforms = {
   uGlowPos: { value: new THREE.Vector3() },
   uGlowColor: { value: v3(ANOMALY.magenta).multiplyScalar(LIGHT.glowIntensity) },
   uGlowRange: { value: LIGHT.glowRange },
+  uLanternPos: { value: new THREE.Vector3() },
+  uLanternColor: { value: new THREE.Vector3() }, // black: off until a scene lights it (lantern.ts)
+  uLanternRange: { value: LANTERN.range },
+  uLanternHard: { value: LANTERN.hard },
+  uLanternDecay: { value: LANTERN.decay },
+  uLanternFacing: { value: LANTERN.facing },
+  uCharacterLight: { value: LIGHT.character },
+  uMarkCharacters: { value: 0 }, // 1: characters mark alpha for the post pass's rim; 0 keeps direct-to-canvas renders opaque
   uFogNear: { value: 0 },
   uFogFar: { value: 1 },
   uFogAmount: { value: 0 },
@@ -41,21 +49,22 @@ export interface WorldMaterialOptions {
   uvScroll?: readonly [number, number]; // texture units per second (water)
   emissive?: number; // 0 = vertex-lit, 1 = fully self-lit
   vertexColors?: boolean;
+  character?: boolean; // gets the post pass's rim light
 }
 
 const textures = new Map<string, THREE.DataTexture>();
 
-/** One shared texture per (kind, seed). */
+/** One shared texture per (kind, seed). Nearest mip of nearest texel: crisp up close, no moiré far away. */
 export function createTexture(kind: TextureKind, seed: number): THREE.DataTexture {
   const key = `${kind}:${seed}`;
   const cached = textures.get(key);
   if (cached) return cached;
   const tex = new THREE.DataTexture(generateTexture(kind, seed), TEXTURE_SIZE, TEXTURE_SIZE);
   tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestMipmapNearestFilter;
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.generateMipmaps = false;
+  tex.generateMipmaps = true;
   tex.needsUpdate = true;
   textures.set(key, tex);
   return tex;
@@ -72,6 +81,7 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
       uUvScale: { value: new THREE.Vector2(su, sv) },
       uUvScroll: { value: new THREE.Vector2(du, dv) },
       uEmissive: { value: o.emissive ?? 0 },
+      uCharacter: { value: o.character ? 1 : 0 },
     },
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,

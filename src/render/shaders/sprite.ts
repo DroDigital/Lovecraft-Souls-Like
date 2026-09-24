@@ -1,23 +1,30 @@
 /**
  * Creature billboards (spec §2): instanced quads that turn about the vertical axis to face the
- * camera, Doom-style, sampling the sprite atlas. They share the world's vertex snapping and fog.
- * Atlas alpha marks lit pixels (1) and self-lit glow markings (~0.63); transparency is dithered.
+ * camera, Doom-style, sampling the sprite atlas. They share the world's vertex snapping, light
+ * (ambient, moon and lantern, without normals) and fog. Atlas alpha marks lit pixels (1) and
+ * self-lit glow markings (~0.63); transparency is dithered. Output alpha can mark a character (see world.ts).
  */
+
+import { LANTERN_GLSL } from './world';
 
 export const SPRITE_VERT = /* glsl */ `
 uniform vec2 uRes;
 uniform float uSnap;
 uniform float uFogNear;
 uniform float uFogFar;
+uniform vec3 uAmbient;
+uniform vec3 uLightColor;
+uniform float uCharacterLight;
 
 attribute vec4 aCell; // u0, v0 (top), u1, v1 (bottom)
 attribute vec4 aInfo; // flash, opacity, flip, unused
 
 varying vec2 vUv;
+varying vec3 vLight;
 varying float vFog;
 varying float vFlash;
 varying float vOpacity;
-
+${LANTERN_GLSL}
 void main() {
   vec3 origin = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
   float w = length(instanceMatrix[0].xyz);
@@ -33,6 +40,7 @@ void main() {
   gl_Position = clip;
   float u = aInfo.z > 0.5 ? 1.0 - uv.x : uv.x;
   vUv = vec2(mix(aCell.x, aCell.z, u), mix(aCell.y, aCell.w, 1.0 - uv.y));
+  vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(distance(wp, uLanternPos))) * uCharacterLight;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
   vFlash = aInfo.x;
   vOpacity = aInfo.y;
@@ -43,9 +51,10 @@ export const SPRITE_FRAG = /* glsl */ `
 uniform sampler2D uAtlas;
 uniform vec3 uFogColor;
 uniform float uFogAmount;
-uniform float uLight;
+uniform float uMarkCharacters;
 
 varying vec2 vUv;
+varying vec3 vLight;
 varying float vFog;
 varying float vFlash;
 varying float vOpacity;
@@ -60,8 +69,9 @@ void main() {
   vec4 t = texture(uAtlas, vUv);
   if (t.a < 0.3 || vOpacity < bayer4(gl_FragCoord.xy)) discard;
   bool glow = t.a < 0.9;
-  vec3 col = glow ? t.rgb : t.rgb * uLight;
+  vec3 col = glow ? t.rgb : t.rgb * vLight;
   col = mix(col, vec3(1.0), vFlash);
-  gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount * (glow ? 0.5 : 1.0)), 1.0);
+  float fog = vFog * uFogAmount;
+  gl_FragColor = vec4(mix(col, uFogColor, fog * (glow ? 0.5 : 1.0)), uMarkCharacters > 0.5 ? 0.5 * fog : 1.0);
 }
 `;

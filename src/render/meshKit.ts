@@ -19,7 +19,8 @@ export function tint(geo: THREE.BufferGeometry, c: Rgb): THREE.BufferGeometry {
   return geo;
 }
 
-/** A tinted box centred at (x, y, z). */
-export function box(w: number, h: number, d: number, x: number, y: number, z: number, c: Rgb): THREE.BufferGeometry {
-  return tint(new THREE.BoxGeometry(w, h, d).translate(x, y, z), c);
+/** A tinted box centred at (x, y, z); `cell` > 0 splits its faces into cells at most that many metres wide (for vertex lighting). */
+export function box(w: number, h: number, d: number, x: number, y: number, z: number, c: Rgb, cell = 0): THREE.BufferGeometry {
+  const n = (size: number): number => (cell > 0 ? Math.max(1, Math.ceil(size / cell)) : 1);
+  return tint(new THREE.BoxGeometry(w, h, d, n(w), n(h), n(d)).translate(x, y, z), c);
 }

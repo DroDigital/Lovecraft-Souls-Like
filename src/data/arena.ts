@@ -13,7 +13,8 @@ export const ARENA = {
   seed: 7,
   radius: 22, // walkable metres from the centre
   floorSize: 64,
-  floorTile: 4, // metres per texture repeat
+  floorTile: 2, // metres per texture repeat (2 × 2 slabs), the pillars' texel density
+  lightCell: 0.5, // metres between floor and wall vertices, so the lantern's pool stays round
   elderSign: { x: -2.4, z: 17.4 }, // behind the spawn, off to the side so the camera boom clears it
   spawn: { x: 0, z: 15.5, yaw: Math.PI } as Place, // the checkpoint respawn point, facing north
   dummy: { x: -4.5, z: 9, yaw: 0.6 } as Place,

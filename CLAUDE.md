@@ -13,7 +13,7 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 ## Folder map
 - `src/core`: 60 Hz loop with interpolation, ECS (typed Maps), typed event bus, input (keys/mouse/pad → `InputFrame`), geom, rng, noise.
 - `src/systems`: the simulation, no Three.js. `game.ts` builds the world and fixes the system order; actions + input buffer, movement, combat, revolver, stamina, lock-on, camera rig, archetype `brain` + `perception`, `creatures` (EntityDef → combatant), death/Echoes.
-- `src/render`: pipeline, post pass, world material, `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts`, actor views, follow camera; `sprites/` (pixel sprite generator + atlas), `assemblies` (colossi), `creatureViews`.
+- `src/render`: pipeline, post pass (grade + character rim), world material, `lantern.ts` (arena light), `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts`, actor views, follow camera; `sprites/` (pixel sprite generator + atlas), `assemblies` (colossi), `creatureViews`.
 - `src/data`: `tuning.ts` holds every tunable number; `schema`, `roster` (every id), `entities/` (one file per tier), `registry`, `validate`, `archetypes`, `attacks`, `regions`; `moves`, `placeholders` (dummy + Deep One), `arena`.
 - `src/world`: heightfield, colliders (pure), arena collision + meshes, Phase 0 test scene.
 - `src/ui`: HUD, debug panel, `?bestiary`, `?look` look test, orbit rig.

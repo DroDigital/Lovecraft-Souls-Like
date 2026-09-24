@@ -50,3 +50,29 @@ describe.each(TEXTURE_KINDS)('%s texture', (kind) => {
     }
   });
 });
+
+describe('floor slab texture', () => {
+  const px = generateTexture('slab', 1);
+  const rowMean = (ys: number[]): number => ys.reduce((a, y) => a + Array.from({ length: S }, (_, x) => lumaAt(px, x, y)).reduce((b, c) => b + c, 0) / S, 0) / ys.length;
+
+  it('has grout darker than the slab, but never black', () => {
+    const grout = rowMean([0, 31, 32, 63]); // the seams between rows of slabs
+    const slab = rowMean([8, 12, 16, 20, 24, 40, 44, 48, 52, 56]);
+    expect(grout).toBeLessThan(slab * 0.75);
+    for (const y of [0, 31, 32, 63]) for (let x = 0; x < S; x++) expect(lumaAt(px, x, y)).toBeGreaterThan(0.1);
+  });
+});
+
+describe('cloth texture', () => {
+  it('is flat value blocks: no detail inside a 4-texel column or an 8-texel row band', () => {
+    const px = generateTexture('cloth', 1);
+    const bad: string[] = [];
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        if (x % 4 !== 3 && lumaAt(px, x + 1, y) !== lumaAt(px, x, y)) bad.push(`${x},${y} → x+1`);
+        if (y % 8 !== 7 && lumaAt(px, x, y + 1) !== lumaAt(px, x, y)) bad.push(`${x},${y} → y+1`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});

@@ -9,6 +9,7 @@ import { createActorViews } from './render/actorViews';
 import { createCreatureViews } from './render/creatureViews';
 import { placeCamera } from './render/followCamera';
 import { allEffectsOn, computeFx, lensAt, type FxState } from './render/fx';
+import { lightArena, placeLantern } from './render/lantern';
 import { applyLens } from './render/lens';
 import { ANOMALY } from './render/palette';
 import { createPipeline } from './render/pipeline';
@@ -66,6 +67,7 @@ function startArena(opts: ArenaOptions): void {
   const input = createInput(canvas);
   const hud = createHud(game, canvas);
   const panel = createDebugPanel(state, [...HINTS, ...spawnHint(opts)]);
+  lightArena();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
@@ -90,6 +92,7 @@ function startArena(opts: ArenaOptions): void {
         if (lowRes !== state.enabled.pixelate) pipeline.resize((lowRes = state.enabled.pixelate));
         placeCamera(camera, game, alpha);
         views.update(alpha, time);
+        placeLantern(game, alpha);
         creatures.update(alpha, time, camera);
 
         const fx = computeFx(state);

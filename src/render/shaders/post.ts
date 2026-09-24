@@ -1,7 +1,8 @@
 /**
  * The single fullscreen post pass (spec §2): sanity warp (UV ripple + chromatic split),
- * colour isolation, palette quantisation with 4×4 Bayer dithering. It renders at the
- * low-res size; the browser upscales the canvas nearest-neighbour.
+ * split-tone grade with colour isolation, the characters' 1-px rim light, palette quantisation
+ * with 4×4 Bayer dithering. It renders at the low-res size; the browser upscales the canvas
+ * nearest-neighbour. Scene alpha marks characters: fog/2 on them (at most 0.5), 1 elsewhere.
  */
 
 export const POST_VERT = /* glsl */ `
@@ -23,11 +24,18 @@ uniform float uAnomalyProximity;
 uniform float uAnomalyStress;
 uniform float uHueWidth;
 uniform float uMinSat;
-uniform vec3 uTint;
+uniform vec3 uCold;
+uniform vec3 uWarm;
+uniform vec2 uSplit;
+uniform vec3 uRimColor;
+uniform float uRimAmount;
+uniform vec2 uRimBackdrop;
 uniform vec3 uAnomalyHues;
 uniform float uQuantize;
 uniform float uDither;
 uniform vec3 uPalette[PALETTE_SIZE];
+
+const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 
 vec3 rgb2hsv(vec3 c) {
   vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -43,20 +51,34 @@ float hueNear(float h, float target) {
   return 1.0 - smoothstep(uHueWidth * 0.5, uHueWidth, d);
 }
 
-// 1. Colour isolation: sepia everywhere except anomaly hues, which anomalyProximity boosts.
+// 1. Grade and colour isolation: split toning (cold grey-green shadows and fog, warm bone/sepia
+// lights) everywhere except anomaly hues, which anomalyProximity boosts.
 vec3 isolate(vec3 c) {
   vec3 hsv = rgb2hsv(c);
   float near = max(max(hueNear(hsv.x, uAnomalyHues.x), hueNear(hsv.x, uAnomalyHues.y)),
                    hueNear(hsv.x, uAnomalyHues.z));
   float mask = near * smoothstep(uMinSat, uMinSat + 0.15, hsv.y) * smoothstep(0.03, 0.1, hsv.z);
-  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  vec3 sepia = mix(c, l * uTint, uDesat);
+  float l = dot(c, LUMA);
+  vec3 graded = mix(c, l * mix(uCold, uWarm, smoothstep(uSplit.x, uSplit.y, l)), uDesat);
   float boost = clamp(uAnomalyProximity + uAnomalyStress, 0.0, 1.0);
   vec3 vivid = clamp(mix(vec3(l), c, 1.0 + boost) * (1.0 + 0.6 * boost), 0.0, 1.0);
-  return mix(sepia, vivid, mask);
+  return mix(graded, vivid, mask);
 }
 
-// 2. Palette quantisation with 4x4 Bayer dithering.
+// 2. Rim light: a character pixel whose left, right or upper neighbour is backdrop that is not
+// clearly brighter than it gets a pale edge, fading with the character's fog.
+vec3 rim(vec3 col, vec4 centre, vec2 uv, vec2 px) {
+  if (centre.a > 0.75) return col;
+  float l = dot(centre.rgb, LUMA);
+  float edge = 0.0;
+  for (int i = 0; i < 3; i++) {
+    vec4 n = texture(tScene, uv + (i == 0 ? vec2(-px.x, 0.0) : i == 1 ? vec2(px.x, 0.0) : vec2(0.0, px.y)));
+    if (n.a > 0.75) edge = max(edge, 1.0 - smoothstep(uRimBackdrop.x, uRimBackdrop.y, dot(n.rgb, LUMA) - l));
+  }
+  return mix(col, uRimColor, uRimAmount * (1.0 - 2.0 * centre.a) * edge);
+}
+
+// 3. Palette quantisation with 4x4 Bayer dithering.
 float bayer4(vec2 p) {
   const float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0,
                                 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
@@ -84,22 +106,23 @@ void main() {
   vec2 cell = floor(gl_FragCoord.xy / size);
   vec2 uv = (cell + 0.5) * size / uRes;
 
-  // 3. Sanity warp: UV ripple and chromatic split, scaled by (1 - sanity/100).
+  // 4. Sanity warp: UV ripple and chromatic split, scaled by (1 - sanity/100).
   vec2 c = uv - 0.5;
   float r = length(c);
   uv += uRipple * vec2(sin(uv.y * 29.0 + uTime * 2.3), sin(uv.x * 21.0 - uTime * 1.7));
   uv += uRipple * 0.7 * (c / max(r, 1e-4)) * sin(r * 38.0 - uTime * 3.1);
   vec2 split = uChroma * (0.4 + r) * vec2(cos(uTime * 0.7), sin(uTime * 0.9));
 
+  vec4 centre = texture(tScene, uv);
   vec3 a = texture(tScene, uv + split).rgb;
-  vec3 b = texture(tScene, uv).rgb;
+  vec3 b = centre.rgb;
   vec3 e = texture(tScene, uv - split).rgb;
   if (uIsolate > 0.5) {
     a = isolate(a);
     b = isolate(b);
     e = isolate(e);
   }
-  vec3 col = vec3(a.r, b.g, e.b);
+  vec3 col = rim(vec3(a.r, b.g, e.b), centre, uv, size / uRes);
   if (uQuantize > 0.5) col = quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }

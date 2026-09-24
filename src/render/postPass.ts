@@ -1,9 +1,9 @@
 /** The single fullscreen post pass: material, fullscreen triangle, per-frame uniform update. */
 
 import * as THREE from 'three';
-import { FX } from '../data/tuning';
+import { FX, GRADE } from '../data/tuning';
 import type { FxParams } from './fx';
-import { ANOMALY_HUES, BONE_TINT, buildPalette } from './palette';
+import { ANOMALY_HUES, buildPalette, COLD_TINT, RIM, WARM_TINT } from './palette';
 import { POST_FRAG, POST_VERT } from './shaders/post';
 
 function createUniforms(source: THREE.Texture, palette: Float32Array) {
@@ -20,7 +20,12 @@ function createUniforms(source: THREE.Texture, palette: Float32Array) {
     uAnomalyStress: { value: 0 },
     uHueWidth: { value: FX.hueWidth },
     uMinSat: { value: FX.minSaturation },
-    uTint: { value: new THREE.Vector3(...BONE_TINT) },
+    uCold: { value: new THREE.Vector3(...COLD_TINT) },
+    uWarm: { value: new THREE.Vector3(...WARM_TINT) },
+    uSplit: { value: new THREE.Vector2(...GRADE.split) },
+    uRimColor: { value: new THREE.Vector3(...RIM) },
+    uRimAmount: { value: GRADE.rim },
+    uRimBackdrop: { value: new THREE.Vector2(...GRADE.rimBackdrop) },
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
     uQuantize: { value: 0 },
     uDither: { value: 0 },

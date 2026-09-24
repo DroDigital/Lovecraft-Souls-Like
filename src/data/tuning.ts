@@ -27,7 +27,7 @@ export const FX = {
   affine: [1, 2.5] as Ramp, // 1 = PS1 affine mapping; >1 exaggerates the wobble
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,
-  fogColor: [0.03, 0.03, 0.037] as Vec3,
+  fogColor: [0.03, 0.04, 0.037] as Vec3, // cold grey-green, near black
   desaturate: [0.85, 1] as Ramp, // toward bone/sepia
   anomalyStress: [0, 0.7] as Ramp, // added to anomalyProximity when boosting anomaly hues
   hueWidth: 0.1, // anomaly hue window, in 0..1 hue units
@@ -50,14 +50,34 @@ export const FX = {
 };
 
 export const LIGHT = {
-  dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use)
+  dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use); the ?look test's light
   color: [0.7, 0.68, 0.63] as Vec3,
   ambient: [0.19, 0.19, 0.21] as Vec3,
+  nightAmbient: [0.018, 0.024, 0.022] as Vec3, // the arena has no moon: a faint cold ambient, and the lantern
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
   echoGlowRange: 6, // a dropped Echo's faint light
   echoGlowIntensity: 0.6,
-  sprite: 0.65, // creature sprites are pre-shaded; this matches them to the world's light
+  character: 0.65, // share of the lantern (and, for sprites, the moon) characters take, without N·L: their values hold as they turn
+};
+
+/** The investigator's lantern: a warm point light at the hip, the arena's only real light. */
+export const LANTERN = {
+  color: [1, 0.82, 0.58] as Vec3,
+  intensity: 1.5,
+  range: 6, // metres; nothing beyond is lit
+  hard: 0.75, // the cut-off starts at this fraction of the range and ends at the range
+  decay: 0.05, // inverse-square falloff inside the range, per m², so the pool is brightest at the player
+  facing: 0.5, // weight of N·L: surfaces turned away keep 1 - facing of the light
+  height: 1, // metres above the player's feet
+  forward: 0.3, // metres ahead of the player
+};
+
+/** Post colour grade (spec §2): split toning by luma, and the characters' rim light. */
+export const GRADE = {
+  split: [0.03, 0.2] as const, // luma: cold grey-green shadows and fog at the first, warm bone/sepia lights from the second
+  rim: 0.4, // strength of the 1-px rim on characters (fades with their fog)...
+  rimBackdrop: [0.03, 0.15] as const, // ...over backdrops at most this much brighter than them (luma)
 };
 
 /** Debug orbit camera of the Phase 0 look-test scene. */
