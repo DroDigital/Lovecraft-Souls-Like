@@ -6,9 +6,10 @@ import { fbm } from '../core/noise';
 import { createRng } from '../core/rng';
 import { ARENA } from '../data/arena';
 import { box, tileUv, tint } from '../render/meshKit';
-import { BASE, type Rgb } from '../render/palette';
+import { type Rgb } from '../render/palette';
+import { elderSignGeometry } from '../render/signMeshes';
 import { createWorldMaterial } from '../render/worldMaterial';
-import { colonnadeSpots, ELDER_SIGN_SIZE } from './arena';
+import { colonnadeSpots } from './arena';
 
 const STONE: Rgb = [0.92, 0.92, 0.9];
 
@@ -60,20 +61,10 @@ function walls(): THREE.Mesh {
 
 /** The checkpoint: a standing slab carved with Lovecraft's branch-like Elder Sign, which glows faintly. */
 function elderSign(): THREE.Mesh[] {
-  const [w, h, d] = ELDER_SIGN_SIZE;
   const { x, z } = ARENA.elderSign;
-  const slab = tileUv(box(w, h, d, x, h / 2, z, BASE.bone, ARENA.lightCell), w, h);
-  const face = z - d / 2 - 0.02; // the side facing the arena
-  const twig = (len: number, angle: number, y: number): THREE.BufferGeometry =>
-    box(0.06, len, 0.04, 0, len / 2, 0, BASE.bone).rotateZ(angle).translate(x, y, face);
-  const glyph = mergeGeometries([
-    box(0.07, 1.25, 0.04, x, 1.12, face, BASE.bone),
-    twig(0.45, 0.65, 1.3),
-    twig(0.45, -0.65, 1.3),
-    twig(0.38, 0.8, 0.95),
-    twig(0.38, -0.8, 0.95),
-    twig(0.25, 0, 1.72),
-  ]);
+  const { slab, glyph } = elderSignGeometry(-1); // carved on the side facing the arena
+  slab.translate(x, 0, z);
+  glyph.translate(x, 0, z);
   return [
     new THREE.Mesh(slab, createWorldMaterial({ texture: 'stone', seed: 4, vertexColors: true })),
     new THREE.Mesh(glyph, createWorldMaterial({ texture: 'stone', seed: 4, emissive: 0.9, vertexColors: true })),

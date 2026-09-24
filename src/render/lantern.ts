@@ -1,4 +1,4 @@
-/** The arena's night: a dim low moon, a faint cold ambient, and the investigator's lantern following the player. */
+/** The night of the arena and the open world: a dim low moon, a faint cold ambient, and the investigator's lantern. */
 
 import { wrapAngle } from '../core/geom';
 import { LANTERN, LIGHT } from '../data/tuning';
@@ -6,7 +6,7 @@ import type { Game } from '../systems/components';
 import { worldUniforms } from './worldMaterial';
 
 /** Switches the shared world light from the look test's moonlight to night: a dim low moon, and the lantern. */
-export function lightArena(): void {
+export function lightNight(): void {
   const u = worldUniforms;
   u.uLightDir.value.set(...LIGHT.nightMoonDir).normalize();
   u.uLightColor.value.set(...LIGHT.nightMoon);

@@ -1,7 +1,8 @@
 /**
  * Death and the Echo loop (spec §3B). The player drops their Echoes where they fell and respawns at
- * the last Elder Sign; non-boss enemies reset; touching the drop recovers it. Only one drop exists:
- * dying again before recovering it loses the old one. Kills pay the foe's bounty.
+ * the last Elder Sign; enemies reset (in the open world, slain bosses are gone for good and killed
+ * foes return: overworld.ts); touching the drop recovers it. Only one drop exists: dying again before
+ * recovering it loses the old one. Kills pay the foe's bounty.
  */
 
 import type { Entity } from '../core/ecs';
@@ -41,7 +42,7 @@ export function registerDeath(g: Game): void {
 }
 
 /** Puts an entity back at `at`, whole: full health, poise and stamina, no move. */
-function restore(g: Game, id: Entity, at: Place): void {
+export function restore(g: Game, id: Entity, at: Place): void {
   const { transform, health, poise, stamina, actor, mover, dead } = g.ecs.c;
   const tr = transform.get(id)!;
   tr.pos = { x: at.x, y: g.world.ground(at.x, at.z), z: at.z };
@@ -62,15 +63,20 @@ function restore(g: Game, id: Entity, at: Place): void {
   dead.delete(id);
 }
 
-/** Respawn at the last Elder Sign; every non-boss enemy (anything with a home) resets. */
-function respawn(g: Game): void {
-  const p = g.player;
-  restore(g, p.id, p.checkpoint);
+/** Every enemy with a home goes back to it, whole and calm (on death, and on resting at an Elder Sign). */
+export function resetFoes(g: Game): void {
   for (const [id, home] of g.ecs.c.home) {
     restore(g, id, home);
     const br = g.ecs.c.brain.get(id);
     if (br) Object.assign(br, { state: 'idle', target: null, lost: 0, cooldown: 0 });
   }
+}
+
+/** Respawn at the last Elder Sign; the foes reset. */
+function respawn(g: Game): void {
+  const p = g.player;
+  restore(g, p.id, p.checkpoint);
+  resetFoes(g);
   Object.assign(p, { buffer: createBuffer(), dodgeHeld: -1, sprinting: false });
   setLock(g, null);
   Object.assign(g.camera, { yaw: p.checkpoint.yaw, prevYaw: p.checkpoint.yaw, pitch: CAMERA.pitch, prevPitch: CAMERA.pitch });

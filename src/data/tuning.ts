@@ -47,6 +47,21 @@ export const FX = {
   skewHz: 0.11,
   anomalyNear: 4, // metres: anomalyProximity is 1 at this distance...
   anomalyFar: 30, // ...and 0 beyond this one
+  pulseSeconds: 0.8, // a band change for the worse sends a pulse of warp that fades over this long...
+  pulseRipple: 0.012, // ...adding this much ripple...
+  pulseChroma: 0.01, // ...and chromatic split at its peak
+  droneGain: [0, 0.06] as Ramp, // the sanity drone's level (audio)
+  detune: [0, -70] as Ramp, // cents the whole mix sags
+  wobble: [0, 40] as Ramp, // cents it drifts around that
+  distortion: [0, 0.85] as Ramp, // waveshaper amount, 0..1
+};
+
+/** The sanity drone the FX controller detunes and distorts: a low chord through a lowpass. */
+export const AUDIO = {
+  droneHz: 55,
+  voices: [1, 1.5, 2.02], // frequency ratios
+  cutoff: 420, // Hz
+  glide: 0.25, // seconds for level changes
 };
 
 export const LIGHT = {
@@ -137,6 +152,45 @@ export const COMBAT = {
   shotRadius: 0.2, // revolver bullet radius for the hit test
 };
 
+/** Sanity & Insight (spec §3A). Band arrays run Lucid, Uneasy, Fractured, Unmoored. */
+export const SANITY = {
+  max: 100,
+  bands: [70, 40, 15], // floors of Lucid, Uneasy, Fractured; below the last is Unmoored
+  hysteresis: 3, // a band falls at its floor but climbs back only this many points past it
+  auraNear: 3, // metres beyond a creature's body where its aura is at full strength...
+  auraFar: 12, // ...fading to nothing here
+  sightRange: 30, // metres: first sight needs a creature this close, in line of sight...
+  sightCone: 50, // ...and within this many degrees of the camera's forward
+  firstSight: { lesser: 0, greater: 6, named: 10, great_old_one: 18, outer_god: 25, ally: 0 }, // sanity lost on first sight, by tier
+  dealt: [1, 1.1, 1.2, 1.35], // damage multipliers by band: a failing mind hits harder...
+  taken: [1, 1.1, 1.25, 1.5], // ...and is hit harder
+};
+
+/** The investigator's sanity tonic, refilled at the Elder Sign. */
+export const LAUDANUM = {
+  doses: 3,
+  sanity: 30, // restored per dose
+};
+
+/** Insight upgrades (spec §3A): insight per level, the most levels, and what each level adds. */
+export const UPGRADES: Record<'vigour' | 'endurance' | 'resolve', { cost: number; max: number; hp?: number; stamina?: number; resist?: number }> = {
+  vigour: { cost: 1, max: 10, hp: 20 },
+  endurance: { cost: 1, max: 10, stamina: 15 },
+  resolve: { cost: 2, max: 4, resist: 0.15 }, // every sanity loss shrinks by this fraction per level
+};
+export type UpgradeId = keyof typeof UPGRADES;
+
+/** Hallucinations (spec §3A, Unmoored only). Times in frames. */
+export const HALLUCINATIONS = {
+  max: 3, // at once
+  onset: 120, // after sanity becomes Unmoored, before the first
+  interval: [240, 480] as const, // between apparitions
+  distance: [6, 9] as const, // metres from the player...
+  spread: 120, // ...within this many degrees of straight behind the camera
+  life: 1800, // before one fades by itself
+  sanity: 5, // sanity lost per landed blow (they deal no damage)
+};
+
 export const LOCK = {
   range: 25, // metres, with line of sight
   breakRange: 27, // a held lock breaks beyond this (2 m hysteresis)
@@ -183,4 +237,42 @@ export const FEEDBACK = {
   shakeMetres: 0.07, // jitter during hitstop
   strideMetres: 1.5, // ground covered per walk cycle
   echoGlowHeight: 0.6, // light above an Echo drop
+  revealSeconds: 0.5, // hidden-layer geometry flickers this long as it comes and goes
+};
+
+/** The open world (spec §3D). Distances in metres. */
+export const WORLD = {
+  seed: 1926,
+  chunk: 64, // streaming grid
+  regionChunks: 4, // a region tile is 4 × 4 chunks
+  load: 2, // chunks within this Chebyshev radius of the player's are loaded (5 × 5)...
+  keep: 3, // ...and unloaded beyond this one (7 × 7)
+  sliceMs: 2, // chunk generation budget per rendered frame
+  maxActive: 60, // creatures alive at once (the AI budget)
+  snap: 4, // dungeon cells and origins align to this grid...
+  meshCell: 1, // ...and so does the terrain mesh, whose vertices keep the lantern's vertex-lit pool round
+  blend: 32, // neighbouring regions' terrain blends across this band
+  seaLevel: -2,
+  seaFloor: -9,
+  coast: 24, // beyond the land's edge the ground sinks to the sea floor over this distance
+  discover: 6, // an Elder Sign is found this close
+  reach: 3.2, // rest at an Elder Sign or pass a gate this close
+  restFoes: 18, // no resting while a foe hunts the investigator within this distance
+  saveSeconds: 20, // autosave interval (also on rest, travel, death and leaving the page)
+};
+
+/** The legacy-dungeon kit (spec §3D): corridor, hall, stair, pit, bridge, well. */
+export const DUNGEON = {
+  cell: 16, // metres per room cell (a wide hall is 3 × 3 cells)
+  wall: 1, // thickness
+  height: 6, // walls rise this far above the higher floor
+  door: 3.2, // doorway width...
+  lintel: 3.4, // ...and height
+  lane: 4, // walkable width of corridors
+  stairLane: 6,
+  ledge: 3.5, // walkable rim around a pit or at the ends of a bridge
+  deck: 2.4, // bridge width
+  well: 2.4, // shaft radius
+  chasm: 12, // depth of pits, chasms and wells
+  rim: 0.45, // chasm edges stop feet but not eyes
 };

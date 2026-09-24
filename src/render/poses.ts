@@ -106,6 +106,14 @@ function parry(f: Figure, d: MoveDef, frame: number): void {
   f.torso.rotation.y = -0.3 * out;
 }
 
+/** A swallow of Laudanum: the off-hand comes up to the mouth and the head tips back, then down again. */
+function drink(f: Figure, d: MoveDef, frame: number): void {
+  const at = d.item!;
+  const t = frame < at ? ease(frame / (at - 4)) : 1 - ease((frame - at - 6) / Math.max(1, d.frames - at - 14));
+  f.armL.rotation.set(-2.2 * t, -0.7 * t, 0, 'YXZ'); // forward, up and across, so the hand is at the lips
+  f.head.rotation.x -= 0.4 * clamp01((frame - at + 10) / 10) * t;
+}
+
 /** Off-hand revolver: raise, fire (muzzle flash and kick), lower. */
 function aim(f: Figure, d: MoveDef, frame: number): void {
   const s = d.shot!;
@@ -146,6 +154,7 @@ function fall(f: Figure, frame: number): void {
 
 export function pose(f: Figure, p: PoseInput): void {
   rest(f);
+  if (f.rig === 'prop') return;
   if (f.rig === 'echo') {
     f.body.position.y += 0.08 * Math.sin(p.time * 2.2);
     f.body.rotation.y = p.time * 1.6;
@@ -166,6 +175,7 @@ export function pose(f: Figure, p: PoseInput): void {
   else if (d.motion?.dir === 'back') backstep(f, p.frame / d.frames);
   else if (d.parry) parry(f, d, p.frame);
   else if (d.shot) aim(f, d, p.frame);
+  else if (d.item !== undefined) drink(f, d, p.frame);
   f.body.rotation.x -= 0.18 * p.flinch;
   f.head.rotation.x -= 0.25 * p.flinch;
 }

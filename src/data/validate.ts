@@ -8,6 +8,7 @@ import { ARCHETYPES } from './archetypes';
 import { REGIONS } from './regions';
 import { applyOverride, ENTITIES, paramsOf } from './registry';
 import { ROSTER } from './roster';
+import { SANITY } from './tuning';
 import {
   ATTACK_IDS,
   CREATURE_PALETTES,
@@ -113,7 +114,8 @@ function checkDef(report: Report, d: EntityDef, ids: ReadonlySet<string>, varian
   if (d.tier === 'ally' && d.drops.echoes !== 0) report('allies drop nothing');
   if (d.hidden) {
     num(report, 'hidden.minInsight', d.hidden.minInsight, 0, 99, true);
-    num(report, 'hidden.maxSanity', d.hidden.maxSanity, 0, 100);
+    const max = d.hidden.maxSanity;
+    if (max !== undefined && !SANITY.bands.includes(max)) report(`hidden.maxSanity = ${max}, expected a band floor (${SANITY.bands.join(', ')})`);
   }
   if (d.bossScript) checkBossScript(report, d.bossScript, d.id, ids);
 }

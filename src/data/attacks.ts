@@ -1,8 +1,8 @@
 /**
  * The shared attack library (spec §3E): ~20 parameterised attacks that every creature draws from.
  * `compileAttack` turns one into a Phase 1 MoveDef scaled by the creature's damage and body size.
- * Ranged attacks are hitscan shots until Phase 5 adds projectiles; special effects (teleport,
- * summon, gaze, darkness) and sanity damage are data here and run in later phases.
+ * Ranged attacks are hitscan shots until Phase 5 adds projectiles; roar and gaze take sanity
+ * (Phase 3); the other special effects (teleport, summon, gaze buildup, darkness) run in Phase 5.
  */
 
 import type { MoveDef } from './moves';
@@ -22,7 +22,7 @@ export interface AttackDef {
   arc?: readonly [from: number, to: number];
   lunge?: number; // metres travelled while striking
   shot?: number; // metres: hitscan range
-  sanity?: number; // sanity damage = sanity × stats.sanityDamage (Phase 3)
+  sanity?: number; // sanity damage = sanity × stats.sanityDamage, over the active frames
   effect?: 'teleport' | 'summon' | 'gaze' | 'darkness'; // Phase 5
 }
 
@@ -74,6 +74,10 @@ export function compileAttack(id: AttackId, stats: Stats, height: number): MoveD
     ? { window: [Math.max(0, a.windup - 6), a.windup + a.active] as const, distance: a.lunge * Math.sqrt(k), dir: 'facing' as const }
     : undefined;
   const move: MoveDef = { frames, track: { window: [0, Math.max(1, a.windup - 4)], rate: 3 }, motion };
+  if (a.sanity && stats.sanityDamage > 0) {
+    const range = a.range[1] * k;
+    move.sanity = { window: [a.windup, a.windup + a.active], amount: a.sanity * stats.sanityDamage, range, sight: a.effect === 'gaze' };
+  }
   if (!strikes) return move;
   const interrupt = [Math.round(a.windup * 0.3), a.windup] as const;
   if (a.shot) return { ...move, interrupt, shot: { frame: a.windup, damage, poise, range: a.shot * Math.sqrt(k), hitstop } };

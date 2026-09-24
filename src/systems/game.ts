@@ -1,27 +1,44 @@
-/** The arena game (Phase 1, plus a `?spawn` roster creature from Phase 2): builds the arena world and runs the systems in their fixed order each 60 Hz step. */
+/**
+ * The game: the open world (Phase 4) or the combat arena (Phase 1, with a `?spawn` roster creature
+ * from Phase 2). Builds the world, subscribes the event hooks (the mind from Phase 3), and runs the
+ * systems in their fixed order each step.
+ */
 
 import { createEcs } from '../core/ecs';
 import { createEventBus } from '../core/events';
 import type { InputFrame } from '../core/input';
 import { createRng } from '../core/rng';
 import { ARENA } from '../data/arena';
-import type { Variant } from '../data/registry';
+import { getEntity, type Variant } from '../data/registry';
 import { DEEP_ONE, TRAINING_DUMMY } from '../data/placeholders';
-import { CAMERA, SIM } from '../data/tuning';
+import type { Place } from '../data/arena';
+import { START_SIGN } from '../data/sites';
+import { CAMERA, LAUDANUM, SIM, WORLD } from '../data/tuning';
 import { createArenaWorld } from '../world/arena';
+import type { CollisionWorld } from '../world/colliders';
+import { createWorldCollision } from '../world/worldCollision';
 import { actionSystem } from './actions';
 import { brainSystem } from './brain';
 import { createCameraRig, stepCamera } from './camera';
+import { checkpointSystem, furnishWorld, signPlace } from './checkpoints';
 import { meleeSystem } from './combat';
 import { createStores, type Game, type GameEvents } from './components';
-import { resolveCreature, spawnCreature } from './creatures';
+import { dreadOf, resolveCreature, spawnCreature } from './creatures';
 import { deathSystem, registerDeath } from './death';
+import { hallucinationSystem, registerHallucinations } from './hallucinations';
+import { registerHiddenLayer, spawnPiece } from './hiddenLayer';
 import { createBuffer } from './inputBuffer';
+import { insightSystem, spawnTome } from './insight';
 import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
+import { createOverworld, registerOverworld } from './overworld';
 import { playerControl } from './playerControl';
+import { populationSystem } from './population';
 import { shotSystem } from './revolver';
+import { createMind, registerSanity, sanitySystem } from './sanity';
+import { applySave, type SaveData } from './save';
 import { spawnCombatant, spawnPlayer } from './spawn';
+import { registerVariantSwap } from './variantSwap';
 import { vitalsSystem } from './vitals';
 
 export interface GameOptions {
@@ -31,26 +48,51 @@ export interface GameOptions {
   variant?: Variant;
 }
 
-export function createGame({ seed = ARENA.seed, creature, variant }: GameOptions = {}): Game {
+/** The investigator in a world, with the hooks every game shares. */
+function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
   const ecs = createEcs(createStores());
-  const world = createArenaWorld();
-  const id = spawnPlayer({ ecs, world }, ARENA.spawn);
+  const id = spawnPlayer({ ecs, world }, spawn);
   const g: Game = {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, echoes: 0, checkpoint: { ...ARENA.spawn } },
-    camera: createCameraRig(ARENA.spawn.yaw),
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, echoes: 0, checkpoint: { ...spawn }, laudanum: LAUDANUM.doses },
+    mind: createMind(),
+    camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
     rng: createRng(seed),
     frame: 0,
   };
+  registerDeath(g);
+  registerSanity(g);
+  registerHiddenLayer(g);
+  registerVariantSwap(g);
+  registerHallucinations(g);
+  return g;
+}
+
+/** The open world (spec §3D): a new investigator wakes at the Miskatonic Quad; a save puts them back where they were. */
+export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; save?: SaveData } = {}): Game {
+  const g = baseGame(createWorldCollision(), signPlace(START_SIGN)!.rest, seed);
+  g.overworld = createOverworld(START_SIGN);
+  registerOverworld(g);
+  if (save) g.overworld.read = new Set(save.read); // unread tomes only
+  furnishWorld(g);
+  if (save) applySave(g, save);
+  populationSystem(g);
+  cameraSystem(g, 0, 0, 0);
+  return g;
+}
+
+export function createGame({ seed = ARENA.seed, creature, variant }: GameOptions = {}): Game {
+  const g = baseGame(createArenaWorld(), ARENA.spawn, seed);
   spawnCombatant(g, TRAINING_DUMMY, ARENA.dummy, 'enemy');
   const def = creature === undefined ? undefined : resolveCreature(creature, variant);
   if (def?.tier === 'ally') spawnCreature(g, creature!, ARENA.ally, variant);
   if (def && def.tier !== 'ally') spawnCreature(g, creature!, ARENA.deepOne, variant);
-  else spawnCombatant(g, DEEP_ONE, ARENA.deepOne, 'enemy');
-  registerDeath(g);
+  else g.ecs.c.dread.set(spawnCombatant(g, DEEP_ONE, ARENA.deepOne, 'enemy'), dreadOf(getEntity('deep_one')!)); // it weighs on the mind like the roster's Deep One
+  spawnTome(g, ARENA.tome);
+  for (const piece of ARENA.hidden) spawnPiece(g, piece);
   cameraSystem(g, 0, 0, 0);
   return g;
 }
@@ -62,18 +104,26 @@ function cameraSystem(g: Game, lookX: number, lookY: number, dt: number): void {
   stepCamera(g.camera, { lookX, lookY, pivot, focus, behind: tr.yaw }, g.world, dt);
 }
 
-/** One fixed 60 Hz step. The order matters: intent → moves → AI → motion → hits → recovery → lock → camera → death. */
+/**
+ * One fixed 60 Hz step. The order matters: intent → signs and gates → moves → AI → motion → hits →
+ * recovery → sanity → lock → camera → sight → hallucinations → death → population.
+ */
 export function stepGame(g: Game, input: InputFrame): void {
   const dt = 1 / SIM.hz;
   g.frame++;
   playerControl(g, input);
+  checkpointSystem(g, input);
   actionSystem(g);
   brainSystem(g);
   movementSystem(g, dt);
   meleeSystem(g);
   shotSystem(g);
   vitalsSystem(g, dt);
+  sanitySystem(g, dt);
   lockSystem(g);
   cameraSystem(g, input.lookX, input.lookY, dt);
+  insightSystem(g);
+  hallucinationSystem(g);
   deathSystem(g);
+  populationSystem(g);
 }

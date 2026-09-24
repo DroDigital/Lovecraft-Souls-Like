@@ -6,10 +6,10 @@
 import { turnToward } from '../core/geom';
 import { resolveCapsule } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
-import type { Game } from './components';
+import { isAbsent, type Game } from './components';
 
 export function movementSystem(g: Game, dt: number): void {
-  const { transform, body, mover, actor, dead } = g.ecs.c;
+  const { transform, body, mover, actor } = g.ecs.c;
   for (const [id, tr] of transform) {
     tr.prev.x = tr.pos.x;
     tr.prev.y = tr.pos.y;
@@ -17,7 +17,7 @@ export function movementSystem(g: Game, dt: number): void {
     tr.prevYaw = tr.yaw;
     const b = body.get(id);
     const a = actor.get(id);
-    if (!b || b.fixed || dead.has(id) || a?.frozen) continue;
+    if (!b || b.fixed || isAbsent(g, id) || a?.frozen) continue;
     const m = mover.get(id);
     const def = a && moveDef(a);
     if (a && def) {
@@ -44,8 +44,8 @@ export function movementSystem(g: Game, dt: number): void {
 
 /** Pushes overlapping bodies apart; fixed bodies never move. */
 function separate(g: Game): void {
-  const { transform, body, dead } = g.ecs.c;
-  const ids = [...body.keys()].filter((id) => !dead.has(id) && transform.has(id));
+  const { transform, body } = g.ecs.c;
+  const ids = [...body.keys()].filter((id) => !isAbsent(g, id) && transform.has(id));
   for (let i = 0; i < ids.length; i++) {
     for (let j = i + 1; j < ids.length; j++) {
       const ba = body.get(ids[i])!;

@@ -42,7 +42,7 @@ export function place(g: Game, id: Entity, x: number, z: number, yaw: number): v
 export const range = (from: number, to: number): number[] => Array.from({ length: to - from }, (_, i) => from + i);
 
 const windows = (m: MoveDef): Window[] =>
-  [m.iframes, m.parry, m.interrupt, m.hit?.window, m.motion?.window, m.track?.window].filter((w) => w !== undefined);
+  [m.iframes, m.parry, m.interrupt, m.hit?.window, m.motion?.window, m.track?.window, m.sanity?.window].filter((w) => w !== undefined);
 
 /** Every reaction exists; every window, cancel, hitstop and combo link is valid. */
 export function expectValidMoveSet(set: MoveSet): void {
@@ -59,6 +59,8 @@ export function expectValidMoveSet(set: MoveSet): void {
       if (stop !== undefined) expect([2, 3, 4], id).toContain(stop);
     }
     if (m.shot) expect(m.shot.frame, id).toBeLessThan(m.frames);
+    if (m.item !== undefined) expect(m.item, id).toBeLessThan(m.frames);
+    if (m.sanity) expect(m.sanity.amount, id).toBeGreaterThan(0);
     if (m.interrupt && m.hit) expect(m.interrupt[1], `${id} interrupt is a wind-up`).toBeLessThanOrEqual(m.hit.window[0]);
     for (const next of Object.values(m.combo ?? {})) expect(set[next], `${id} → ${next}`).toBeDefined();
   }

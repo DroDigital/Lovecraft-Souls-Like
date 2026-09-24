@@ -1,6 +1,7 @@
 /**
  * Pure FX model (no Three.js): sanity, accessibility cap and debug toggles in,
- * per-effect parameters out. Every effect intensifies as sanity falls (spec §2, Phase 0).
+ * per-effect parameters out. Every effect intensifies as sanity falls (spec §2, Phase 0), and so
+ * does the audio's detune and distortion (the FX controller's audio half, spec §3A).
  */
 
 import { FX, RENDER, type Ramp } from '../data/tuning';
@@ -23,6 +24,7 @@ export interface FxState {
   cap: number; // 0..1, caps stress for accessibility
   anomalyProximity: number; // 0..1
   enabled: Record<EffectId, boolean>;
+  pulse?: number; // 0..1: a band change for the worse, fading (fxController.ts)
 }
 
 export interface FxParams {
@@ -45,6 +47,10 @@ export interface FxParams {
   displace: number;
   fovBreatheDeg: number;
   skew: number;
+  drone: number; // audio: the sanity drone's gain
+  detune: number; // cents
+  wobble: number; // cents of drift around the detune
+  distortion: number; // 0..1
 }
 
 /** The FxParams fields each effect drives (the ones the sanity slider moves). */
@@ -75,6 +81,7 @@ export function sanityStress(sanity: number, cap: number): number {
 export function computeFx(s: FxState): FxParams {
   const t = sanityStress(s.sanity, s.cap);
   const on = s.enabled;
+  const pulse = clamp01(s.pulse ?? 0) * clamp01(s.cap);
   return {
     stress: t,
     lowRes: on.pixelate,
@@ -90,11 +97,15 @@ export function computeFx(s: FxState): FxParams {
     anomalyStress: at(FX.anomalyStress, t),
     quantize: on.quantize,
     ditherSpread: at(FX.ditherSpread, t),
-    ripple: on.warp ? at(FX.ripple, t) : 0,
-    chroma: on.warp ? at(FX.chroma, t) : 0,
+    ripple: on.warp ? at(FX.ripple, t) + FX.pulseRipple * pulse : 0,
+    chroma: on.warp ? at(FX.chroma, t) + FX.pulseChroma * pulse : 0,
     displace: on.displace ? at(FX.displace, t) : 0,
     fovBreatheDeg: on.lens ? at(FX.fovBreatheDeg, t) : 0,
     skew: on.lens ? at(FX.skew, t) : 0,
+    drone: at(FX.droneGain, t),
+    detune: at(FX.detune, t),
+    wobble: at(FX.wobble, t),
+    distortion: at(FX.distortion, t),
   };
 }
 
