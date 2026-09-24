@@ -9,6 +9,7 @@ import { wrapAngle, yawOf } from '../core/geom';
 import { FEEDBACK, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
+import { MODEL_PREFIX } from '../systems/creatures';
 import { buildFigure, type Figure } from './figures';
 import { box } from './meshKit';
 import { BASE } from './palette';
@@ -61,7 +62,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
 
   function sync(): void {
     for (const [id, model] of g.ecs.c.model) {
-      if (views.has(id)) continue;
+      if (views.has(id) || model.startsWith(MODEL_PREFIX)) continue; // roster creatures: creatureViews
       const figure = buildFigure(model);
       scene.add(figure.root);
       views.set(id, { figure, stride: 0, lastTime: 0, hitAt: -Infinity });

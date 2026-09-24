@@ -69,7 +69,7 @@ function respawn(g: Game): void {
   for (const [id, home] of g.ecs.c.home) {
     restore(g, id, home);
     const br = g.ecs.c.brain.get(id);
-    if (br) [br.state, br.cooldown] = ['idle', 0];
+    if (br) Object.assign(br, { state: 'idle', target: null, lost: 0, cooldown: 0 });
   }
   Object.assign(p, { buffer: createBuffer(), dodgeHeld: -1, sprinting: false });
   setLock(g, null);

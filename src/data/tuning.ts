@@ -57,6 +57,7 @@ export const LIGHT = {
   glowIntensity: 1.3,
   echoGlowRange: 6, // a dropped Echo's faint light
   echoGlowIntensity: 0.6,
+  sprite: 0.65, // creature sprites are pre-shaded; this matches them to the world's light
 };
 
 /** Debug orbit camera of the Phase 0 look-test scene. */

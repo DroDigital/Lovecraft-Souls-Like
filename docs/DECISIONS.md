@@ -27,3 +27,17 @@ One line per judgment call, newest last.
 - Phase 1: The camera boom hangs 0.45 m over the right shoulder and tilts down on close lock targets, so the target isn't hidden behind the player.
 - Phase 1: The Elder Sign is only the respawn point for now; resting, discovery and fast travel are Phase 4.
 - Phase 1: The arena is the default page; the Phase 0 look test moved to `?look`, and `?debug` exposes `window.game` for scripted checks.
+- Phase 2: Added two entities §4 misses that are clearly Lovecraft's: the Gnoph-keh (Polaris) and Zkauba the Wizard of Yaddith (Through the Gates of the Silver Key, with E. Hoffmann Price). 100 entities in all.
+- Phase 2: One file per tier stays under 300 lines by keeping each entry to ~6 lines with the helpers in `entities/kit.ts`.
+- Phase 2: An entity lists its attacks in `behavior.attacks` (§3C names only archetype + params); boss scripts carry their own weighted attacks.
+- Phase 2: The attack library compiles into Phase 1 MoveDefs scaled by `stats.damage` and body size. Ranged attacks are hitscan until Phase 5 projectiles; teleport, summon, gaze, darkness and sanity damage are data until Phases 3/5.
+- Phase 2: Archetypes are parameter sets for one shared perception-driven FSM (hidden, idle, engage, return, follow), not separate code. Hidden ambushers and burrowers can't be hit or locked; flight is drawn (hover), not simulated.
+- Phase 2: Bosses fight with their script's first phase; phase changes, summons, arena changes and reality hooks run in Phase 5.
+- Phase 2: Elder Shoggoth and Polyp Swarm are `bossVariant` overrides; Nyarlathotep's true form is its `eldritchVariant`. A region boss must have a script directly or through its boss variant.
+- Phase 2: Sprites are 16 body plans drawn by a pure software rasteriser into 64×64 cells (idle 2, move 2, attack 3, hurt 2 frames), one 2048-wide atlas of 103 sprites built in ~0.2 s. One view per sprite, mirrored by facing; no 8-way rotations. Atlas alpha marks glow pixels.
+- Phase 2: Colossi are assemblies: Cthulhu, Dagon, Hydra, Ghatanothoa, the Dunwich Horror, the Colossus Beneath the Pyramids, Azathoth, Yog-Sothoth, Shub-Niggurath. Their capsule is as wide as their body.
+- Phase 2: Region fits where §3D has no home: Egyptian and Arabian stories (Under the Pyramids, The Nameless City) go to Pnakotus; Exham Priory, Cool Air, The Alchemist and The Outsider to the hub; Venus (In the Walls of Eryx) to Yuggoth.
+- Phase 2: Phase 1's placeholder Deep One stays as the default arena's sparring partner (its tests pin its frame data). A `?spawn` creature replaces it, or fights beside it when it is an ally.
+- Phase 2: Insight on first sight is 0 for lesser and greater (their first sight costs sanity instead) and at least 1 for named and above; the validator enforces it.
+- Phase 2: The Being from Beyond carries `hidden.maxSanity: 15` (Unmoored); the Phase 3 HiddenLayer hook will hide it, so for now it is visible.
+- Phase 2: The ambient Blind Albino Penguin is a skirmisher with `flee: 1` and no attacks: it waddles away.

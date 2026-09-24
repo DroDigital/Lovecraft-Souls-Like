@@ -6,7 +6,7 @@ import type { V3 } from '../core/geom';
 import type { Rng } from '../core/rng';
 import type { Place } from '../data/arena';
 import type { MoveSet } from '../data/moves';
-import type { BrainDef } from '../data/placeholders';
+import type { BrainDef } from '../data/archetypes';
 import type { CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
 import type { InputBuffer } from './inputBuffer';
@@ -73,9 +73,15 @@ export interface Combatant {
   bounty: number;
 }
 
+/** Archetype state machine (systems/brain.ts). `hidden`: lying in ambush or burrowed, unseen and untouchable. */
+export type BrainState = 'idle' | 'hidden' | 'engage' | 'return' | 'follow';
+
 export interface Brain {
   def: BrainDef;
-  state: 'idle' | 'chase' | 'return';
+  state: BrainState;
+  target: Entity | null;
+  lost: number; // frames since the target was last perceived
+  strafe: 1 | -1; // circling direction
   cooldown: number; // frames before the next attack
   speed: number;
 }
@@ -123,6 +129,9 @@ export interface GameEvents {
   Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost'; amount: number; total: number };
   LockChanged: { target: Entity | null };
 }
+
+/** Lying in ambush or burrowed: unseen, and nothing can target it. */
+export const isConcealed = (g: Pick<Game, 'ecs'>, id: Entity): boolean => g.ecs.c.brain.get(id)?.state === 'hidden';
 
 /** Player-only state that is not a component. */
 export interface Pilot {

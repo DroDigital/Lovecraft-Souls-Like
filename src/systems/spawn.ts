@@ -36,8 +36,11 @@ export function spawnCombatant(g: Spawner, def: CombatantDef, at: Place, faction
   c.actor.set(e, createActor(def.moves));
   c.combatant.set(e, { name: def.name, faction, bounty: def.bounty });
   c.model.set(e, def.model);
-  if (!def.fixed) c.mover.set(e, { vx: 0, vz: 0, face: at.yaw, turnRate: def.brain?.turnRate ?? PLAYER.turnRate });
-  if (def.brain) c.brain.set(e, { def: def.brain, state: 'idle', cooldown: 0, speed: def.speed });
+  if (!def.fixed) c.mover.set(e, { vx: 0, vz: 0, face: at.yaw, turnRate: def.brain?.params.turnRate ?? PLAYER.turnRate });
+  if (def.brain) {
+    const hides = def.brain.params.hide === 'ambush' || def.brain.params.hide === 'burrow';
+    c.brain.set(e, { def: def.brain, state: hides ? 'hidden' : 'idle', target: null, lost: 0, strafe: 1, cooldown: 0, speed: def.speed });
+  }
   if (faction === 'enemy') c.home.set(e, { ...at });
   return e;
 }

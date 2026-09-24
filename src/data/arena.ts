@@ -17,7 +17,8 @@ export const ARENA = {
   elderSign: { x: -2.4, z: 17.4 }, // behind the spawn, off to the side so the camera boom clears it
   spawn: { x: 0, z: 15.5, yaw: Math.PI } as Place, // the checkpoint respawn point, facing north
   dummy: { x: -4.5, z: 9, yaw: 0.6 } as Place,
-  deepOne: { x: 4, z: -9, yaw: 0 } as Place,
+  deepOne: { x: 4, z: -9, yaw: 0 } as Place, // also where a `?spawn` creature appears
+  ally: { x: 2.5, z: 13, yaw: Math.PI } as Place, // a `?spawn` ally, beside the player
   /** x, z, radius, height. */
   pillars: [
     [-8, 1, 0.8, 7],
