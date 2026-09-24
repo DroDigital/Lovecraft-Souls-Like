@@ -52,7 +52,8 @@ export function conjure(g: Game): Entity | undefined {
 export function hallucinationSystem(g: Game): void {
   const { phantom } = g.ecs.c;
   for (const [id, p] of phantom) if (--p.life <= 0) vanish(g, id);
-  if (g.mind.band !== 'unmoored' || --g.mind.phantomIn > 0 || phantom.size >= HALLUCINATIONS.max) return;
+  const conjured = [...phantom.values()].filter((p) => !p.decoy).length; // a boss's decoys are not the mind's
+  if (g.mind.band !== 'unmoored' || --g.mind.phantomIn > 0 || conjured >= HALLUCINATIONS.max) return;
   conjure(g);
   const [lo, hi] = HALLUCINATIONS.interval;
   g.mind.phantomIn = lo + Math.floor(g.rng() * (hi - lo + 1));
@@ -61,7 +62,7 @@ export function hallucinationSystem(g: Game): void {
 export function registerHallucinations(g: Game): void {
   g.events.on('SanityBandChanged', ({ to }) => {
     if (to === 'unmoored') g.mind.phantomIn = HALLUCINATIONS.onset;
-    else for (const id of [...g.ecs.c.phantom.keys()]) vanish(g, id);
+    else for (const [id, p] of [...g.ecs.c.phantom]) if (!p.decoy) vanish(g, id);
   });
   g.events.on('Hit', ({ attacker, target, outcome }) => {
     const { phantom } = g.ecs.c;

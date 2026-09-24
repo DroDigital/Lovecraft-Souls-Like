@@ -65,6 +65,10 @@ export const REALITY_HOOKS = [
 ] as const;
 export type RealityHook = (typeof REALITY_HOOKS)[number];
 
+/** What a boss phase does to its arena as it begins (systems/arenaChanges.ts). */
+export const ARENA_CHANGES = ['lamps', 'monoliths', 'ship', 'roots', 'spheres'] as const;
+export type ArenaChange = (typeof ARENA_CHANGES)[number];
+
 export const DAMAGE_TYPES = ['slash', 'blunt', 'shot', 'fire', 'light', 'arcane'] as const;
 export type DamageType = (typeof DAMAGE_TYPES)[number];
 
@@ -118,6 +122,7 @@ export interface SpriteRecipe {
   wings?: number;
   limbs?: number; // total arms/legs, overriding the silhouette's default
   glow?: Glow; // eyes and markings glow in this anomaly colour
+  outside?: boolean; // drawn in a hue outside the palette (the Colour Out of Space)
   seed?: number;
 }
 
@@ -163,6 +168,7 @@ export interface Behavior {
   archetype: ArchetypeId;
   params?: Partial<ArchetypeParams>;
   attacks: readonly AttackId[];
+  summons?: readonly string[]; // what its summon attack calls up (bosses: their phase's summons)
 }
 
 export interface BossPhase {
@@ -170,11 +176,13 @@ export interface BossPhase {
   attacks: readonly { id: AttackId; weight: number }[];
   summons?: readonly string[]; // entity ids
   realityHooks?: readonly RealityHook[];
-  arenaChange?: string;
+  arenaChange?: ArenaChange;
 }
 
 export interface BossScript {
   phases: readonly BossPhase[];
+  unseen?: boolean; // invisible until revealed: not drawn, locked on to or beheld (the Dunwich Horror)
+  called?: boolean; // its world spawn stays empty until it has been called (Hastur, by its name's third appearance)
 }
 
 export interface EntityDef {

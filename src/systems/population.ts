@@ -6,10 +6,12 @@
  * announces each region the investigator enters. Pure: no Three.js.
  */
 
+import { getEntity } from '../data/registry';
 import { WORLD } from '../data/tuning';
 import { chunkContent, forgetChunks } from '../world/chunks';
 import { chunksAround, chunkSpan } from '../world/streaming';
 import { chunkKey, chunkOf, regionAt } from '../world/worldMap';
+import { setArena } from './bossFight';
 import type { Game } from './components';
 import { spawnCreature } from './creatures';
 
@@ -45,8 +47,10 @@ export function populationSystem(g: Game): void {
     for (const s of chunkContent(ch.cx, ch.cz).spawns) {
       if (ow.alive.size >= WORLD.maxActive) return;
       if (ow.alive.has(s.id) || ow.killed.has(s.id) || ow.slain.has(s.id)) continue;
+      if (getEntity(s.entity)?.bossScript?.called && !ow.called.has(s.entity)) continue; // not called yet: its arena waits empty
       const e = spawnCreature(g, s.entity, s.at, s.variant);
       if (e === undefined) continue;
+      if (s.arena) setArena(g, e, s.arena);
       c.origin.set(e, s.id);
       ow.alive.set(s.id, e);
     }

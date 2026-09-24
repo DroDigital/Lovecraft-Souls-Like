@@ -3,7 +3,8 @@
  * camera, Doom-style, sampling the sprite atlas. They share the world's vertex snapping, light
  * (ambient, moon and lantern, without normals) and fog. Atlas alpha marks lit pixels (1) and
  * self-lit pixels (glow markings ~0.63, eye glints ~0.82); transparency is dithered. Output alpha can mark a
- * creature for the post pass's rim (see post.ts).
+ * creature for the post pass's rim, or (the Colour Out of Space) a hue outside the palette that the post
+ * pass leaves alone (see post.ts).
  */
 
 import { LANTERN_GLSL } from './world';
@@ -20,7 +21,7 @@ uniform float uRimNear;
 uniform float uRimFar;
 
 attribute vec4 aCell; // u0, v0 (top), u1, v1 (bottom)
-attribute vec4 aInfo; // flash, opacity, flip, unused
+attribute vec4 aInfo; // flash, opacity, flip, outside the palette
 
 varying vec2 vUv;
 varying vec3 vLight;
@@ -28,6 +29,7 @@ varying float vFog;
 varying float vRim;
 varying float vFlash;
 varying float vOpacity;
+varying float vOutside;
 ${LANTERN_GLSL}
 void main() {
   vec3 origin = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -49,6 +51,7 @@ void main() {
   vRim = 1.0 - smoothstep(uRimNear, uRimFar, -vp.z);
   vFlash = aInfo.x;
   vOpacity = aInfo.y;
+  vOutside = aInfo.w;
 }
 `;
 
@@ -57,6 +60,7 @@ uniform sampler2D uAtlas;
 uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uMarkCharacters;
+uniform float uTime;
 
 varying vec2 vUv;
 varying vec3 vLight;
@@ -64,6 +68,7 @@ varying float vFog;
 varying float vRim;
 varying float vFlash;
 varying float vOpacity;
+varying float vOutside;
 
 float bayer4(vec2 p) {
   const float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
@@ -78,6 +83,12 @@ void main() {
   vec3 col = glow ? t.rgb : t.rgb * vLight;
   col = mix(col, vec3(1.0), vFlash);
   float fog = vFog * uFogAmount;
+  if (vOutside > 0.5) {
+    // A colour no palette holds: every hue at once, crawling over it, bright wherever it is lit.
+    vec3 hue = 0.5 + 0.5 * cos(6.2832 * (uTime * 0.23 + dot(t.rgb, vec3(1.7, -0.9, 0.6)) + vec3(0.0, 0.33, 0.67)));
+    gl_FragColor = vec4(hue * (0.55 + 0.45 * dot(col, vec3(0.3333))), uMarkCharacters > 0.5 ? 0.31 : 1.0);
+    return;
+  }
   gl_FragColor = vec4(mix(col, uFogColor, fog * (glow ? 0.5 : 1.0)), uMarkCharacters > 0.5 ? 0.25 * (1.0 - vRim) : 1.0);
 }
 `;

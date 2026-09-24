@@ -11,6 +11,7 @@ import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createAudioFx } from './render/audioFx';
 import { createCreatureViews } from './render/creatureViews';
+import { createFightViews } from './render/fightViews';
 import { placeCamera } from './render/followCamera';
 import { allEffectsOn, computeFx, lensAt, type FxState } from './render/fx';
 import { createFxController } from './render/fxController';
@@ -21,6 +22,7 @@ import { applyLens } from './render/lens';
 import { ANOMALY } from './render/palette';
 import { createPipeline } from './render/pipeline';
 import { updatePostUniforms } from './render/postPass';
+import { applyReality, lightReality } from './render/realityFx';
 import { buildAtlas } from './render/sprites/atlas';
 import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
 import type { Game } from './systems/components';
@@ -32,6 +34,7 @@ import { clearSave, loadSave } from './systems/save';
 import { browserStore, startAutosave } from './ui/autosave';
 import { startBestiary } from './ui/bestiary';
 import { createDebugPanel, type PanelOptions } from './ui/debugPanel';
+import { createEndingCard } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
@@ -102,10 +105,12 @@ function startGame(opts: StartOptions): void {
   const world = opts.arena ? null : createWorldScene();
   const scene = world?.scene ?? createArenaScene();
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game);
+  const ending = createEndingCard(game);
   if (store) startAutosave(game, store);
   const views = createActorViews(scene, game);
   const creatures = createCreatureViews(scene, game, buildAtlas());
   const hidden = createHiddenViews(scene, game);
+  const fights = createFightViews(scene, game);
   const fxController = createFxController(game);
   const audio = createAudioFx();
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
@@ -131,7 +136,7 @@ function startGame(opts: StartOptions): void {
       step(dt) {
         simTime += dt;
         const frame = input.poll();
-        stepGame(game, menu?.open ? emptyInput() : frame);
+        stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
       },
       render(alpha) {
         const time = simTime + alpha / SIM.hz;
@@ -143,9 +148,12 @@ function startGame(opts: StartOptions): void {
         placeLantern(game, alpha);
         creatures.update(alpha, time, camera);
         hidden.update(time);
+        fights.update(alpha, time);
 
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
+        applyReality(fx, game.reality);
+        lightReality(game.reality);
         audio.update(fx, time);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);

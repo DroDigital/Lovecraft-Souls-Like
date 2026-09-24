@@ -3,7 +3,8 @@
  * (a capsule) against the hurt capsules of hostile bodies. Resolution order: i-frames, parry,
  * block / guard break, damage (riposte bonus), interrupt, poise / stagger; then hitstop (2–4
  * frames on attacker and victim) and events. The sanity band scales the investigator's blows both
- * ways; a hallucination's blows carry no damage (their sanity cost is hallucinations.ts).
+ * ways; a hallucination's blows carry no damage (their sanity cost is hallucinations.ts); a boss's
+ * ward (its hooks and signature) scales what it takes. Grabs pass a guard; wind shoves.
  */
 
 import type { Entity } from '../core/ecs';
@@ -11,7 +12,7 @@ import { segSegDist2, wrapAngle, yawOf, type V3 } from '../core/geom';
 import type { HitDef } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
-import { isAbsent, isConcealed, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
+import { isAbsent, isConcealed, type Actor, type Combatant, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
 
@@ -23,6 +24,8 @@ export interface Blow {
   hitstop: number;
   parryable: boolean;
   interrupts: boolean; // breaks a foe's wind-up (the revolver)
+  unblockable?: boolean; // a grab, or a pool: no guard stops it
+  lingering?: boolean; // a pool's or the void's tick: it hurts, but it is no blow on the mind
 }
 
 export interface Defender {
@@ -41,14 +44,14 @@ export function resolveHit(d: Defender, blow: Blow, frontal: boolean): { outcome
   const f = d.actor.frame;
   if (inWindow(def?.iframes, f)) return { outcome: 'dodged', damage: 0 };
   if (blow.parryable && frontal && inWindow(def?.parry, f)) return { outcome: 'parried', damage: 0 };
-  if (frontal && d.actor.guard) {
+  if (frontal && d.actor.guard && !blow.unblockable) {
     if (!d.stamina || !absorb(d.stamina, blow.guard)) return { outcome: 'blocked', damage: 0 };
     startMove(d.actor, 'guardBreak');
     return { outcome: 'guardBreak', damage: 0 };
   }
   const riposte = d.actor.move === 'parried';
   const damage = blow.damage * (riposte ? COMBAT.riposte : 1);
-  d.health.hp = Math.max(d.health.immortal ? 1 : 0, d.health.hp - damage);
+  d.health.hp = Math.max(d.health.immortal ? 1 : d.health.floor ?? 0, d.health.hp - damage);
   d.health.calm = 0;
   if (d.health.hp <= 0) {
     startMove(d.actor, 'death');
@@ -82,19 +85,19 @@ export function hitCentre(pos: V3, yaw: number, hit: HitDef, p: number): V3 {
   return { x: pos.x + Math.sin(a) * hit.reach, y: pos.y + hit.height, z: pos.z + Math.cos(a) * hit.reach };
 }
 
-/** Living, hostile, present, unconcealed combatants with a body. Hallucinations and the investigator see only each other. */
-export function targetsOf(g: Game, id: Entity): Entity[] {
+/** Who a blow from `faction` can touch: living, present, unconcealed combatants of the other side with a body. Hallucinations and the investigator touch only each other. */
+export function hostiles(g: Game, faction: Combatant['faction'] | undefined, conjured: boolean, byPlayer: boolean): Entity[] {
   const { combatant, health, body, phantom } = g.ecs.c;
-  const faction = combatant.get(id)?.faction;
-  const conjured = phantom.has(id);
   const out: Entity[] = [];
   for (const [t, c] of combatant) {
     if (c.faction === faction || isAbsent(g, t) || !body.has(t) || isConcealed(g, t)) continue;
-    if (phantom.has(t) ? id !== g.player.id : conjured && t !== g.player.id) continue;
+    if (phantom.has(t) ? !byPlayer : conjured && t !== g.player.id) continue;
     if ((health.get(t)?.hp ?? 0) > 0) out.push(t);
   }
   return out;
 }
+
+export const targetsOf = (g: Game, id: Entity): Entity[] => hostiles(g, g.ecs.c.combatant.get(id)?.faction, g.ecs.c.phantom.has(id), id === g.player.id);
 
 /** Distance² from a segment to a body's hurt capsule, and the capsule radius. */
 export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3): { gap2: number; radius: number } {
@@ -105,26 +108,41 @@ export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3): { gap2: numb
   return { gap2: segSegDist2(a, b, bottom, top), radius };
 }
 
-/** Applies a blow from `attacker` to `target`: resolution, parry recoil, hitstop, events. */
-export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow): HitOutcome {
+/**
+ * Applies a blow from `attacker` to `target`: resolution, parry recoil, hitstop, events. `from` is
+ * where it comes from, for the guard arc (a bolt or a pool; else the attacker, who may be gone).
+ */
+export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow, from?: V3): HitOutcome {
   const { actor, health, poise, stamina, transform } = g.ecs.c;
-  const aa = actor.get(attacker)!;
+  const aa = actor.get(attacker);
   const ta = actor.get(target)!;
   const tt = transform.get(target)!;
-  const frontal = isFrontal(tt.pos, tt.yaw, transform.get(attacker)!.pos);
-  const defender = { actor: ta, health: health.get(target)!, poise: poise.get(target)!, stamina: stamina.get(target) };
+  const frontal = isFrontal(tt.pos, tt.yaw, from ?? transform.get(attacker)?.pos ?? tt.pos);
+  const h = health.get(target)!;
+  const defender = { actor: ta, health: h, poise: poise.get(target)!, stamina: stamina.get(target) };
   const felt = g.ecs.c.phantom.has(attacker)
     ? { ...blow, damage: 0, poise: 0, guard: 0 }
-    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target)) };
+    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * (h.ward ?? 1)) };
   const { outcome, damage } = resolveHit(defender, felt, frontal);
-  if (outcome === 'parried') startMove(aa, 'parried');
-  if (outcome !== 'dodged') {
-    aa.hitstop = blow.hitstop;
+  if (outcome === 'parried' && aa) startMove(aa, 'parried');
+  if (outcome !== 'dodged' && blow.hitstop > 0) {
+    if (aa && !from) aa.hitstop = blow.hitstop;
     ta.hitstop = blow.hitstop;
   }
-  g.events.emit('Hit', { attacker, target, outcome, damage });
+  g.events.emit('Hit', { attacker, target, outcome, damage, ...(blow.lingering && { lingering: true }) });
   if (outcome === 'kill') g.events.emit('Died', { entity: target, killer: attacker, at: { ...tt.pos } });
   return outcome;
+}
+
+const SHOVE_FRAMES = 12;
+
+/** Pushes a body `metres` straight away from `from`, over a few frames (movement.ts moves it). */
+export function shove(g: Game, target: Entity, from: V3, metres: number): void {
+  const p = g.ecs.c.transform.get(target)?.pos;
+  if (!p || g.ecs.c.body.get(target)?.fixed) return;
+  const [dx, dz] = [p.x - from.x, p.z - from.z];
+  const d = Math.hypot(dx, dz) || 1;
+  g.ecs.c.shove.set(target, { x: (dx / d) * (metres / SHOVE_FRAMES), z: (dz / d) * (metres / SHOVE_FRAMES), frames: SHOVE_FRAMES });
 }
 
 export function meleeSystem(g: Game): void {
@@ -142,7 +160,8 @@ export function meleeSystem(g: Game): void {
       const { gap2, radius } = capsuleGap2(g, t, s0, s1);
       if (gap2 > (hit.radius + radius) ** 2) continue;
       a.hits.add(t);
-      strike(g, id, t, { ...hit, parryable: true, interrupts: false });
+      const outcome = strike(g, id, t, { ...hit, parryable: !hit.unblockable, interrupts: false });
+      if (hit.push && outcome !== 'dodged' && outcome !== 'parried') shove(g, t, tr.pos, hit.push);
       if (a.move === 'parried') break; // recoiled off a parry
     }
   }

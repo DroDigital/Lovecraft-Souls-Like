@@ -16,6 +16,8 @@ export interface HitDef {
   radius: number; // hitbox sphere radius, swept across the arc each frame
   height: number; // hitbox centre above the feet
   arc: readonly [from: number, to: number]; // degrees swept over the window: 0 = ahead, + = attacker's right
+  push?: number; // metres the victim is shoved away (wind), even through a guard
+  unblockable?: boolean; // a grab: no guard or parry stops it, only i-frames
 }
 
 export interface ShotDef {
@@ -25,6 +27,31 @@ export interface ShotDef {
   range: number;
   hitstop: number;
 }
+
+/** A lingering pool (spec §3E): it hurts every hostile standing in it, one tick at a time. */
+export interface PoolDef {
+  radius: number;
+  life: number; // frames
+  tick: number; // frames between hurts
+  damage: number; // per tick
+}
+
+/** A volley (spec §3E): real bolts that fly (or arc, lobbed) and can be dodged, blocked or outrun. */
+export interface VolleyDef {
+  frame: number; // the frame they leave
+  count: number;
+  spread: number; // degrees across the fan
+  speed: number; // m/s
+  radius: number;
+  range: number; // metres before a bolt gutters out
+  damage: number;
+  poise: number;
+  lob: boolean; // arcs to land where the target stood (spit)
+  pool?: PoolDef; // left where it lands
+}
+
+/** The special attacks' effects (spec §3E), run by systems/specials.ts over the window. */
+export type EffectKind = 'teleport' | 'summon' | 'gaze' | 'darkness';
 
 /** A roar or a gaze (spec §3A): it takes sanity from the investigator in range. */
 export interface SanityDef {
@@ -44,6 +71,9 @@ export interface MoveDef {
   interrupt?: Window; // wind-up frames in which a revolver hit interrupts this move
   hit?: HitDef;
   shot?: ShotDef;
+  volley?: VolleyDef;
+  pool?: PoolDef & { frame: number }; // spreads under the target on this frame
+  effect?: { window: Window; kind: EffectKind; range: number }; // range: how far a gaze reaches
   motion?: { window: Window; distance: number; dir: 'facing' | 'input' | 'back' };
   track?: { window: Window; rate: number }; // turn toward the target during these frames (rad/s)
   sanity?: SanityDef;
@@ -118,4 +148,8 @@ export const PLAYER_MOVES = {
     shot: { frame: 7, damage: 7, poise: 4, range: 22, hitstop: 2 },
   },
   drink: { frames: 60, cancel: 48, item: 34 },
+  scatter: { frames: 30, cancel: 22 }, // a boss fight's E actions (spec §3E): the Powder of Ibn Ghazi...
+  kindle: { frames: 40, cancel: 30 }, // ...relighting a lamp...
+  chant: { frames: 180 }, // ...and the incantation, which works only if it is chanted to its end
+  helm: { frames: 600, iframes: [0, 600] }, // at the Alert's helm, riding the deck: the ram ends it
 } satisfies MoveSet;

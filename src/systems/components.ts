@@ -11,6 +11,11 @@ import type { Tier } from '../data/schema';
 import type { UpgradeId } from '../data/tuning';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
+import type { Bolt, Fight, Hazard, Prop, Reality } from './fightTypes';
+import type { Band, GameEvents } from './gameEvents';
+
+export type { ArenaCircle, Bolt, Fight, Hazard, Prop, Reality } from './fightTypes';
+export { BANDS, type Band, type GameEvents, type HitOutcome } from './gameEvents';
 import type { InputBuffer } from './inputBuffer';
 import type { LockState } from './lockOn';
 
@@ -42,6 +47,8 @@ export interface Health {
   max: number;
   immortal: boolean;
   calm: number; // frames since the last damage
+  ward?: number; // damage taken is scaled by this: a boss's hooks and signature set it each step
+  floor?: number; // blows cannot bring it below this: a boss no blade finishes (its signature sets it)
 }
 
 export interface Poise {
@@ -122,9 +129,10 @@ export interface Swap {
   eldritch: boolean;
 }
 
-/** A hallucination (spec §3A): only the investigator sees it, and it fades after `life` frames. */
+/** A hallucination (spec §3A), or a boss's decoy (§3E): only the investigator sees it, and it fades after `life` frames. */
 export interface Phantom {
   life: number;
+  decoy?: boolean; // a boss's decoy: it stays whatever the sanity band
 }
 
 /** A tome lying in the world: reading it (by touch) grants insight. */
@@ -170,46 +178,23 @@ export function createStores() {
     sign: new Map<Entity, Sign>(),
     gate: new Map<Entity, Gate>(),
     origin: new Map<Entity, string>(), // the world spawn point a creature came from (population.ts)
+    fight: new Map<Entity, Fight>(), // bosses (bossFight.ts)
+    minion: new Map<Entity, Entity>(), // a summon or decoy → its summoner
+    prop: new Map<Entity, Prop>(),
+    bolt: new Map<Entity, Bolt>(),
+    hazard: new Map<Entity, Hazard>(),
+    unseen: new Map<Entity, { revealed: number }>(), // invisible unless revealed (frames left): the Dunwich Horror
+    shove: new Map<Entity, { x: number; z: number; frames: number }>(), // metres per frame, for this many frames
   };
 }
 
 export type Stores = ReturnType<typeof createStores>;
 
-export type HitOutcome =
-  | 'dodged'
-  | 'parried'
-  | 'blocked'
-  | 'guardBreak'
-  | 'hit'
-  | 'stagger'
-  | 'riposte'
-  | 'interrupted'
-  | 'kill';
-
-/** Sanity bands (spec §3A), from the sanest. */
-export const BANDS = ['lucid', 'uneasy', 'fractured', 'unmoored'] as const;
-export type Band = (typeof BANDS)[number];
-
-export interface GameEvents {
-  Hit: { attacker: Entity; target: Entity; outcome: HitOutcome; damage: number };
-  Shot: { shooter: Entity; from: V3; to: V3; target: Entity | null };
-  Died: { entity: Entity; killer: Entity | null; at: V3 };
-  Respawned: { entity: Entity };
-  Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost'; amount: number; total: number };
-  LockChanged: { target: Entity | null };
-  SanityBandChanged: { from: Band; to: Band; sanity: number };
-  InsightChanged: { insight: number; change: number; cause: 'sight' | 'tome' | 'upgrade' | 'debug' | 'load'; source: string };
-  FirstSight: { entity: Entity; name: string; sanity: number; insight: number }; // sanity lost, insight gained
-  Discovered: { sign: string; name: string }; // an Elder Sign found
-  Rested: { sign: string; name: string };
-  RestRefused: { sign: string };
-  Travelled: { via: 'sign' | 'gate' | 'dream'; to: string; name: string };
-  RegionEntered: { region: string; name: string };
-  Vanquished: { entity: Entity; name: string }; // a boss or optional boss, slain for good
-}
-
 /** Lying in ambush or burrowed: unseen, and nothing can target it. */
 export const isConcealed = (g: Pick<Game, 'ecs'>, id: Entity): boolean => g.ecs.c.brain.get(id)?.state === 'hidden';
+
+/** Invisible and not revealed (spec §3E, the Dunwich Horror): not drawn, locked on to or beheld, though it is there. */
+export const isUnseen = (g: Pick<Game, 'ecs'>, id: Entity): boolean => (g.ecs.c.unseen.get(id)?.revealed ?? 1) <= 0;
 
 /** Not in the world at all: dead, or on a hidden layer that is not shown. It neither acts nor collides, and nothing can touch it. */
 export const isAbsent = (g: Pick<Game, 'ecs'>, id: Entity): boolean => g.ecs.c.dead.has(id) || g.ecs.c.layer.get(id)?.shown === false;
@@ -243,6 +228,9 @@ export interface Overworld {
   slain: Set<string>; // spawn ids of bosses and optional bosses, gone for good
   killed: Set<string>; // spawn ids of foes killed since the last rest or death
   read: Set<string>; // tomes read
+  named: number; // times Hastur's name has appeared (signatures/hastur.ts)
+  called: Set<string>; // bosses called into the world: until then their spawn stays empty
+  ending: string | null; // the ending chosen, once one has been (endings.ts)
   alive: Map<string, Entity>; // spawn id → the creature standing for it
   region: string | null; // where the investigator is
   chunk: number; // the investigator's chunk key
@@ -259,5 +247,6 @@ export interface Game {
   lock: LockState;
   rng: Rng;
   frame: number;
+  reality: Reality;
   overworld?: Overworld;
 }

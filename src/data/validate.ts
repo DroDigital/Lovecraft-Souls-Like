@@ -10,6 +10,7 @@ import { applyOverride, ENTITIES, paramsOf } from './registry';
 import { ROSTER } from './roster';
 import { SANITY } from './tuning';
 import {
+  ARENA_CHANGES,
   ATTACK_IDS,
   CREATURE_PALETTES,
   DAMAGE_TYPES,
@@ -56,7 +57,7 @@ function checkLook(report: Report, d: EntityDef): void {
   if (glow !== undefined && !has(['magenta', 'purple', 'green'], glow)) report(`unknown glow ${glow}`);
 }
 
-function checkBehavior(report: Report, d: EntityDef): void {
+function checkBehavior(report: Report, d: EntityDef, ids: ReadonlySet<string>): void {
   const b = d.behavior;
   if (!(b.archetype in ARCHETYPES)) return report(`unknown archetype ${b.archetype}`);
   for (const a of b.attacks) if (!has(ATTACK_IDS, a)) report(`unknown attack ${a}`);
@@ -71,6 +72,10 @@ function checkBehavior(report: Report, d: EntityDef): void {
   if (d.stats.speed === 0 && p.mobile) report('has speed 0 but a mobile archetype');
   if ((d.tier === 'ally') !== (b.archetype === 'ally')) report('allies, and only allies, use the ally archetype');
   if (b.archetype === 'boss' && !d.bossScript) report('boss archetype without a boss script');
+  for (const x of b.summons ?? []) if (!ids.has(x) || x === d.id) report(`summon ${x} does not resolve`);
+  const phases = d.bossScript?.phases ?? [];
+  const calls = b.attacks.includes('summon') || phases.some((p) => p.attacks.some((a) => a.id === 'summon'));
+  if (calls && !b.summons?.length && !phases.some((p) => p.summons?.length)) report('has a summon attack but nothing to summon');
 }
 
 function checkBossScript(report: Report, s: BossScript, self: string, ids: ReadonlySet<string>): void {
@@ -86,6 +91,7 @@ function checkBossScript(report: Report, s: BossScript, self: string, ids: Reado
     }
     for (const x of ph.summons ?? []) if (!ids.has(x) || x === self) report(`phase ${i}: summon ${x} does not resolve`);
     for (const h of ph.realityHooks ?? []) if (!has(REALITY_HOOKS, h)) report(`phase ${i}: unknown reality hook ${h}`);
+    if (ph.arenaChange !== undefined && !has(ARENA_CHANGES, ph.arenaChange)) report(`phase ${i}: unknown arena change ${ph.arenaChange}`);
   });
 }
 
@@ -94,7 +100,7 @@ function checkDef(report: Report, d: EntityDef, ids: ReadonlySet<string>, varian
   if (d.regions.length === 0) report('belongs to no region');
   for (const r of d.regions) if (!REGIONS.some((x) => x.id === r)) report(`unknown region ${r}`);
   checkLook(report, d);
-  checkBehavior(report, d);
+  checkBehavior(report, d, ids);
   const s = d.stats;
   num(report, 'hp', s.hp, 1, 20000);
   num(report, 'poise', s.poise, 0, 5000);

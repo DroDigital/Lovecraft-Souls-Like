@@ -3,7 +3,8 @@
  * split-tone grade with colour isolation, the characters' 1-px rim light, palette quantisation
  * with 4×4 Bayer dithering. It renders at the low-res size; the browser upscales the canvas
  * nearest-neighbour. Scene alpha marks characters: creatures 0..0.25, the player 0.5..0.75 (rising
- * as their rim fades out with distance), everything else 1.
+ * as their rim fades out with distance), a hue outside the palette (the Colour Out of Space) ~0.31,
+ * which is neither graded nor quantised, everything else 1.
  */
 
 export const POST_VERT = /* glsl */ `
@@ -66,9 +67,9 @@ vec3 isolate(vec3 c) {
   return mix(graded, vivid, mask);
 }
 
-// 0 = world, 1 = creature, 2 = the player.
+// 0 = world, 1 = creature, 2 = the player, 3 = outside the palette.
 float kindOf(float a) {
-  return a > 0.875 ? 0.0 : a > 0.375 ? 2.0 : 1.0;
+  return a > 0.875 ? 0.0 : a > 0.375 ? 2.0 : a > 0.28 ? 3.0 : 1.0;
 }
 
 // 2. Rim light: a character pixel whose left, right or upper neighbour is backdrop or the other kind
@@ -76,7 +77,7 @@ float kindOf(float a) {
 // with distance, so far creatures read as silhouettes and eye glints.
 vec3 rim(vec3 col, vec4 centre, vec2 uv, vec2 px) {
   float kind = kindOf(centre.a);
-  if (kind == 0.0) return col;
+  if (kind == 0.0 || kind == 3.0) return col;
   float l = dot(centre.rgb, LUMA);
   float edge = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -123,6 +124,10 @@ void main() {
   vec2 split = uChroma * (0.4 + r) * vec2(cos(uTime * 0.7), sin(uTime * 0.9));
 
   vec4 centre = texture(tScene, uv);
+  if (kindOf(centre.a) == 3.0) {
+    gl_FragColor = vec4(centre.rgb, 1.0); // outside the palette: no grade, no quantising
+    return;
+  }
   vec3 a = texture(tScene, uv + split).rgb;
   vec3 b = centre.rgb;
   vec3 e = texture(tScene, uv - split).rgb;

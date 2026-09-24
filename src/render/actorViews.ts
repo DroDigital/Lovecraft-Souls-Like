@@ -11,6 +11,7 @@ import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { MODEL_PREFIX } from '../systems/creatures';
 import { buildFigure, type Figure } from './figures';
+import { FX_PREFIX } from './fightViews';
 import { box } from './meshKit';
 import { BASE } from './palette';
 import { pose } from './poses';
@@ -62,7 +63,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
 
   function sync(): void {
     for (const [id, model] of g.ecs.c.model) {
-      if (views.has(id) || model.startsWith(MODEL_PREFIX)) continue; // roster creatures: creatureViews
+      if (views.has(id) || model.startsWith(MODEL_PREFIX) || model.startsWith(FX_PREFIX)) continue; // roster creatures: creatureViews; bolts, pools and props: fightViews
       const figure = buildFigure(model);
       scene.add(figure.root);
       views.set(id, { figure, stride: 0, lastTime: 0, hitAt: -Infinity });

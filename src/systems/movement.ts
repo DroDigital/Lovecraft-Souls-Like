@@ -1,15 +1,18 @@
 /**
  * Kinematic capsule movement (spec §1, §3B): free locomotion from Mover intent, root motion and
- * tracking of moves, heightfield ground, collider push-out and body separation. No physics engine.
+ * tracking of moves, shoves (wind), heightfield ground, collider push-out and body separation. A
+ * boss's flood (spec §3E) slows the investigator. No physics engine.
  */
 
 import { turnToward } from '../core/geom';
+import { REALITY } from '../data/tuning';
 import { resolveCapsule } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
 import { isAbsent, type Game } from './components';
 
 export function movementSystem(g: Game, dt: number): void {
-  const { transform, body, mover, actor } = g.ecs.c;
+  const { transform, body, mover, actor, shove } = g.ecs.c;
+  const wading = 1 - REALITY.floodSlow * g.reality.flood;
   for (const [id, tr] of transform) {
     tr.prev.x = tr.pos.x;
     tr.prev.y = tr.pos.y;
@@ -20,10 +23,11 @@ export function movementSystem(g: Game, dt: number): void {
     if (!b || b.fixed || isAbsent(g, id) || a?.frozen) continue;
     const m = mover.get(id);
     const def = a && moveDef(a);
+    const k = id === g.player.id ? wading : 1;
     if (a && def) {
       const mo = def.motion;
       if (mo && inWindow(mo.window, a.frame)) {
-        const step = (mo.distance / (mo.window[1] - mo.window[0])) * (mo.dir === 'back' ? -1 : 1);
+        const step = (mo.distance / (mo.window[1] - mo.window[0])) * (mo.dir === 'back' ? -1 : 1) * k;
         const [dx, dz] = mo.dir === 'input' ? [a.dir.x, a.dir.z] : [Math.sin(tr.yaw), Math.cos(tr.yaw)];
         tr.pos.x += dx * step;
         tr.pos.z += dz * step;
@@ -31,9 +35,15 @@ export function movementSystem(g: Game, dt: number): void {
       const tk = def.track;
       if (tk && m?.face != null && inWindow(tk.window, a.frame)) tr.yaw = turnToward(tr.yaw, m.face, tk.rate * dt);
     } else if (m) {
-      tr.pos.x += m.vx * dt;
-      tr.pos.z += m.vz * dt;
+      tr.pos.x += m.vx * dt * k;
+      tr.pos.z += m.vz * dt * k;
       if (m.face !== null) tr.yaw = turnToward(tr.yaw, m.face, m.turnRate * dt);
+    }
+    const s = shove.get(id);
+    if (s) {
+      tr.pos.x += s.x;
+      tr.pos.z += s.z;
+      if (--s.frames <= 0) shove.delete(id);
     }
     tr.pos.y = g.world.ground(tr.pos.x, tr.pos.z);
     resolveCapsule(g.world, tr.pos, b.radius, b.height);

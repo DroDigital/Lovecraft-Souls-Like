@@ -8,7 +8,7 @@ import { isUnique } from '../world/placements';
 import type { Game, Overworld } from './components';
 
 export function createOverworld(sign: string): Overworld {
-  return { sign, discovered: new Set([sign]), slain: new Set(), killed: new Set(), read: new Set(), alive: new Map(), region: null, chunk: -1, dirty: true };
+  return { sign, discovered: new Set([sign]), slain: new Set(), killed: new Set(), read: new Set(), named: 0, called: new Set(), ending: null, alive: new Map(), region: null, chunk: -1, dirty: true };
 }
 
 /** Foes killed since the last rest come back (population.ts respawns them). */
