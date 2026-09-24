@@ -66,7 +66,7 @@ export const REALITY_HOOKS = [
 export type RealityHook = (typeof REALITY_HOOKS)[number];
 
 /** What a boss phase does to its arena as it begins (systems/arenaChanges.ts). */
-export const ARENA_CHANGES = ['lamps'] as const;
+export const ARENA_CHANGES = ['lamps', 'monoliths', 'ship'] as const;
 export type ArenaChange = (typeof ARENA_CHANGES)[number];
 
 export const DAMAGE_TYPES = ['slash', 'blunt', 'shot', 'fire', 'light', 'arcane'] as const;
@@ -182,6 +182,7 @@ export interface BossPhase {
 export interface BossScript {
   phases: readonly BossPhase[];
   unseen?: boolean; // invisible until revealed: not drawn, locked on to or beheld (the Dunwich Horror)
+  called?: boolean; // its world spawn stays empty until it has been called (Hastur, by its name's third appearance)
 }
 
 export interface EntityDef {

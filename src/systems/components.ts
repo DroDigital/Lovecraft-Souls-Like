@@ -228,6 +228,8 @@ export interface Overworld {
   slain: Set<string>; // spawn ids of bosses and optional bosses, gone for good
   killed: Set<string>; // spawn ids of foes killed since the last rest or death
   read: Set<string>; // tomes read
+  named: number; // times Hastur's name has appeared (signatures/hastur.ts)
+  called: Set<string>; // bosses called into the world: until then their spawn stays empty
   alive: Map<string, Entity>; // spawn id → the creature standing for it
   region: string | null; // where the investigator is
   chunk: number; // the investigator's chunk key

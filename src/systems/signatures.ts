@@ -2,13 +2,15 @@
  * Signature mechanics (spec §3E): the only bespoke boss logic, keyed by roster id. Each one hangs
  * off its boss's fight (bossFight.ts): it may act when the fight begins, every step while it lasts,
  * when it resets or ends, offer the investigator an action on E, or lend the boss more attacks.
- * Every other boss is composed from the shared attack library and reality hooks alone.
+ * Every other boss is composed from the shared attack library and reality hooks alone. Hastur's is
+ * not a fight's: its name calls it into the world (signatures/hastur.ts, registered by game.ts).
  */
 
 import type { Entity } from '../core/ecs';
 import type { AttackChoice } from '../data/archetypes';
 import type { Fight, Game } from './components';
 import { COLOUR_SIGNATURE } from './signatures/colour';
+import { CTHULHU_SIGNATURE } from './signatures/cthulhu';
 import { DUNWICH_SIGNATURE } from './signatures/dunwichHorror';
 
 /** Something the investigator can do in a fight with E. */
@@ -29,4 +31,5 @@ export interface Signature {
 export const SIGNATURES: Readonly<Record<string, Signature>> = {
   colour_out_of_space: COLOUR_SIGNATURE,
   dunwich_horror: DUNWICH_SIGNATURE,
+  cthulhu: CTHULHU_SIGNATURE,
 };

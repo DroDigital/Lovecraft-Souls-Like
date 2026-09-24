@@ -4,6 +4,7 @@ import type { Entity } from '../core/ecs';
 import type { V3 } from '../core/geom';
 import type { PoolDef } from '../data/moves';
 import type { ArenaChange, BossScript, RealityHook } from '../data/schema';
+import type { Collider } from '../world/colliders';
 
 /** Where a boss holds its fight: a circle. */
 export interface ArenaCircle {
@@ -28,11 +29,12 @@ export interface Fight {
   form: string; // the model its brain was built for: a variant swap rebuilds it
 }
 
-/** What a boss's arena change puts up (spec §3E). */
+/** What a boss's arena change puts up (spec §3E): its colliders stand in the world while it does. */
 export interface Prop {
-  kind: 'lamp';
+  kind: 'lamp' | 'monolith' | 'ship';
   owner: Entity; // the boss whose arena it stands in
   lit: boolean; // a lamp's flame
+  colliders: Collider[];
 }
 
 /** A bolt in flight (spec §3E). */

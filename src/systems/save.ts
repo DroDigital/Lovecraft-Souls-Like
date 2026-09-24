@@ -1,6 +1,6 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
- * the Elder Sign they rest at and those found, bosses slain, tomes read, Echoes carried and dropped,
+ * the Elder Sign they rest at and those found, bosses slain or called, tomes read, Echoes carried and dropped,
  * health, the mind (sanity, insight, upgrades, horrors beheld) and Laudanum. Parsing checks every
  * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
  */
@@ -33,6 +33,8 @@ export interface SaveData {
   upgrades: Record<UpgradeId, number>;
   seen: string[];
   laudanum: number;
+  named?: number; // times Hastur's name has appeared
+  called?: string[]; // bosses called into the world
 }
 
 /** The part of the Web Storage API a save needs (localStorage, or a stand-in in tests). */
@@ -64,6 +66,8 @@ export function snapshot(g: Game): SaveData {
     upgrades: { ...g.mind.upgrades },
     seen: [...g.mind.seen],
     laudanum: g.player.laudanum,
+    named: ow.named,
+    called: [...ow.called],
   };
 }
 
@@ -84,6 +88,7 @@ export function parseSave(json: string | null): SaveData | null {
   if (!has(o.at, 'x', 'z', 'yaw') || typeof o.sign !== 'string' || !has(o.upgrades, ...UPGRADE_IDS)) return null;
   if (![o.discovered, o.slain, o.read, o.seen].every(isStrings)) return null;
   if (o.drop !== null && !has(o.drop, 'x', 'y', 'z', 'amount')) return null;
+  if ((o.named !== undefined && !isNum(o.named)) || (o.called !== undefined && !isStrings(o.called))) return null;
   return o as unknown as SaveData;
 }
 
@@ -99,6 +104,8 @@ export function applySave(g: Game, s: SaveData): void {
   g.player.checkpoint = { ...signPlace(ow.sign)!.rest };
   ow.slain = new Set(s.slain);
   ow.read = new Set(s.read);
+  ow.named = clampInt(s.named ?? 0, 0, 99);
+  ow.called = new Set(s.called ?? []);
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
   for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k], 0, UPGRADES[k].max);
   const h = c.health.get(g.player.id)!;

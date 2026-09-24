@@ -66,12 +66,12 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
     notice.textContent = text;
     noticeUntil = performance.now() + NOTICE_MS;
   };
-  const bosses = createBossHud(g, root, say);
   let titleUntil = 0;
   const show = (text: string): void => {
     title.textContent = text;
     titleUntil = performance.now() + TITLE_MS;
   };
+  const bosses = createBossHud(g, root, say, show);
   const me = g.player.id;
   g.events.on('Hit', (e) => {
     const n = NOTICES[e.outcome];

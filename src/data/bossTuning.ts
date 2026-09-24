@@ -15,6 +15,9 @@ export const BOSS = {
   darkFrames: 420, // a darkness attack keeps the arena dark this long
   boltLife: 240, // frames before a bolt gutters out, whatever its range
   gravity: 12, // m/s² on lobbed bolts
+  monoliths: 5, // standing stones an arena of monoliths raises...
+  monolithShare: 0.5, // ...on a ring at this share of its radius...
+  monolith: [1.8, 7] as const, // ...each this wide and tall: cover from a gaze
 };
 
 /** The reality hooks (spec §3E), live while an engaged boss's phase lists them. */
@@ -65,4 +68,20 @@ export const DUNWICH = {
   reveal: 900, // frames the powder shows it
   reach: 14, // metres: the powder carries this far
   chantRange: 40, // the incantation works within this distance
+};
+
+/** Cthulhu: it cannot be killed. The Alert rams it; it bursts, reforms, and R'lyeh sinks. */
+export const CTHULHU = {
+  shipShare: 0.8, // the Alert comes in at this share of the arena's radius
+  helm: 5, // metres: the investigator takes the helm this close to it
+  sail: 14, // m/s, straight at Cthulhu
+  ram: 3, // metres beyond its body where the bows strike
+  burst: 150, // frames from the ram until it reforms and R'lyeh sinks
+};
+
+/** Hastur: its name flickers as sanity falls in its realm, and the third time calls it. */
+export const HASTUR = {
+  region: 'yuggoth',
+  names: 3,
+  rise: 12, // metres ahead of the investigator where it rises
 };

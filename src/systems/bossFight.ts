@@ -9,7 +9,7 @@
  */
 
 import type { Entity } from '../core/ecs';
-import { clearProps, applyChange } from './arenaChanges';
+import { applyChange, clearProps, removeProp } from './arenaChanges';
 import type { ArenaCircle, Fight, Game } from './components';
 import { defOf } from './creatures';
 import { phaseAt, phaseBrain } from './fightPhase';
@@ -84,7 +84,7 @@ function endFight(g: Game, e: Entity, f: Fight): void {
 function sweep(g: Game): void {
   const c = g.ecs.c;
   for (const [m, by] of c.minion) if (c.dead.has(m) || !c.transform.has(by)) g.ecs.despawn(m);
-  for (const [p, prop] of c.prop) if (!c.fight.has(prop.owner)) g.ecs.despawn(p);
+  for (const [p, prop] of c.prop) if (!c.fight.has(prop.owner)) removeProp(g, p);
 }
 
 export function fightSystem(g: Game): void {

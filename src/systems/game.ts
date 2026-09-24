@@ -39,6 +39,7 @@ import { playerControl } from './playerControl';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
 import { createReality, realitySystem, registerReality } from './reality';
+import { registerHastur } from './signatures/hastur';
 import { shotSystem } from './revolver';
 import { createMind, registerSanity, sanitySystem } from './sanity';
 import { applySave, type SaveData } from './save';
@@ -85,6 +86,7 @@ export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; sa
   const g = baseGame(createWorldCollision(), signPlace(START_SIGN)!.rest, seed);
   g.overworld = createOverworld(START_SIGN);
   registerOverworld(g);
+  registerHastur(g);
   if (save) g.overworld.read = new Set(save.read); // unread tomes only
   furnishWorld(g);
   if (save) applySave(g, save);

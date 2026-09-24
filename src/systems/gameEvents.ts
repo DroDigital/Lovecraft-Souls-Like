@@ -46,4 +46,7 @@ export interface GameEvents {
   Revealed: { entity: Entity; doses: number };
   LampChanged: { lamp: Entity; lit: boolean };
   Petrified: { by: Entity };
+  Named: { name: string; count: number }; // Hastur's name, flickering onto the HUD
+  Rammed: { entity: Entity };
+  Title: { text: string }; // a set piece's words across the screen
 }

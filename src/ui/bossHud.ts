@@ -1,8 +1,9 @@
 /**
  * The HUD's boss half (spec §3E): a bar for each boss fighting the investigator (its name, its
  * health, and ticks where its later phases begin), the gaze and petrification buildups above the
- * vitals while they grow, a flash when time skips or the room rewires, and notices for what the
- * hooks and signatures do (body theft, a full gaze, stone, the powder, the lamps).
+ * vitals while they grow, a flash when time skips or the room rewires, Hastur's name flickering
+ * across the screen, a set piece's titles, and notices for what the hooks and signatures do (body
+ * theft, a full gaze, stone, the powder, the lamps).
  */
 
 import { engagedFights } from '../systems/bossFight';
@@ -11,12 +12,13 @@ import { bar, BONE, el, RUST } from './hudKit';
 
 const BARS = 2; // at once: a pair of bosses fights together at most
 const FLASH_MS = 160;
+const NAME_MS = 700; // a name's flicker, per time it has come
 
 export interface BossHud {
   update(): void;
 }
 
-export function createBossHud(g: Game, root: HTMLElement, say: (text: string) => void): BossHud {
+export function createBossHud(g: Game, root: HTMLElement, say: (text: string) => void, show: (title: string) => void): BossHud {
   const box = el('position:absolute;left:50%;top:5%;width:52%;margin-left:-26%', '', root);
   const slots = Array.from({ length: BARS }, () => {
     const slot = el('margin-bottom:6px', '', box);
@@ -30,6 +32,8 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
   const stone = el('position:absolute;left:16px;bottom:112px;width:240px;display:none;font-size:10px;letter-spacing:2px', 'PETRIFICATION', root);
   const stoneFill = bar(stone, '#8a8f86');
   const flash = el('position:absolute;inset:0;background:#e8e0cc;opacity:0', '', root);
+  const name = el(`position:absolute;left:0;right:0;top:36%;text-align:center;font-size:72px;letter-spacing:28px;color:${BONE};opacity:0`, '', root);
+  let nameUntil = 0;
   let flashUntil = 0;
   const blink = (): void => void (flashUntil = performance.now() + FLASH_MS);
 
@@ -40,6 +44,11 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
   g.events.on('Revealed', (e) => say(`THE POWDER OF IBN GHAZI · ${e.doses} LEFT`));
   g.events.on('LampChanged', (e) => say(e.lit ? 'THE LAMP BURNS AGAIN' : 'A LAMP GOES OUT'));
   g.events.on('Petrified', () => say('TURNED TO STONE'));
+  g.events.on('Title', (e) => show(e.text));
+  g.events.on('Named', (e) => {
+    name.textContent = e.name;
+    nameUntil = performance.now() + NAME_MS * e.count; // it stays longer each time it comes
+  });
 
   return {
     update() {
@@ -63,7 +72,9 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
       gazeFill.style.width = `${g.reality.gaze * 100}%`;
       stone.style.display = g.reality.petrify > 0 ? 'block' : 'none';
       stoneFill.style.width = `${g.reality.petrify * 100}%`;
-      flash.style.opacity = String(Math.max(0, (flashUntil - performance.now()) / FLASH_MS) * 0.85);
+      const now = performance.now();
+      flash.style.opacity = String(Math.max(0, (flashUntil - now) / FLASH_MS) * 0.85);
+      name.style.opacity = now < nameUntil && Math.random() < 0.6 ? String(0.35 + 0.6 * Math.random()) : '0'; // it flickers
     },
   };
 }
