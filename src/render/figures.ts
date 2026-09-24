@@ -1,8 +1,8 @@
 /**
  * Procedural low-poly figures (spec §3B: tweened primitives, no skeletal assets): the investigator,
- * the placeholder Deep One, the training dummy and an Echo drop. Each is a small joint hierarchy
- * that poses.ts drives. Arms and legs hang along -y from their pivots; forward is +z, the
- * figure's right is -x. Phase 2 replaces the enemies with generated sprites.
+ * the placeholder Deep One, the training dummy, an Echo drop and a tome on its lectern. Each is a
+ * small joint hierarchy that poses.ts drives. Arms and legs hang along -y from their pivots; forward
+ * is +z, the figure's right is -x. Phase 2 replaces the enemies with generated sprites.
  */
 
 import * as THREE from 'three';
@@ -13,7 +13,7 @@ import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { TextureKind } from './textures';
 import { createWorldMaterial } from './worldMaterial';
 
-export type Rig = 'humanoid' | 'dummy' | 'echo';
+export type Rig = 'humanoid' | 'dummy' | 'echo' | 'prop';
 
 export interface Figure {
   rig: Rig;
@@ -28,7 +28,7 @@ export interface Figure {
   flash: THREE.Object3D | null; // muzzle flash
   hip: number; // pelvis height
   hunch: number; // resting forward lean (radians)
-  character?: 'player' | 'creature'; // rim-lit in the post pass (Echo drops are not characters)
+  character?: 'player' | 'creature'; // rim-lit in the post pass (Echo drops and props are not characters)
   materials: THREE.ShaderMaterial[];
 }
 
@@ -65,7 +65,7 @@ function skeleton(rig: Rig, f: Frame): Figure {
     flash: null,
     hip: f.hip,
     hunch: f.hunch ?? 0,
-    character: rig === 'echo' ? undefined : 'creature',
+    character: rig === 'echo' || rig === 'prop' ? undefined : 'creature',
     materials: [],
   };
 }
@@ -150,7 +150,19 @@ function echo(): Figure {
   return f;
 }
 
-const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo };
+/** A tome lying open on a lectern: a post, a slanted desk, and pale pages that glow faintly, so it reads in the dark. */
+function tome(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const wood = shade(mixRgb(BASE.rust, BASE.charcoal, 0.4), 1.6);
+  const desk = box(0.62, 0.05, 0.46, 0, 0, 0, wood).rotateX(0.45).translate(0, 1.08, 0); // slopes down toward the reader (+z)
+  part(f, f.body, mergeGeometries([box(0.12, 1.02, 0.12, 0, 0.51, 0, wood), box(0.44, 0.06, 0.34, 0, 0.03, 0, wood), desk]), 'wood');
+  const leaf = (x: number, tilt: number): THREE.BufferGeometry =>
+    box(0.25, 0.025, 0.34, x, 0.04, 0, shade(BASE.bone, 1.05)).rotateZ(tilt).rotateX(0.45).translate(0, 1.1, 0);
+  part(f, f.body, mergeGeometries([leaf(-0.13, 0.12), leaf(0.13, -0.12)]), 'cloth', 0.7);
+  return f;
+}
+
+const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome };
 
 export function buildFigure(model: string): Figure {
   return (BUILDERS[model] ?? dummy)();

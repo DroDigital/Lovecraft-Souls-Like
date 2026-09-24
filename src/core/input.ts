@@ -3,12 +3,12 @@
  * Presses and releases between two steps are latched, so a quick tap is never lost.
  * Mouse: LMB light, Shift+LMB heavy, RMB block, Shift+RMB parry, MMB lock-on, move to look
  * (click to capture) or flick to switch targets. Keys: WASD move, Space dodge (hold: sprint),
- * F revolver, Q lock-on, arrows look (←/→ switch targets). Pad: standard mapping, Souls layout.
+ * F revolver, Q lock-on, R Laudanum, arrows look (←/→ switch targets). Pad: standard mapping, Souls layout.
  */
 
 import { INPUT, SIM } from '../data/tuning';
 
-export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock'] as const;
+export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock', 'item'] as const;
 export type Button = (typeof BUTTONS)[number];
 export type Buttons = Record<Button, boolean>;
 
@@ -31,15 +31,16 @@ export const noButtons = (): Buttons => ({
   parry: false,
   shoot: false,
   lock: false,
+  item: false,
 });
 
 export function emptyInput(): InputFrame {
   return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, held: noButtons(), pressed: noButtons(), released: noButtons(), switchTarget: 0 };
 }
 
-const KEYS: Readonly<Record<string, Button>> = { Space: 'dodge', KeyF: 'shoot', KeyQ: 'lock' };
-/** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, R3 lock-on. */
-const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, lock: 11 };
+const KEYS: Readonly<Record<string, Button>> = { Space: 'dodge', KeyF: 'shoot', KeyQ: 'lock', KeyR: 'item' };
+/** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, Y Laudanum, R3 lock-on. */
+const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, lock: 11, item: 3 };
 
 interface PadState {
   lx: number;

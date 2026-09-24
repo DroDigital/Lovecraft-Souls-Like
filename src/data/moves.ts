@@ -26,6 +26,14 @@ export interface ShotDef {
   hitstop: number;
 }
 
+/** A roar or a gaze (spec §3A): it takes sanity from the investigator in range. */
+export interface SanityDef {
+  window: Window; // the frames it works on the mind
+  amount: number; // sanity taken over the whole window
+  range: number; // metres
+  sight: boolean; // needs line of sight (a gaze); else it carries past walls (a roar)
+}
+
 export interface MoveDef {
   frames: number;
   stamina?: number; // paid when the move starts
@@ -38,6 +46,8 @@ export interface MoveDef {
   shot?: ShotDef;
   motion?: { window: Window; distance: number; dir: 'facing' | 'input' | 'back' };
   track?: { window: Window; rate: number }; // turn toward the target during these frames (rad/s)
+  sanity?: SanityDef;
+  item?: number; // the frame a consumable takes effect (Laudanum)
   hold?: boolean; // stays on its last frame until the game ends it (death)
 }
 
@@ -81,7 +91,7 @@ const cleave = (arc: readonly [number, number], heavy: string, damage: number, w
   },
 });
 
-/** The investigator: sword-cane chains (light ×3, heavy ×2), roll, backstep, parry, revolver. */
+/** The investigator: sword-cane chains (light ×3, heavy ×2), roll, backstep, parry, revolver, a swallow of Laudanum. */
 export const PLAYER_MOVES = {
   ...REACTIONS,
   light1: slash([70, -70], 'light2'),
@@ -107,4 +117,5 @@ export const PLAYER_MOVES = {
     track: { window: [0, 6], rate: 10 },
     shot: { frame: 7, damage: 7, poise: 4, range: 22, hitstop: 2 },
   },
+  drink: { frames: 60, cancel: 48, item: 34 },
 } satisfies MoveSet;

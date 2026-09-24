@@ -2,7 +2,8 @@
  * Melee combat (spec §3B): each active frame a hitbox sphere sweeps its slice of the attack arc
  * (a capsule) against the hurt capsules of hostile bodies. Resolution order: i-frames, parry,
  * block / guard break, damage (riposte bonus), interrupt, poise / stagger; then hitstop (2–4
- * frames on attacker and victim) and events.
+ * frames on attacker and victim) and events. The sanity band scales the investigator's blows both
+ * ways; a hallucination's blows carry no damage (their sanity cost is hallucinations.ts).
  */
 
 import type { Entity } from '../core/ecs';
@@ -10,7 +11,8 @@ import { segSegDist2, wrapAngle, yawOf, type V3 } from '../core/geom';
 import type { HitDef } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
-import { isConcealed, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
+import { isAbsent, isConcealed, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
+import { damageScale } from './sanity';
 import { absorb } from './stamina';
 
 /** What a blow carries into resolution; melee hits and revolver shots both fit. */
@@ -80,13 +82,15 @@ export function hitCentre(pos: V3, yaw: number, hit: HitDef, p: number): V3 {
   return { x: pos.x + Math.sin(a) * hit.reach, y: pos.y + hit.height, z: pos.z + Math.cos(a) * hit.reach };
 }
 
-/** Living, hostile, unconcealed combatants with a body. */
+/** Living, hostile, present, unconcealed combatants with a body. Hallucinations and the investigator see only each other. */
 export function targetsOf(g: Game, id: Entity): Entity[] {
-  const { combatant, health, dead, body } = g.ecs.c;
+  const { combatant, health, body, phantom } = g.ecs.c;
   const faction = combatant.get(id)?.faction;
+  const conjured = phantom.has(id);
   const out: Entity[] = [];
   for (const [t, c] of combatant) {
-    if (c.faction === faction || dead.has(t) || !body.has(t) || isConcealed(g, t)) continue;
+    if (c.faction === faction || isAbsent(g, t) || !body.has(t) || isConcealed(g, t)) continue;
+    if (phantom.has(t) ? id !== g.player.id : conjured && t !== g.player.id) continue;
     if ((health.get(t)?.hp ?? 0) > 0) out.push(t);
   }
   return out;
@@ -109,7 +113,10 @@ export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow): H
   const tt = transform.get(target)!;
   const frontal = isFrontal(tt.pos, tt.yaw, transform.get(attacker)!.pos);
   const defender = { actor: ta, health: health.get(target)!, poise: poise.get(target)!, stamina: stamina.get(target) };
-  const { outcome, damage } = resolveHit(defender, blow, frontal);
+  const felt = g.ecs.c.phantom.has(attacker)
+    ? { ...blow, damage: 0, poise: 0, guard: 0 }
+    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target)) };
+  const { outcome, damage } = resolveHit(defender, felt, frontal);
   if (outcome === 'parried') startMove(aa, 'parried');
   if (outcome !== 'dodged') {
     aa.hitstop = blow.hitstop;
@@ -121,10 +128,10 @@ export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow): H
 }
 
 export function meleeSystem(g: Game): void {
-  const { actor, transform, dead } = g.ecs.c;
+  const { actor, transform } = g.ecs.c;
   for (const [id, a] of actor) {
     const hit = moveDef(a)?.hit;
-    if (!hit || a.frozen || dead.has(id) || !inWindow(hit.window, a.frame)) continue;
+    if (!hit || a.frozen || isAbsent(g, id) || !inWindow(hit.window, a.frame)) continue;
     const tr = transform.get(id)!;
     const n = hit.window[1] - hit.window[0];
     const k = a.frame - hit.window[0];

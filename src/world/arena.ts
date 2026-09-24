@@ -1,6 +1,6 @@
 /** Collision for the Phase 1 arena, built from `ARENA` data (pure; the meshes live in arenaScene.ts). */
 
-import { ARENA } from '../data/arena';
+import { ARENA, type HiddenPieceDef } from '../data/arena';
 import type { Collider, CollisionWorld } from './colliders';
 
 /** The Elder Sign stone: a standing slab, width × height × depth in metres. */
@@ -29,5 +29,9 @@ export function createArenaWorld(): CollisionWorld {
   const [w, h, d] = ELDER_SIGN_SIZE;
   const { x, z } = ARENA.elderSign;
   colliders.push({ kind: 'box', min: { x: x - w / 2, y: 0, z: z - d / 2 }, max: { x: x + w / 2, y: h, z: z + d / 2 } });
-  return { colliders, ground: arenaGround, radius: ARENA.radius };
+  return { colliders, off: new Set(), ground: arenaGround, radius: ARENA.radius };
 }
+
+/** A hidden-layer piece's boxes as world colliders. */
+export const pieceColliders = (p: HiddenPieceDef): Collider[] =>
+  p.boxes.map(([dx, dz, hw, hd, y0, y1]) => ({ kind: 'box', min: { x: p.x + dx - hw, y: y0, z: p.z + dz - hd }, max: { x: p.x + dx + hw, y: y1, z: p.z + dz + hd } }));

@@ -12,7 +12,7 @@ import { bufferPress } from './inputBuffer';
 import { switchLock, toggleLock } from './lockOn';
 import { canAfford } from './stamina';
 
-const BUFFERED = ['light', 'heavy', 'parry', 'shoot'] as const;
+const BUFFERED = ['light', 'heavy', 'parry', 'shoot', 'item'] as const;
 
 export function playerControl(g: Game, input: InputFrame): void {
   const p = g.player;

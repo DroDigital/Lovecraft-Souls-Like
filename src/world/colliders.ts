@@ -24,7 +24,8 @@ export interface CylinderCollider {
 export type Collider = BoxCollider | CylinderCollider;
 
 export interface CollisionWorld {
-  colliders: readonly Collider[];
+  colliders: Collider[];
+  off: Set<Collider>; // out of the world for now: hidden-layer geometry that is not shown
   ground: HeightFn;
   /** Walkable radius around the origin. */
   radius: number;
@@ -35,6 +36,7 @@ const GROUND_STEPS = 12;
 /** Pushes a standing capsule (feet at `pos`, radius `r`, height `h`) out of every collider and back inside the arena. */
 export function resolveCapsule(w: CollisionWorld, pos: V3, r: number, h: number): void {
   for (const c of w.colliders) {
+    if (w.off.has(c)) continue;
     if (c.kind === 'box') {
       if (pos.y + h <= c.min.y || pos.y >= c.max.y) continue;
       const dx = pos.x - clamp(pos.x, c.min.x, c.max.x);
@@ -81,6 +83,7 @@ export function raycast(w: CollisionWorld, from: V3, to: V3): number {
   const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z };
   let t = 1;
   for (const c of w.colliders) {
+    if (w.off.has(c)) continue;
     const hit =
       c.kind === 'box'
         ? segmentBox(from, d, c.min, c.max)

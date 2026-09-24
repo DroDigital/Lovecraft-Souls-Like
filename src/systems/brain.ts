@@ -14,7 +14,7 @@ import { distXZ, yawOf, type XZ } from '../core/geom';
 import type { BrainDef } from '../data/archetypes';
 import type { Rng } from '../core/rng';
 import { startMove } from './actions';
-import type { Brain, Game, Mover } from './components';
+import { isAbsent, type Brain, type Game, type Mover } from './components';
 import { perceive } from './perception';
 
 const LOSE_FRAMES = 120; // frames without perceiving the target before giving up
@@ -75,7 +75,7 @@ function engage(g: Game, id: Entity, br: Brain, m: Mover, target: Entity): void 
 }
 
 export function brainSystem(g: Game): void {
-  const { brain, actor, mover, transform, home, dead, health, poise } = g.ecs.c;
+  const { brain, actor, mover, transform, home, health, poise } = g.ecs.c;
   for (const [id, br] of brain) {
     const a = actor.get(id)!;
     const m = mover.get(id)!;
@@ -83,7 +83,7 @@ export function brainSystem(g: Game): void {
     const p = br.def.params;
     m.vx = 0;
     m.vz = 0;
-    if (dead.has(id) || a.frozen || (health.get(id)?.hp ?? 0) <= 0) continue;
+    if (isAbsent(g, id) || a.frozen || (health.get(id)?.hp ?? 0) <= 0) continue;
     const ally = br.def.archetype === 'ally';
     const anchor: XZ = ally ? transform.get(g.player.id)!.pos : home.get(id) ?? tr.pos;
     const seen = perceive(g, id, br.target, p);

@@ -8,7 +8,7 @@ import type { Entity } from '../core/ecs';
 import { dist3, type V3 } from '../core/geom';
 import { CAMERA, LOCK, PLAYER } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
-import { isConcealed, type Game } from './components';
+import { isAbsent, isConcealed, type Game } from './components';
 
 export interface LockState {
   target: Entity | null;
@@ -92,12 +92,12 @@ export function aimPoint(g: Game, id: Entity): V3 | null {
 
 /** Living foes of the player, with line of sight from the player's eye. */
 export function candidates(g: Game): Candidate[] {
-  const { combatant, health, dead } = g.ecs.c;
+  const { combatant, health } = g.ecs.c;
   const eye = playerEye(g);
   const out: Candidate[] = [];
   for (const [id, c] of combatant) {
     const pos = aimPoint(g, id);
-    if (c.faction === 'player' || dead.has(id) || isConcealed(g, id) || (health.get(id)?.hp ?? 0) <= 0 || !pos) continue;
+    if (c.faction === 'player' || isAbsent(g, id) || isConcealed(g, id) || (health.get(id)?.hp ?? 0) <= 0 || !pos) continue;
     out.push({ id, pos, visible: hasLineOfSight(g.world, eye, pos) });
   }
   return out;

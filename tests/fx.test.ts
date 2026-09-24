@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RENDER } from '../src/data/tuning';
+import { FX, RENDER } from '../src/data/tuning';
 import {
   allEffectsOn,
   anomalyProximity,
@@ -71,5 +71,22 @@ describe('anomalyProximity', () => {
     const mid = anomalyProximity(15);
     expect(mid).toBeGreaterThan(0);
     expect(mid).toBeLessThan(1);
+  });
+});
+
+describe('band pulse and audio', () => {
+  it('adds the pulse to the warp, within the accessibility cap', () => {
+    expect(computeFx({ ...state(100), pulse: 1 }).ripple).toBeCloseTo(FX.pulseRipple);
+    expect(computeFx({ ...state(100), pulse: 1 }).chroma).toBeCloseTo(FX.pulseChroma);
+    expect(computeFx({ ...state(100, 0.5), pulse: 1 }).ripple).toBeCloseTo(FX.pulseRipple / 2);
+    expect(computeFx({ ...state(100, 0), pulse: 1 }).ripple).toBe(0);
+  });
+
+  it('detunes and distorts the audio as sanity falls, and is silent while lucid', () => {
+    const calm = computeFx(state(100));
+    expect([calm.drone, calm.detune, calm.wobble, calm.distortion]).toEqual([0, 0, 0, 0]);
+    const mad = computeFx(state(0));
+    expect([mad.drone, mad.detune, mad.wobble, mad.distortion]).toEqual([FX.droneGain[1], FX.detune[1], FX.wobble[1], FX.distortion[1]]);
+    expect(computeFx(state(0, 0)).drone).toBe(0);
   });
 });

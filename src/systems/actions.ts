@@ -1,12 +1,13 @@
 /**
  * Action state machine for every combatant (spec §3B): move frames, hitstop, combo chains, and the
- * player's buffered action, consumed at the end of recovery or at a cancel window.
+ * player's buffered action, consumed at the end of recovery or at a cancel window. The item
+ * action swallows a dose of Laudanum (its sanity returns on the move's `item` frame, sanity.ts).
  */
 
 import { yawOf } from '../core/geom';
 import type { MoveDef, MoveSet, Window } from '../data/moves';
 import { COMBAT } from '../data/tuning';
-import type { Actor, Game } from './components';
+import { isAbsent, type Actor, type Game } from './components';
 import { ageBuffer, takeBuffered, type ActionId } from './inputBuffer';
 import { canAfford, spend } from './stamina';
 
@@ -70,10 +71,14 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   const m = mover.get(id)!;
   const speed = Math.hypot(m.vx, m.vz);
   const moving = speed > 0.1;
-  const move =
-    action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? (moving ? 'roll' : 'backstep') : action;
+  const dodge = moving ? 'roll' : 'backstep';
+  const move = action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? dodge : action === 'item' ? 'drink' : action;
   const def = a.moves[move];
   if (!def) return;
+  if (action === 'item') {
+    if (g.player.laudanum <= 0) return;
+    g.player.laudanum--; // spent as the vial comes up, even if a blow cuts the swallow short
+  }
   if (st && def.stamina) spend(st, def.stamina);
   startMove(a, move);
 
@@ -88,8 +93,8 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
 }
 
 export function actionSystem(g: Game): void {
-  const { actor, dead } = g.ecs.c;
-  for (const [id, a] of actor) if (!dead.has(id)) advance(a);
+  const { actor } = g.ecs.c;
+  for (const [id, a] of actor) if (!isAbsent(g, id)) advance(a);
   const p = g.player;
   const a = actor.get(p.id)!;
   if (!a.frozen && canAct(a)) {

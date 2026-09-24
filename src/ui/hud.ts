@@ -1,15 +1,20 @@
 /**
- * Phase 1 HUD, a DOM overlay: health and stamina bars, carried Echoes, the lock-on reticle with the
- * target's name and health, short combat notices, and the death banner.
+ * The HUD, a DOM overlay: health, stamina and sanity bars (ticks mark the band floors, and the bar
+ * takes an anomaly colour once the mind fractures), the band and the Laudanum left, carried
+ * Echoes and insight, the lock-on reticle with the target's name and health, short notices
+ * (combat, bands, first sights, insight), and the death banner.
  */
 
 import { Vector3, type Camera } from 'three';
-import type { Game, HitOutcome } from '../systems/components';
+import { SANITY } from '../data/tuning';
+import type { Band, Game, HitOutcome } from '../systems/components';
 import { aimPoint } from '../systems/lockOn';
+import { bandIndex } from '../systems/sanity';
 
 const BONE = '#d9d0b8';
 const RUST = '#74493a';
 const SEA = '#5d6c70';
+const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
 const NOTICE_MS = 1100;
 
 /** Notices for outcomes involving the player: [when the player dealt it, when the player took it]. */
@@ -29,9 +34,11 @@ function el(style: string, text = '', parent?: HTMLElement): HTMLDivElement {
 }
 
 function bar(parent: HTMLElement, colour: string): HTMLDivElement {
-  const frame = el(`height:6px;margin:4px 0;border:1px solid ${BONE}55;background:#0008`, '', parent);
+  const frame = el(`position:relative;height:6px;margin:4px 0;border:1px solid ${BONE}55;background:#0008`, '', parent);
   return el(`height:100%;width:100%;background:${colour}`, '', frame);
 }
+
+const signed = (n: number, what: string): string => `${n > 0 ? '+' : '−'}${Math.abs(n)} ${what}`;
 
 export interface Hud {
   update(camera: Camera): void;
@@ -42,7 +49,14 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
   const vitals = el('position:absolute;left:16px;bottom:16px;width:240px', '', root);
   const hp = bar(vitals, RUST);
   const stamina = bar(vitals, SEA);
-  const echoes = el('position:absolute;right:16px;bottom:16px;font-size:14px;letter-spacing:2px', '', root);
+  const sanity = bar(vitals, BONE);
+  for (const floor of SANITY.bands) el(`position:absolute;left:${floor}%;top:-3px;bottom:-3px;width:1px;background:${BONE}99`, '', sanity.parentElement!);
+  const mind = el('display:flex;justify-content:space-between;letter-spacing:2px;font-size:11px', '', vitals);
+  const band = el('', '', mind);
+  const laudanum = el('opacity:.7', '', mind);
+  const counters = el('position:absolute;right:16px;bottom:16px;font-size:14px;letter-spacing:2px;text-align:right', '', root);
+  const insight = el('', '', counters);
+  const echoes = el('', '', counters);
   const target = el('position:absolute;left:50%;bottom:44px;width:280px;margin-left:-140px;text-align:center', '', root);
   const targetName = el('letter-spacing:2px', '', target);
   const targetHp = bar(target, RUST);
@@ -73,6 +87,13 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
     if (e.entity === me) banner.style.display = 'block';
   });
   g.events.on('Respawned', () => (banner.style.display = 'none'));
+  g.events.on('SanityBandChanged', (e) => say(`${bandIndex(e.to) > bandIndex(e.from) ? '▼' : '▲'} ${e.to.toUpperCase()}`));
+  g.events.on('FirstSight', (e) => {
+    if (e.sanity || e.insight) say([e.name.toUpperCase(), e.sanity && signed(-e.sanity, 'SANITY'), e.insight && signed(e.insight, 'INSIGHT')].filter(Boolean).join('  '));
+  });
+  g.events.on('InsightChanged', (e) => {
+    if (e.cause === 'tome' || e.cause === 'upgrade') say(`${e.source.toUpperCase()}  ${signed(e.change, 'INSIGHT')}`);
+  });
 
   const v = new Vector3();
   return {
@@ -82,6 +103,12 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
       const s = c.stamina.get(me)!;
       hp.style.width = `${(100 * h.hp) / h.max}%`;
       stamina.style.width = `${(100 * s.value) / s.max}%`;
+      const colour = BAND_COLOURS[g.mind.band];
+      sanity.style.width = `${(100 * g.mind.sanity) / SANITY.max}%`;
+      sanity.style.background = colour;
+      band.textContent = `${g.mind.band.toUpperCase()} ${Math.ceil(g.mind.sanity)}`;
+      laudanum.textContent = `LAUDANUM ×${g.player.laudanum}`;
+      insight.textContent = `INSIGHT ${g.mind.insight}`;
       echoes.textContent = `ECHOES ${g.player.echoes}`;
       notice.style.opacity = String(Math.min(1, Math.max(0, (noticeUntil - performance.now()) / 300)));
 

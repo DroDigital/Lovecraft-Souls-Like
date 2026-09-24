@@ -10,7 +10,7 @@ import { COMBAT } from '../data/tuning';
 import { raycast } from '../world/colliders';
 import { moveDef } from './actions';
 import { capsuleGap2, strike, targetsOf } from './combat';
-import type { Game } from './components';
+import { isAbsent, type Game } from './components';
 
 function aimDir(g: Game, shooter: Entity, from: V3, yaw: number): V3 {
   const target = shooter === g.player.id ? g.lock.target : null;
@@ -28,7 +28,7 @@ export function shotSystem(g: Game): void {
   const { actor, transform } = g.ecs.c;
   for (const [id, a] of actor) {
     const shot = moveDef(a)?.shot;
-    if (!shot || a.frozen || a.frame !== shot.frame) continue;
+    if (!shot || a.frozen || a.frame !== shot.frame || isAbsent(g, id)) continue;
     const tr = transform.get(id)!;
     const from = { x: tr.pos.x, y: tr.pos.y + COMBAT.muzzleHeight, z: tr.pos.z };
     const dir = aimDir(g, id, from, tr.yaw);

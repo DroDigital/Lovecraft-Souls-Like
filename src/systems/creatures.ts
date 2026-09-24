@@ -1,6 +1,8 @@
 /**
  * Registry entries as combatants: body size from the sprite's silhouette (or the assembly's
- * scale), moves compiled from the attack library, a brain from the archetype. Pure: no Three.js.
+ * scale), moves compiled from the attack library, a brain from the archetype, and the creature's
+ * hold on the mind (Dread). Spawned creatures carry their VariantSwap and HiddenLayer data, and
+ * `morph` rebuilds a living one as another variant. Pure: no Three.js.
  */
 
 import type { Entity } from '../core/ecs';
@@ -11,7 +13,9 @@ import { REACTIONS, type MoveDef } from '../data/moves';
 import type { CombatantDef } from '../data/placeholders';
 import { getEntity, variantOf, type Variant } from '../data/registry';
 import type { AttackId, EntityDef, Silhouette } from '../data/schema';
-import type { Game } from './components';
+import type { Dread, Game } from './components';
+import { addLayer } from './hiddenLayer';
+import { atOrBelow } from './sanity';
 import { spawnCombatant } from './spawn';
 
 /** Body height and capsule radius as fractions of the sprite's scale. */
@@ -86,9 +90,49 @@ export function resolveCreature(id: string, variant?: Variant): EntityDef | unde
   return def && variant ? variantOf(def, variant) : def;
 }
 
-/** Spawns a roster creature; allies join the player's side. Undefined for an unknown id or variant. */
-export function spawnCreature(g: Pick<Game, 'ecs' | 'world'>, id: string, at: Place, variant?: Variant): Entity | undefined {
-  const def = resolveCreature(id, variant);
+export const dreadOf = (def: EntityDef): Dread => ({
+  id: def.id,
+  tier: def.tier,
+  aura: def.stats.sanityAura,
+  blow: def.stats.sanityDamage,
+  insight: def.insightOnSight,
+  glow: (def.sprite?.glow ?? def.assembly?.glow) !== undefined,
+});
+
+/**
+ * Spawns a roster creature; allies join the player's side. Undefined for an unknown id or variant.
+ * Without a requested variant, one with an eldritch variant swaps with the sanity band (and starts
+ * swapped if the mind is already Fractured or lower); a `hidden` entry goes on its hidden layer.
+ */
+export function spawnCreature(g: Game, id: string, at: Place, variant?: Variant): Entity | undefined {
+  const swaps = variant === undefined && getEntity(id)?.eldritchVariant !== undefined;
+  const v = swaps && atOrBelow(g.mind, 'fractured') ? 'eldritch' : variant;
+  const def = resolveCreature(id, v);
   if (!def) return undefined;
-  return spawnCombatant(g, toCombatant(def, variant), at, def.tier === 'ally' ? 'player' : 'enemy');
+  const e = spawnCombatant(g, toCombatant(def, v), at, def.tier === 'ally' ? 'player' : 'enemy');
+  g.ecs.c.dread.set(e, dreadOf(def));
+  if (swaps) g.ecs.c.swap.set(e, { id, eldritch: v === 'eldritch' });
+  if (def.hidden) addLayer(g, e, def.hidden);
+  return e;
+}
+
+/** Rebuilds a living creature as its roster entry in `variant` (undefined: the base form): look, name, body, moves, brain, dread. Health and poise keep their fractions. */
+export function morph(g: Game, e: Entity, id: string, variant: Variant | undefined): void {
+  const def = resolveCreature(id, variant);
+  if (!def) return;
+  const cd = toCombatant(def, variant);
+  const c = g.ecs.c;
+  c.model.set(e, cd.model);
+  Object.assign(c.combatant.get(e)!, { name: cd.name, bounty: c.phantom.has(e) ? 0 : cd.bounty });
+  Object.assign(c.body.get(e)!, { radius: cd.radius, height: cd.height, aimHeight: cd.aimHeight });
+  const h = c.health.get(e)!;
+  [h.hp, h.max] = [(h.hp / h.max) * cd.hp, cd.hp];
+  const po = c.poise.get(e)!;
+  [po.value, po.max] = [(po.value / po.max) * cd.poise, cd.poise];
+  c.actor.get(e)!.moves = cd.moves; // a move the new form lacks simply ends
+  const br = c.brain.get(e);
+  if (br && cd.brain) [br.def, br.speed] = [cd.brain, cd.speed];
+  const m = c.mover.get(e);
+  if (m && cd.brain) m.turnRate = cd.brain.params.turnRate;
+  if (c.dread.has(e)) c.dread.set(e, dreadOf(def));
 }

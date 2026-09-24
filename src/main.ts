@@ -3,12 +3,15 @@
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput } from './core/input';
 import { startLoop } from './core/loop';
-import { FX, LIGHT, RENDER, SIM } from './data/tuning';
+import { FX, LIGHT, RENDER, SIM, UPGRADES, type UpgradeId } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
+import { createAudioFx } from './render/audioFx';
 import { createCreatureViews } from './render/creatureViews';
 import { placeCamera } from './render/followCamera';
 import { allEffectsOn, computeFx, lensAt, type FxState } from './render/fx';
+import { createFxController } from './render/fxController';
+import { createHiddenViews } from './render/hiddenViews';
 import { lightArena, placeLantern } from './render/lantern';
 import { applyLens } from './render/lens';
 import { ANOMALY } from './render/palette';
@@ -19,8 +22,10 @@ import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
 import type { Game } from './systems/components';
 import { resolveCreature } from './systems/creatures';
 import { createGame, stepGame } from './systems/game';
+import { buyUpgrade, changeInsight, upgradeName } from './systems/insight';
+import { setSanity } from './systems/sanity';
 import { startBestiary } from './ui/bestiary';
-import { createDebugPanel } from './ui/debugPanel';
+import { createDebugPanel, type PanelOptions } from './ui/debugPanel';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
 import { createArenaScene } from './world/arenaScene';
@@ -31,6 +36,7 @@ const HINTS = [
   'RMB block · ⇧RMB parry',
   'Space dodge, hold: sprint',
   'Q lock-on · ←/→ switch target',
+  'R Laudanum (restores sanity)',
 ];
 
 function playerStats(g: Game): string {
@@ -51,7 +57,22 @@ interface ArenaOptions {
 function spawnHint({ creature, variant }: ArenaOptions): string[] {
   if (creature === undefined) return ['?bestiary: pick a creature to fight'];
   const def = resolveCreature(creature, variant);
-  return [def ? `spawned: ${def.name} (${def.tier.replace(/_/g, ' ')}) · ?bestiary` : `unknown creature "${creature}${variant ? `#${variant}` : ''}" · ?bestiary`];
+  if (!def) return [`unknown creature "${creature}${variant ? `#${variant}` : ''}" · ?bestiary`];
+  const { minInsight, maxSanity } = def.hidden ?? {};
+  const veil = [minInsight && `insight ${minInsight}`, maxSanity && `sanity < ${maxSanity}`].filter(Boolean).join(', ');
+  return [`spawned: ${def.name} (${def.tier.replace(/_/g, ' ')})${veil ? ` · unseen until ${veil}` : ''} · ?bestiary`];
+}
+
+/** Arena debug controls: sanity and insight sliders that drive the game, and upgrade purchases. */
+function panelOptions(game: Game): PanelOptions {
+  return {
+    sanity: { get: () => game.mind.sanity, set: (v) => setSanity(game, v) },
+    insight: { get: () => game.mind.insight, set: (v) => changeInsight(game, v - game.mind.insight, 'debug', 'debug panel') },
+    actions: (Object.keys(UPGRADES) as UpgradeId[]).map((id) => ({
+      label: `spend ${UPGRADES[id].cost} insight: ${upgradeName(id)}`,
+      run: () => void buyUpgrade(game, id),
+    })),
+  };
 }
 
 function startArena(opts: ArenaOptions): void {
@@ -63,10 +84,13 @@ function startArena(opts: ArenaOptions): void {
   const scene = createArenaScene();
   const views = createActorViews(scene, game);
   const creatures = createCreatureViews(scene, game, buildAtlas());
+  const hidden = createHiddenViews(scene, game);
+  const fxController = createFxController(game);
+  const audio = createAudioFx();
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const hud = createHud(game, canvas);
-  const panel = createDebugPanel(state, [...HINTS, ...spawnHint(opts)]);
+  const panel = createDebugPanel(state, [...HINTS, ...spawnHint(opts)], panelOptions(game));
   lightArena();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
@@ -94,14 +118,18 @@ function startArena(opts: ArenaOptions): void {
         views.update(alpha, time);
         placeLantern(game, alpha);
         creatures.update(alpha, time, camera);
+        hidden.update(time);
 
+        fxController.update(state, camera.position, time);
         const fx = computeFx(state);
+        audio.update(fx, time);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
         updatePostUniforms(pipeline.post, fx, time, pipeline.size);
         pipeline.render(scene, camera);
         hud.update(camera);
+        panel.refresh();
 
         frames++;
         const now = performance.now();

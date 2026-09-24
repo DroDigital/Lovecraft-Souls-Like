@@ -4,7 +4,7 @@ Lovecraftian open-world soulslike in retro 3D. **Spec: `docs/SPEC.md`.** At sess
 file, then do only the phase named in the message. Log judgment calls in `docs/DECISIONS.md`.
 
 ## Commands
-- `npm run dev`: Vite dev server: the Phase 1 arena (click to capture the mouse; controls in the debug panel, H hides it).
+- `npm run dev`: Vite dev server: the arena (click to capture the mouse; controls in the debug panel, whose sanity/insight sliders drive the game; H hides it).
   `?bestiary` = every roster entity (click to fight it); `?spawn=<id>[&variant=eldritch|boss]`; `?look` = Phase 0
   look test (1–9 toggle effects, drag/wheel/O orbit); `?debug` exposes `window.game`.
 - `npm run check`: typecheck + Vitest. Must pass before every commit.
@@ -12,8 +12,8 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 
 ## Folder map
 - `src/core`: 60 Hz loop with interpolation, ECS (typed Maps), typed event bus, input (keys/mouse/pad → `InputFrame`), geom, rng, noise.
-- `src/systems`: the simulation, no Three.js. `game.ts` builds the world and fixes the system order; actions + input buffer, movement, combat, revolver, stamina, lock-on, camera rig, archetype `brain` + `perception`, `creatures` (EntityDef → combatant), death/Echoes.
-- `src/render`: pipeline, post pass (grade + character rim), world material, `lantern.ts` (arena light), `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts`, actor views, follow camera; `sprites/` (pixel sprite generator + atlas), `assemblies` (colossi), `creatureViews`.
+- `src/systems`: the simulation, no Three.js. `game.ts` builds the world and fixes the system order; actions + input buffer, movement, combat, revolver, stamina, lock-on, camera rig, archetype `brain` + `perception`, `creatures` (EntityDef → combatant), death/Echoes; the mind: `sanity`, `insight`, hooks `hiddenLayer`, `variantSwap`, `hallucinations`.
+- `src/render`: pipeline, post pass (grade + character rim), world material, `lantern.ts` (arena light), `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts`, actor views, follow camera; `sprites/` (pixel sprite generator + atlas), `assemblies` (colossi), `creatureViews`, `hiddenViews`; `fxController` (sanity FX hook) + `audioFx`.
 - `src/data`: `tuning.ts` holds every tunable number; `schema`, `roster` (every id), `entities/` (one file per tier), `registry`, `validate`, `archetypes`, `attacks`, `regions`; `moves`, `placeholders` (dummy + Deep One), `arena`.
 - `src/world`: heightfield, colliders (pure), arena collision + meshes, Phase 0 test scene.
 - `src/ui`: HUD, debug panel, `?bestiary`, `?look` look test, orbit rig.
@@ -36,5 +36,5 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 - Sim: fixed system order in `stepGame`; moves are 60 Hz frame windows `[from, to)`; yaw 0 faces +z, right = (−cos, sin).
 - Colours are display sRGB end to end (`ColorManagement` off); every material is a `ShaderMaterial`.
 - World materials share one uniform set (`worldUniforms`). FX flow: `FxState → computeFx() → update*Uniforms()`.
-- Sanity FX are `[calm, mad]` ramps in `tuning.ts`, blended by stress = min(1 − sanity/100, fx cap).
+- Sanity FX are `[calm, mad]` ramps in `tuning.ts`, blended by stress = min(1 − sanity/100, fx cap); hooks listen to `SanityBandChanged`/`InsightChanged`.
 - New creature: its id in `roster.ts` + an entry in its tier file; `npm run check` runs `validateRegistry()`.
