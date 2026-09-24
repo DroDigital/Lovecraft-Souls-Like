@@ -43,7 +43,13 @@ export interface WorldMaterialOptions {
   vertexColors?: boolean;
 }
 
+const textures = new Map<string, THREE.DataTexture>();
+
+/** One shared texture per (kind, seed). */
 export function createTexture(kind: TextureKind, seed: number): THREE.DataTexture {
+  const key = `${kind}:${seed}`;
+  const cached = textures.get(key);
+  if (cached) return cached;
   const tex = new THREE.DataTexture(generateTexture(kind, seed), TEXTURE_SIZE, TEXTURE_SIZE);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
@@ -51,13 +57,15 @@ export function createTexture(kind: TextureKind, seed: number): THREE.DataTextur
   tex.wrapT = THREE.RepeatWrapping;
   tex.generateMipmaps = false;
   tex.needsUpdate = true;
+  textures.set(key, tex);
   return tex;
 }
 
+/** `userData.emissive` keeps the base emissive level, so hit flashes can add to it and fade back. */
 export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMaterial {
   const [su, sv] = o.uvScale ?? [1, 1];
   const [du, dv] = o.uvScroll ?? [0, 0];
-  return new THREE.ShaderMaterial({
+  const material = new THREE.ShaderMaterial({
     uniforms: {
       ...worldUniforms,
       uMap: { value: createTexture(o.texture, o.seed ?? 1) },
@@ -69,6 +77,8 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
     fragmentShader: WORLD_FRAG,
     vertexColors: o.vertexColors ?? false,
   });
+  material.userData.emissive = o.emissive ?? 0;
+  return material;
 }
 
 /** Push this frame's FX values into the shared world uniforms. */

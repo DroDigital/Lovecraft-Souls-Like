@@ -4,17 +4,19 @@ Lovecraftian open-world soulslike in retro 3D. **Spec: `docs/SPEC.md`.** At sess
 file, then do only the phase named in the message. Log judgment calls in `docs/DECISIONS.md`.
 
 ## Commands
-- `npm run dev`: Vite dev server. Phase 0 look test: keys 1–9 toggle effects, H hides the panel, drag/wheel/O orbit.
+- `npm run dev`: Vite dev server: the Phase 1 arena (click to capture the mouse; controls in the debug panel, H hides it).
+  `?look` = Phase 0 look test (keys 1–9 toggle effects, drag/wheel/O orbit); `?debug` exposes `window.game`.
 - `npm run check`: typecheck + Vitest. Must pass before every commit.
 - `npm run build`: typecheck + production build into `dist/`.
 
 ## Folder map
-- `src/core`: fixed 60 Hz loop with interpolation, rng, noise (later ecs, events, input).
-- `src/render`: pipeline, post pass, world material, `shaders/`, palette, procedural textures, `fx.ts` (pure FX model).
-- `src/data`: `tuning.ts` holds every number (later roster, entities by tier, archetypes, attacks, regions).
-- `src/world`: heightfield, Phase 0 test scene.
-- `src/ui`: debug panel, debug orbit camera.
-- `tests/`: Vitest, runs in Node.
+- `src/core`: 60 Hz loop with interpolation, ECS (typed Maps), typed event bus, input (keys/mouse/pad → `InputFrame`), geom, rng, noise.
+- `src/systems`: the simulation, no Three.js. `game.ts` builds the world and fixes the system order; actions + input buffer, movement, combat, revolver, stamina, lock-on, camera rig, placeholder brain, death/Echoes.
+- `src/render`: pipeline, post pass, world material, `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts` (procedural animation), actor views, follow camera.
+- `src/data`: `tuning.ts` holds every tunable number; `moves.ts` movesets; `placeholders.ts` dummy + Deep One; `arena.ts` layout (later roster, tiers, archetypes, regions).
+- `src/world`: heightfield, colliders (pure), arena collision + meshes, Phase 0 test scene.
+- `src/ui`: HUD, debug panel, `?look` look test, orbit rig.
+- `tests/`: Vitest, runs in Node; `helpers.ts` scripts inputs and a hand-driven Deep One.
 - `docs/`: SPEC.md, DECISIONS.md.
 
 ## Rules (spec §0, condensed)
@@ -29,7 +31,8 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 - Simulation code (combat, stamina, sanity, AI, registry, streaming math) must not import Three.js.
 - Out of scope: multiplayer, skeletal animation, imported models/textures, mobile.
 
-## Render conventions
+## Conventions
+- Sim: fixed system order in `stepGame`; moves are 60 Hz frame windows `[from, to)`; yaw 0 faces +z, right = (−cos, sin).
 - Colours are display sRGB end to end (`ColorManagement` off); every material is a `ShaderMaterial`.
 - World materials share one uniform set (`worldUniforms`). FX flow: `FxState → computeFx() → update*Uniforms()`.
 - Sanity FX are `[calm, mad]` ramps in `tuning.ts`, blended by stress = min(1 − sanity/100, fx cap).
