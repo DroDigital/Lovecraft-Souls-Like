@@ -6,7 +6,7 @@
  * - engage: keeps its preferred range to the target (approach, back off, circle), attacks from
  *   data when the cooldown allows, and keeps its distance while below its `flee` health fraction.
  * - return: gave up (target lost or leash exceeded); walks home and heals on arrival.
- * - follow: allies trail the player until something threatens.
+ * - follow: allies trail the player (once met) until something threatens.
  */
 
 import type { Entity } from '../core/ecs';
@@ -100,8 +100,8 @@ export function brainSystem(g: Game): void {
     } else if (br.state === 'idle' || br.state === 'follow') {
       if (seen !== null) br.state = 'engage';
       else if (p.hide === 'ambush' || p.hide === 'burrow') br.state = 'hidden';
-      else if (ally) {
-        br.state = 'follow';
+      else if (ally && (br.state === 'follow' || distXZ(tr.pos, anchor) <= p.aggro)) {
+        br.state = 'follow'; // an ally waits where it stands until the investigator comes within sight
         if (distXZ(tr.pos, anchor) > FOLLOW[1]) walk(m, tr.pos, anchor, br.speed);
         else if (distXZ(tr.pos, anchor) < FOLLOW[0]) m.face = null;
       }

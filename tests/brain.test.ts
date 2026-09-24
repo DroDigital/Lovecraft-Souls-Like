@@ -72,9 +72,23 @@ describe('archetype brains', () => {
   it('an ally follows the player when nothing threatens them', () => {
     const { g, foe: ally, player } = arena('nodens');
     for (const [id, c] of [...g.ecs.c.combatant]) if (c.faction === 'enemy') g.ecs.despawn(id);
+    steps(g, 1); // met: the ally stands beside the player's spawn
     place(g, player, -10, 0, 0);
     steps(g, 360);
     expect(gap(g, ally, player)).toBeLessThan(5);
+    expect(g.ecs.c.brain.get(ally)!.state).toBe('follow');
+  });
+
+  it('an ally waits where it stands until the player comes within its sight', () => {
+    const { g, foe: ally, player } = arena('tritons');
+    for (const [id, c] of [...g.ecs.c.combatant]) if (c.faction === 'enemy') g.ecs.despawn(id);
+    place(g, ally, 0, 18, 0);
+    place(g, player, 0, -18, 0);
+    steps(g, 120);
+    expect(g.ecs.c.transform.get(ally)!.pos).toMatchObject({ x: 0, z: 18 });
+    expect(g.ecs.c.brain.get(ally)!.state).toBe('idle');
+    place(g, player, 0, 8, 0);
+    steps(g, 1);
     expect(g.ecs.c.brain.get(ally)!.state).toBe('follow');
   });
 

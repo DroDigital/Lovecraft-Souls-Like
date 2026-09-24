@@ -101,7 +101,7 @@ export function startBestiary(): void {
   const header = el('div', 'margin-bottom:18px', '', document.body);
   el('div', 'font:bold 20px monospace;letter-spacing:.08em', 'BESTIARY', header);
   el('div', 'opacity:.6;margin-top:4px', `${ENTITIES.length} entities · click one to spawn it in the arena · `, header).append(
-    Object.assign(el('a', `color:${BONE}`, 'back to the arena'), { href: '?' }),
+    Object.assign(el('a', `color:${BONE}`, 'back to the arena'), { href: '?arena' }),
   );
   const sprites: { ctx: CanvasRenderingContext2D; key: string }[] = [];
   const colossi: { ctx: CanvasRenderingContext2D; asm: Assembly; recipe: AssemblyRecipe }[] = [];

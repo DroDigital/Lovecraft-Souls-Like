@@ -4,18 +4,18 @@ import { ENTITIES } from '../src/data/registry';
 import { LANTERN, LIGHT } from '../src/data/tuning';
 import { buildAssembly } from '../src/render/assemblies';
 import { buildFigure } from '../src/render/figures';
-import { lightArena, placeLantern } from '../src/render/lantern';
+import { lightNight, placeLantern } from '../src/render/lantern';
 import { worldUniforms } from '../src/render/worldMaterial';
 import { createGame } from '../src/systems/game';
 
 const u = worldUniforms;
 
 describe('arena lighting', () => {
-  it('keeps the moonlight until the arena switches to night and the lantern', () => {
+  it('keeps the moonlight until a game switches to night and the lantern', () => {
     expect(u.uMarkCharacters.value).toBe(0); // alpha stays opaque unless a pipeline's post pass reads the marks
     expect(u.uLanternColor.value.length()).toBe(0);
     expect(u.uLightColor.value.length()).toBeGreaterThan(0);
-    lightArena();
+    lightNight();
     expect(u.uLightColor.value.toArray()).toEqual([...LIGHT.nightMoon]);
     expect(u.uLightDir.value.y).toBeLessThan(0.45); // a low moon finds walls more than the floor
     expect(u.uAmbient.value.toArray()).toEqual([...LIGHT.nightAmbient]);

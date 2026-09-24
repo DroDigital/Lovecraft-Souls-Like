@@ -1,7 +1,8 @@
 /**
- * Draws hidden-layer arena geometry (spec §3A): dark stone blocks banded with glyphs that glow in
- * the piece's anomaly colour, shown while their layer is. For a moment as a piece comes or goes it
- * flickers between there and not there. Read-only on the simulation.
+ * Draws hidden-layer geometry (spec §3A): dark stone blocks banded with glyphs that glow in the
+ * piece's anomaly colour, shown while their layer is; a hidden door's seal is plain wall until then.
+ * For a moment as a piece comes or goes it flickers between there and not there. Read-only on the
+ * simulation.
  */
 
 import * as THREE from 'three';
@@ -16,6 +17,7 @@ import { createWorldMaterial } from './worldMaterial';
 
 interface View {
   root: THREE.Group;
+  seal: THREE.Mesh | null; // stands in while the piece is hidden: plain wall where a hidden door will open
   shown: boolean;
   since: number; // render seconds of the last change
 }
@@ -40,6 +42,15 @@ function build(p: HiddenPieceDef): THREE.Group {
   return root;
 }
 
+const WALL = scaleRgb(BASE.bone, 0.9);
+
+/** The plain wall a hidden door hides behind (a seal drawn as wall; an unseen chasm edge draws nothing). */
+function buildSeal(p: HiddenPieceDef): THREE.Mesh | null {
+  if (!p.seal || p.seal.look !== 'wall') return null;
+  const parts = p.seal.boxes.map(([dx, dz, hw, hd, y0, y1]) => tileUv(box(hw * 2, y1 - y0, hd * 2, p.x + dx, (y0 + y1) / 2, p.z + dz, WALL, 1), Math.max(hw, hd) * 2, y1 - y0));
+  return new THREE.Mesh(mergeGeometries(parts), createWorldMaterial({ texture: 'stone', seed: 8, vertexColors: true }));
+}
+
 /** A steady pseudo-random 0..1 per flicker tick. */
 const coin = (tick: number): number => {
   const s = Math.sin(tick * 91.7) * 43758.5453;
@@ -50,8 +61,10 @@ export function createHiddenViews(scene: THREE.Scene, g: Game): { update(seconds
   const views = new Map<Entity, View>();
   for (const [id, p] of g.ecs.c.piece) {
     const root = build(p.def);
+    const seal = buildSeal(p.def);
     scene.add(root);
-    views.set(id, { root, shown: g.ecs.c.layer.get(id)?.shown ?? false, since: -Infinity });
+    if (seal) scene.add(seal);
+    views.set(id, { root, seal, shown: g.ecs.c.layer.get(id)?.shown ?? false, since: -Infinity });
   }
   return {
     update(seconds) {
@@ -60,6 +73,7 @@ export function createHiddenViews(scene: THREE.Scene, g: Game): { update(seconds
         if (shown !== v.shown) [v.shown, v.since] = [shown, seconds];
         const k = (seconds - v.since) / FEEDBACK.revealSeconds; // 0 → 1 through the flicker
         v.root.visible = k >= 1 ? shown : coin(Math.floor(seconds * 24)) < (shown ? k : 1 - k);
+        if (v.seal) v.seal.visible = !v.root.visible;
       }
     },
   };

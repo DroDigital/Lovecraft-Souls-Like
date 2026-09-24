@@ -109,10 +109,11 @@ export interface Layer {
   shown: boolean;
 }
 
-/** Hidden-layer arena geometry: its data and the colliders it puts into the world while shown. */
+/** Hidden-layer geometry: its data, the colliders it puts into the world while shown, and those of its seal while hidden. */
 export interface Piece {
   def: HiddenPieceDef;
   colliders: readonly Collider[];
+  seal: readonly Collider[];
 }
 
 /** VariantSwap (spec §3A): the roster entry to rebuild from, and whether it shows its eldritch variant. */
@@ -130,6 +131,19 @@ export interface Phantom {
 export interface Tome {
   name: string;
   insight: number;
+}
+
+/** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */
+export interface Sign {
+  id: string;
+  name: string;
+}
+
+/** A gate between the waking world and a realm beyond: passing it lands at its twin. */
+export interface Gate {
+  id: string;
+  name: string;
+  to: string;
 }
 
 export function createStores() {
@@ -153,6 +167,9 @@ export function createStores() {
     swap: new Map<Entity, Swap>(),
     phantom: new Map<Entity, Phantom>(),
     tome: new Map<Entity, Tome>(),
+    sign: new Map<Entity, Sign>(),
+    gate: new Map<Entity, Gate>(),
+    origin: new Map<Entity, string>(), // the world spawn point a creature came from (population.ts)
   };
 }
 
@@ -181,8 +198,14 @@ export interface GameEvents {
   Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost'; amount: number; total: number };
   LockChanged: { target: Entity | null };
   SanityBandChanged: { from: Band; to: Band; sanity: number };
-  InsightChanged: { insight: number; change: number; cause: 'sight' | 'tome' | 'upgrade' | 'debug'; source: string };
+  InsightChanged: { insight: number; change: number; cause: 'sight' | 'tome' | 'upgrade' | 'debug' | 'load'; source: string };
   FirstSight: { entity: Entity; name: string; sanity: number; insight: number }; // sanity lost, insight gained
+  Discovered: { sign: string; name: string }; // an Elder Sign found
+  Rested: { sign: string; name: string };
+  RestRefused: { sign: string };
+  Travelled: { via: 'sign' | 'gate' | 'dream'; to: string; name: string };
+  RegionEntered: { region: string; name: string };
+  Vanquished: { entity: Entity; name: string }; // a boss or optional boss, slain for good
 }
 
 /** Lying in ambush or burrowed: unseen, and nothing can target it. */
@@ -213,6 +236,19 @@ export interface Mind {
   phantomIn: number; // frames until the next hallucination may appear
 }
 
+/** Open-world state (spec §3D); absent in the arena. */
+export interface Overworld {
+  sign: string; // the Elder Sign last rested at: the respawn point
+  discovered: Set<string>; // Elder Signs found: fast-travel destinations
+  slain: Set<string>; // spawn ids of bosses and optional bosses, gone for good
+  killed: Set<string>; // spawn ids of foes killed since the last rest or death
+  read: Set<string>; // tomes read
+  alive: Map<string, Entity>; // spawn id → the creature standing for it
+  region: string | null; // where the investigator is
+  chunk: number; // the investigator's chunk key
+  dirty: boolean; // spawn points need another look
+}
+
 export interface Game {
   ecs: Ecs<Stores>;
   events: EventBus<GameEvents>;
@@ -223,4 +259,5 @@ export interface Game {
   lock: LockState;
   rng: Rng;
   frame: number;
+  overworld?: Overworld;
 }

@@ -2,7 +2,8 @@
  * HiddenLayer hook (spec §3A): eldritch geometry, bridges and doors — and a few creatures, like the
  * Being from Beyond — exist only for the enlightened: while insight ≥ minInsight and the sanity
  * band lies wholly at or below maxSanity (a band floor, so the band's hysteresis carries over).
- * It listens for band and insight changes. A hidden piece's colliders leave the world; a hidden
+ * It listens for band and insight changes. A hidden piece's colliders leave the world (and its seal,
+ * the wall a hidden door opens or the edge of the chasm a hidden bridge spans, stands); a hidden
  * creature is absent (`isAbsent`): it neither acts nor collides, and nothing can see or touch it.
  */
 
@@ -31,9 +32,14 @@ export function applyLayer(g: Game, id: Entity): void {
   const shown = layerShown(g.mind, l);
   if (shown === l.shown) return;
   l.shown = shown;
-  for (const c of g.ecs.c.piece.get(id)?.colliders ?? []) {
+  const piece = g.ecs.c.piece.get(id);
+  for (const c of piece?.colliders ?? []) {
     if (shown) g.world.off.delete(c);
     else g.world.off.add(c);
+  }
+  for (const c of piece?.seal ?? []) {
+    if (shown) g.world.off.add(c);
+    else g.world.off.delete(c);
   }
   if (!shown) quiet(g, id);
 }
@@ -44,14 +50,16 @@ export function addLayer(g: Game, id: Entity, hidden: { minInsight?: number; max
   applyLayer(g, id);
 }
 
-/** Hidden-layer arena geometry: its colliders join the world, switched on and off with the layer. */
+/** Hidden-layer geometry: its colliders join the world, switched on and off with the layer (its seal's the other way round). */
 export function spawnPiece(g: Game, def: HiddenPieceDef): Entity {
   const e = g.ecs.spawn();
   const pos = { x: def.x, y: g.world.ground(def.x, def.z), z: def.z };
   g.ecs.c.transform.set(e, { pos, prev: { ...pos }, yaw: 0, prevYaw: 0 });
   const colliders = pieceColliders(def);
-  g.world.colliders.push(...colliders);
-  g.ecs.c.piece.set(e, { def, colliders });
+  const seal = def.seal ? pieceColliders({ ...def, boxes: def.seal.boxes }) : [];
+  g.world.colliders.push(...colliders, ...seal);
+  for (const c of seal) g.world.off.add(c); // a fresh layer counts as shown until addLayer settles it
+  g.ecs.c.piece.set(e, { def, colliders, seal });
   addLayer(g, e, { minInsight: def.minInsight, maxSanity: def.maxSanity });
   return e;
 }

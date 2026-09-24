@@ -239,3 +239,40 @@ export const FEEDBACK = {
   echoGlowHeight: 0.6, // light above an Echo drop
   revealSeconds: 0.5, // hidden-layer geometry flickers this long as it comes and goes
 };
+
+/** The open world (spec §3D). Distances in metres. */
+export const WORLD = {
+  seed: 1926,
+  chunk: 64, // streaming grid
+  regionChunks: 4, // a region tile is 4 × 4 chunks
+  load: 2, // chunks within this Chebyshev radius of the player's are loaded (5 × 5)...
+  keep: 3, // ...and unloaded beyond this one (7 × 7)
+  sliceMs: 2, // chunk generation budget per rendered frame
+  maxActive: 60, // creatures alive at once (the AI budget)
+  snap: 4, // dungeon cells and origins align to this grid...
+  meshCell: 1, // ...and so does the terrain mesh, whose vertices keep the lantern's vertex-lit pool round
+  blend: 32, // neighbouring regions' terrain blends across this band
+  seaLevel: -2,
+  seaFloor: -9,
+  coast: 24, // beyond the land's edge the ground sinks to the sea floor over this distance
+  discover: 6, // an Elder Sign is found this close
+  reach: 3.2, // rest at an Elder Sign or pass a gate this close
+  restFoes: 18, // no resting while a foe hunts the investigator within this distance
+  saveSeconds: 20, // autosave interval (also on rest, travel, death and leaving the page)
+};
+
+/** The legacy-dungeon kit (spec §3D): corridor, hall, stair, pit, bridge, well. */
+export const DUNGEON = {
+  cell: 16, // metres per room cell (a wide hall is 3 × 3 cells)
+  wall: 1, // thickness
+  height: 6, // walls rise this far above the higher floor
+  door: 3.2, // doorway width...
+  lintel: 3.4, // ...and height
+  lane: 4, // walkable width of corridors
+  stairLane: 6,
+  ledge: 3.5, // walkable rim around a pit or at the ends of a bridge
+  deck: 2.4, // bridge width
+  well: 2.4, // shaft radius
+  chasm: 12, // depth of pits, chasms and wells
+  rim: 0.45, // chasm edges stop feet but not eyes
+};

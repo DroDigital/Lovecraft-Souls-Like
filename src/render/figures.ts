@@ -1,6 +1,7 @@
 /**
  * Procedural low-poly figures (spec §3B: tweened primitives, no skeletal assets): the investigator,
- * the placeholder Deep One, the training dummy, an Echo drop and a tome on its lectern. Each is a
+ * the placeholder Deep One, the training dummy, an Echo drop, a tome on its lectern, and the world's
+ * Elder Signs and gates. Each is a
  * small joint hierarchy that poses.ts drives. Arms and legs hang along -y from their pivots; forward
  * is +z, the figure's right is -x. Phase 2 replaces the enemies with generated sprites.
  */
@@ -11,6 +12,7 @@ import { LANTERN } from '../data/tuning';
 import { box, tint } from './meshKit';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { TextureKind } from './textures';
+import { elderSignGeometry, gateGeometry } from './signMeshes';
 import { createWorldMaterial } from './worldMaterial';
 
 export type Rig = 'humanoid' | 'dummy' | 'echo' | 'prop';
@@ -162,7 +164,26 @@ function tome(): Figure {
   return f;
 }
 
-const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome };
+/** An Elder Sign (spec §3D): the carved slab, its glyph glowing faintly so it reads in the dark. */
+function elderSign(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const { slab, glyph } = elderSignGeometry();
+  part(f, f.body, slab, 'stone');
+  part(f, f.body, glyph, 'stone', 0.9);
+  return f;
+}
+
+/** A gate to another realm: a stone frame banded with glowing glyphs, a dim purple veil between its jambs. */
+function gate(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const { frame, glyphs, veil } = gateGeometry();
+  part(f, f.body, frame, 'stone', 0.12);
+  part(f, f.body, glyphs, 'stone', 1);
+  part(f, f.body, veil, 'water', 0.8);
+  return f;
+}
+
+const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, elderSign, gate };
 
 export function buildFigure(model: string): Figure {
   return (BUILDERS[model] ?? dummy)();
