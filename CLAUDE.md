@@ -4,19 +4,19 @@ Lovecraftian open-world soulslike in retro 3D. **Spec: `docs/SPEC.md`.** At sess
 file, then do only the phase named in the message. Log judgment calls in `docs/DECISIONS.md`.
 
 ## Commands
-- `npm run dev`: the open world, saved to localStorage (click to capture the mouse; E rests at an Elder Sign; debug panel sliders drive
-  sanity/insight; H hides it). `?fresh` new game; `?arena` combat arena; `?bestiary` every roster entity (click to fight it); `?spawn=<id>
-  [&variant=eldritch|boss]`; `?look` Phase 0 look test (1–9 toggle effects, drag/wheel/O orbit); `?debug` exposes `window.game`/`world`.
+- `npm run dev`: title, then the open world saved to localStorage (click captures the mouse; E rests at an Elder Sign; Esc/Start: pause,
+  settings, controls). `?fresh` new game, no title; `?arena` combat arena; `?bestiary` every roster entity (click to fight); `?spawn=<id>
+  [&variant=eldritch|boss]`; `?look` look test (1–9, drag/wheel/O); `?debug` debug panel (sliders, H hides) + `window.game`/`world`/`audio`.
 - `npm run check`: typecheck + Vitest. Must pass before every commit.
 - `npm run build`: typecheck + production build into `dist/`.
 
 ## Folder map
 - `src/core`: 60 Hz loop with interpolation, ECS (typed Maps), typed event bus, input (keys/mouse/pad → `InputFrame`), geom, rng, noise, time `slicer`.
 - `src/systems`: the simulation, no Three.js. `game.ts` builds the world and fixes the system order; actions + input buffer, movement, combat, revolver, stamina, lock-on, camera rig, archetype `brain` + `perception`, `creatures` (EntityDef → combatant), death/Echoes; the mind: `sanity`, `insight`, hooks `hiddenLayer`, `variantSwap`, `hallucinations`; the world: `overworld`, `population`, `checkpoints` (signs, travel, gates), `save`; bosses: `bossFight` (phases), `specials` + `projectiles` + `hazards` (attack effects), `reality` + `realityTricks` (hooks), `arenaChanges`, `signatures/` (+ Hastur's calling, Nyarlathotep's watching), `fightActions` (E), `endings`.
-- `src/render`: pipeline, post pass (grade + character rim), world material, `lantern.ts` (night: moon + lantern), `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts`, actor views, follow camera; `sprites/` (pixel sprite generator + atlas), `assemblies` (colossi), `creatureViews`, `hiddenViews`; `fxController` (sanity FX hook) + `audioFx`; `worldScene` (chunk streaming) with `terrainMesh`, `propMeshes`, `siteMeshes`, `signMeshes`; `fightViews` (bolts, pools, props, water) + `realityFx`.
-- `src/data`: `tuning.ts` holds every tunable number (boss numbers in `bossTuning`, re-exported); `schema`, `roster` (every id), `entities/` (one file per tier), `registry`, `validate`, `archetypes`, `attacks`, `regions`; `moves`, `placeholders` (dummy + Deep One), `arena`; `sites` and `dungeons` (the world's places and room graphs); `endings`.
+- `src/render`: pipeline, post pass (grade + character rim), world material, `lantern.ts` (night: moon + lantern), `shaders/`, palette, textures, `fx.ts`; figures + `poses.ts`, actor views, follow camera; `sprites/` (pixel sprite generator + atlas), `assemblies` (colossi), `creatureViews`, `hiddenViews`; `fxController` (sanity FX hook); `worldScene` (chunk streaming) with `terrainMesh`, `propMeshes`, `siteMeshes`, `signMeshes`; `fightViews` (bolts, pools, props, water) + `realityFx`; `rigidBatch` (colossi in ≤3 draws); `audio/` (engine, synth, drones, cues, gameAudio).
+- `src/data`: `tuning.ts` holds every tunable number (boss numbers in `bossTuning`, re-exported); `schema`, `roster` (every id), `entities/` (one file per tier), `registry`, `validate`, `archetypes`, `attacks`, `regions`; `moves`, `placeholders` (dummy + Deep One), `arena`; `sites` and `dungeons` (the world's places and room graphs); `endings`; `sounds` + `voices` (audio recipes).
 - `src/world`: pure world math: `worldMap`, `land` + `terrain`, `placements` (resolved sites), `chunks`, `streaming`, `dungeonKit` + `dungeonParts`, `worldCollision`, `validateWorld`; colliders, arena collision + meshes, Phase 0 test scene.
-- `src/ui`: HUD (+ `bossHud`, `hudKit`), debug panel, Elder Sign `signMenu`, `endingCard`, `autosave`, `?bestiary`, `?look` look test, orbit rig.
+- `src/ui`: HUD (+ `bossHud`, `hudKit`), debug panel, `menuKit` (screens, keys/pad nav) for `titleScreen`, `pauseMenu`, `menuPages`, Elder Sign `signMenu`, `endingCard`; `settings`, `autosave`, `?bestiary`, `?look` look test, orbit rig.
 - `tests/`: Vitest, runs in Node; `helpers.ts` scripts inputs and a hand-driven Deep One.
 - `docs/`: SPEC.md, DECISIONS.md.
 
@@ -37,4 +37,4 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 - Colours are display sRGB end to end (`ColorManagement` off); every material is a `ShaderMaterial`.
 - World materials share one uniform set (`worldUniforms`). FX flow: `FxState → computeFx() → update*Uniforms()`.
 - Sanity FX are `[calm, mad]` ramps in `tuning.ts`, blended by stress = min(1 − sanity/100, fx cap); hooks listen to `SanityBandChanged`/`InsightChanged`.
-- New creature: its id in `roster.ts` + an entry in its tier file; `npm run check` runs `validateRegistry()`.
+- New creature: its id in `roster.ts` + an entry in its tier file (a `voice`, or its tier's); `npm run check` runs `validateRegistry()`.

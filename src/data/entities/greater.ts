@@ -4,20 +4,20 @@ import { ph, phases, st, tier } from './kit';
 
 export const GREATER = tier('greater', [
   {
-    id: 'mi_go', name: 'Mi-Go', source: 'The Whisperer in Darkness', regions: ['vermont', 'yuggoth'], canonLooks: true,
+    id: 'mi_go', name: 'Mi-Go', source: 'The Whisperer in Darkness', regions: ['vermont', 'yuggoth'], canonLooks: true, voice: 'buzz',
     sprite: { silhouette: 'crustacean', palette: 'fungus', scale: 2.6, eyes: 0, wings: 2, limbs: 6 },
     behavior: { archetype: 'hover_ranged', attacks: ['projectile', 'grab', 'beam'] },
     stats: st(420, 60, 24, 4, 1, 5), resist: ['shot'], drops: { echoes: 450 }, insightOnSight: 0,
     eldritchVariant: { sprite: { glow: 'purple' } },
   },
   {
-    id: 'elder_thing', name: 'Elder Thing', source: 'At the Mountains of Madness', regions: ['mountains'], canonLooks: true,
+    id: 'elder_thing', name: 'Elder Thing', source: 'At the Mountains of Madness', regions: ['mountains'], canonLooks: true, voice: 'piping',
     sprite: { silhouette: 'barrel', palette: 'sea', scale: 2.8, eyes: 5, tentacles: 5, wings: 2 },
     behavior: { archetype: 'skirmisher', attacks: ['tentacle_burst', 'sweep', 'projectile'] },
     stats: st(520, 80, 26, 3.4, 1.2, 5), resist: ['blunt'], drops: { echoes: 500 }, insightOnSight: 0,
   },
   {
-    id: 'shoggoth', name: 'Shoggoth', source: 'At the Mountains of Madness', regions: ['mountains'], canonLooks: true,
+    id: 'shoggoth', name: 'Shoggoth', source: 'At the Mountains of Madness', regions: ['mountains'], canonLooks: true, voice: 'tekeli',
     sprite: { silhouette: 'blob', palette: 'ichor', scale: 4.2, eyes: 12, glow: 'green' },
     behavior: { archetype: 'brute', attacks: ['tentacle_burst', 'grab', 'slam', 'aoe_ring'] },
     stats: st(900, 160, 36, 3.6, 2, 8), resist: ['slash', 'shot'], weak: ['fire'], drops: { echoes: 900 }, insightOnSight: 0,
@@ -40,7 +40,7 @@ export const GREATER = tier('greater', [
     stats: st(600, 90, 28, 2.6, 1, 4), drops: { echoes: 600 }, insightOnSight: 0,
   },
   {
-    id: 'flying_polyp', name: 'Flying Polyp', source: 'The Shadow out of Time', regions: ['pnakotus'], canonLooks: true,
+    id: 'flying_polyp', name: 'Flying Polyp', source: 'The Shadow out of Time', regions: ['pnakotus'], canonLooks: true, voice: 'whistle',
     sprite: { silhouette: 'blob', palette: 'ichor', scale: 3.6, eyes: 0, tentacles: 8 },
     behavior: { archetype: 'invisible_stalker', attacks: ['wind_push', 'grab', 'tentacle_burst'] },
     stats: st(800, 120, 32, 5, 2, 6), resist: ['slash', 'blunt', 'shot'], weak: ['light'], drops: { echoes: 800 }, insightOnSight: 0,

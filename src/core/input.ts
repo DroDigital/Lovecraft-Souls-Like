@@ -69,6 +69,7 @@ function readPad(): PadState | null {
 
 export interface InputDevice {
   poll(): InputFrame;
+  sensitivity: number; // look speed multiplier (the settings menu)
 }
 
 export function createInput(canvas: HTMLCanvasElement): InputDevice {
@@ -146,7 +147,8 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
 
   const key = (code: string): number => (keys.has(code) ? 1 : 0);
 
-  return {
+  const device: InputDevice = {
+    sensitivity: 1,
     poll() {
       const dt = 1 / SIM.hz;
       const pad = readPad();
@@ -162,8 +164,9 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
 
       const kx = key('ArrowRight') - key('ArrowLeft');
       const ky = key('ArrowDown') - key('ArrowUp');
-      f.lookX = mouseX * INPUT.mouseSensitivity + (kx * INPUT.keyLookSpeed + (pad?.rx ?? 0) * INPUT.stickLookSpeed) * dt;
-      f.lookY = mouseY * INPUT.mouseSensitivity + (ky * INPUT.keyLookSpeed + (pad?.ry ?? 0) * INPUT.stickLookSpeed) * dt;
+      const k = device.sensitivity;
+      f.lookX = k * (mouseX * INPUT.mouseSensitivity + (kx * INPUT.keyLookSpeed + (pad?.rx ?? 0) * INPUT.stickLookSpeed) * dt);
+      f.lookY = k * (mouseY * INPUT.mouseSensitivity + (ky * INPUT.keyLookSpeed + (pad?.ry ?? 0) * INPUT.stickLookSpeed) * dt);
 
       // Target switching: arrow presses, a mouse flick, or a right-stick flick.
       let sw = keySwitch;
@@ -196,4 +199,5 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
       return f;
     },
   };
+  return device;
 }

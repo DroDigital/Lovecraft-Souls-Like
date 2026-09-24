@@ -4,14 +4,14 @@ import { st, tier } from './kit';
 
 export const LESSER = tier('lesser', [
   {
-    id: 'deep_one', name: 'Deep One', source: 'The Shadow over Innsmouth', regions: ['innsmouth', 'rlyeh'], canonLooks: true,
+    id: 'deep_one', name: 'Deep One', source: 'The Shadow over Innsmouth', regions: ['innsmouth', 'rlyeh'], canonLooks: true, voice: 'croak',
     sprite: { silhouette: 'hunched', palette: 'sea', scale: 2.3, eyes: 2 },
     behavior: { archetype: 'pack_hunter', attacks: ['sweep', 'lunge'] },
     stats: st(190, 36, 18, 3.2, 0.3, 2), weak: ['fire'], drops: { echoes: 150 }, insightOnSight: 0,
     eldritchVariant: { sprite: { eyes: 4, glow: 'green' } },
   },
   {
-    id: 'innsmouth_hybrid', name: 'Innsmouth Hybrid', source: 'The Shadow over Innsmouth', regions: ['innsmouth'], canonLooks: true,
+    id: 'innsmouth_hybrid', name: 'Innsmouth Hybrid', source: 'The Shadow over Innsmouth', regions: ['innsmouth'], canonLooks: true, voice: 'croak',
     sprite: { silhouette: 'humanoid', palette: 'sea', scale: 2.1, eyes: 2 },
     behavior: { archetype: 'skirmisher', attacks: ['sweep', 'grab'] },
     stats: st(120, 24, 12, 3.6, 0.1, 1), drops: { echoes: 60 }, insightOnSight: 0,
@@ -31,26 +31,26 @@ export const LESSER = tier('lesser', [
     stats: st(110, 20, 12, 3.4, 0.1, 1), drops: { echoes: 50 }, insightOnSight: 0,
   },
   {
-    id: 'ghoul', name: 'Ghoul', source: "Pickman's Model", regions: ['providence', 'dreamlands'], canonLooks: true,
+    id: 'ghoul', name: 'Ghoul', source: "Pickman's Model", regions: ['providence', 'dreamlands'], canonLooks: true, voice: 'meep',
     sprite: { silhouette: 'hunched', palette: 'mold', scale: 2.2, eyes: 2 },
     behavior: { archetype: 'pack_hunter', attacks: ['bite', 'sweep', 'lunge'] },
     stats: st(160, 30, 16, 3.8, 0.3, 2), drops: { echoes: 120 }, insightOnSight: 0,
     eldritchVariant: { sprite: { eyes: 3, glow: 'green' } },
   },
   {
-    id: 'ghast', name: 'Ghast', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true,
+    id: 'ghast', name: 'Ghast', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true, voice: 'cough',
     sprite: { silhouette: 'quadruped', palette: 'pallid', scale: 2.2, eyes: 0 },
     behavior: { archetype: 'pack_hunter', attacks: ['bite', 'lunge'] },
     stats: st(140, 24, 15, 4.6, 0.4, 2), weak: ['light'], drops: { echoes: 110 }, insightOnSight: 0,
   },
   {
-    id: 'zoog', name: 'Zoog', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true,
+    id: 'zoog', name: 'Zoog', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true, voice: 'flutter',
     sprite: { silhouette: 'quadruped', palette: 'rust', scale: 0.9, eyes: 2 },
     behavior: { archetype: 'skirmisher', attacks: ['bite'] },
     stats: st(40, 8, 6, 4.2, 0.1, 1), drops: { echoes: 20 }, insightOnSight: 0,
   },
   {
-    id: 'night_gaunt', name: 'Night-gaunt', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true,
+    id: 'night_gaunt', name: 'Night-gaunt', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true, voice: 'silent',
     sprite: { silhouette: 'winged', palette: 'rubber', scale: 2.8, eyes: 0, wings: 2 },
     behavior: { archetype: 'flyer_swoop', attacks: ['grab', 'dive'] },
     stats: st(170, 30, 14, 5, 0.5, 3), drops: { echoes: 140 }, insightOnSight: 0,
@@ -68,7 +68,7 @@ export const LESSER = tier('lesser', [
     stats: st(130, 24, 14, 3.8, 0.3, 2), drops: { echoes: 90 }, insightOnSight: 0,
   },
   {
-    id: 'cat_from_saturn', name: 'Cat from Saturn', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: false,
+    id: 'cat_from_saturn', name: 'Cat from Saturn', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: false, voice: 'meow',
     sprite: { silhouette: 'quadruped', palette: 'charcoal', scale: 1.2, eyes: 2, glow: 'purple' },
     behavior: { archetype: 'pack_hunter', attacks: ['bite', 'lunge'] },
     stats: st(80, 14, 10, 5, 0.3, 2), drops: { echoes: 60 }, insightOnSight: 0,
@@ -129,7 +129,7 @@ export const LESSER = tier('lesser', [
     stats: st(90, 16, 11, 3.8, 0.3, 2), drops: { echoes: 50 }, insightOnSight: 0,
   },
   {
-    id: 'rat_swarm', name: 'Rat Swarm', source: 'The Rats in the Walls', regions: ['hub', 'arkham'], canonLooks: true,
+    id: 'rat_swarm', name: 'Rat Swarm', source: 'The Rats in the Walls', regions: ['hub', 'arkham'], canonLooks: true, voice: 'scurry',
     sprite: { silhouette: 'swarm', palette: 'charcoal', scale: 1.4, eyes: 2 },
     behavior: { archetype: 'swarm', attacks: ['bite'] },
     stats: st(60, 5, 6, 4.5, 0.4, 1), weak: ['fire'], drops: { echoes: 30 }, insightOnSight: 0,
@@ -183,7 +183,7 @@ export const LESSER = tier('lesser', [
     stats: st(70, 6, 8, 4, 0.4, 2), drops: { echoes: 40 }, insightOnSight: 0,
   },
   {
-    id: 'albino_penguin', name: 'Blind Albino Penguin', source: 'At the Mountains of Madness', regions: ['mountains'], canonLooks: true,
+    id: 'albino_penguin', name: 'Blind Albino Penguin', source: 'At the Mountains of Madness', regions: ['mountains'], canonLooks: true, voice: 'squawk',
     sprite: { silhouette: 'cone', palette: 'pallid', scale: 1.9, eyes: 0, limbs: 0 },
     behavior: { archetype: 'skirmisher', params: { flee: 1, range: [4, 8], aggro: 8 }, attacks: [] },
     stats: st(60, 10, 0, 1.6, 0, 0), drops: { echoes: 5 }, insightOnSight: 0,

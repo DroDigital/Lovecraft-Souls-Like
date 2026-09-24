@@ -21,7 +21,7 @@ export const RENDER = {
 };
 
 export const FX = {
-  capDefault: 1, // accessibility cap on stress, 0..1 (settings menu is Phase 6)
+  capDefault: 1, // accessibility cap on stress, 0..1 (the settings menu's default)
   pixelCrush: [0, 1] as Ramp, // extra low-res pixel size
   snapPixels: [1, 4] as Ramp, // PS1 vertex snap grid, in low-res pixels
   affine: [1, 2.5] as Ramp, // 1 = PS1 affine mapping; >1 exaggerates the wobble
@@ -56,13 +56,27 @@ export const FX = {
   distortion: [0, 0.85] as Ramp, // waveshaper amount, 0..1
 };
 
-/** The sanity drone the FX controller detunes and distorts: a low chord through a lowpass. */
+/** Procedural audio (Phase 6): the recipes are data/sounds.ts and data/voices.ts. Times in seconds. */
 export const AUDIO = {
-  droneHz: 55,
-  voices: [1, 1.5, 2.02], // frequency ratios
-  cutoff: 420, // Hz
-  glide: 0.25, // seconds for level changes
+  glide: 0.25, // level changes of the sanity drone
+  fade: 4, // a region's drone crossfades into the next over this long...
+  bossFade: 2, // ...and a boss fight's bed swells in and out over this
+  swellHz: 0.06, // drones breathe this slowly...
+  swell: 0.3, // ...by this share of their level
+  polyphony: 24, // one-shot sounds at once; more are dropped
+  near: 3, // metres: sounds are whole this close, fading to nothing at their range
+  eventRange: 40, // the range of event stingers (blows, shots) away from the investigator
+  callGap: 2.5, // a creature calls at most this often, even when it turns on the investigator
+  pan: 0.8, // the widest stereo placement
 };
+
+/** The settings menu (Phase 6): [min, max, step, default]. */
+export const SETTINGS = {
+  fxCap: [0, 1, 0.05, FX.capDefault], // caps every sanity effect (accessibility)
+  sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
+  resolution: [0.5, 2, 0.25, 1], // internal resolution, × RENDER's 400 × 225
+  volume: [0, 1, 0.05, 0.7],
+} satisfies Record<string, readonly [number, number, number, number]>;
 
 export const LIGHT = {
   dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use); the ?look test's light

@@ -9,7 +9,7 @@
 import { engagedFights } from '../systems/bossFight';
 import type { Game } from '../systems/components';
 import { SIGNATURES } from '../systems/signatures';
-import { bar, BONE, el, RUST } from './hudKit';
+import { bar, BONE, el, percent, RUST, setStyle, setText } from './hudKit';
 
 const BARS = 2; // at once: a pair of bosses fights together at most
 const FLASH_MS = 160;
@@ -58,26 +58,26 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
       const fights = engagedFights(g).slice(0, BARS);
       slots.forEach((s, i) => {
         const fight = fights[i];
-        s.slot.style.display = fight ? 'block' : 'none';
+        setStyle(s.slot, 'display', fight ? 'block' : 'none');
         if (!fight) return;
         const [e, f] = fight;
         const h = g.ecs.c.health.get(e)!;
-        s.name.textContent = (g.ecs.c.combatant.get(e)?.name ?? f.id).toUpperCase();
-        s.fill.style.width = `${(100 * h.hp) / h.max}%`;
-        s.status.textContent = SIGNATURES[f.id]?.status?.(g, e, f) ?? '';
+        setText(s.name, (g.ecs.c.combatant.get(e)?.name ?? f.id).toUpperCase());
+        setStyle(s.fill, 'width', percent(h.hp, h.max));
+        setText(s.status, SIGNATURES[f.id]?.status?.(g, e, f) ?? '');
         const marks = f.script.phases.slice(1).map((p) => p.hpBelow);
         while (s.ticks.length < marks.length) s.ticks.push(el(`position:absolute;top:-2px;bottom:-2px;width:1px;background:${BONE}aa`, '', s.fill.parentElement!));
         s.ticks.forEach((t, k) => {
-          t.style.display = k < marks.length ? 'block' : 'none';
-          if (k < marks.length) t.style.left = `${marks[k] * 100}%`;
+          setStyle(t, 'display', k < marks.length ? 'block' : 'none');
+          if (k < marks.length) setStyle(t, 'left', percent(marks[k], 1));
         });
       });
-      gaze.style.display = g.reality.gaze > 0 ? 'block' : 'none';
-      gazeFill.style.width = `${g.reality.gaze * 100}%`;
-      stone.style.display = g.reality.petrify > 0 ? 'block' : 'none';
-      stoneFill.style.width = `${g.reality.petrify * 100}%`;
+      setStyle(gaze, 'display', g.reality.gaze > 0 ? 'block' : 'none');
+      setStyle(gazeFill, 'width', percent(g.reality.gaze, 1));
+      setStyle(stone, 'display', g.reality.petrify > 0 ? 'block' : 'none');
+      setStyle(stoneFill, 'width', percent(g.reality.petrify, 1));
       const now = performance.now();
-      flash.style.opacity = String(Math.max(0, (flashUntil - now) / FLASH_MS) * 0.85);
+      setStyle(flash, 'opacity', Math.max(0, ((flashUntil - now) / FLASH_MS) * 0.85).toFixed(2));
       name.style.opacity = now < nameUntil && Math.random() < 0.6 ? String(0.35 + 0.6 * Math.random()) : '0'; // it flickers
     },
   };

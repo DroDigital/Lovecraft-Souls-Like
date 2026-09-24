@@ -31,7 +31,7 @@ export const GREAT_OLD_ONES = tier('great_old_one', [
     stats: st(8500, 1100, 76, 2.6, 6, 12), drops: { echoes: 12000 }, insightOnSight: 3,
   },
   {
-    id: 'hastur', name: 'Hastur', source: 'The Whisperer in Darkness', regions: ['yuggoth'], canonLooks: false,
+    id: 'hastur', name: 'Hastur', source: 'The Whisperer in Darkness', regions: ['yuggoth'], canonLooks: false, voice: 'whisper',
     sprite: { silhouette: 'spectre', palette: 'sand', scale: 8, eyes: 0, tentacles: 6 },
     ...scripted('boss', { ...phases(
       ph(1, { roar: 2, tentacle_burst: 2, gaze: 1 }, { hooks: ['camera_warp'] }),

@@ -1,7 +1,7 @@
 /**
- * Render pipeline (spec §2): the world renders into a low-res target (default 400×225), then
- * the one post pass draws into a canvas of the same size, which CSS upscales nearest-neighbour
- * (`image-rendering: pixelated`) into a letterboxed 16:9 box.
+ * Render pipeline (spec §2): the world renders into a low-res target (default 400×225, scaled by
+ * the resolution setting), then the one post pass draws into a canvas of the same size, which CSS
+ * upscales nearest-neighbour (`image-rendering: pixelated`) into a letterboxed 16:9 box.
  */
 
 import * as THREE from 'three';
@@ -14,7 +14,8 @@ export interface Pipeline {
   post: PostPass;
   /** Internal render size in pixels (low-res target, or full canvas when pixelation is off). */
   size: THREE.Vector2;
-  resize(lowRes: boolean): void;
+  /** `scale` multiplies the low-res target (the settings menu's resolution scale). */
+  resize(lowRes: boolean, scale?: number): void;
   render(scene: THREE.Scene, camera: THREE.Camera): void;
 }
 
@@ -42,13 +43,13 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     renderer,
     post,
     size,
-    resize(lowRes) {
+    resize(lowRes, scale = 1) {
       const aspect = RENDER.width / RENDER.height;
       const cssW = Math.min(innerWidth, innerHeight * aspect);
       const cssH = cssW / aspect;
       const dpr = devicePixelRatio || 1;
-      const w = lowRes ? RENDER.width : Math.round(cssW * dpr);
-      const h = lowRes ? RENDER.height : Math.round(cssH * dpr);
+      const w = lowRes ? Math.round(RENDER.width * scale) : Math.round(cssW * dpr);
+      const h = lowRes ? Math.round(RENDER.height * scale) : Math.round(cssH * dpr);
       renderer.setSize(w, h, false);
       renderer.domElement.style.width = `${cssW}px`;
       renderer.domElement.style.height = `${cssH}px`;

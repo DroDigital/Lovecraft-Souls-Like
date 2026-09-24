@@ -9,7 +9,7 @@ import { ph, phases, scripted, st, tier } from './kit';
 
 export const OUTER_GODS = tier('outer_god', [
   {
-    id: 'azathoth', name: 'Azathoth', source: 'The Dream-Quest of Unknown Kadath', regions: ['beyond'], canonLooks: false,
+    id: 'azathoth', name: 'Azathoth', source: 'The Dream-Quest of Unknown Kadath', regions: ['beyond'], canonLooks: false, voice: 'pipes',
     assembly: { body: 'mound', palette: 'charcoal', scale: 30, tentacles: 12, eyes: 0, glow: 'purple' },
     ...scripted('boss', phases(
       ph(1, { roar: 2, darkness: 1, summon: 1 }, { summons: ['daemon_pipers'], hooks: ['darkness'] }),
@@ -19,7 +19,7 @@ export const OUTER_GODS = tier('outer_god', [
     stats: st(20000, 5000, 150, 0.5, 10, 30), drops: { echoes: 50000 }, insightOnSight: 5,
   },
   {
-    id: 'daemon_pipers', name: 'The Daemon Pipers', source: 'The Dream-Quest of Unknown Kadath', regions: ['beyond'], canonLooks: false,
+    id: 'daemon_pipers', name: 'The Daemon Pipers', source: 'The Dream-Quest of Unknown Kadath', regions: ['beyond'], canonLooks: false, voice: 'pipes',
     sprite: { silhouette: 'spectre', palette: 'charcoal', scale: 2.8, eyes: 0, glow: 'purple' },
     ...scripted('caster', phases(ph(1, { roar: 2, projectile: 1 }), ph(0.5, { roar: 1, projectile_fan: 2, darkness: 1 }, { hooks: ['camera_warp'] }))),
     stats: st(3000, 300, 40, 2, 6, 14), drops: { echoes: 4000 }, insightOnSight: 4,
