@@ -1,5 +1,5 @@
 /**
- * Every tunable number lives here (spec §1).
+ * Every tunable number lives here (spec §1); the boss numbers sit in bossTuning.ts, re-exported below.
  * Sanity-driven FX values are [calm, mad] ramps: the value at sanity 100 and at sanity 0,
  * blended by stress = min(1 - sanity/100, fx cap).
  */
@@ -276,3 +276,5 @@ export const DUNGEON = {
   chasm: 12, // depth of pits, chasms and wells
   rim: 0.45, // chasm edges stop feet but not eyes
 };
+
+export * from './bossTuning';

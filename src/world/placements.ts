@@ -11,7 +11,7 @@ import type { HiddenPieceDef, Place } from '../data/arena';
 import { DUNGEONS, type Dir } from '../data/dungeons';
 import { REGIONS, type RegionDef } from '../data/regions';
 import { DREAM_DESCENT, SITES, type ArenaSite } from '../data/sites';
-import { WORLD } from '../data/tuning';
+import { DUNGEON, WORLD } from '../data/tuning';
 import type { Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
@@ -67,6 +67,7 @@ export interface SpawnPoint {
   region: string;
   at: Place;
   unique: boolean; // bosses and optional bosses stay slain
+  arena?: { x: number; z: number; radius: number }; // a boss's: its ring of stones or its room
 }
 
 export type Pad =
@@ -224,7 +225,7 @@ function arena(w: WorldLayout, region: RegionDef, p: XZ, a: ArenaSite, y: number
   a.bosses.forEach((id, k) => {
     const dx = (k - (a.bosses.length - 1) / 2) * spread;
     const at = { x: p.x + dx, z: p.z + (a.well ? a.radius / 2 : 0), yaw: Math.PI };
-    spawn({ id: `boss:${id}`, entity: id, variant: a.variant, region: region.id, at, unique: true });
+    spawn({ id: `boss:${id}`, entity: id, variant: a.variant, region: region.id, at, unique: true, arena: { x: p.x, z: p.z, radius: a.radius } });
   });
 }
 
@@ -253,7 +254,8 @@ function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayo
   (d.boss ?? []).forEach((id, k) => {
     const [u, v] = s.centre;
     const p = pt([u + (k - ((d.boss?.length ?? 1) - 1) / 2) * spread, v]);
-    spawn({ id: `boss:${id}`, entity: id, variant: d.variant, region: region.id, at: { x: p.x, z: p.z, yaw: face }, unique: true });
+    const arena = { x: r.x, z: r.z, radius: r.half - DUNGEON.wall };
+    spawn({ id: `boss:${id}`, entity: id, variant: d.variant, region: region.id, at: { x: p.x, z: p.z, yaw: face }, unique: true, arena });
   });
   const ring = [...s.ring];
   const next = (): XZ => roomPoint(r, ...(ring.shift() ?? [0, 0]));

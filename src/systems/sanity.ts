@@ -97,8 +97,8 @@ export function sanitySystem(g: Game, dt: number): void {
 
 /** Subscribes the event-driven rules: landed blows take the attacker's sanityDamage; respawning restores sanity and Laudanum. */
 export function registerSanity(g: Game): void {
-  g.events.on('Hit', ({ attacker, target, damage }) => {
-    if (target === g.player.id && damage > 0) loseSanity(g, g.ecs.c.dread.get(attacker)?.blow ?? 0);
+  g.events.on('Hit', ({ attacker, target, damage, lingering }) => {
+    if (target === g.player.id && damage > 0 && !lingering) loseSanity(g, g.ecs.c.dread.get(attacker)?.blow ?? 0);
   });
   g.events.on('Respawned', () => {
     g.player.laudanum = LAUDANUM.doses;

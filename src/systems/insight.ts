@@ -9,7 +9,7 @@ import type { Entity } from '../core/ecs';
 import { dist3, distXZ } from '../core/geom';
 import { PLAYER, SANITY, UPGRADES, type UpgradeId } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
-import { isAbsent, isConcealed, type Game, type GameEvents } from './components';
+import { isAbsent, isConcealed, isUnseen, type Game, type GameEvents } from './components';
 import { aimPoint, playerEye, viewAngle } from './lockOn';
 import { loseSanity } from './sanity';
 
@@ -32,7 +32,7 @@ export function changeInsight(g: Pick<Game, 'mind' | 'events'>, change: number, 
  */
 export function inSight(g: Game, id: Entity): boolean {
   const c = g.ecs.c;
-  if (isAbsent(g, id) || isConcealed(g, id)) return false;
+  if (isAbsent(g, id) || isConcealed(g, id) || isUnseen(g, id)) return false;
   if (c.brain.get(id)?.def.params.hide === 'invisible' && c.actor.get(id)?.move === null) return false;
   const from = playerEye(g);
   const to = aimPoint(g, id)!;

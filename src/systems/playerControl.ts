@@ -1,7 +1,8 @@
 /**
  * Player input (spec §3B): buttons into the one-slot input buffer, the dodge button's tap/hold
  * split (a short press rolls, or backsteps with no direction; holding sprints), guard, lock-on
- * commands, and camera-relative locomotion intent (strafing while locked on).
+ * commands, and camera-relative locomotion intent (strafing while locked on). While the Great Race
+ * holds the investigator's body (spec §3E control_swap), the thief's input replaces all but the look.
  */
 
 import type { InputFrame } from '../core/input';
@@ -9,12 +10,14 @@ import { yawOf } from '../core/geom';
 import { PLAYER } from '../data/tuning';
 import type { Game } from './components';
 import { bufferPress } from './inputBuffer';
+import { possessed } from './realityTricks';
 import { switchLock, toggleLock } from './lockOn';
 import { canAfford } from './stamina';
 
 const BUFFERED = ['light', 'heavy', 'parry', 'shoot', 'item'] as const;
 
-export function playerControl(g: Game, input: InputFrame): void {
+export function playerControl(g: Game, real: InputFrame): void {
+  const input = g.reality.stolen > 0 ? possessed(g, real) : real;
   const p = g.player;
   const { actor, mover, stamina, transform } = g.ecs.c;
   const a = actor.get(p.id)!;

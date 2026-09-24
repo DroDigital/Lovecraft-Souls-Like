@@ -20,7 +20,7 @@ export const LESSER = tier('lesser', [
   {
     id: 'dagon_priest', name: 'Esoteric Order of Dagon Priest', source: 'The Shadow over Innsmouth', regions: ['innsmouth'], canonLooks: true,
     sprite: { silhouette: 'robed', palette: 'sea', scale: 2.3, eyes: 2 },
-    behavior: { archetype: 'caster', attacks: ['projectile', 'summon', 'roar'] },
+    behavior: { archetype: 'caster', attacks: ['projectile', 'summon', 'roar'], summons: ['deep_one'] },
     stats: st(150, 20, 16, 2.8, 0.4, 3), drops: { echoes: 180 }, insightOnSight: 0,
     eldritchVariant: { sprite: { glow: 'magenta' } },
   },

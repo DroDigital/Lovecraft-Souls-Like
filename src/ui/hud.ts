@@ -3,7 +3,8 @@
  * takes an anomaly colour once the mind fractures), the band and the Laudanum left, carried
  * Echoes and insight, the lock-on reticle with the target's name and health, short notices
  * (combat, bands, first sights, insight, Elder Signs), titles for regions entered, places reached and
- * bosses vanquished, the interact prompt near an Elder Sign or gate, and the death banner.
+ * bosses vanquished, the interact prompt near an Elder Sign or gate (or for a boss fight's
+ * action), the death banner, and the boss fights' half (bossHud.ts).
  */
 
 import { Vector3, type Camera } from 'three';
@@ -12,10 +13,10 @@ import type { Band, Game, HitOutcome } from '../systems/components';
 import { interactable } from '../systems/checkpoints';
 import { aimPoint } from '../systems/lockOn';
 import { bandIndex } from '../systems/sanity';
+import { fightAction } from '../systems/fightActions';
+import { createBossHud } from './bossHud';
+import { bar, BONE, el, RUST, SEA } from './hudKit';
 
-const BONE = '#d9d0b8';
-const RUST = '#74493a';
-const SEA = '#5d6c70';
 const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
 const NOTICE_MS = 1100;
 const TITLE_MS = 2600;
@@ -27,19 +28,6 @@ const NOTICES: Partial<Record<HitOutcome, readonly [dealt: string, taken: string
   interrupted: ['INTERRUPTED', ''],
   guardBreak: ['GUARD BROKEN', 'GUARD BROKEN'],
 };
-
-function el(style: string, text = '', parent?: HTMLElement): HTMLDivElement {
-  const d = document.createElement('div');
-  d.style.cssText = style;
-  d.textContent = text;
-  parent?.append(d);
-  return d;
-}
-
-function bar(parent: HTMLElement, colour: string): HTMLDivElement {
-  const frame = el(`position:relative;height:6px;margin:4px 0;border:1px solid ${BONE}55;background:#0008`, '', parent);
-  return el(`height:100%;width:100%;background:${colour}`, '', frame);
-}
 
 const signed = (n: number, what: string): string => `${n > 0 ? '+' : '−'}${Math.abs(n)} ${what}`;
 
@@ -78,6 +66,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
     notice.textContent = text;
     noticeUntil = performance.now() + NOTICE_MS;
   };
+  const bosses = createBossHud(g, root, say);
   let titleUntil = 0;
   const show = (text: string): void => {
     title.textContent = text;
@@ -128,8 +117,10 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
       const now = performance.now();
       notice.style.opacity = String(Math.min(1, Math.max(0, (noticeUntil - now) / 300)));
       title.style.opacity = String(Math.min(1, Math.max(0, (titleUntil - now) / 600)));
+      const act = fightAction(g);
       const near = interactable(g);
-      prompt.textContent = near ? `E · ${near.kind === 'sign' ? 'rest at' : 'pass through'} ${near.name}` : '';
+      prompt.textContent = act ? `E · ${act.label}` : near ? `E · ${near.kind === 'sign' ? 'rest at' : 'pass through'} ${near.name}` : '';
+      bosses.update();
 
       const t = g.lock.target;
       const aim = t === null ? null : aimPoint(g, t);

@@ -6,14 +6,16 @@
  */
 
 import type { Entity } from '../core/ecs';
-import { brainOf, type AttackChoice } from '../data/archetypes';
-import { attackRange, compileAttack } from '../data/attacks';
+import { compileAttack } from '../data/attacks';
 import type { Place } from '../data/arena';
 import { REACTIONS, type MoveDef } from '../data/moves';
+import { BOSS } from '../data/tuning';
 import type { CombatantDef } from '../data/placeholders';
 import { getEntity, variantOf, type Variant } from '../data/registry';
 import type { AttackId, EntityDef, Silhouette } from '../data/schema';
 import type { Dread, Game } from './components';
+import { phaseBrain } from './fightPhase';
+import { newFight } from './fightTypes';
 import { addLayer } from './hiddenLayer';
 import { atOrBelow } from './sanity';
 import { spawnCombatant } from './spawn';
@@ -66,9 +68,6 @@ export function toCombatant(def: EntityDef, variant?: Variant): CombatantDef {
   const { height, radius } = bodyOf(def);
   const moves: Record<string, MoveDef> = { ...REACTIONS, death: { frames: 80, hold: true } };
   for (const id of attacksOf(def)) moves[id] = compileAttack(id, def.stats, height);
-  // Bosses fight with their current phase's weighted attacks (phase 1 until Phase 5 adds the rest).
-  const weighted = def.bossScript && def.behavior.archetype === 'boss' ? def.bossScript.phases[0].attacks : def.behavior.attacks.map((id) => ({ id, weight: 1 }));
-  const choices: AttackChoice[] = weighted.map((a) => ({ move: a.id, weight: a.weight, range: attackRange(a.id, height) }));
   return {
     name: def.name,
     model: creatureModel(def.id, variant),
@@ -79,9 +78,22 @@ export function toCombatant(def: EntityDef, variant?: Variant): CombatantDef {
     height,
     aimHeight: Math.min(6, height * 0.6),
     bounty: def.drops.echoes,
-    brain: brainOf(def.behavior.archetype, def.behavior.params, choices),
+    brain: phaseBrain(def, 0, height), // a boss starts in its script's first phase (bossFight.ts moves it on)
     moves,
   };
+}
+
+/** The roster id and variant a creature is drawn and fought as (its model names them). */
+export function creatureOf(g: Game, e: Entity): { id: string; variant?: Variant } | undefined {
+  const model = g.ecs.c.model.get(e);
+  if (!model?.startsWith(MODEL_PREFIX)) return undefined;
+  const [id, variant] = model.slice(MODEL_PREFIX.length).split('#') as [string, Variant | undefined];
+  return { id, variant };
+}
+
+export function defOf(g: Game, e: Entity): EntityDef | undefined {
+  const k = creatureOf(g, e);
+  return k && resolveCreature(k.id, k.variant);
 }
 
 /** Resolves a roster id (and optional variant) to the definition that should appear. */
@@ -102,7 +114,8 @@ export const dreadOf = (def: EntityDef): Dread => ({
 /**
  * Spawns a roster creature; allies join the player's side. Undefined for an unknown id or variant.
  * Without a requested variant, one with an eldritch variant swaps with the sanity band (and starts
- * swapped if the mind is already Fractured or lower); a `hidden` entry goes on its hidden layer.
+ * swapped if the mind is already Fractured or lower); a `hidden` entry goes on its hidden layer; one
+ * with a boss script holds a fight over the arena around where it stands (bossFight.ts).
  */
 export function spawnCreature(g: Game, id: string, at: Place, variant?: Variant): Entity | undefined {
   const swaps = variant === undefined && getEntity(id)?.eldritchVariant !== undefined;
@@ -113,6 +126,8 @@ export function spawnCreature(g: Game, id: string, at: Place, variant?: Variant)
   g.ecs.c.dread.set(e, dreadOf(def));
   if (swaps) g.ecs.c.swap.set(e, { id, eldritch: v === 'eldritch' });
   if (def.hidden) addLayer(g, e, def.hidden);
+  if (def.bossScript) g.ecs.c.fight.set(e, newFight(id, def.bossScript, { x: at.x, z: at.z, radius: BOSS.arena }));
+  if (def.bossScript?.unseen) g.ecs.c.unseen.set(e, { revealed: 0 });
   return e;
 }
 
@@ -131,6 +146,8 @@ export function morph(g: Game, e: Entity, id: string, variant: Variant | undefin
   [po.value, po.max] = [(po.value / po.max) * cd.poise, cd.poise];
   c.actor.get(e)!.moves = cd.moves; // a move the new form lacks simply ends
   const br = c.brain.get(e);
+  const fight = c.fight.get(e);
+  if (fight && def.bossScript) fight.script = def.bossScript; // bossFight.ts rebuilds its brain for the phase it is in
   if (br && cd.brain) [br.def, br.speed] = [cd.brain, cd.speed];
   const m = c.mover.get(e);
   if (m && cd.brain) m.turnRate = cd.brain.params.turnRate;

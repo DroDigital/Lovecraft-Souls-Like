@@ -2,8 +2,10 @@
  * Draws roster creatures (models `creature:<id>[#variant]`): sprites as one instanced billboard
  * batch over the atlas, colossi as animated assemblies. The sprite state and frame come from the
  * creature's current move; ambushers and burrowers stay unseen while hidden, invisible stalkers
- * show only while they strike, and a creature on a hidden layer only while the layer shows. A
- * variant swap changes the model, and a colossus is rebuilt for it. Read-only on the simulation.
+ * show only while they strike, the unseen (the Dunwich Horror) only while revealed, and a creature
+ * on a hidden layer only while the layer shows. A creature whose recipe lies `outside` the palette
+ * is marked for the post pass to leave its hue alone. A variant swap changes the model, and a
+ * colossus is rebuilt for it. Read-only on the simulation.
  */
 
 import * as THREE from 'three';
@@ -12,7 +14,7 @@ import { wrapAngle } from '../core/geom';
 import type { Variant } from '../data/registry';
 import { FEEDBACK, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
-import { isAbsent, type Game } from '../systems/components';
+import { isAbsent, isUnseen, type Game } from '../systems/components';
 import { MODEL_PREFIX, resolveCreature } from '../systems/creatures';
 import { buildAssembly, type Assembly } from './assemblies';
 import { SPRITE_FRAG, SPRITE_VERT } from './shaders/sprite';
@@ -34,7 +36,7 @@ interface Look {
 export function lookOf(g: Game, id: Entity, time: number): Look | null {
   const c = g.ecs.c;
   const br = c.brain.get(id);
-  if (isAbsent(g, id) || br?.state === 'hidden') return null;
+  if (isAbsent(g, id) || br?.state === 'hidden' || isUnseen(g, id)) return null;
   const a = c.actor.get(id)!;
   const def = moveDef(a);
   const tr = c.transform.get(id)!;
@@ -130,7 +132,7 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
         const [cx, cy] = [(cell % (atlas.width / CELL)) * CELL, Math.floor(cell / (atlas.width / CELL)) * CELL];
         cells.setXYZW(n, cx / atlas.width, cy / atlas.height, (cx + CELL) / atlas.width, (cy + CELL) / atlas.height);
         const facingRight = Math.sin(tr.yaw) * right.x + Math.cos(tr.yaw) * right.z >= 0;
-        info.setXYZW(n, flash, look.opacity, facingRight ? 0 : 1, 0);
+        info.setXYZW(n, flash, look.opacity, facingRight ? 0 : 1, def.sprite.outside ? 1 : 0);
         const size = def.sprite.scale;
         batch.setMatrixAt(n++, m4.compose(new THREE.Vector3(x, y - look.sink * size * 0.3, z), q, new THREE.Vector3(size, size, 1)));
       }
