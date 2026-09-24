@@ -85,3 +85,38 @@ export const HASTUR = {
   names: 3,
   rise: 12, // metres ahead of the investigator where it rises
 };
+
+/** Shub-Niggurath: its spawning roots bear the Thousand Young until they are destroyed. */
+export const SHUB = {
+  roots: 4,
+  share: 0.55, // on a ring at this share of the arena's radius
+  hp: 700, // each root's
+  every: 360, // frames between births at each root
+  young: 6, // alive at once, the most the roots bear
+  shielded: 0.2, // what it takes of each blow while any root stands
+};
+
+/** Yog-Sothoth: its iridescent spheres are gates, and the arena leaps between them. */
+export const YOG = {
+  spheres: 5,
+  share: 0.7,
+  touch: 1.8, // metres: a sphere this close takes the investigator through
+  leap: [540, 780] as const, // frames between the arena's leaps
+  height: 1.6, // metres the spheres float
+};
+
+/** Nyarlathotep: its avatars watch; its final form borrows the movesets of bosses slain. */
+export const NYARLATHOTEP = {
+  copies: 6, // attacks its final form borrows
+  watch: 240, // frames an avatar stands watching after a region boss falls...
+  watchAt: 9, // ...this far from the investigator
+};
+
+/** Azathoth: blind and invulnerable, it hears; the fight is outlasting the piping. */
+export const AZATHOTH = {
+  survive: 5400, // frames of piping to outlast (its health bar is the song, draining)
+  hear: { shot: 45, sprint: 28, dodge: 20, attack: 16, walk: 7 }, // metres each noise carries
+  windup: 45, // frames from the sound to the blast where it was heard
+  rest: 60, // frames after a blast before it can hear again
+  blast: { radius: 3.5, life: 70, tick: 20, damage: 40 },
+};

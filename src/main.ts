@@ -34,6 +34,7 @@ import { clearSave, loadSave } from './systems/save';
 import { browserStore, startAutosave } from './ui/autosave';
 import { startBestiary } from './ui/bestiary';
 import { createDebugPanel, type PanelOptions } from './ui/debugPanel';
+import { createEndingCard } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
@@ -104,6 +105,7 @@ function startGame(opts: StartOptions): void {
   const world = opts.arena ? null : createWorldScene();
   const scene = world?.scene ?? createArenaScene();
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game);
+  const ending = createEndingCard(game);
   if (store) startAutosave(game, store);
   const views = createActorViews(scene, game);
   const creatures = createCreatureViews(scene, game, buildAtlas());
@@ -134,7 +136,7 @@ function startGame(opts: StartOptions): void {
       step(dt) {
         simTime += dt;
         const frame = input.poll();
-        stepGame(game, menu?.open ? emptyInput() : frame);
+        stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
       },
       render(alpha) {
         const time = simTime + alpha / SIM.hz;

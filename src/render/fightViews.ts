@@ -2,7 +2,7 @@
  * Draws what boss fights put into the world (spec §3E): bolts in flight as self-lit shards, pools
  * as sickly discs on the ground, the arenas' props (a lamp: its post, and while it is lit its flame
  * and a faint circle of light where a light-bound boss burns; a monolith of Mu; the Alert, riding
- * the flood), the flood's water over the arena,
+ * the flood; Shub-Niggurath's spawning roots; Yog-Sothoth's floating spheres), the flood's water,
  * and under hidden_platforms the void over its floor with the platforms the enlightened see.
  * Bolts, pools and props have models starting with `fx:`. Read-only on the simulation.
  */
@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Entity } from '../core/ecs';
-import { BOSS, REALITY } from '../data/tuning';
+import { BOSS, REALITY, YOG } from '../data/tuning';
 import { engagedFights } from '../systems/bossFight';
 import type { Fight, Game, Prop } from '../systems/components';
 import { hooksOf, platformsOf, platformsShown } from '../systems/reality';
@@ -84,7 +84,29 @@ function ship(): THREE.Group {
   return root;
 }
 
-const PROPS: Record<Prop['kind'], () => THREE.Group> = { lamp, monolith, ship };
+/** A spawning root of Shub-Niggurath: a knot of dark, glistening stalks. */
+function root(): THREE.Group {
+  const flesh = scaleRgb(mixRgb(BASE.charcoal, BASE.rust, 0.45), 1.5);
+  const stalks = [0, 1, 2, 3, 4].map((k) => {
+    const t = k * 1.3;
+    return tint(new THREE.ConeGeometry(0.55 - k * 0.05, 3.4 + (k % 3) * 0.7, 6, 3).rotateZ(0.3 * Math.sin(t)).rotateX(0.3 * Math.cos(t)).translate(Math.sin(t) * 0.5, 1.8, Math.cos(t) * 0.5), flesh);
+  });
+  const root = new THREE.Group();
+  root.add(new THREE.Mesh(mergeGeometries(stalks), createWorldMaterial({ texture: 'flesh', uvScale: [0.5, 0.5], vertexColors: true })));
+  return root;
+}
+
+/** One of Yog-Sothoth's iridescent spheres, bobbing where it floats. */
+function sphere(): THREE.Group {
+  const root = new THREE.Group();
+  const orb = new THREE.Mesh(tint(new THREE.IcosahedronGeometry(0.9, 1), mixRgb(ANOMALY.green, BASE.bone, 0.35)), createWorldMaterial({ texture: 'water', uvScroll: [0.2, 0.1], emissive: 0.85, vertexColors: true }));
+  orb.name = 'orb';
+  orb.position.y = YOG.height;
+  root.add(orb);
+  return root;
+}
+
+const PROPS: Record<Prop['kind'], () => THREE.Group> = { lamp, monolith, ship, root, sphere };
 
 export function createFightViews(scene: THREE.Scene, g: Game): FightViews {
   const voids = new Map<Fight, THREE.Group>();
@@ -136,7 +158,10 @@ export function createFightViews(scene: THREE.Scene, g: Game): FightViews {
         const afloat = p.kind === 'ship' && g.reality.floodAt ? REALITY.floodDepth * g.reality.flood - 0.4 : 0;
         v.position.set(tr.prev.x + (tr.pos.x - tr.prev.x) * alpha, tr.pos.y + afloat, tr.prev.z + (tr.pos.z - tr.prev.z) * alpha);
         v.rotation.y = tr.yaw;
+        v.visible = !c.dead.has(id); // a root cut down withers away
         v.traverse((o) => o.name === 'lit' && (o.visible = p.lit));
+        const orb = v.getObjectByName('orb');
+        if (orb) orb.position.y = YOG.height + 0.25 * Math.sin(time * 1.3 + id);
       }
       let n = 0;
       for (const [id, b] of c.bolt) {

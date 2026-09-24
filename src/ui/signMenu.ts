@@ -1,13 +1,16 @@
 /**
  * The Elder Sign's menu (spec §3D), opened by resting at one: spend insight on Vigour, Endurance
- * and Resolve; travel to any Elder Sign found, grouped by region; and at the hub's Sleeper's Sign,
- * descend the Seventy Steps into the Dreamlands. Mouse-driven until Phase 6's menus (E or Esc
- * leaves); the investigator takes no input while it is open.
+ * and Resolve; travel to any Elder Sign found, grouped by region; at the hub's Sleeper's Sign,
+ * descend the Seventy Steps into the Dreamlands; and at the Court's, once Azathoth slumbers, choose
+ * one of two endings (Phase 5). Mouse-driven until Phase 6's menus (E or Esc leaves); the
+ * investigator takes no input while it is open.
  */
 
 import { getRegion } from '../data/regions';
 import { UPGRADES, type UpgradeId } from '../data/tuning';
+import { ENDINGS } from '../data/endings';
 import { dream, signPlace, travel } from '../systems/checkpoints';
+import { courtEndings, endGame } from '../systems/endings';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
 import { worldLayout, type SignPlace } from '../world/placements';
@@ -70,6 +73,9 @@ export function createSignMenu(g: Game): SignMenu {
       heading('THE SLEEPER’S SIGN');
       button('Descend the Seventy Steps of Light Slumber', true, () => void (dream(g), close()));
     }
+    const endings = courtEndings(g, ow.sign);
+    if (endings.length) heading('THE COURT OF AZATHOTH');
+    for (const id of endings) button(ENDINGS[id].choice, true, () => void (close(), endGame(g, id)));
     heading('');
     button('Leave  (E)', true, close);
   }

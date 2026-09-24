@@ -16,6 +16,7 @@ import { FEEDBACK, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
 import { isAbsent, isUnseen, type Game } from '../systems/components';
 import { MODEL_PREFIX, resolveCreature } from '../systems/creatures';
+import { strikeFrame } from '../systems/realityTricks';
 import { buildAssembly, type Assembly } from './assemblies';
 import { SPRITE_FRAG, SPRITE_VERT } from './shaders/sprite';
 import { CELL, spriteKey, type SpriteAtlas, type SpriteState } from './sprites/atlas';
@@ -48,7 +49,7 @@ export function lookOf(g: Game, id: Entity, time: number): Look | null {
   } else if (a.move !== null && REACTIONS.has(a.move)) {
     look = { state: 'hurt', frame: a.frame < 8 ? 0 : 1, opacity: 1, sink: 0, lash: 0 };
   } else if (a.move !== null && def) {
-    const strike = def.hit?.window[0] ?? def.shot?.frame ?? Math.floor(def.frames / 3);
+    const strike = strikeFrame(def) ?? Math.floor(def.frames / 3);
     const end = def.hit?.window[1] ?? strike + 6;
     const frame = a.frame < strike ? 0 : a.frame < end ? 1 : 2;
     look = { state: 'attack', frame, opacity: 1, sink: 0, lash: frame === 1 ? 1 : frame === 0 ? a.frame / Math.max(1, strike) * 0.3 : 0.3 };

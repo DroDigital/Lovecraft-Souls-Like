@@ -94,14 +94,12 @@ export function fightSystem(g: Game): void {
     const h = c.health.get(e);
     if (c.dead.has(e) || !h || h.hp <= 0) continue;
     const hunting = c.brain.get(e)?.state === 'engage';
-    if (!f.engaged) {
-      if (hunting) engage(g, e, f);
-      continue;
-    }
-    if (!hunting) {
+    if (f.engaged && !hunting) {
       resetFight(g, e, f); // it gave up the chase
       continue;
     }
+    if (!hunting) continue;
+    if (!f.engaged) engage(g, e, f); // and its first step runs on through: its signature holds from the start
     f.frames++;
     h.ward = undefined; // the signature and the hooks set it afresh each step
     if (c.model.get(e) !== f.form) refreshBrain(g, e, f); // it changed form (a variant swap)

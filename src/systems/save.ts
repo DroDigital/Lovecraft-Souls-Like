@@ -1,11 +1,12 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
- * the Elder Sign they rest at and those found, bosses slain or called, tomes read, Echoes carried and dropped,
+ * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
  * health, the mind (sanity, insight, upgrades, horrors beheld) and Laudanum. Parsing checks every
  * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
  */
 
 import type { Place } from '../data/arena';
+import { ENDING_IDS } from '../data/endings';
 import { START_SIGN } from '../data/sites';
 import { LAUDANUM, PLAYER, UPGRADES, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
@@ -35,6 +36,7 @@ export interface SaveData {
   laudanum: number;
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
+  ending?: string; // the ending chosen
 }
 
 /** The part of the Web Storage API a save needs (localStorage, or a stand-in in tests). */
@@ -68,6 +70,7 @@ export function snapshot(g: Game): SaveData {
     laudanum: g.player.laudanum,
     named: ow.named,
     called: [...ow.called],
+    ...(ow.ending && { ending: ow.ending }),
   };
 }
 
@@ -89,6 +92,7 @@ export function parseSave(json: string | null): SaveData | null {
   if (![o.discovered, o.slain, o.read, o.seen].every(isStrings)) return null;
   if (o.drop !== null && !has(o.drop, 'x', 'y', 'z', 'amount')) return null;
   if ((o.named !== undefined && !isNum(o.named)) || (o.called !== undefined && !isStrings(o.called))) return null;
+  if (o.ending !== undefined && !(ENDING_IDS as readonly unknown[]).includes(o.ending)) return null;
   return o as unknown as SaveData;
 }
 
@@ -106,6 +110,7 @@ export function applySave(g: Game, s: SaveData): void {
   ow.read = new Set(s.read);
   ow.named = clampInt(s.named ?? 0, 0, 99);
   ow.called = new Set(s.called ?? []);
+  ow.ending = s.ending ?? null;
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
   for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k], 0, UPGRADES[k].max);
   const h = c.health.get(g.player.id)!;

@@ -62,11 +62,11 @@ export function summonsOf(g: Game, id: Entity): readonly string[] {
 export const minionsOf = (g: Game, id: Entity): Entity[] =>
   [...g.ecs.c.minion].filter(([m, by]) => by === id && (g.ecs.c.health.get(m)?.hp ?? 0) > 0).map(([m]) => m);
 
-/** Calls up `what` beside its summoner, already on the summoner's quarry. Undefined at the cap. */
-export function summon(g: Game, by: Entity, what: string): Entity | undefined {
-  if (minionsOf(g, by).length >= BOSS.minions) return undefined;
+/** Calls up `what` beside its summoner (or `near`), already on the summoner's quarry. Undefined at the cap. */
+export function summon(g: Game, by: Entity, what: string, near?: XZ, cap: number = BOSS.minions): Entity | undefined {
+  if (minionsOf(g, by).length >= cap) return undefined;
   const c = g.ecs.c;
-  const at = c.transform.get(by)!.pos;
+  const at = near ?? c.transform.get(by)!.pos;
   const p = groundNear(g, at, BOSS.summonRing, 0.6, c.fight.get(by)?.arena);
   const quarry = targetOf(g, by);
   const qp = c.transform.get(quarry)?.pos ?? at;

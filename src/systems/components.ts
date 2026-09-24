@@ -230,6 +230,7 @@ export interface Overworld {
   read: Set<string>; // tomes read
   named: number; // times Hastur's name has appeared (signatures/hastur.ts)
   called: Set<string>; // bosses called into the world: until then their spawn stays empty
+  ending: string | null; // the ending chosen, once one has been (endings.ts)
   alive: Map<string, Entity>; // spawn id → the creature standing for it
   region: string | null; // where the investigator is
   chunk: number; // the investigator's chunk key

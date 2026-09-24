@@ -5,6 +5,9 @@
  *   investigator to defend and relight (reality.ts).
  * - monoliths: standing stones to hide behind from a petrifying gaze (they block sight and feet).
  * - ship: the Alert, come to ram Cthulhu (signatures/cthulhu.ts).
+ * - roots: Shub-Niggurath's spawning roots, which bear the Thousand Young and can be cut down
+ *   (signatures/shub.ts): fixed bodies with health that the investigator can lock on to and strike.
+ * - spheres: Yog-Sothoth's iridescent spheres, which are gates (signatures/yogSothoth.ts).
  * Pure: no Three.js.
  */
 
@@ -12,8 +15,10 @@ import type { Entity } from '../core/ecs';
 import type { XZ } from '../core/geom';
 import { yawOf } from '../core/geom';
 import type { ArenaChange } from '../data/schema';
-import { BOSS, CTHULHU, REALITY } from '../data/tuning';
+import { REACTIONS } from '../data/moves';
+import { BOSS, CTHULHU, REALITY, SHUB, YOG } from '../data/tuning';
 import type { Collider } from '../world/colliders';
+import { createActor } from './actions';
 import type { Fight, Game, Prop } from './components';
 
 /** `n` points evenly round the arena at `share` of its radius, the first toward +z. */
@@ -42,6 +47,18 @@ function monolith(g: Game, e: Entity, p: XZ): Entity {
   return spawnProp(g, e, 'monolith', p, 0, [box]);
 }
 
+/** A spawning root: a fixed body with health, on the boss's side, that never strikes back. */
+function root(g: Game, e: Entity, p: XZ): Entity {
+  const r = spawnProp(g, e, 'root', p);
+  const c = g.ecs.c;
+  c.body.set(r, { radius: 1.1, height: 4, aimHeight: 2, fixed: true });
+  c.health.set(r, { hp: SHUB.hp, max: SHUB.hp, immortal: false, calm: 0 });
+  c.poise.set(r, { value: 1e4, max: 1e4, calm: 0 });
+  c.actor.set(r, createActor(REACTIONS));
+  c.combatant.set(r, { name: 'Spawning Root', faction: 'enemy', bounty: 0 });
+  return r;
+}
+
 const CHANGES: Readonly<Record<ArenaChange, (g: Game, e: Entity, f: Fight) => void>> = {
   lamps: (g, e, f) => {
     for (const p of ring(f, REALITY.lamps, 0.6)) f.props.push(spawnProp(g, e, 'lamp', p));
@@ -52,6 +69,12 @@ const CHANGES: Readonly<Record<ArenaChange, (g: Game, e: Entity, f: Fight) => vo
   ship: (g, e, f) => {
     const [p] = ring(f, 1, CTHULHU.shipShare);
     f.props.push(spawnProp(g, e, 'ship', p, yawOf(f.arena.x - p.x, f.arena.z - p.z)));
+  },
+  roots: (g, e, f) => {
+    for (const p of ring(f, SHUB.roots, SHUB.share)) f.props.push(root(g, e, p));
+  },
+  spheres: (g, e, f) => {
+    for (const p of ring(f, YOG.spheres, YOG.share)) f.props.push(spawnProp(g, e, 'sphere', p));
   },
 };
 

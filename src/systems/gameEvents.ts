@@ -49,4 +49,6 @@ export interface GameEvents {
   Named: { name: string; count: number }; // Hastur's name, flickering onto the HUD
   Rammed: { entity: Entity };
   Title: { text: string }; // a set piece's words across the screen
+  Notice: { text: string }; // a short line mid-screen
+  Ending: { id: string }; // one of the three endings (endings.ts)
 }

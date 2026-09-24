@@ -31,7 +31,7 @@ export interface Fight {
 
 /** What a boss's arena change puts up (spec §3E): its colliders stand in the world while it does. */
 export interface Prop {
-  kind: 'lamp' | 'monolith' | 'ship';
+  kind: 'lamp' | 'monolith' | 'ship' | 'root' | 'sphere';
   owner: Entity; // the boss whose arena it stands in
   lit: boolean; // a lamp's flame
   colliders: Collider[];
