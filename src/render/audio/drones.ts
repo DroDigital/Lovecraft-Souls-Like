@@ -1,7 +1,8 @@
 /**
  * Drones (Phase 6): the held beds under play. The region's drone crossfades into the next region's,
- * a boss fight swells a darker bed beneath it, and the sanity drone (silent while lucid) rises as the
- * mind fails. Every drone oscillator sags and drifts with the sanity FX's detune and wobble.
+ * and a boss fight swells a darker bed beneath it. Every drone oscillator sags and drifts with the
+ * sanity FX's detune and wobble; a failing mind bends the sound but never turns it up (playtest
+ * round 5: the sanity drone that rose with madness is gone).
  */
 
 import { AUDIO } from '../../data/tuning';
@@ -77,7 +78,6 @@ export function createDrones(e: AudioEngine): Drones {
   let bedId: string | null = null;
   let bed: Bed | null = null;
   let boss: Bed | null = null;
-  let sanity: Bed | null = null;
   let swells = 0;
   const nextSwell = (): number => AUDIO.swellHz * (1 + 0.37 * (swells++ % 3));
 
@@ -103,13 +103,11 @@ export function createDrones(e: AudioEngine): Drones {
       const { ctx, bed: out } = e;
       if (!ctx || !out) return;
       reconcile(ctx, out);
-      if (fx && !sanity) sanity = startBed(ctx, out, DRONES.sanity, 0, AUDIO.swellHz);
       const now = ctx.currentTime;
-      if (sanity) sanity.level.gain.setTargetAtTime(fx?.drone ?? 0, now, AUDIO.glide);
       const detune = fx?.detune ?? 0;
       const wobble = fx?.wobble ?? 0;
       let i = 0;
-      for (const b of [bed, boss, sanity]) {
+      for (const b of [bed, boss]) {
         for (const osc of b?.oscs ?? []) osc.detune.setTargetAtTime(detune + wobble * Math.sin(seconds * (0.5 + 0.31 * i++)), now, 0.1);
       }
     },

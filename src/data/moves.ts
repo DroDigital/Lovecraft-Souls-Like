@@ -110,6 +110,8 @@ export interface MoveDef {
   frames: number;
   stamina?: number; // paid when the move starts
   cancel?: number; // from this frame a buffered action may cut the recovery short
+  release?: number; // from this frame the investigator's move input ends it: they walk or run straight out of it
+  rest?: number; // frames after it ends before it may start again (so it cannot be chained into itself)
   combo?: { light?: string; heavy?: string }; // chain: the next move for each attack button
   iframes?: Window; // invulnerable
   parry?: Window; // frontal melee hits are parried
@@ -196,8 +198,8 @@ export const PLAYER_MOVES = {
   },
   heavy1: cleave([100, -60], 'heavy2', 44, 24, 'overhead'),
   heavy2: cleave([-100, 60], 'heavy1', 48, 26, 'spin'),
-  roll: { frames: 48, stamina: 18, cancel: 36, iframes: [2, 24], motion: { window: [0, 34], distance: 4.2, dir: 'input' } }, // a full tumble takes the better part of a second
-  backstep: { frames: 22, stamina: 12, cancel: 16, iframes: [1, 7], motion: { window: [0, 12], distance: 2.4, dir: 'back' } },
+  roll: { frames: 48, stamina: 18, cancel: 36, release: 34, iframes: [2, 24], motion: { window: [0, 34], distance: 4.2, dir: 'input' } }, // a full tumble takes the better part of a second; running on, it flows into the stride as it lands
+  backstep: { frames: 22, stamina: 12, cancel: 16, release: 14, rest: 10, iframes: [1, 7], motion: { window: [0, 12], distance: 2.4, dir: 'back' } }, // never twice in a row: spammed, it outran a sprint with i-frames a third of the time
   parry: { frames: 36, stamina: 10, parry: [3, 11] },
   shoot: {
     frames: 28,

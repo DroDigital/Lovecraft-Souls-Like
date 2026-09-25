@@ -1,6 +1,6 @@
 /**
  * The audio engine (Phase 6): one WebAudio graph. One-shot sounds and drones mix into a shared bus
- * that the sanity FX drives through a waveshaper (the FX controller's audio half, spec §3A), then a
+ * that the sanity FX drives through a saturating waveshaper (the FX controller's audio half, spec §3A), then a
  * compressor and the volume setting. WebAudio starts on the first click or key press, as browsers
  * require; until then (or without WebAudio) everything stays silent and nothing fails.
  */
@@ -18,13 +18,17 @@ export interface AudioEngine {
   onStart(fn: (ctx: AudioContext) => void): void;
 }
 
-/** A soft-clipping curve: 0 is clean, 1 is heavily driven. */
-function shaperCurve(amount: number): Float32Array<ArrayBuffer> {
-  const k = amount * 50;
+/**
+ * The sanity saturation's curve: 0 is clean, 1 squashes loud sounds into grit. Its slope at silence
+ * is always 1 and it never exceeds its input, so a failing mind never turns the ambience up (the
+ * old soft clip's quiet-signal gain of 1 + 50 × amount did, by over 30 dB; playtest round 5).
+ */
+export function shaperCurve(amount: number): Float32Array<ArrayBuffer> {
+  const g = 1 + 1.5 * amount;
   const curve = new Float32Array(1024);
   for (let i = 0; i < curve.length; i++) {
     const x = (i / (curve.length - 1)) * 2 - 1;
-    curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+    curve[i] = (1 - amount) * x + (amount * Math.tanh(g * x)) / g;
   }
   return curve;
 }

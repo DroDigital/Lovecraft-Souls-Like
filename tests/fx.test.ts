@@ -82,11 +82,11 @@ describe('band pulse and audio', () => {
     expect(computeFx({ ...state(100, 0), pulse: 1 }).ripple).toBe(0);
   });
 
-  it('detunes and distorts the audio as sanity falls, and is silent while lucid', () => {
+  it('detunes and distorts the audio as sanity falls, and leaves it be while lucid', () => {
     const calm = computeFx(state(100));
-    expect([calm.drone, calm.detune, calm.wobble, calm.distortion]).toEqual([0, 0, 0, 0]);
+    expect([calm.detune, calm.wobble, calm.distortion]).toEqual([0, 0, 0]);
     const mad = computeFx(state(0));
-    expect([mad.drone, mad.detune, mad.wobble, mad.distortion]).toEqual([FX.droneGain[1], FX.detune[1], FX.wobble[1], FX.distortion[1]]);
-    expect(computeFx(state(0, 0)).drone).toBe(0);
+    expect([mad.detune, mad.wobble, mad.distortion]).toEqual([FX.detune[1], FX.wobble[1], FX.distortion[1]]);
+    expect(computeFx(state(0, 0)).distortion).toBe(0);
   });
 });

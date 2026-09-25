@@ -23,7 +23,6 @@ export const ORBIT = {
 
 /** Procedural audio (Phase 6): the recipes are data/sounds.ts and data/voices.ts. Times in seconds. */
 export const AUDIO = {
-  glide: 0.25, // level changes of the sanity drone
   fade: 4, // a region's drone crossfades into the next over this long...
   bossFade: 2, // ...and a boss fight's bed swells in and out over this
   swellHz: 0.06, // drones breathe this slowly...

@@ -50,10 +50,9 @@ export const FX = {
   pulseSeconds: 0.8, // a band change for the worse sends a pulse of warp that fades over this long...
   pulseRipple: 0.012, // ...adding this much ripple...
   pulseChroma: 0.01, // ...and chromatic split at its peak
-  droneGain: [0, 0.06] as Ramp, // the sanity drone's level (audio)
   detune: [0, -70] as Ramp, // cents the whole mix sags
   wobble: [0, 40] as Ramp, // cents it drifts around that
-  distortion: [0, 0.85] as Ramp, // waveshaper amount, 0..1
+  distortion: [0, 0.85] as Ramp, // saturation amount, 0..1: loud sounds grow gritty and squashed, quiet ones stay as they are (engine.ts)
 };
 
 export const LIGHT = {

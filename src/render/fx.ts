@@ -47,7 +47,6 @@ export interface FxParams {
   displace: number;
   fovBreatheDeg: number;
   skew: number;
-  drone: number; // audio: the sanity drone's gain
   detune: number; // cents
   wobble: number; // cents of drift around the detune
   distortion: number; // 0..1
@@ -102,7 +101,6 @@ export function computeFx(s: FxState): FxParams {
     displace: on.displace ? at(FX.displace, t) : 0,
     fovBreatheDeg: on.lens ? at(FX.fovBreatheDeg, t) : 0,
     skew: on.lens ? at(FX.skew, t) : 0,
-    drone: at(FX.droneGain, t),
     detune: at(FX.detune, t),
     wobble: at(FX.wobble, t),
     distortion: at(FX.distortion, t),
