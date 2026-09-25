@@ -1,7 +1,8 @@
 /**
  * The title screen's music: "Subterranean Pulse", looped, at the volume setting. Browsers allow
- * sound only after a click or key press, so it starts on the first one if it cannot start at once;
- * starting the game fades it out.
+ * sound only after a click or key press, so it starts on the first one if it cannot start at once
+ * (the title asks for one before its menu shows). It plays on under the veil and through a new
+ * game's opening, and fades out as the world first shows (main.ts).
  */
 
 export interface Music {

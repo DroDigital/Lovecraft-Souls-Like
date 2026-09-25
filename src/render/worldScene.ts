@@ -3,7 +3,8 @@
  * investigator and out beyond the 7 × 7, built a slice at a time (at most WORLD.sliceMs a frame);
  * legacy dungeons and boss arenas stand while any chunk they touch is loaded; a sea plane follows.
  * After a long jump (fast travel, a gate, a respawn) the chunks under the investigator are built at
- * once, like a loading screen, so they never stand over nothing.
+ * once, so they never stand over nothing; the veil hides that (ui/journeys.ts), and while it does
+ * the rest are built at a larger budget.
  */
 
 import * as THREE from 'three';
@@ -21,8 +22,8 @@ import { createWorldMaterial } from './worldMaterial';
 
 export interface WorldScene {
   scene: THREE.Scene;
-  /** Streams around the investigator at (x, z) and spends this frame's generation budget. */
-  update(x: number, z: number): void;
+  /** Streams around the investigator at (x, z) and spends this frame's generation budget (ms; more while the veil hides the world). */
+  update(x: number, z: number, budgetMs?: number): void;
   readonly loaded: number; // chunks
   readonly pending: number; // jobs not finished
 }
@@ -114,7 +115,7 @@ export function createWorldScene(): WorldScene {
 
   return {
     scene,
-    update(x, z) {
+    update(x, z, budgetMs = WORLD.sliceMs) {
       const [cx, cz] = [chunkOf(x), chunkOf(z)];
       const key = chunkKey(cx, cz);
       if (key !== at) {
@@ -131,7 +132,7 @@ export function createWorldScene(): WorldScene {
         }
       }
       sea.position.set(Math.round(x / SEA_TILE) * SEA_TILE, WORLD.seaLevel, Math.round(z / SEA_TILE) * SEA_TILE);
-      slicer.run(WORLD.sliceMs);
+      slicer.run(budgetMs);
     },
     get loaded() {
       return chunks.size;

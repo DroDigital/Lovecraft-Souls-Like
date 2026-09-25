@@ -2,14 +2,15 @@
  * Entry: the title screen, then the open world (saved to localStorage; `?fresh` skips the title and
  * starts anew), the combat arena (`?arena`, or `?spawn=<id>[&variant=eldritch|boss]` to add a roster
  * creature), `?bestiary`, or the `?look` test. `?debug` shows the debug panel (as the arena does)
- * and exposes the game on `window`. Settings and the audio engine outlive the title screen.
+ * and exposes the game on `window`. Settings, the audio engine and the veil outlive the title
+ * screen; the world is built under the veil, and every long jump after passes under it (journeys.ts).
  */
 
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
 import { STINGERS } from './data/sounds';
-import { LIGHT, RENDER, SIM, UPGRADES, type UpgradeId } from './data/tuning';
+import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createDrones, type Drones } from './render/audio/drones';
@@ -28,7 +29,7 @@ import { placeCamera } from './render/followCamera';
 import { allEffectsOn, computeFx, lensAt, type FxState } from './render/fx';
 import { createFxController } from './render/fxController';
 import { createHiddenViews } from './render/hiddenViews';
-import { createWorldScene, type WorldScene } from './render/worldScene';
+import { createWorldScene } from './render/worldScene';
 import { lightNight, placeLantern } from './render/lantern';
 import { applyLens } from './render/lens';
 import { ANOMALY } from './render/palette';
@@ -37,15 +38,12 @@ import { updatePostUniforms } from './render/postPass';
 import { applyReality, lightReality } from './render/realityFx';
 import { buildAtlas } from './render/sprites/atlas';
 import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
-import type { Game } from './systems/components';
-import { resolveCreature } from './systems/creatures';
 import { createGame, createWorldGame, stepGame } from './systems/game';
-import { buyUpgrade, changeInsight, upgradeName } from './systems/insight';
-import { setSanity } from './systems/sanity';
 import { clearSave, loadSave, type SaveStore } from './systems/save';
 import { browserStore, startAutosave } from './ui/autosave';
 import { startBestiary } from './ui/bestiary';
-import { createDebugPanel, type PanelOptions } from './ui/debugPanel';
+import { HINTS, panelOptions, playerStats, spawnHint, worldStats } from './ui/debugHooks';
+import { createDebugPanel } from './ui/debugPanel';
 import { createEndingCard } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
@@ -56,29 +54,22 @@ import { createPauseMenu } from './ui/pauseMenu';
 import { createDialogue } from './ui/dialogue';
 import { showIntro, type Intro } from './ui/intro';
 import { journalPage } from './ui/journal';
+import { createJourneys } from './ui/journeys';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
 import { showTitle } from './ui/titleScreen';
+import { createVeil, type Veil } from './ui/veil';
 import { createArenaScene } from './world/arenaScene';
 
-const HINTS = ['Esc: pause, settings, controls', '?arena: the combat arena · ?fresh: new game'];
-
-function playerStats(g: Game): string {
-  const c = g.ecs.c;
-  const a = c.actor.get(g.player.id)!;
-  const s = c.stamina.get(g.player.id)!;
-  const lock = g.lock.target === null ? '—' : (c.combatant.get(g.lock.target)?.name ?? '?');
-  return `${a.move ?? (a.guard ? 'guard' : 'free')}:${a.frame} · stamina ${s.value.toFixed(0)}\nlock ${lock}`;
-}
-
-/** What outlives the title screen: the settings (kept in localStorage) and the audio. */
+/** What outlives the title screen: the settings (kept in localStorage), the audio and the veil. */
 interface Shell {
-  music?: Music; // the title screen's, while it plays
+  music?: Music; // the title screen's, while it plays (through a new game's opening)
   settings: Settings;
   change(id: SettingId, v: number): void;
   store: SaveStore | null;
   engine: AudioEngine;
   drones: Drones;
+  veil: Veil;
 }
 
 interface StartOptions {
@@ -90,38 +81,10 @@ interface StartOptions {
   variant?: Variant;
 }
 
-/** The world's stats line: where the investigator is, streaming, and the creatures awake. */
-function worldStats(g: Game, w: WorldScene): string {
-  const ow = g.overworld!;
-  return `\n${ow.region ?? 'the sea'} · ${w.loaded} chunks (${w.pending} building) · ${ow.alive.size} awake`;
-}
-
-/** A hint line naming the spawned creature (or the problem with the request). */
-function spawnHint({ creature, variant }: StartOptions): string[] {
-  if (creature === undefined) return ['?bestiary: pick a creature to fight'];
-  const def = resolveCreature(creature, variant);
-  if (!def) return [`unknown creature "${creature}${variant ? `#${variant}` : ''}" · ?bestiary`];
-  const { minInsight, maxSanity } = def.hidden ?? {};
-  const veil = [minInsight && `insight ${minInsight}`, maxSanity && `sanity < ${maxSanity}`].filter(Boolean).join(', ');
-  return [`spawned: ${def.name} (${def.tier.replace(/_/g, ' ')})${veil ? ` · unseen until ${veil}` : ''} · ?bestiary`];
-}
-
-/** Debug controls: sanity, FX cap and insight sliders that drive the game, and upgrade purchases. */
-function panelOptions(game: Game, shell: Shell): PanelOptions {
-  return {
-    sanity: { get: () => game.mind.sanity, set: (v) => setSanity(game, v) },
-    cap: { get: () => shell.settings.fxCap, set: (v) => shell.change('fxCap', v) },
-    insight: { get: () => game.mind.insight, set: (v) => changeInsight(game, v - game.mind.insight, 'debug', 'debug panel') },
-    actions: (Object.keys(UPGRADES) as UpgradeId[]).map((id) => ({
-      label: `spend ${UPGRADES[id].cost} insight: ${upgradeName(id)}`,
-      run: () => void buyUpgrade(game, id),
-    })),
-  };
-}
-
 function startGame(opts: StartOptions, shell: Shell): void {
   const { debug, creature, variant } = opts;
-  const { settings } = shell;
+  const { settings, veil } = shell;
+  if (!veil.covered) veil.darken(); // the world is built out of sight
   const state: FxState = { sanity: 100, cap: settings.fxCap, anomalyProximity: 0, enabled: allEffectsOn() };
   const pipeline = createPipeline(document.body);
   const canvas = pipeline.renderer.domElement;
@@ -130,7 +93,8 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined });
   const world = opts.arena ? null : createWorldScene();
   const scene = world?.scene ?? createArenaScene();
-  const menu: SignMenu | null = opts.arena ? null : createSignMenu(game);
+  const journeys = createJourneys(game, veil);
+  const menu: SignMenu | null = opts.arena ? null : createSignMenu(game, journeys.go);
   const ending = createEndingCard(game);
   const capture = (): void => {
     try {
@@ -146,7 +110,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
     resume: capture,
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
-    quit: () => void (location.href = location.pathname),
+    quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
   });
   if (store) startAutosave(game, store);
   const views = createActorViews(scene, game);
@@ -163,11 +127,16 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const dialogue = createDialogue(game);
-  const intro: Intro | null = opts.intro ? showIntro(capture) : null;
+  const reveal = (): void => {
+    shell.music?.fadeOut(2.5); // the title's music plays on until the world shows
+    shell.music = undefined;
+  };
+  const intro: Intro | null = opts.intro ? showIntro(() => (capture(), journeys.arrive(reveal))) : null;
+  if (!intro) journeys.arrive(reveal);
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter);
   const map = createMapScreen(game, painter, capture);
-  const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(opts) : [])], panelOptions(game, shell)) : null;
+  const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(creature, variant) : [])], panelOptions(game, settings, shell.change)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
@@ -188,12 +157,13 @@ function startGame(opts: StartOptions, shell: Shell): void {
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
-        if (pause.open || map.open || dialogue.open || intro?.open) return; // the world stands still
+        const through = pause.open || map.open || dialogue.open || intro?.open ? null : journeys.before(frame);
+        if (!through) return; // the world stands still
         simTime += dt;
-        stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
+        stepGame(game, menu?.open || ending.open ? emptyInput() : through);
       },
       render(blend) {
-        const still = pause.open || map.open || dialogue.open || !!intro?.open;
+        const still = pause.open || map.open || dialogue.open || !!intro?.open || journeys.still;
         const alpha = still ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
@@ -205,7 +175,8 @@ function startGame(opts: StartOptions, shell: Shell): void {
         placeCamera(camera, game, alpha);
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
-        world?.update(at.x, at.z);
+        world?.update(at.x, at.z, journeys.budget);
+        journeys.update(world?.pending ?? 0);
         views.update(alpha, time);
         placeLantern(game, alpha);
         creatures.update(alpha, time, camera);
@@ -244,7 +215,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   );
 }
 
-/** Settings, the audio engine and the drones, made once for the page. */
+/** Settings, the audio engine, the drones and the veil, made once for the page. */
 function createShell(): Shell {
   const store = browserStore();
   const settings = loadSettings(store);
@@ -258,21 +229,23 @@ function createShell(): Shell {
       shell.music?.setVolume(settings.volume);
     }
   };
-  const shell: Shell = { settings, change, store, engine, drones: createDrones(engine) };
+  const shell: Shell = { settings, change, store, engine, drones: createDrones(engine), veil: createVeil() };
   return shell;
 }
 
 /** The title screen, with its music, until a choice starts the world. */
 function title(opts: StartOptions, shell: Shell): void {
   shell.music = playMenuMusic(shell.settings.volume);
+  shell.veil.haunt(true);
   showTitle({
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
     change: shell.change,
-    start(fresh) {
-      shell.music?.fadeOut(2.5);
-      shell.music = undefined;
-      startGame({ ...opts, fresh, intro: fresh }, shell);
+    start(fresh, close) {
+      void shell.veil.cover('', 1.1).then(() => {
+        close();
+        startGame({ ...opts, fresh, intro: fresh }, shell);
+      });
     },
   });
 }
