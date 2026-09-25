@@ -144,7 +144,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   if (!intro) journeys.arrive(reveal);
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter);
-  const map = createMapScreen(game, painter, capture);
+  const map = createMapScreen(game, painter, capture, journeys.go);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(creature, variant) : [])], panelOptions(game, settings, shell.change)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
@@ -166,13 +166,13 @@ function startGame(opts: StartOptions, shell: Shell): void {
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
-        const through = pause.open || map.open || dialogue.open || intro?.open ? null : journeys.before(frame);
+        const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;
-        stepGame(game, menu?.open || ending.open ? emptyInput() : through);
+        stepGame(game, menu?.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
       },
       render(blend) {
-        const still = pause.open || map.open || dialogue.open || !!intro?.open || journeys.still;
+        const still = pause.open || map.open || dialogue.reading || !!intro?.open || journeys.still;
         const alpha = still ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;

@@ -1,8 +1,9 @@
 /**
  * Talking and reading (playtest round 1): what someone says, a line at a time in a box at the
  * bottom of the screen, and the text of a tome or note as it is picked up, on a page of its own.
- * The world stands still while either is open (main.ts). E, Enter or Space (pad A) goes on; Esc
- * (pad B) closes.
+ * The world goes on while someone talks, the investigator standing to listen, and a blow landing on
+ * them ends the talk (playtest round 7); it stands still while a page is read (main.ts). E, Enter or
+ * Space (pad A) goes on; Esc (pad B) closes.
  */
 
 import { DOCUMENTS } from '../data/documents';
@@ -12,6 +13,8 @@ import { button, createScreen, el, type Page } from './menuKit';
 
 export interface Dialogue {
   readonly open: boolean;
+  readonly talking: boolean; // someone speaking: the world goes on
+  readonly reading: boolean; // a page read: the world stands still
 }
 
 const ADVANCE = new Set(['KeyE']); // Enter and Space press the focused button already
@@ -42,6 +45,10 @@ export function createDialogue(g: Game): Dialogue {
     talk.show(page);
   });
 
+  g.events.on('Hit', (e) => {
+    if (e.target === g.player.id && e.damage > 0 && talk.open) talk.close(); // no one talks on through a blow
+  });
+
   g.events.on('Read', ({ name }) => {
     const doc = DOCUMENTS[name];
     if (!doc) return;
@@ -51,6 +58,12 @@ export function createDialogue(g: Game): Dialogue {
   return {
     get open() {
       return talk.open || read.open;
+    },
+    get talking() {
+      return talk.open;
+    },
+    get reading() {
+      return read.open;
     },
   };
 }

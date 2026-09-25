@@ -1,9 +1,9 @@
 /**
  * Elder Signs and gates (spec §3D). A sign is found by coming near it. Resting at one (E) heals,
  * restores sanity and Laudanum, makes it the respawn point and brings the foes back, unless one is
- * hunting the investigator. From a sign they may fast-travel to any sign found, and resting at the
- * hub's Sleeper's Sign lets them descend into the Dreamlands. A gate leads to its twin in another
- * realm. Pure: no Three.js.
+ * hunting the investigator. From a sign, or from the map when nothing hunts them (playtest round 7),
+ * they may fast-travel to any sign found, and resting at the hub's Sleeper's Sign lets them descend
+ * into the Dreamlands. A gate leads to its twin in another realm. Pure: no Three.js.
  */
 
 import { nearestNpc, talk } from './npcs';
@@ -13,6 +13,7 @@ import type { Place } from '../data/arena';
 import { CAMERA, SANITY, WORLD } from '../data/tuning';
 import { worldLayout, type GatePlace, type SignPlace } from '../world/placements';
 import { yawOfDir } from '../world/worldMap';
+import { engagedFights } from './bossFight';
 import { isAbsent, type Game } from './components';
 import { resetFoes, restore } from './death';
 import { spawnPiece } from './hiddenLayer';
@@ -106,6 +107,16 @@ export function travel(g: Game, id: string): boolean {
   g.player.checkpoint = { ...s.rest };
   g.events.emit('Travelled', { via: 'sign', to: id, name: s.name });
   return true;
+}
+
+/**
+ * Why no journey may begin from the map now (playtest round 7), or null: a boss fight on, a foe
+ * hunting the investigator close by (as for resting), or the investigator fallen.
+ */
+export function travelBar(g: Game): 'boss' | 'foes' | 'fallen' | null {
+  if (engagedFights(g).length) return 'boss';
+  if (hunted(g)) return 'foes';
+  return g.ecs.c.health.get(g.player.id)!.hp <= 0 ? 'fallen' : null;
 }
 
 /** From the Sleeper's Sign, down the seventy steps of light slumber into the Dreamlands. */
