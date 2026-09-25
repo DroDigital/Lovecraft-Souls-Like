@@ -32,8 +32,13 @@ function limb(len: number, r: number, yaw: number, pitch: number, c: Rgb): THREE
   return cyl(r, r * 0.35, len, 4, c).rotateX(pitch).rotateY(yaw);
 }
 
+/** October leaves: rust, ochre and the last of the green, dimmed. */
+const AUTUMN: readonly Rgb[] = [[0.62, 0.34, 0.2], [0.7, 0.52, 0.26], [0.5, 0.28, 0.18], [0.42, 0.42, 0.26]];
+
 function tree(p: Prop, rng: Rng): Piece[] {
   const parts = [cyl(p.w * 1.6, p.w, 0.6, 6, scaleRgb(BARK, 0.8)), cyl(p.w, p.w * 0.45, p.h, 6, BARK, Math.ceil(p.h / 1.5))];
+  const leafy = rng() < 0.45; // many hardwoods keep some of their October leaves
+  const leaves: THREE.BufferGeometry[] = [];
   const n = 3 + Math.floor(rng() * 3);
   for (let k = 0; k < n; k++) {
     const y = p.h * (0.45 + 0.45 * (k / n)) + rng() * 0.5;
@@ -42,9 +47,19 @@ function tree(p: Prop, rng: Rng): Piece[] {
     const pitch = 0.55 + rng() * 0.5;
     parts.push(limb(len, p.w * 0.45, yaw, pitch, BARK).translate(0, y, 0));
     const [ex, ey, ez] = [Math.sin(yaw) * Math.sin(pitch) * len, Math.cos(pitch) * len, Math.cos(yaw) * Math.sin(pitch) * len];
-    for (let t = 0; t < 2; t++) parts.push(limb(len * 0.55, p.w * 0.2, yaw + (t - 0.5) * 1.2, pitch - 0.3 + rng() * 0.4, BARK).translate(ex * 0.8, y + ey * 0.8, ez * 0.8));
+    for (let t = 0; t < 2; t++) {
+      const [ty, tp, tl] = [yaw + (t - 0.5) * 1.2, pitch - 0.3 + rng() * 0.4, len * 0.55];
+      parts.push(limb(tl, p.w * 0.2, ty, tp, BARK).translate(ex * 0.8, y + ey * 0.8, ez * 0.8));
+      if (!leafy || rng() < 0.3) continue;
+      const tip = [ex * 0.8 + Math.sin(ty) * Math.sin(tp) * tl, y + ey * 0.8 + Math.cos(tp) * tl, ez * 0.8 + Math.cos(ty) * Math.sin(tp) * tl];
+      const r = 0.7 + rng() * 0.9;
+      const clump = new THREE.IcosahedronGeometry(r, 0).scale(1, 0.7, 1).rotateY(rng() * 3).translate(tip[0], tip[1], tip[2]);
+      leaves.push(tint(tileUv(clump, r * 2, r * 2), AUTUMN[Math.floor(rng() * AUTUMN.length)]));
+    }
   }
-  return [{ mat: 'wood', geo: mergeGeometries(parts) }];
+  const out: Piece[] = [{ mat: 'wood', geo: mergeGeometries(parts) }];
+  if (leaves.length) out.push({ mat: 'leaf', geo: mergeGeometries(leaves) });
+  return out;
 }
 
 function pine(p: Prop, rng: Rng): Piece[] {

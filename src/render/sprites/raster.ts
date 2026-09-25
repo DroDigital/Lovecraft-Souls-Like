@@ -1,12 +1,14 @@
 /**
  * A tiny software rasteriser for the sprite generator (pure, no Three.js): shaded ellipses,
  * tapered capsules and polygons written into an RGBA cell, then a dark outline pass. Shapes are
- * shaded as if they were rounded, lit from the upper left, with a little seeded grit. Alpha marks
+ * shaded as if they were rounded, lit from the upper left, with a little seeded grit and the
+ * creature's skin worked in (scales, fur, plates...; skins.ts); wet hides take a hot highlight. Alpha marks
  * the pixel kind: 0 empty, LIT lit by the world, GLOW self-lit (anomaly-coloured markings), GLINT
  * self-lit but muted (eye glints).
  */
 
 import { hash2 } from '../../core/rng';
+import { skinAt } from './skins';
 import type { Rgb } from '../palette';
 
 export const LIT = 255;
@@ -20,11 +22,16 @@ export interface Canvas {
   seed: number;
 }
 
-/** How a shape is painted: its colour, and whether it glows or glints (both unshaded and self-lit). */
+/** A surface worked into a shape's shading (skins.ts). */
+export type Skin = 'scales' | 'fur' | 'warts' | 'veins' | 'plates' | 'cracks' | 'wrinkles' | 'cloth' | 'sheen' | 'wisp';
+
+/** How a shape is painted: its colour, whether it glows or glints (both unshaded and self-lit), its surface, and whether it is wet (a hot highlight). */
 export interface Ink {
   rgb: Rgb;
   glow?: boolean;
   glint?: boolean;
+  skin?: Skin;
+  wet?: boolean;
 }
 
 export const createCanvas = (w: number, h: number, seed = 0): Canvas => ({ w, h, px: new Uint8Array(w * h * 4), seed });
@@ -45,7 +52,8 @@ function put(c: Canvas, x: number, y: number, ink: Ink, k: number): void {
   const i = (y * c.w + x) * 4;
   const self = ink.glow || ink.glint;
   const grit = self ? 1 : 1 + (hash2(x, y, c.seed) - 0.5) * 0.14;
-  const s = (self ? 1 : k) * grit;
+  const lit = ink.wet && k > 1 ? k + (k - 1) * 1.8 : k; // a wet hide catches the light
+  const s = (self ? 1 : lit * (ink.skin ? skinAt(ink.skin, x, y, c.seed) : 1)) * grit;
   c.px[i] = to8(ink.rgb[0] * s);
   c.px[i + 1] = to8(ink.rgb[1] * s);
   c.px[i + 2] = to8(ink.rgb[2] * s);

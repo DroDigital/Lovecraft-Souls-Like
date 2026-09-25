@@ -11,6 +11,7 @@ import { crustacean, quadruped, serpent, toad, winged } from './beasts';
 import { barrel, blob, cone, orb, swarm } from './masses';
 import type { Pose, Sketch } from './parts';
 import { createCanvas, outline, type Canvas } from './raster';
+import { skinOf } from './skins';
 import { cephalopod, giant, humanoid, hunched, robed, spectre } from './uprights';
 
 export const CELL = 64;
@@ -54,13 +55,14 @@ const PALE_EYE = [0.93, 0.9, 0.8] as const;
 export function drawSprite(r: SpriteRecipe, state: SpriteState, frame: number, seed = r.seed ?? 0): Canvas {
   const c = createCanvas(CELL, CELL, seed);
   const pal = CREATURE_COLORS[r.palette];
+  const skin = skinOf(r.palette, r.silhouette);
   PLANS[r.silhouette]({
     c,
     r: { ...r, seed },
     pose: STATE_POSES[state][frame],
     rng: createRng(seed * 31 + 7),
-    body: { rgb: pal.mid },
-    dark: { rgb: pal.dark },
+    body: { rgb: pal.mid, ...skin },
+    dark: { rgb: pal.dark, ...skin },
     light: { rgb: pal.light },
     claw: { rgb: scaleRgb(pal.light, 0.9) },
     eye: r.glow ? { rgb: ANOMALY[r.glow], glow: true } : { rgb: PALE_EYE, glint: true },

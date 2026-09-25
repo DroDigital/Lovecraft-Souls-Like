@@ -34,9 +34,10 @@ const material = (m: PropMat): THREE.ShaderMaterial => {
 };
 
 /** Builds the chunk's props; `done` receives one mesh per material used. */
-export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshes: THREE.Mesh[]) => void): Generator<void, void> {
+export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshes: THREE.Mesh[]) => void, cover?: Partial<Record<PropMat, THREE.BufferGeometry>>): Generator<void, void> {
   const c = mixRgb(STONE, region.biome.tint, 0.5);
   const groups = new Map<PropMat, THREE.BufferGeometry[]>();
+  for (const [m, geo] of Object.entries(cover ?? {}) as [PropMat, THREE.BufferGeometry][]) groups.set(m, [geo]);
   let spent = 0;
   for (const p of props) {
     for (const piece of p.kind === 'house' ? housePieces(p, c) : propPieces(p, c)) {
@@ -51,6 +52,7 @@ export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshe
   }
   const meshes: THREE.Mesh[] = [];
   for (const [m, geos] of groups) {
+    for (const g of geos) if (!g.index) g.setIndex([...Array(g.getAttribute('position').count).keys()]); // merging needs all indexed or none
     meshes.push(new THREE.Mesh(mergeGeometries(geos), material(m)));
     yield;
   }

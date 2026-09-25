@@ -20,16 +20,23 @@ export function quadruped(s: Sketch): void {
     const lx = x - 12 + t * 24 + (i % 2) * 2;
     const step = (i % 2 === 0 ? 1 : -1) * p.swing * 3;
     capsule(c, lx, y + 3, lx + step, GROUND - 1, 2.6, 1.6, i % 2 ? s.dark : s.body);
+    ellipse(c, lx + step + 1, GROUND - 0.8, 2.4, 1.1, s.dark); // paw
   }
   ellipse(c, x, y, 17, 8.5, s.body);
   ellipse(c, x + 2, y + 3, 12, 4, s.light);
+  for (let k = 0; k < 4; k++) capsule(c, x - 4 + k * 4, y - 5, x - 6 + k * 4, y + 1, 0.4, 0.3, s.dark); // ribs
+  for (let k = 0; k < 6; k++) poly(c, [[x - 13 + k * 4, y - 7], [x - 11 + k * 4, y - 11 - (k % 2)], [x - 10 + k * 4, y - 7]], s.dark); // the ridge of its back
   if (r.tentacles) tentacles(s, x, y - 6, r.tentacles, 12, 1.4, -HALF_PI - 0.6, -HALF_PI + 0.6, p.bob + p.swing);
   const reach = p.attack === 1 ? -4 : p.attack === 2 ? 6 : 0;
   const [hx, hy] = [x + 18 + reach, y - 8 + (p.attack === 2 ? 3 : 0)];
   capsule(c, x + 11, y - 3, hx - 2, hy + 2, 5, 4, s.body);
   ellipse(c, hx, hy, 7, 6, s.body);
   ellipse(c, hx + 6, hy + 2, 4, 3, s.light);
-  if (p.attack === 2) poly(c, [[hx + 3, hy + 3], [hx + 11, hy + 1], [hx + 10, hy + 7]], s.dark);
+  if (p.attack === 2) {
+    poly(c, [[hx + 3, hy + 3], [hx + 11, hy + 1], [hx + 10, hy + 7]], s.dark);
+    for (let k = 0; k < 3; k++) ellipse(c, hx + 5 + k * 2, hy + 2.6 - k * 0.3, 0.5, 0.8, s.claw); // teeth
+  }
+  ellipse(c, hx - 3, hy - 5, 1.4, 2.2, s.dark, -0.4); // ear
   eyes(s, hx + 2, hy - 2, r.eyes ?? 2, 2, 1.1);
 }
 

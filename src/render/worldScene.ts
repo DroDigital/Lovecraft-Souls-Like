@@ -13,6 +13,7 @@ import { chunkContent } from '../world/chunks';
 import { worldLayout } from '../world/placements';
 import { chunkSpan, streamDiff } from '../world/streaming';
 import { chunkKey, chunkOf, keyChunk, type Rect } from '../world/worldMap';
+import { groundCover } from './groundCover';
 import { propJob } from './propMeshes';
 import { arenaJob, dungeonJob } from './siteMeshes';
 import { terrainJob } from './terrainMesh';
@@ -81,7 +82,7 @@ export function createWorldScene(): WorldScene {
     const content = chunkContent(cx, cz);
     yield;
     yield* terrainJob(cx, cz, (m) => m && add(list, m));
-    if (content.region && content.props.length) yield* propJob(content.props, content.region, (ms) => ms.forEach((m) => add(list, m)));
+    if (content.region) yield* propJob(content.props, content.region, (ms) => ms.forEach((m) => add(list, m)), groundCover(content.cx, content.cz, content.region, content.roads));
   }
 
   const load = (cx: number, cz: number, key: number): void => {
