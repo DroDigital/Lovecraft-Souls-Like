@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { shaperCurve } from '../src/render/audio/engine';
+import { sinkLevel } from '../src/render/audio/music';
+import { THEME } from '../src/data/tuning';
 import { REGIONS } from '../src/data/regions';
 import { ENTITIES, getEntity } from '../src/data/registry';
 import { STINGERS, type Sound } from '../src/data/sounds';
@@ -135,5 +137,19 @@ describe('the sanity saturation (render/audio/engine.ts)', () => {
     }
     expect(shaperCurve(0.85).at(-1)!).toBeLessThan(0.7); // full scale is squashed when mad
     expect(shaperCurve(0).at(-1)!).toBeCloseTo(1); // and untouched when lucid
+  });
+});
+
+describe("the title's theme (render/audio/music.ts)", () => {
+  it('sinks away evenly in loudness, not holding and then dropping as a linear fade does (playtest round 6)', () => {
+    const s = THEME.sink;
+    const db = (t: number): number => 20 * Math.log10(sinkLevel(t, s));
+    expect(sinkLevel(0, s)).toBe(1);
+    expect(sinkLevel(s, s)).toBe(0);
+    const quarters = [1, 2, 3].map((k) => db((k * s) / 4) - db(((k - 1) * s) / 4));
+    for (const q of quarters) expect(q).toBeCloseTo(quarters[0], 6); // the same fall in every quarter...
+    expect(quarters[0]).toBeLessThan(-10); // ...where a linear fade loses 2.5 dB in its first
+    expect(db(s * 0.999)).toBeLessThan(-40); // all but silent before it stops
+    expect(THEME.from).toBeGreaterThan(0);
   });
 });

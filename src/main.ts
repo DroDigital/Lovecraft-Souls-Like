@@ -10,7 +10,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
 import { STINGERS } from './data/sounds';
-import { LIGHT, RENDER, SIM } from './data/tuning';
+import { LIGHT, RENDER, SIM, THEME } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createDrones, type Drones } from './render/audio/drones';
@@ -137,7 +137,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const input = createInput(canvas);
   const dialogue = createDialogue(game);
   const reveal = (): void => {
-    shell.music?.fadeOut(2.5); // the title's music plays on until the world shows
+    shell.music?.fadeOut(); // the title's theme plays on until the world shows, then sinks away under its ambience
     shell.music = undefined;
   };
   const intro: Intro | null = opts.intro ? showIntro(() => (capture(), journeys.arrive(reveal))) : null;
@@ -244,15 +244,33 @@ function createShell(): Shell {
   return shell;
 }
 
-/** The title screen over its live stair, with its music, until a choice starts the world. */
+/**
+ * The title screen over its live stair, until a choice starts the world. It opens out of the dark
+ * with its theme: at once where the browser lets sound play on opening, else on the first key press
+ * or click, which the veil asks for (browsers refuse sound until then); after THEME.wait by itself if
+ * the theme has neither sounded nor been refused (a slow line: it joins when it can).
+ */
 function title(opts: StartOptions, shell: Shell): void {
-  shell.music = playMenuMusic(shell.settings.volume);
-  shell.veil.haunt(true);
   const backdrop = startTitleBackdrop(shell.settings.fxCap, shell.settings.resolution);
+  const music = (shell.music = playMenuMusic(shell.engine, shell.settings.volume));
+  shell.veil.darken();
+  let [opened, refused] = [false, false];
+  void music.refused.then(() => {
+    refused = true;
+    if (!opened) shell.veil.darken('press any key');
+  });
   showTitle({
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
     change: shell.change,
+    byItself: new Promise((resolve) => {
+      void music.sounding.then(resolve);
+      setTimeout(() => refused || resolve(), THEME.wait * 1000);
+    }),
+    open() {
+      opened = true;
+      shell.veil.haunt(true); // the dark draws back from the stair, to haunt the edges
+    },
     start(fresh, close) {
       void shell.veil.cover('', 1.1).then(() => {
         close();

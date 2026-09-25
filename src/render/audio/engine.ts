@@ -1,14 +1,17 @@
 /**
  * The audio engine (Phase 6): one WebAudio graph. One-shot sounds and drones mix into a shared bus
  * that the sanity FX drives through a saturating waveshaper (the FX controller's audio half, spec §3A), then a
- * compressor and the volume setting. WebAudio starts on the first click or key press, as browsers
- * require; until then (or without WebAudio) everything stays silent and nothing fails.
+ * compressor and the volume setting. The title's theme joins after the compressor, under the volume
+ * setting only (music.ts). WebAudio starts on the first click or key press, as browsers require (or
+ * sooner, `start`, where the browser already lets sound play); until then (or without WebAudio)
+ * everything stays silent and nothing fails.
  */
 
 export interface AudioEngine {
   readonly ctx: AudioContext | null;
   readonly sfx: AudioNode | null; // one-shots in
   readonly bed: AudioNode | null; // drones in
+  readonly music: AudioNode | null; // the title's theme in: the volume setting only, no sanity FX
   detune: number; // cents new one-shots start at: the sanity FX's sag and drift
   playing: number; // one-shots sounding now (synth.ts counts them against AUDIO.polyphony)
   setVolume(v: number): void;
@@ -16,6 +19,8 @@ export interface AudioEngine {
   setDistortion(amount: number): void;
   /** Runs `fn` once WebAudio has started (at once if it has). */
   onStart(fn: (ctx: AudioContext) => void): void;
+  /** Starts WebAudio now if it has not (a click or key press also starts it), or wakes it. */
+  start(): void;
 }
 
 /**
@@ -37,6 +42,7 @@ interface Graph {
   ctx: AudioContext;
   sfx: GainNode;
   bed: GainNode;
+  music: GainNode;
   shaper: WaveShaperNode;
   master: GainNode;
 }
@@ -52,10 +58,12 @@ function build(volume: number): Graph {
   limiter.ratio.value = 8;
   const master = ctx.createGain();
   master.gain.value = volume;
+  const music = ctx.createGain();
   sfx.connect(shaper);
   bed.connect(shaper);
   shaper.connect(limiter).connect(master).connect(ctx.destination);
-  return { ctx, sfx, bed, shaper, master };
+  music.connect(master);
+  return { ctx, sfx, bed, music, shaper, master };
 }
 
 export function createAudioEngine(volume: number): AudioEngine {
@@ -86,6 +94,9 @@ export function createAudioEngine(volume: number): AudioEngine {
     get bed() {
       return graph?.bed ?? null;
     },
+    get music() {
+      return graph?.music ?? null;
+    },
     detune: 0,
     playing: 0,
     setVolume(v) {
@@ -101,5 +112,6 @@ export function createAudioEngine(volume: number): AudioEngine {
       if (graph) fn(graph.ctx);
       else waiting.push(fn);
     },
+    start,
   };
 }

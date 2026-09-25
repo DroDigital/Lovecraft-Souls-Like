@@ -4,7 +4,7 @@ Lovecraftian open-world soulslike in retro 3D. **Spec: `docs/SPEC.md`.** At sess
 file, then do only the phase named in the message. Log judgment calls in `docs/DECISIONS.md`.
 
 ## Commands
-- `npm run dev`: title (any key, then the menu; New game opens on the intro), then the open world saved to localStorage (click captures the mouse; E rests,
+- `npm run dev`: title (it opens out of the dark with its theme on the first key or click, at once where the browser allows sound; New game opens on the intro), then the open world saved to localStorage (click captures the mouse; E rests,
   talks, passes gates; R Reagent, T Laudanum; M map; Esc/Start: pause, map, journal, settings, controls). `?fresh` new game, no title; `?arena` combat arena; `?bestiary` every roster entity (click to fight); `?spawn=<id>
   [&variant=eldritch|boss]`; `?look` look test (1–9, drag/wheel/O); `?debug` debug panel (sliders, H hides) + `window.game`/`world`/`audio`.
 - `npm run check`: typecheck + Vitest. Must pass before every commit.

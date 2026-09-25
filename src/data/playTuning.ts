@@ -34,6 +34,15 @@ export const AUDIO = {
   pan: 0.8, // the widest stereo placement
 };
 
+/** The title's theme (render/audio/music.ts; playtest rounds 5 and 6). Times in seconds. */
+export const THEME = {
+  from: 3.3, // where the track first swells: its first three seconds are a near-silent lead-in (the first hit lands at 3.85)
+  fadeIn: 0.4, // so starting mid-phrase does not click
+  sink: 7, // spawning in, it sinks away over this long: an equal-power fade...
+  sinkTo: 280, // ...under a low-pass closing to this (Hz), as the world's ambience rises beneath it (AUDIO.fade)
+  wait: 4, // the title opens by itself after this long if the theme has neither sounded nor been refused (a slow line)
+};
+
 /** Boss music (playtest round 4, render/audio/bossMusic.ts; the scores are data/music.ts). Times in seconds. */
 export const MUSIC = {
   level: 0.45, // the music's share of the drones' bus (offline renders: it sits under the blows' stingers)
