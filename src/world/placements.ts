@@ -12,7 +12,7 @@ import { DUNGEONS, type Dir } from '../data/dungeons';
 import { REGIONS, type RegionDef } from '../data/regions';
 import { DREAM_DESCENT, SITES, type ArenaSite } from '../data/sites';
 import { DUNGEON, WORLD } from '../data/tuning';
-import type { Collider } from './colliders';
+import { colliderBounds, type Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
 import { landHeight } from './land';
@@ -45,6 +45,7 @@ export interface GatePlace {
 export interface TomePlace {
   name: string;
   insight: number;
+  vial?: boolean; // a Silver Vial, not a tome
   region: string;
   at: Place;
 }
@@ -116,10 +117,7 @@ function build(): WorldLayout {
       }
     }
   };
-  const collide = (c: Collider): void => {
-    const r = c.kind === 'box' ? { x0: c.min.x, z0: c.min.z, x1: c.max.x, z1: c.max.z } : { x0: c.x - c.radius, z0: c.z - c.radius, x1: c.x + c.radius, z1: c.z + c.radius };
-    bucket(r, (b) => b.colliders.push(c));
-  };
+  const collide = (c: Collider): void => bucket(colliderBounds(c), (b) => b.colliders.push(c));
   const pad = (x: number, z: number, [radius, blend]: readonly [number, number], extra = 0): number => {
     const level = landHeight(x, z);
     const p: Pad = { kind: 'circle', x, z, radius: radius + extra, blend, level };
@@ -249,6 +247,10 @@ function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayo
   if (d.tome) {
     const p = pt(s.tome);
     w.tomes.push({ name: d.tome.name, insight: d.tome.insight, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
+  }
+  if (d.vial) {
+    const p = pt(d.tome ? [s.tome[0], -s.tome[1]] : s.tome);
+    w.tomes.push({ name: d.vial, insight: 0, vial: true, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
   }
   const spread = r.size === 3 ? 6 : 2.5;
   (d.boss ?? []).forEach((id, k) => {

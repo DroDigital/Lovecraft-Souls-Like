@@ -17,7 +17,7 @@ describe('the death and Echo loop in the open world', () => {
     rest(g, 'arkham_streets');
     run(g, 1);
 
-    const [id, foe] = [...g.overworld!.alive].find(([k, e]) => k.startsWith('w:') && !isAbsent(g, e))!;
+    const [id, foe] = [...g.overworld!.alive].find(([k, e]) => k.startsWith('p:') && !isAbsent(g, e))!;
     kill(g, foe);
     const lair = worldLayout().spawns.find((s) => s.id === 'boss:black_man')!;
     goTo(g, lair.at.x + 6, lair.at.z);

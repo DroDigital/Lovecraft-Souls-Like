@@ -45,7 +45,7 @@ describe('population', () => {
 
   it('the killed stay dead until a rest; a boss stays slain', () => {
     const g = game();
-    const [id, foe] = [...g.overworld!.alive].find(([k, e]) => k.startsWith('w:') && !isAbsent(g, e))!;
+    const [id, foe] = [...g.overworld!.alive].find(([k, e]) => k.startsWith('p:') && !isAbsent(g, e))!;
     kill(g, foe);
     expect(creatureOf(g, id)).toBeUndefined();
     expect(g.overworld!.killed.has(id)).toBe(true);

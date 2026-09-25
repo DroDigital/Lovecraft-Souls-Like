@@ -139,6 +139,7 @@ export interface Phantom {
 export interface Tome {
   name: string;
   insight: number;
+  vial?: boolean; // a Silver Vial: one more dose of West's Reagent
 }
 
 /** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */

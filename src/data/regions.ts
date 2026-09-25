@@ -1,13 +1,16 @@
 /**
  * The regions of spec §3D: the hub, open regions and the realms beyond, each with its legacy
- * dungeon and boss(es). A region is a rectangle of 256 m tiles on the world map with a biome (its
+ * dungeon and boss(es). A region is a rectangle of 512 m tiles on the world map with a biome (its
  * seeded heightfield, ground, props) and a spawn table. The waking world is one landmass around the
  * hub; every realm beyond is an island of its own, reached through a gate (sites.ts).
  */
 
 import type { Vec3 } from './tuning';
 
-export const PROP_KINDS = ['tree', 'rock', 'pillar', 'monolith', 'grave', 'ruin'] as const;
+/** Every prop the world stands up; biomes scatter the first six, region plans place the rest (world/features.ts). */
+export const PROP_KINDS = [
+  'tree', 'rock', 'pillar', 'monolith', 'grave', 'ruin', 'pine', 'cross', 'obelisk', 'house', 'wall', 'fence', 'lamp', 'log', 'firepit', 'bush', 'stump', 'altar',
+] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
 
 /** Ground textures a biome may use (a subset of render/textures.ts's kinds). */

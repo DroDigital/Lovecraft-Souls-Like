@@ -60,8 +60,8 @@ export const LIGHT = {
   dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use); the ?look test's light
   color: [0.7, 0.68, 0.63] as Vec3,
   ambient: [0.19, 0.19, 0.21] as Vec3,
-  nightAmbient: [0.018, 0.024, 0.022] as Vec3, // the arena at night: a faint cold ambient...
-  nightMoon: [0.2, 0.24, 0.26] as Vec3, // ...a very dim cold moon, so architecture beyond the lantern reads as faint shapes...
+  nightAmbient: [0.03, 0.036, 0.034] as Vec3, // night: a faint cold ambient...
+  nightMoon: [0.3, 0.34, 0.37] as Vec3, // ...a dim cold moon, so houses, trees and stones beyond the lantern read as shapes...
   nightMoonDir: [-0.7, 0.35, 0.45] as Vec3, // ...low in the sky, so it finds walls and pillars more than the floor
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
@@ -215,7 +215,7 @@ export const FEEDBACK = {
 export const WORLD = {
   seed: 1926,
   chunk: 64, // streaming grid
-  regionChunks: 4, // a region tile is 4 × 4 chunks
+  regionChunks: 8, // a region tile is 8 × 8 chunks (512 m)
   load: 2, // chunks within this Chebyshev radius of the player's are loaded (5 × 5)...
   keep: 3, // ...and unloaded beyond this one (7 × 7)
   sliceMs: 2, // chunk generation budget per rendered frame

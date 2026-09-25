@@ -17,7 +17,7 @@ import { setSanity } from './sanity';
 import { spawnDrop } from './spawn';
 
 export const SAVE_KEY = 'lovecraft-souls-like/save';
-const VERSION = 1;
+const VERSION = 2; // 2: the world doubled in size (playtest round 1), so a version 1 position means nothing now
 
 export interface SaveData {
   version: typeof VERSION;

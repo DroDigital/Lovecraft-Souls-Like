@@ -46,7 +46,7 @@ export const SETTINGS = {
 /** Consumables: Laudanum steadies the mind (tuning.ts), West's Reagent closes wounds. */
 export const REAGENT = {
   doses: 4, // at the start; each Silver Vial found adds one
-  maxDoses: 9,
+  maxDoses: 14, // the start's four and the ten vials hidden in the lesser dungeons
   heal: 0.45, // share of full health restored
 };
 

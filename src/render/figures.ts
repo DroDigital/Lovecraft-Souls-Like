@@ -164,6 +164,16 @@ function tome(): Figure {
   return f;
 }
 
+/** A Silver Vial on a stone plinth: a flask of West's Reagent glowing Void Green, so it reads in the dark. */
+function vial(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const stone = shade(BASE.seaGrey, 1.5);
+  part(f, f.body, mergeGeometries([box(0.4, 0.8, 0.4, 0, 0.4, 0, stone), box(0.52, 0.08, 0.52, 0, 0.84, 0, stone)]), 'stone');
+  const glass = ANOMALY.green;
+  part(f, f.body, mergeGeometries([cylinder(0.07, 0.09, 0.2, 1.0, glass), cylinder(0.025, 0.03, 0.1, 1.15, shade(BASE.bone, 1.2))]), 'cloth', 0.95);
+  return f;
+}
+
 /** An Elder Sign (spec §3D): the carved slab, its glyph glowing faintly so it reads in the dark. */
 function elderSign(): Figure {
   const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
@@ -183,7 +193,7 @@ function gate(): Figure {
   return f;
 }
 
-const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, elderSign, gate };
+const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate };
 
 export function buildFigure(model: string): Figure {
   return (BUILDERS[model] ?? dummy)();

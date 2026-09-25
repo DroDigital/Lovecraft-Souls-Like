@@ -18,7 +18,7 @@ describe('the dungeon kit', () => {
     const [parlour, stair, landing] = ['parlour', 'stair', 'landing'].map((id) => room(d, id));
     expect(parlour.x - room(d, 'hallway').x).toBe(-DUNGEON.cell); // west of the entrance
     expect(stair.z - parlour.z).toBe(DUNGEON.cell);
-    expect(landing.level - parlour.level).toBe(4);
+    expect(landing.level - parlour.level).toBeCloseTo(4, 6);
     const [x0, x1] = [stair.z - stair.half + 0.01, stair.z + stair.half - 0.01];
     expect(floorAt(stair, stair.x, x0)).toBeCloseTo(parlour.level, 1);
     expect(floorAt(stair, stair.x, (x0 + x1) / 2)).toBeCloseTo(parlour.level + 2, 1);
