@@ -14,6 +14,12 @@ import { createWorldMaterial } from '../render/worldMaterial';
 export const STAIR = { run: 0.9, rise: 0.35, width: 5.6, wall: 2.8, period: 8, from: -8, to: 72 };
 
 const WEAR = [0.92, 0.84, 0.9, 0.8, 0.95, 0.86, 0.82, 0.9]; // each tread's tone within the eight-step repeat
+/**
+ * The pale nosing's depth. It sits flush in front of its tread, sharing the tread's corners: laid over
+ * the tread's top instead, the two coplanar faces fought for the same pixels once vertex snapping had
+ * moved their different corners apart, and the step edges flickered (playtest round 6).
+ */
+const NOSE = 0.12;
 
 const stepOf = (z: number): number => Math.max(STAIR.from, Math.floor(-z / STAIR.run));
 /** The height of the tread under z. */
@@ -31,8 +37,9 @@ export function titleStair(): THREE.Group {
   for (let n = STAIR.from; n < STAIR.to; n++) {
     const k = ((n % STAIR.period) + STAIR.period) % STAIR.period;
     const [top, z, deep] = [-n * rise, -(n + 0.5) * run, rise + 0.8];
-    treads.push(tileUv(box(width, deep, run, 0, top - deep / 2, z, grey(WEAR[k] * (n % 2 ? 0.86 : 1))), width, run));
-    treads.push(tileUv(box(width, 0.07, 0.12, 0, top - 0.035, -(n + 1) * run + 0.04, grey(1.15)), width, 0.12)); // a worn pale nosing, so each step's edge reads
+    const edge = -(n + 1) * run; // the step's front edge
+    treads.push(tileUv(box(width, deep, run - NOSE, 0, top - deep / 2, z + NOSE / 2, grey(WEAR[k] * (n % 2 ? 0.86 : 1))), width, run - NOSE));
+    treads.push(tileUv(box(width, deep, NOSE, 0, top - deep / 2, edge + NOSE / 2, grey(1.15)), width, NOSE)); // a worn pale nosing, so each step's edge reads
     for (const side of [-1, 1]) {
       const h = side < 0 && k === 5 ? 1.2 : wall; // a broken stretch of the left wall
       walls.push(tileUv(box(0.9, h + deep, run, side * (width / 2 + 0.45), top + (h - deep) / 2, z, grey(0.75 + 0.1 * WEAR[(k + 3) % 8])), run, h + deep));
