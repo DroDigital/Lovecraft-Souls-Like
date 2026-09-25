@@ -26,6 +26,7 @@ export interface GameEvents {
   Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost'; amount: number; total: number };
   LockChanged: { target: Entity | null };
   SanityBandChanged: { from: Band; to: Band; sanity: number };
+  SanityLost: { amount: number; sanity: number }; // a loss of at least SANITY.jolt at once (a blow, a sight, a burst), not a slow drain
   InsightChanged: { insight: number; change: number; cause: 'sight' | 'tome' | 'upgrade' | 'debug' | 'load' | 'quest'; source: string };
   FirstSight: { entity: Entity; name: string; sanity: number; insight: number }; // sanity lost, insight gained
   Discovered: { sign: string; name: string }; // an Elder Sign found

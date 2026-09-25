@@ -59,6 +59,13 @@ export const HURT = {
   chipRate: 45, // percent of the bar per second
 };
 
+/** How a loss of sanity reads on its bar (ui/mindHud.ts), as a wound does on health's. */
+export const MIND_HUD = {
+  chipDelay: 0.9, // seconds before the lost sanity drains away from the bar
+  chipRate: 30, // percent of the bar per second
+  joltSeconds: 0.6, // a sudden loss (SANITY.jolt) shakes the bar and lights its frame this long
+};
+
 /** Health bars over ordinary foes (bosses keep theirs at the bottom of the screen). */
 export const FOE_BARS = {
   max: 8, // at once, nearest first

@@ -2,7 +2,8 @@
  * Sanity (spec §3A): 0–100 in four bands with 3-point hysteresis. Auras drain it by distance,
  * landed blows and roar/gaze moves take chunks (first sight is in insight.ts), respawning at the
  * Elder Sign and Laudanum restore it, and the band scales the damage the investigator deals and
- * takes. A band change is announced as `SanityBandChanged`, which the world hooks listen to. Pure.
+ * takes. A band change is announced as `SanityBandChanged`, which the world hooks listen to, and a
+ * sudden loss as `SanityLost`, which the HUD and the audio answer. Pure.
  */
 
 import type { Entity } from '../core/ecs';
@@ -49,11 +50,14 @@ export function setSanity(g: Pick<Game, 'mind' | 'events'>, value: number): void
   g.events.emit('SanityBandChanged', { from, to, sanity: m.sanity });
 }
 
-/** Takes sanity; each level of the Resolve upgrade lessens every loss. */
+/** Takes sanity; each level of the Resolve upgrade lessens every loss. A loss of SANITY.jolt or more at once is announced. */
 export function loseSanity(g: Pick<Game, 'mind' | 'events'>, amount: number): void {
   if (amount <= 0) return;
   const resist = g.mind.upgrades.resolve * (UPGRADES.resolve.resist ?? 0);
-  setSanity(g, g.mind.sanity - amount * (1 - resist));
+  const before = g.mind.sanity;
+  setSanity(g, before - amount * (1 - resist));
+  const lost = before - g.mind.sanity;
+  if (lost >= SANITY.jolt) g.events.emit('SanityLost', { amount: lost, sanity: g.mind.sanity });
 }
 
 export const restoreSanity = (g: Pick<Game, 'mind' | 'events'>, amount: number): void => setSanity(g, g.mind.sanity + amount);

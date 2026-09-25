@@ -128,6 +128,7 @@ export const SANITY = {
   max: 100,
   bands: [70, 40, 15], // floors of Lucid, Uneasy, Fractured; below the last is Unmoored
   hysteresis: 3, // a band falls at its floor but climbs back only this many points past it
+  jolt: 1.5, // a loss this large at once is felt: announced as SanityLost, so the bar jolts and it is heard
   auraNear: 3, // metres beyond a creature's body where its aura is at full strength...
   auraFar: 12, // ...fading to nothing here
   sightRange: 30, // metres: first sight needs a creature this close, in line of sight...

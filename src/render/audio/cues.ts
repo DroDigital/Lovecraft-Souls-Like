@@ -46,6 +46,7 @@ export const CUES: Handlers = {
   Echoes: (e) => (e.change === 'recovered' ? inside('echoes') : null),
   LockChanged: (e) => (e.target !== null ? inside('lock') : null),
   SanityBandChanged: (e) => inside(bandIndex(e.to) > bandIndex(e.from) ? 'worse' : 'better'),
+  SanityLost: (e) => ({ sound: 'slip', at: null, gain: Math.min(1, 0.45 + e.amount / 20) }),
   InsightChanged: (e) => (e.change > 0 && e.cause !== 'load' && e.cause !== 'debug' ? inside('insight') : null),
   FirstSight: (e) => (e.sanity > 0 ? { sound: 'sight', at: null, pitch: Math.max(0.5, 1.1 - e.sanity / 40) } : null), // the greater the horror, the lower
   Discovered: () => inside('found'),
