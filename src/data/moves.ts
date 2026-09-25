@@ -112,6 +112,7 @@ export interface MoveDef {
   cancel?: number; // from this frame a buffered action may cut the recovery short
   release?: number; // from this frame the investigator's move input ends it: they walk or run straight out of it
   rest?: number; // frames after it ends before it may start again (so it cannot be chained into itself)
+  walk?: number; // share of the walking pace kept through it (a swallow, a shot of Reagent): the investigator walks on, slowly
   combo?: { light?: string; heavy?: string }; // chain: the next move for each attack button
   iframes?: Window; // invulnerable
   parry?: Window; // frontal melee hits are parried
@@ -154,6 +155,7 @@ const slash = (arc: readonly [number, number], light: string, anim: SwingAnim): 
   anim,
   stamina: 14,
   cancel: 20,
+  release: 22,
   combo: { light, heavy: 'heavy1' },
   track: { window: [0, 8], rate: 8 },
   motion: { window: [2, 12], distance: 0.5, dir: 'facing' },
@@ -165,6 +167,7 @@ const cleave = (arc: readonly [number, number], heavy: string, damage: number, w
   anim,
   stamina: 26,
   cancel: windup + 16,
+  release: windup + 18,
   combo: { light: 'light1', heavy },
   track: { window: [0, windup - 6], rate: 5 },
   motion: { window: [windup - 10, windup + 2], distance: 0.8, dir: 'facing' },
@@ -191,6 +194,7 @@ export const PLAYER_MOVES = {
     anim: 'thrust',
     stamina: 18,
     cancel: 30,
+    release: 32,
     combo: { light: 'light1', heavy: 'heavy1' },
     track: { window: [0, 12], rate: 6 },
     motion: { window: [6, 16], distance: 0.9, dir: 'facing' },
@@ -205,11 +209,12 @@ export const PLAYER_MOVES = {
     frames: 28,
     stamina: 8,
     cancel: 18,
+    release: 20,
     track: { window: [0, 6], rate: 10 },
     shot: { frame: 7, damage: 7, poise: 4, range: 22, hitstop: 2 },
   },
-  drink: { frames: 60, cancel: 48, item: 34, use: 'laudanum' },
-  inject: { frames: 64, cancel: 50, item: 36, use: 'reagent' },
+  drink: { frames: 60, cancel: 48, release: 44, item: 34, use: 'laudanum', walk: 0.4 }, // walking on slowly as they drink (playtest round 7)
+  inject: { frames: 64, cancel: 50, release: 46, item: 36, use: 'reagent', walk: 0.4 },
   scatter: { frames: 30, cancel: 22 }, // a boss fight's E actions (spec §3E): the Powder of Ibn Ghazi...
   kindle: { frames: 40, cancel: 30 }, // ...relighting a lamp...
   chant: { frames: 180 }, // ...and the incantation, which works only if it is chanted to its end

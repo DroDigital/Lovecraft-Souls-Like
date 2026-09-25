@@ -8,7 +8,7 @@
 
 import type { Entity } from '../core/ecs';
 import { distXZ } from '../core/geom';
-import { LAUDANUM, SANITY, UPGRADES } from '../data/tuning';
+import { LAUDANUM, SANITY, SIM, UPGRADES } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
 import { BANDS, isAbsent, type Band, type Game, type Mind } from './components';
@@ -93,12 +93,19 @@ function drain(g: Game, dt: number): number {
   return loss;
 }
 
-/** One step: drains, and a swallow of Laudanum on its move's `item` frame. */
+/**
+ * One step: drains, and a swallow of Laudanum on its move's `item` frame. The swallow also steadies
+ * the mind for LAUDANUM.steady seconds: auras, roars and gazes take nothing while it holds (playtest
+ * round 7: a dose should stop the drain, not only refill what it took).
+ */
 export function sanitySystem(g: Game, dt: number): void {
-  loseSanity(g, drain(g, dt));
+  if (g.player.steady > 0) g.player.steady--;
+  else loseSanity(g, drain(g, dt));
   const a = g.ecs.c.actor.get(g.player.id)!;
   const def = moveDef(a);
-  if (!a.frozen && a.frame === def?.item && def.use !== 'reagent') restoreSanity(g, LAUDANUM.sanity);
+  if (a.frozen || a.frame !== def?.item || def.use === 'reagent') return;
+  restoreSanity(g, LAUDANUM.sanity);
+  g.player.steady = Math.round(LAUDANUM.steady * SIM.hz);
 }
 
 /** Subscribes the event-driven rules: landed blows take the attacker's sanityDamage; respawning restores sanity and Laudanum. */

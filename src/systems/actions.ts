@@ -3,16 +3,19 @@
  * player's buffered action, consumed at the end of recovery or at a cancel window. Raising the guard
  * (block pressed, or a parry) calls off the investigator's attack while it winds up or recovers,
  * though not while the blow is landing; a blow struck with the guard already up plays out. Moving
- * walks the investigator out of a dodge's recovery (its `release` frame), and a move that must `rest`
- * cannot be chained into itself (the backstep). The item action swallows a dose of Laudanum (its sanity returns on the move's `item` frame, sanity.ts).
+ * walks the investigator out of a move's late recovery (its `release` frame: a dodge, a blow, a
+ * swallow), and a move that must `rest` cannot be chained into itself (the backstep). A dodge may cut
+ * a blow short soon after it lands; without a lock a blow or a shot turns to a foe just off its line
+ * (playtest round 7). The item action swallows a dose of Laudanum (its sanity returns on the move's `item` frame, sanity.ts).
  */
 
-import { yawOf } from '../core/geom';
+import { wrapAngle, yawOf, type V3 } from '../core/geom';
 import type { MoveDef, MoveSet, Window } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { isAbsent, type Actor, type Game } from './components';
 import { ageBuffer, takeBuffered, type ActionId } from './inputBuffer';
 import { canAfford, spend } from './stamina';
+import { targetsOf } from './targets';
 
 export const inWindow = (w: Window | undefined, frame: number): boolean =>
   w !== undefined && frame >= w[0] && frame < w[1];
@@ -23,11 +26,33 @@ export function createActor(moves: MoveSet): Actor {
   return { moves, move: null, frame: 0, hitstop: 0, frozen: false, hits: new Set(), dir: { x: 0, z: 1 }, last: null, idle: 0, guard: false };
 }
 
-/** Free, or inside the current move's cancel window. */
-export function canAct(a: Actor): boolean {
+/**
+ * Free, or inside the current move's cancel window; a dodge may also cut short a blow's recovery a
+ * few frames after it has landed (COMBAT.evadeAfter), before the cancel window opens for the rest.
+ */
+export function canAct(a: Actor, action: ActionId | null = null): boolean {
   if (a.move === null) return true;
-  const cancel = moveDef(a)?.cancel;
-  return cancel !== undefined && a.frame >= cancel;
+  const def = moveDef(a);
+  const cancel = def?.cancel;
+  if (cancel === undefined) return false;
+  if (a.frame >= cancel) return true;
+  const landed = def?.hit ? def.hit.window[1] : def?.shot ? def.shot.frame + 1 : undefined;
+  return action === 'dodge' && landed !== undefined && a.frame >= landed + COMBAT.evadeAfter;
+}
+
+/** Without a lock, the foe a blow or a shot turns to: the nearest within COMBAT.assist of `yaw` (a longer reach for a shot). */
+export function assistTarget(g: Game, from: V3, yaw: number, shot: boolean): V3 | undefined {
+  const [range, arc] = shot ? [COMBAT.assist.range * 3, COMBAT.assist.arcDeg / 3] : [COMBAT.assist.range, COMBAT.assist.arcDeg];
+  let best: V3 | undefined;
+  let bestD = Infinity;
+  for (const t of targetsOf(g, g.player.id)) {
+    const p = g.ecs.c.transform.get(t)!.pos;
+    const d = Math.hypot(p.x - from.x, p.z - from.z) - (g.ecs.c.body.get(t)?.radius ?? 0);
+    if (d > range || d >= bestD) continue;
+    if (Math.abs(wrapAngle(yawOf(p.x - from.x, p.z - from.z) - yaw)) > (arc * Math.PI) / 180) continue;
+    [best, bestD] = [p, d];
+  }
+  return best;
 }
 
 export function startMove(a: Actor, id: string): void {
@@ -122,7 +147,10 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   if (move === 'backstep') return;
   if (move === 'roll') {
     if (!target) tr.yaw = yawOf(a.dir.x, a.dir.z);
-  } else if (target) tr.yaw = yawOf(target.x - tr.pos.x, target.z - tr.pos.z);
+    return;
+  }
+  const aim = target ?? (def.hit || def.shot ? assistTarget(g, tr.pos, moving ? yawOf(m.vx, m.vz) : tr.yaw, !!def.shot) : undefined); // without a lock, to a foe just off the line
+  if (aim) tr.yaw = yawOf(aim.x - tr.pos.x, aim.z - tr.pos.z);
   else if (moving) tr.yaw = yawOf(m.vx, m.vz);
 }
 
@@ -135,7 +163,7 @@ export function actionSystem(g: Game): void {
   if (!a.frozen && guardCancels(a) && (p.blockRaised || parrying)) callOff(a); // raising the guard cuts an attack short
   const release = moveDef(a)?.release;
   if (!a.frozen && release !== undefined && a.frame >= release && walking(g)) finish(a); // walked out of a dodge's recovery
-  if (!a.frozen && canAct(a)) {
+  if (!a.frozen && canAct(a, p.buffer.action)) {
     const action = takeBuffered(p.buffer);
     if (action) startAction(g, a, action);
   }

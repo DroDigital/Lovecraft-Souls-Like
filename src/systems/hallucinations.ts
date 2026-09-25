@@ -71,6 +71,6 @@ export function registerHallucinations(g: Game): void {
   g.events.on('Hit', ({ attacker, target, outcome }) => {
     const { phantom } = g.ecs.c;
     if (phantom.has(target) && outcome !== 'dodged') vanish(g, target, true);
-    else if (phantom.has(attacker) && target === g.player.id && LANDED.has(outcome)) loseSanity(g, HALLUCINATIONS.sanity);
+    else if (phantom.has(attacker) && target === g.player.id && LANDED.has(outcome) && g.player.steady <= 0) loseSanity(g, HALLUCINATIONS.sanity);
   });
 }

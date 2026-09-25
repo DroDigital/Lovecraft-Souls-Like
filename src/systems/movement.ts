@@ -1,6 +1,7 @@
 /**
  * Kinematic capsule movement (spec §1, §3B): free locomotion from Mover intent, root motion and
- * tracking of moves, shoves (wind), heightfield ground, collider push-out and body separation. A
+ * tracking of moves (and a slow walk through those that allow one: a swallow, a shot of Reagent),
+ * shoves (wind), heightfield ground, collider push-out and body separation. A
  * boss's flood (spec §3E) slows the investigator. No physics engine.
  */
 
@@ -34,6 +35,11 @@ export function movementSystem(g: Game, dt: number): void {
       }
       const tk = def.track;
       if (tk && m?.face != null && inWindow(tk.window, a.frame)) tr.yaw = turnToward(tr.yaw, m.face, tk.rate * dt);
+      if (def.walk && m) { // walking on, slowly (a swallow, a shot of Reagent)
+        tr.pos.x += m.vx * dt * k * def.walk;
+        tr.pos.z += m.vz * dt * k * def.walk;
+        if (m.face !== null && !tk) tr.yaw = turnToward(tr.yaw, m.face, m.turnRate * dt);
+      }
     } else if (m) {
       tr.pos.x += m.vx * dt * k;
       tr.pos.z += m.vz * dt * k;

@@ -134,6 +134,7 @@ export const REAGENT = {
   doses: 4, // at the start; each Silver Vial found adds one
   maxDoses: 14, // the start's four and the ten vials hidden in the lesser dungeons
   heal: 0.45, // share of full health restored
+  mend: 8, // seconds after a shot in which lingering hurts (pools, the void) do no harm (playtest round 7)
 };
 
 /** How a blow taken reads without making the investigator blink: a red edge from the blow's side, a shake, a health bar that drains behind. */

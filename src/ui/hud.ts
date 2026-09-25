@@ -15,7 +15,7 @@ import { fightAction } from '../systems/fightActions';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
-import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
+import { bar, BONE, el, percent, RUST, SEA, setStyle, setText, MENDED } from './hudKit';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
 import { createHints } from './hints';
@@ -126,7 +126,10 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setStyle(chip, 'width', `${chipPct.toFixed(1)}%`);
       setStyle(stamina, 'width', percent(s.value, s.max));
       mind.update(now0);
-      setText(reagent, `REAGENT ×${g.player.reagent}`);
+      const mended = g.player.mended > 0; // a shot of Reagent holding the wounds closed
+      setText(reagent, `REAGENT ×${g.player.reagent}${mended ? '  ·  MENDED' : ''}`);
+      const glow = mended ? `0 0 6px ${MENDED}` : '';
+      if (hp.parentElement!.style.boxShadow !== glow) Object.assign(hp.parentElement!.style, { boxShadow: glow, borderColor: mended ? MENDED : `${BONE}55` });
       setText(insight, `INSIGHT ${g.mind.insight}`);
       const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
       setText(echoes, `ECHOES ${g.player.echoes}${ready ? '  ▲' : ''}`);

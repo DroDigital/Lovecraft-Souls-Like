@@ -225,6 +225,8 @@ export interface Pilot {
   laudanum: number; // doses left
   reagent: number; // West's Reagent: doses left...
   reagentMax: number; // ...and the most it holds (Silver Vials add to it)
+  steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
+  mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
 }
 
 /** The investigator's mind (spec §3A). */

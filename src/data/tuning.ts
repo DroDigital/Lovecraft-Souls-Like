@@ -114,8 +114,10 @@ export const STAMINA = {
 };
 
 export const COMBAT = {
-  bufferMs: 150, // input buffer window: one queued action
+  bufferMs: 250, // input buffer window: one queued action (was 150: a press early in a swing was gone before it could cut in; playtest round 7)
   comboGrace: 8, // frames after an attack ends in which the next press still continues its chain
+  evadeAfter: 3, // frames after a blow lands (or a shot leaves) from which a dodge may cut the rest short (before its cancel frame)
+  assist: { range: 3.6, arcDeg: 70 }, // without a lock, a blow or a shot turns to the nearest foe this close and this far off its line
   guardArcDeg: 180, // block and parry stop hits from anywhere in front (was 120: blows from the flank went through; playtest round 7)
   riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe
   poiseReset: 120, // frames without poise damage before poise refills
@@ -143,6 +145,7 @@ export const SANITY = {
 export const LAUDANUM = {
   doses: 3,
   sanity: 30, // restored per dose
+  steady: 10, // seconds after a swallow in which auras, roars, gazes and the void take no sanity (playtest round 7)
 };
 
 /** Insight upgrades (spec §3A): insight per level, the most levels, and what each level adds. The body's strength is bought with Echoes (LEVELS). */

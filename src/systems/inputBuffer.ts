@@ -1,5 +1,5 @@
 /**
- * Input buffer (spec §3B): one queued action with a 150 ms window. A newer press replaces the
+ * Input buffer (spec §3B): one queued action with a 250 ms window (150 ms until playtest round 7). A newer press replaces the
  * queued one; the actions system consumes it at the end of recovery or at a cancel window.
  */
 
@@ -12,7 +12,7 @@ export interface InputBuffer {
   age: number; // frames since the press
 }
 
-/** The window in sim frames: 150 ms at 60 Hz = 9. */
+/** The window in sim frames: 250 ms at 60 Hz = 15. */
 export const BUFFER_FRAMES = Math.round((COMBAT.bufferMs / 1000) * SIM.hz);
 
 export const createBuffer = (): InputBuffer => ({ action: null, age: 0 });
