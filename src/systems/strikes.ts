@@ -43,9 +43,10 @@ function mark(g: Game, id: Entity, m: MarksDef): void {
     const a = turn + ((i - 1) / Math.max(1, m.count - 1)) * Math.PI * 2;
     const d = m.ring[0] + (m.ring[1] - m.ring[0]) * g.rng();
     const spot = i === 0 ? centre : { x: centre.x + Math.sin(a) * d, z: centre.z + Math.cos(a) * d };
-    const { e } = spawnAt(g, groundNear(g, spot, [0, 0], 0.3, arena));
+    const { e, pos } = spawnAt(g, groundNear(g, spot, [0, 0], 0.3, arena));
     const delay = m.delay + i * m.stagger;
     c.mark.set(e, { owner: id, faction, radius: m.radius, delay, total: delay, damage: m.damage, poise: m.poise });
+    if (i === 0) g.events.emit('Marked', { at: { ...pos }, by: id });
   }
 }
 
@@ -146,7 +147,10 @@ export function strikeSystem(g: Game): void {
     if (!def || a.frozen || isAbsent(g, id)) continue;
     if (def.marks && a.frame === def.marks.frame) mark(g, id, def.marks);
     if (def.wave && a.frame === def.wave.frame) quake(g, id, def.wave);
-    if (def.sweep && inWindow(def.sweep.window, a.frame)) sweep(g, id, a, def.sweep);
+    if (def.sweep && inWindow(def.sweep.window, a.frame)) {
+      if (a.frame === def.sweep.window[0]) g.events.emit('Swept', { by: id });
+      sweep(g, id, a, def.sweep);
+    }
     const b = def.barrage;
     if (b && inWindow(b.window, a.frame) && (a.frame - b.window[0]) % b.every === 0) barrage(g, id, a, b);
     if (def.pull && inWindow(def.pull.window, a.frame)) pull(g, id, def.pull);

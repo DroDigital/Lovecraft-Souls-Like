@@ -19,6 +19,7 @@ import { createFoeBars } from './foeBars';
 import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
+import { createHints } from './hints';
 import { createMinimap } from './minimap';
 
 const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
@@ -42,6 +43,7 @@ export interface Hud {
 export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter): Hud {
   const root = el(`position:fixed;inset:0;pointer-events:none;font:12px/1.4 monospace;color:${BONE};z-index:1`);
   const minimap = createMinimap(g, root, painter);
+  const hints = createHints(g, root);
   const vitals = el('position:absolute;left:16px;bottom:16px;width:240px', '', root);
   const hp = bar(vitals, RUST);
   const chip = el(`position:absolute;left:0;top:0;height:100%;width:100%;background:${BONE}aa`, '', hp.parentElement!);
@@ -113,6 +115,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   return {
     update(camera) {
       minimap.update();
+      if (!menuOpen()) hints.update();
       const busy = menuOpen() ? 'hidden' : 'visible'; // a dialogue or menu has the screen
       setStyle(prompt, 'visibility', busy);
       setStyle(notice, 'visibility', busy);

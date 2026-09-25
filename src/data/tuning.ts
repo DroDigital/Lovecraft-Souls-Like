@@ -27,7 +27,7 @@ export const FX = {
   affine: [1, 2.5] as Ramp, // 1 = PS1 affine mapping; >1 exaggerates the wobble
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,
-  fogColor: [0.03, 0.04, 0.037] as Vec3, // cold grey-green, near black
+  fogColor: [0.058, 0.07, 0.068] as Vec3, // cold grey-green, near black, but a shade above the unlit sides of things, so they stand out against it as shapes
   desaturate: [0.85, 1] as Ramp, // toward bone/sepia
   anomalyStress: [0, 0.7] as Ramp, // added to anomalyProximity when boosting anomaly hues
   hueWidth: 0.1, // anomaly hue window, in 0..1 hue units
@@ -60,8 +60,8 @@ export const LIGHT = {
   dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use); the ?look test's light
   color: [0.7, 0.68, 0.63] as Vec3,
   ambient: [0.19, 0.19, 0.21] as Vec3,
-  nightAmbient: [0.03, 0.036, 0.034] as Vec3, // night: a faint cold ambient...
-  nightMoon: [0.3, 0.34, 0.37] as Vec3, // ...a dim cold moon, so houses, trees and stones beyond the lantern read as shapes...
+  nightAmbient: [0.034, 0.041, 0.04] as Vec3, // night: a faint cold ambient...
+  nightMoon: [0.38, 0.43, 0.47] as Vec3, // ...a dim cold moon, so houses, trees and stones beyond the lantern read as shapes...
   nightMoonDir: [-0.7, 0.35, 0.45] as Vec3, // ...low in the sky, so it finds walls and pillars more than the floor
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
