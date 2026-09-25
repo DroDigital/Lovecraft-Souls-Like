@@ -1,7 +1,7 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
  * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
- * health, levels, the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
+ * health, levels, arms, the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
  * quests and the people met, and the wounds of foes still standing. Parsing checks every
  * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
  */
@@ -18,6 +18,8 @@ import { packExplored, unpackExplored } from './exploration';
 import { woundsNow } from './overworld';
 import { changeInsight } from './insight';
 import { applyLevels, laudanumMax, LEVEL_IDS } from './levels';
+import { equip } from './arms';
+import { isWeapon, type WeaponId } from '../data/weapons';
 import { setSanity } from './sanity';
 import { spawnDrop } from './spawn';
 
@@ -38,6 +40,8 @@ export interface SaveData {
   insight: number;
   upgrades: Partial<Record<UpgradeId | 'vigour' | 'endurance', number>>; // before levels, Vigour and Endurance were bought with insight
   levels?: Record<LevelId, number>; // bought with Echoes (playtest round 4)
+  arms?: string[]; // the weapons owned...
+  weapon?: string; // ...and the one in hand
   seen: string[];
   laudanum: number;
   reagent?: number; // West's Reagent: doses left and the most it holds
@@ -79,6 +83,8 @@ export function snapshot(g: Game): SaveData {
     insight: g.mind.insight,
     upgrades: { ...g.mind.upgrades },
     levels: { ...g.player.levels },
+    arms: [...g.player.arms],
+    weapon: g.player.weapon,
     seen: [...g.mind.seen],
     laudanum: g.player.laudanum,
     reagent: g.player.reagent,
@@ -116,6 +122,7 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.explored !== undefined && (typeof o.explored !== 'object' || o.explored === null)) return null;
   if (o.quests !== undefined && (typeof o.quests !== 'object' || o.quests === null || !Object.values(o.quests).every(isNum))) return null;
   if (o.met !== undefined && !isStrings(o.met)) return null;
+  if ((o.arms !== undefined && !isStrings(o.arms)) || (o.weapon !== undefined && typeof o.weapon !== 'string')) return null;
   if (o.wounds !== undefined && (typeof o.wounds !== 'object' || o.wounds === null || !Object.values(o.wounds).every(isNum))) return null;
   return o as unknown as SaveData;
 }
@@ -144,6 +151,8 @@ export function applySave(g: Game, s: SaveData): void {
   const was = s.levels ?? { vigour: ((s.upgrades.vigour ?? 0) * 20) / LEVELS.vigour.hp!, endurance: ((s.upgrades.endurance ?? 0) * 15) / LEVELS.endurance.stamina!, might: 0 }; // an older save's insight upgrades (20 health, 15 stamina a level) as the levels nearest them
   for (const k of LEVEL_IDS) g.player.levels[k] = clampInt(was[k] ?? 0, 0, LEVELS[k].max);
   applyLevels(g);
+  g.player.arms = ['cane', ...new Set((s.arms ?? []).filter((id): id is WeaponId => isWeapon(id) && id !== 'cane'))];
+  if (!equip(g, s.weapon ?? 'cane')) equip(g, 'cane');
   const h = c.health.get(g.player.id)!;
   h.hp = Math.min(h.max, Math.max(1, s.hp));
   const st = c.stamina.get(g.player.id)!;

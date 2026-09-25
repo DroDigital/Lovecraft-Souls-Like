@@ -55,6 +55,7 @@ import { createPauseMenu } from './ui/pauseMenu';
 import { createDialogue } from './ui/dialogue';
 import { showIntro, type Intro } from './ui/intro';
 import { journalPage } from './ui/journal';
+import { armsPage } from './ui/armsPage';
 import { createJourneys } from './ui/journeys';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
@@ -112,6 +113,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
     resume: capture,
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
+    arms: (back, show) => armsPage(game, back, show),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
   });
   if (store) startAutosave(game, store);

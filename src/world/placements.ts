@@ -10,6 +10,7 @@ import type { XZ } from '../core/geom';
 import { hash2 } from '../core/rng';
 import type { HiddenPieceDef, Place } from '../data/arena';
 import { DUNGEONS, type Dir } from '../data/dungeons';
+import { isWeapon, WEAPONS } from '../data/weapons';
 import { REGIONS, type RegionDef } from '../data/regions';
 import { DREAM_DESCENT, SITES, type ArenaSite } from '../data/sites';
 import { DUNGEON, WORLD } from '../data/tuning';
@@ -50,6 +51,7 @@ export interface TomePlace {
   vial?: boolean; // a Silver Vial, not a tome
   note?: boolean; // a letter, clipping or report (documents.ts)
   echoes?: number; // an Echo cache, not a tome (caches.ts)
+  weapon?: string; // a weapon lying where it was left (data/weapons.ts)
   region: string;
   at: Place;
 }
@@ -237,7 +239,7 @@ function arena(w: WorldLayout, region: RegionDef, p: XZ, a: ArenaSite, y: number
   });
 }
 
-/** What stands in a dungeon room: its Elder Sign, gate, tome or Echo cache, bosses, allies and spawns. */
+/** What stands in a dungeon room: its Elder Sign, gate, tome or Echo cache, a weapon, bosses, allies and spawns. */
 function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void, cache?: number): void {
   const s = roomSpots(r);
   const pt = ([u, v]: readonly [number, number]) => {
@@ -261,6 +263,10 @@ function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayo
   if (cache) {
     const p = pt(s.tome);
     w.tomes.push({ name: `Echoes: ${dungeon}/${d.id}`, insight: 0, echoes: cache, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
+  }
+  if (d.weapon && isWeapon(d.weapon)) {
+    const p = pt([s.tome[0], -s.tome[1]]);
+    w.tomes.push({ name: WEAPONS[d.weapon].name, insight: 0, weapon: d.weapon, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
   }
   if (d.vial) {
     const p = pt(d.tome ? [s.tome[0], -s.tome[1]] : s.tome);
