@@ -35,6 +35,14 @@ export const AUDIO = {
   pan: 0.8, // the widest stereo placement
 };
 
+/** Boss music (playtest round 4, render/audio/bossMusic.ts; the scores are data/music.ts). Times in seconds. */
+export const MUSIC = {
+  level: 0.45, // the music's share of the drones' bus (offline renders: it sits under the blows' stingers)
+  fadeIn: 2.5,
+  fadeOut: 3.5,
+  ahead: 0.25, // notes are scheduled this far ahead on the audio clock
+};
+
 /** The settings menu (Phase 6): [min, max, step, default]. */
 export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
