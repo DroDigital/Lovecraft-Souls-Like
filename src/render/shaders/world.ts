@@ -1,6 +1,6 @@
 /**
  * World material GLSL (spec §2): Gouraud vertex lighting (ambient, moon, glow), the player's lantern
- * per pixel with a smooth falloff, PS1 vertex snapping, affine texture wobble (uv·w passed through,
+ * and the world's nearest lamps per pixel with a smooth falloff, PS1 vertex snapping, affine texture wobble (uv·w passed through,
  * divided per fragment, held within a few texels of the true mapping), world-space texture variation (so no ground repeats), fog fading to
  * near-black, sanity-driven non-Euclidean vertex displacement, and the eldritch bodies' wrongness
  * (shaders/eldritch.ts).
@@ -27,6 +27,32 @@ float lanternFalloff(float d) {
 
 float lanternAt(vec3 toLamp) {
   return lanternFalloff(length(toLamp));
+}
+`;
+
+/**
+ * The world's lamps (playtest round 5, render/worldLights.ts): the nearest street lamps, fires,
+ * torches and lit windows as point lights, each windowed to nothing at its range like the lantern.
+ * `facing` weighs N·L (0 for characters and sprites, which take the light whole).
+ */
+export const LAMP_SLOTS = 12;
+export const LAMPS_GLSL = /* glsl */ `
+uniform vec4 uLamps[${LAMP_SLOTS}]; // position, range (0: dark)
+uniform vec3 uLampColors[${LAMP_SLOTS}]; // colour × strength
+vec3 lampLight(vec3 p, vec3 n, float facing) {
+  vec3 sum = vec3(0.0);
+  for (int i = 0; i < ${LAMP_SLOTS}; i++) {
+    vec4 l = uLamps[i];
+    if (l.w <= 0.0) continue;
+    vec3 to = l.xyz - p;
+    float d = length(to);
+    float x = clamp(d / l.w, 0.0, 1.0);
+    float x2 = x * x;
+    float win = 1.0 - x2 * x2;
+    float face = mix(1.0, max(dot(n, to / max(d, 0.001)), 0.0), facing);
+    sum += uLampColors[i] * win * win / (1.0 + uLanternDecay * d * d) * face; // the lantern's own falloff
+  }
+  return sum;
 }
 `;
 
@@ -142,6 +168,8 @@ uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uCharacter;
 uniform float uCharacterLight;
+uniform float uLanternSelf; // the investigator's share of their own lantern
+uniform float uSelfMax; // the brightest anything lights the investigator
 uniform float uLanternFacing;
 uniform float uEmissive;
 uniform float uVary; // world-space tone variation (0: none)
@@ -157,6 +185,7 @@ varying vec3 vNormal;
 varying float vFog;
 varying float vSplat;
 ${LANTERN_GLSL}
+${LAMPS_GLSL}
 ${NOISE_GLSL}
 ${ELDRITCH_FRAG}
 // Mip levels come from the true mapping's gradients (gx, gy), so none jumps along a face's diagonal.
@@ -194,12 +223,24 @@ void main() {
     tex *= 1.0 + uVary * (n - 0.5) * 0.8;
   }
   // The lantern, per pixel: a smooth pool, brightest at the investigator. Characters take a fixed
-  // share of it (no N·L, like sprites), so their values hold as they turn.
+  // share of it (no N·L, like sprites), so their values hold as they turn; the investigator takes less
+  // of their own, which hangs at their hip, and whatever lights them is held below uSelfMax, so their
+  // face never outshines the flame they carry (its own light is emissive, so never held).
   vec3 toLamp = uLanternPos - vWorld;
   float ld = length(toLamp);
-  float facing = mix(1.0, max(dot(normalize(vNormal), toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
-  vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, uCharacterLight, min(uCharacter, 1.0)) * (1.0 - uEmissive) * vTint;
-  vec3 col = eldritch(tex * (vLight + lamp));
+  vec3 n = normalize(vNormal);
+  float facing = mix(1.0, max(dot(n, toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
+  float self = uCharacter > 1.5 ? 1.0 : 0.0;
+  float share = uCharacterLight * mix(1.0, uLanternSelf, self);
+  float character = min(uCharacter, 1.0);
+  vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, share, character);
+  lamp += lampLight(vWorld, n, uLanternFacing * (1.0 - character)) * mix(1.0, uCharacterLight, character); // the world's lamps, fires and windows
+  lamp *= (1.0 - uEmissive) * vTint;
+  vec3 lit = vLight + lamp;
+  float peak = max(max(lit.r, lit.g), max(lit.b, 0.001));
+  lit *= mix(1.0, min(1.0, uSelfMax / peak), self * max(1.0 - uEmissive, 0.0));
+  tex = mix(tex, vec3(1.0), 0.6 * uEmissive); // a lit thing shines through its texture
+  vec3 col = eldritch(tex * lit);
   gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
 }
 `;

@@ -2,8 +2,9 @@
  * Action state machine for every combatant (spec §3B): move frames, hitstop, combo chains, and the
  * player's buffered action, consumed at the end of recovery or at a cancel window. Raising the guard
  * (block pressed, or a parry) calls off the investigator's attack while it winds up or recovers,
- * though not while the blow is landing; a blow struck with the guard already up plays out. The item
- * action swallows a dose of Laudanum (its sanity returns on the move's `item` frame, sanity.ts).
+ * though not while the blow is landing; a blow struck with the guard already up plays out. Moving
+ * walks the investigator out of a dodge's recovery (its `release` frame), and a move that must `rest`
+ * cannot be chained into itself (the backstep). The item action swallows a dose of Laudanum (its sanity returns on the move's `item` frame, sanity.ts).
  */
 
 import { yawOf } from '../core/geom';
@@ -73,6 +74,16 @@ export function guardCancels(a: Actor): boolean {
   return false;
 }
 
+/** Ends the move as if it had run its course. */
+function finish(a: Actor): void {
+  Object.assign(a, { last: a.move, idle: 0, move: null, frame: 0 });
+}
+
+const walking = (g: Game): boolean => {
+  const m = g.ecs.c.mover.get(g.player.id);
+  return !!m && Math.hypot(m.vx, m.vz) > 0.1;
+};
+
 /** Calls the move off; a chain begins afresh after it. */
 function callOff(a: Actor): void {
   Object.assign(a, { move: null, frame: 0, last: null });
@@ -92,6 +103,7 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   const move = action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? dodge : action === 'item' ? 'drink' : action === 'heal' ? 'inject' : action;
   const def = a.moves[move];
   if (!def) return;
+  if (def.rest !== undefined && (a.move === move || (a.move === null && a.last === move && a.idle < def.rest))) return; // not again until it has rested
   if (action === 'item') {
     if (g.player.laudanum <= 0) return;
     g.player.laudanum--; // spent as the vial comes up, even if a blow cuts the swallow short
@@ -121,6 +133,8 @@ export function actionSystem(g: Game): void {
   const a = actor.get(p.id)!;
   const parrying = p.buffer.action === 'parry' && canAfford(g.ecs.c.stamina.get(p.id)); // a parry that cannot start calls nothing off
   if (!a.frozen && guardCancels(a) && (p.blockRaised || parrying)) callOff(a); // raising the guard cuts an attack short
+  const release = moveDef(a)?.release;
+  if (!a.frozen && release !== undefined && a.frame >= release && walking(g)) finish(a); // walked out of a dodge's recovery
   if (!a.frozen && canAct(a)) {
     const action = takeBuffered(p.buffer);
     if (action) startAction(g, a, action);

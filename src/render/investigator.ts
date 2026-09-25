@@ -41,8 +41,8 @@ export function investigator(): Figure {
   const facing = shade(coat, 0.78);
   const sleeve = shade(mixRgb(BASE.charcoal, BASE.seaGrey, 0.3), 2); // a step lighter, so attack and block poses read
   const dark = shade(BASE.charcoal, 2);
-  const pale = shade(BASE.bone, 2);
-  const shirt = shade(BASE.bone, 1.7);
+  const pale = shade(BASE.bone, 1.3); // skin under the lantern's light, never brighter than its flame (playtest round 5)
+  const shirt = shade(BASE.bone, 1.3);
   const leather = shade(mixRgb(BASE.rust, BASE.charcoal, 0.45), 1.7);
   const brass = shade(mixRgb(BASE.bone, BASE.rust, 0.4), 1.4);
   const scarf = shade(mixRgb(BASE.rust, BASE.charcoal, 0.2), 1.6);
@@ -80,6 +80,9 @@ export function investigator(): Figure {
     tint(new THREE.TorusGeometry(0.035, 0.008, 4, 8).translate(lx, ly + 0.12, lz), cage),
   ]), 'cloth');
   part(f, f.torso, box(0.09, 0.12, 0.09, lx, ly, lz, LANTERN.color), 'cloth', 1); // its flame (its light: lantern.ts)
+  f.flame = new THREE.Object3D();
+  f.flame.position.set(lx, ly, lz);
+  f.torso.add(f.flame);
 
   part(f, f.head, mergeGeometries([
     box(0.19, 0.22, 0.2, 0, 0.12, 0.01, pale), // face

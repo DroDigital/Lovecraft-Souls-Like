@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { shaperCurve } from '../src/render/audio/engine';
 import { REGIONS } from '../src/data/regions';
 import { ENTITIES, getEntity } from '../src/data/registry';
 import { STINGERS, type Sound } from '../src/data/sounds';
@@ -40,13 +41,14 @@ describe('sound data', () => {
     }
   });
 
-  it('every region, the arena, the title and a boss fight have a drone', () => {
-    for (const id of [...REGIONS.map((r) => r.id), 'arena', 'title', 'boss', 'sanity']) {
+  it('every region, the arena, the title and a boss fight have a drone (and madness none of its own)', () => {
+    for (const id of [...REGIONS.map((r) => r.id), 'arena', 'title', 'boss']) {
       const d = (DRONES as Record<string, (typeof DRONES)['hub']>)[id];
       expect(d, id).toBeDefined();
       expect(d.hz * Math.min(...d.ratios)).toBeGreaterThanOrEqual(20);
       expect(d.gain).toBeGreaterThan(0);
     }
+    expect((DRONES as Record<string, unknown>).sanity).toBeUndefined();
   });
 
   it('gives the polyps their whistling and the shoggoth its piping; night-gaunts are silent; allies keep quiet', () => {
@@ -115,5 +117,23 @@ describe('placeSound', () => {
     const v = VOICES.tekeli;
     expect(nextCall(v, 10, () => 0)).toBe(10 + v.every[0]);
     expect(nextCall(v, 10, () => 1)).toBe(10 + v.every[1]);
+  });
+});
+
+describe('the sanity saturation (render/audio/engine.ts)', () => {
+  it('never turns anything up: quiet sounds pass at their level, only loud ones are squashed', () => {
+    for (const amount of [0, 0.3, 0.85, 1]) {
+      const c = shaperCurve(amount);
+      const n = c.length - 1;
+      for (let i = 0; i <= n; i++) {
+        const x = (i / n) * 2 - 1;
+        expect(Math.abs(c[i]), `${amount} at ${x.toFixed(3)}`).toBeLessThanOrEqual(Math.abs(x) + 1e-6);
+      }
+      const near = Math.round(n / 2 + n * 0.005); // x ≈ 0.01
+      const x = (near / n) * 2 - 1;
+      expect(c[near] / x, `slope at silence, ${amount}`).toBeCloseTo(1, 2);
+    }
+    expect(shaperCurve(0.85).at(-1)!).toBeLessThan(0.7); // full scale is squashed when mad
+    expect(shaperCurve(0).at(-1)!).toBeCloseTo(1); // and untouched when lucid
   });
 });

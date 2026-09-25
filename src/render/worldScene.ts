@@ -4,7 +4,8 @@
  * legacy dungeons and boss arenas stand while any chunk they touch is loaded; a sea plane follows.
  * After a long jump (fast travel, a gate, a respawn) the chunks under the investigator are built at
  * once, so they never stand over nothing; the veil hides that (ui/journeys.ts), and while it does
- * the rest are built at a larger budget.
+ * the rest are built at a larger budget. The lamps, fires, torches and lit windows they hold light the
+ * world while they stand (worldLights.ts).
  */
 
 import * as THREE from 'three';
@@ -18,6 +19,7 @@ import { groundCover } from './groundCover';
 import { propJob } from './propMeshes';
 import { arenaJob, dungeonJob } from './siteMeshes';
 import { terrainJob } from './terrainMesh';
+import type { LightSpot, WorldLights } from './worldLights';
 import { createWorldMaterial } from './worldMaterial';
 
 export interface WorldScene {
@@ -30,7 +32,7 @@ export interface WorldScene {
 
 interface Site {
   chunks: readonly number[]; // keys of the chunks its footprint touches
-  job: (done: (meshes: THREE.Mesh[]) => void) => Generator<void, void>;
+  job: (done: (meshes: THREE.Mesh[], lights?: LightSpot[]) => void) => Generator<void, void>;
   meshes: THREE.Mesh[] | null; // null while not loaded
 }
 
@@ -59,7 +61,7 @@ function seaPlane(): THREE.Mesh {
   return new THREE.Mesh(geo, createWorldMaterial({ texture: 'water', uvScale: [repeats, repeats], uvScroll: [0.02, 0.01] }));
 }
 
-export function createWorldScene(): WorldScene {
+export function createWorldScene(lights?: WorldLights): WorldScene {
   const scene = new THREE.Scene();
   const slicer = createSlicer(() => performance.now());
   const chunks = new Map<number, THREE.Mesh[]>(); // loaded chunks and the meshes built for them so far
@@ -83,7 +85,7 @@ export function createWorldScene(): WorldScene {
     const content = chunkContent(cx, cz);
     yield;
     yield* terrainJob(cx, cz, (m) => m && add(list, m));
-    if (content.region) yield* propJob(content.props, content.region, (ms) => ms.forEach((m) => add(list, m)), groundCover(content.cx, content.cz, content.region, content.roads));
+    if (content.region) yield* propJob(content.props, content.region, (ms, spots) => (ms.forEach((m) => add(list, m)), lights?.add(chunkKey(cx, cz), spots)), groundCover(content.cx, content.cz, content.region, content.roads));
   }
 
   const load = (cx: number, cz: number, key: number): void => {
@@ -95,6 +97,7 @@ export function createWorldScene(): WorldScene {
     slicer.cancel(key);
     drop(chunks.get(key) ?? []);
     chunks.delete(key);
+    lights?.remove(key);
   };
 
   /** Sites stand while any chunk they touch is loaded. Their jobs use negative keys. */
@@ -104,11 +107,12 @@ export function createWorldScene(): WorldScene {
       if (wanted && !s.meshes) {
         const list: THREE.Mesh[] = [];
         s.meshes = list;
-        slicer.add(-1 - k, s.job((ms) => ms.forEach((m) => add(list, m))));
+        slicer.add(-1 - k, s.job((ms, spots) => (ms.forEach((m) => add(list, m)), lights?.add(-1 - k, spots ?? []))));
       } else if (!wanted && s.meshes) {
         slicer.cancel(-1 - k);
         drop(s.meshes);
         s.meshes = null;
+        lights?.remove(-1 - k);
       }
     });
   };

@@ -9,6 +9,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRng, type Rng } from '../core/rng';
+import type { LightKind } from '../data/tuning';
 import type { Prop } from '../world/props';
 import { box, tileUv, tint } from './meshKit';
 import { BASE, mixRgb, scaleRgb, type Rgb } from './palette';
@@ -17,6 +18,8 @@ export type PropMat = 'stone' | 'wood' | 'leaf' | 'clapboard' | 'brick' | 'shing
 export interface Piece {
   mat: PropMat;
   geo: THREE.BufferGeometry;
+  light?: LightKind; // a lamp's glass, a fire, a lit window: it lights the world about it (worldLights.ts)...
+  at?: readonly [number, number, number]; // ...from here in the prop's frame (else from its middle)
 }
 
 const BARK: Rgb = scaleRgb(mixRgb(BASE.charcoal, BASE.rust, 0.35), 1.7);
@@ -160,7 +163,7 @@ function fence(p: Prop, rng: Rng): Piece[] {
 function lamp(p: Prop): Piece[] {
   const post = mergeGeometries([cyl(0.09, 0.06, p.h, 6, IRON), box(0.26, 0.2, 0.26, 0, 0.1, 0, IRON), box(0.4, 0.06, 0.4, 0, p.h + 0.46, 0, IRON), box(0.06, 0.06, 0.06, 0, p.h + 0.52, 0, IRON)]);
   const glass = box(0.28, 0.4, 0.28, 0, p.h + 0.22, 0, FLAME);
-  return [{ mat: 'wood', geo: tileUv(post, 1, 1) }, { mat: 'glow', geo: glass }];
+  return [{ mat: 'wood', geo: tileUv(post, 1, 1) }, { mat: 'glow', geo: glass, light: 'lamp' }];
 }
 
 function log(p: Prop, rng: Rng): Piece[] {
@@ -176,7 +179,7 @@ function firepit(p: Prop, rng: Rng, c: Rgb): Piece[] {
   }
   const wood = [0, 1.2, 2.4].map((a) => cyl(0.07, 0.06, 1.1, 5, scaleRgb(BARK, 0.6)).translate(0, -0.55, 0).rotateZ(Math.PI / 2).rotateY(a).translate(0, 0.12, 0));
   const embers = tint(new THREE.ConeGeometry(0.4, 0.5, 6).translate(0, 0.25, 0), FLAME);
-  return [{ mat: 'stone', geo: tileUv(mergeGeometries(stones), 1, 1) }, { mat: 'wood', geo: mergeGeometries(wood) }, { mat: 'glow', geo: tileUv(embers, 1, 1) }];
+  return [{ mat: 'stone', geo: tileUv(mergeGeometries(stones), 1, 1) }, { mat: 'wood', geo: mergeGeometries(wood) }, { mat: 'glow', geo: tileUv(embers, 1, 1), light: 'fire', at: [0, 0.6, 0] }];
 }
 
 function bush(p: Prop, rng: Rng): Piece[] {

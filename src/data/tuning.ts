@@ -50,10 +50,9 @@ export const FX = {
   pulseSeconds: 0.8, // a band change for the worse sends a pulse of warp that fades over this long...
   pulseRipple: 0.012, // ...adding this much ripple...
   pulseChroma: 0.01, // ...and chromatic split at its peak
-  droneGain: [0, 0.06] as Ramp, // the sanity drone's level (audio)
   detune: [0, -70] as Ramp, // cents the whole mix sags
   wobble: [0, 40] as Ramp, // cents it drifts around that
-  distortion: [0, 0.85] as Ramp, // waveshaper amount, 0..1
+  distortion: [0, 0.85] as Ramp, // saturation amount, 0..1: loud sounds grow gritty and squashed, quiet ones stay as they are (engine.ts)
 };
 
 export const LIGHT = {
@@ -78,6 +77,8 @@ export const LANTERN = {
   range: 11, // metres: the light fades smoothly to nothing here (no hard edge)
   decay: 0.12, // inverse-square falloff, per m², so the pool is brightest at the player
   facing: 0.5, // weight of N·L: surfaces turned away keep 1 - facing of the light
+  self: 0.45, // the investigator's share of it (of a character's): it hangs at their hip, well below the face...
+  selfMax: 1, // ...and nothing lights them past this (their lit colour's brightest channel), so the flame they carry always outshines them (playtest round 5)
   height: 0.9, // metres above the player's feet: it hangs at the belt...
   forward: 0.25, // ...ahead of the player...
   side: 0.3, // ...and to their left, so the pool is brightest on that side

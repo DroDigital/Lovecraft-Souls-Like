@@ -22,6 +22,7 @@ import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
 import { createSky, inDungeon } from './render/sky';
+import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
 import { createCreatureViews } from './render/creatureViews';
@@ -94,8 +95,10 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const store = opts.arena ? null : shell.store;
   if (store && opts.fresh) clearSave(store);
   const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined });
-  const world = opts.arena ? null : createWorldScene();
+  const lights = createWorldLights();
+  const world = opts.arena ? null : createWorldScene(lights);
   const scene = world?.scene ?? createArenaScene();
+  scene.add(lights.halos);
   const journeys = createJourneys(game, veil);
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game, journeys.go);
   const ending = createEndingCard(game);
@@ -186,6 +189,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
         journeys.update(world?.pending ?? 0);
         views.update(alpha, time);
         placeLantern(game, alpha);
+        lights.update(camera.position, time, views.flame);
         creatures.update(alpha, time, camera);
         hidden.update(time);
         fights.update(alpha, time);

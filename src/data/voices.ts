@@ -3,7 +3,7 @@
  * intervals while it is near and awake, and at once when it turns on the investigator: the flying
  * polyps' whistling, the shoggoth's "Tekeli-li!", the ghouls' meeping. An entry names its voice
  * (`EntityDef.voice`, or 'silent'); without one it speaks with its tier's. Drones are the held
- * beds under play: one per region, the arena, the title, a boss fight, and the sanity drone.
+ * beds under play: one per region, the arena, the title and a boss fight.
  */
 
 import type { EntityDef, Tier } from './schema';
@@ -123,7 +123,6 @@ export const DRONES = {
   yuggoth: d(44, [1, 1.03, 1.47, 2.08], 'square', 260, 0.035, 0.01, 3000),
   beyond: d(27.5, [1, 2, 2.97, 4.1], 'sine', 1200, 0.08),
   boss: d(36.7, [1, 1.06, 1.5], 'sawtooth', 180, 0.08), // under a boss fight
-  sanity: d(55, [1, 1.5, 2.02], 'sawtooth', 420, 1), // its level is the FX's `drone`
 } satisfies Record<string, Drone>;
 
 export type DroneId = keyof typeof DRONES;
