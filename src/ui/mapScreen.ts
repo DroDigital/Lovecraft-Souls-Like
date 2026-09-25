@@ -30,6 +30,7 @@ const LEGEND: readonly [string, string][] = [
   ['∩', 'Dungeon'],
   ['◉', 'Boss (struck through once slain)'],
   ['◆', 'Your Echoes'],
+  ['♙', 'Someone met in the dream'],
 ];
 
 export function createMapScreen(g: Game, painter: MapPainter, resume: () => void): MapScreen {

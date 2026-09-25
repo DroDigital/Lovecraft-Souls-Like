@@ -5,6 +5,7 @@
  * that flatten the ground under sites, and the static colliders, bucketed by chunk. Built once. Pure.
  */
 
+import { NOTE_SITES } from '../data/documents';
 import type { XZ } from '../core/geom';
 import { hash2 } from '../core/rng';
 import type { HiddenPieceDef, Place } from '../data/arena';
@@ -46,6 +47,7 @@ export interface TomePlace {
   name: string;
   insight: number;
   vial?: boolean; // a Silver Vial, not a tome
+  note?: boolean; // a letter, clipping or report (documents.ts)
   region: string;
   at: Place;
 }
@@ -167,6 +169,11 @@ function build(): WorldLayout {
       const p = at(t.at);
       pad(p.x, p.z, PAD.tome);
       w.tomes.push({ name: t.name, insight: t.insight, region: region.id, at: { x: p.x, z: p.z, yaw: 0 } });
+    }
+    for (const [name, x, z] of NOTE_SITES[region.id] ?? []) {
+      const p = at([x, z]);
+      pad(p.x, p.z, PAD.tome);
+      w.tomes.push({ name, insight: 0, note: true, region: region.id, at: { x: p.x, z: p.z, yaw: 0 } });
     }
     for (const a of sites.allies) {
       const p = at(a.at);

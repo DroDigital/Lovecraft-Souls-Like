@@ -26,7 +26,7 @@ export interface GameEvents {
   Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost'; amount: number; total: number };
   LockChanged: { target: Entity | null };
   SanityBandChanged: { from: Band; to: Band; sanity: number };
-  InsightChanged: { insight: number; change: number; cause: 'sight' | 'tome' | 'upgrade' | 'debug' | 'load'; source: string };
+  InsightChanged: { insight: number; change: number; cause: 'sight' | 'tome' | 'upgrade' | 'debug' | 'load' | 'quest'; source: string };
   FirstSight: { entity: Entity; name: string; sanity: number; insight: number }; // sanity lost, insight gained
   Discovered: { sign: string; name: string }; // an Elder Sign found
   Rested: { sign: string; name: string };
@@ -55,4 +55,7 @@ export interface GameEvents {
   Erupted: { at: V3; radius: number; by: Entity }; // a marked spot bursts
   Quaked: { at: V3; by: Entity }; // a ring goes racing out
   Explored: { region: string }; // more of a region seen (exploration.ts)
+  Talked: { npc: string; name: string; title: string; lines: readonly string[] }; // someone spoke (npcs.ts)
+  QuestChanged: { id: string; title: string; stage: number; done: boolean }; // a quest begun, moved on or done (quests.ts)
+  Read: { name: string }; // a tome or a note picked up (documents.ts has its text)
 }

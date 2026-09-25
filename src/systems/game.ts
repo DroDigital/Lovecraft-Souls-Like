@@ -37,8 +37,10 @@ import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
 import { playerControl } from './playerControl';
+import { spawnNpcs } from './npcs';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
+import { questSystem } from './quests';
 import { createReality, realitySystem, registerReality } from './reality';
 import { reagentSystem, registerReagent } from './reagent';
 import { registerHastur } from './signatures/hastur';
@@ -95,6 +97,7 @@ export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; sa
   registerNyarlathotep(g);
   if (save) g.overworld.read = new Set(save.read); // unread tomes only
   furnishWorld(g);
+  spawnNpcs(g);
   if (save) applySave(g, save);
   populationSystem(g);
   cameraSystem(g, 0, 0, 0);
@@ -151,6 +154,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   cameraSystem(g, input.lookX, input.lookY, dt);
   insightSystem(g);
   explorationSystem(g);
+  questSystem(g);
   hallucinationSystem(g);
   deathSystem(g);
   populationSystem(g);

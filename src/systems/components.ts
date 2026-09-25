@@ -142,6 +142,7 @@ export interface Tome {
   name: string;
   insight: number;
   vial?: boolean; // a Silver Vial: one more dose of West's Reagent
+  note?: boolean; // a letter, clipping or report (documents.ts), not a tome
 }
 
 /** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */
@@ -188,6 +189,7 @@ export function createStores() {
     hazard: new Map<Entity, Hazard>(),
     mark: new Map<Entity, Mark>(), // an eruption's marked ground (strikes.ts)
     wave: new Map<Entity, Wave>(), // a quake's ring
+    npc: new Map<Entity, string>(), // someone met in the dream (npcs.ts): their id
     unseen: new Map<Entity, { revealed: number }>(), // invisible unless revealed (frames left): the Dunwich Horror
     shove: new Map<Entity, { x: number; z: number; frames: number }>(), // metres per frame, for this many frames
   };
@@ -244,6 +246,8 @@ export interface Overworld {
   dirty: boolean; // spawn points need another look
   explored: Explored; // the ground seen, for the map (exploration.ts)
   lookedFrom: number; // the cell the investigator last looked around from
+  quests: Map<string, number>; // each quest begun: its open stage, or its stage count once done (quests.ts)
+  met: Set<string>; // the people talked with (npcs.ts)
 }
 
 export interface Game {

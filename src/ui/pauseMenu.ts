@@ -1,7 +1,7 @@
 /**
  * The pause menu (Phase 6): Esc, the pad's Start, or losing the captured mouse (switching away)
  * opens it whenever no other menu is open. The world stands still while it is open (main.ts). It
- * offers Resume, the Map, Settings, Controls and a return to the title screen.
+ * offers Resume, the Map, the Journal, Settings, Controls and a return to the title screen.
  */
 
 import { button, createScreen, el, menuOpen, onPadStart, type Page } from './menuKit';
@@ -13,6 +13,7 @@ export interface PauseOptions {
   change(id: SettingId, v: number): void;
   resume(): void; // after closing: recapture the mouse
   map?: () => void; // opens the map (not in the arena)
+  journal?: (back: () => void, show: (p: Page) => void) => Page; // the journal's page (not in the arena)
   quit(): void;
 }
 
@@ -32,6 +33,7 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
       el(p, 'div', 'PAUSED', 'font-size:18px;letter-spacing:6px;margin-bottom:10px');
       button(p, 'Resume', resume);
       if (o.map) button(p, 'Map', () => [screen.close(), o.map!()]);
+      if (o.journal) button(p, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))));
       button(p, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
       button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main))));
       button(p, 'Quit to title', o.quit);

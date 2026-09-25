@@ -52,6 +52,9 @@ import { setMenuSound } from './ui/menuKit';
 import { createMapPainter } from './ui/mapPainter';
 import { createMapScreen } from './ui/mapScreen';
 import { createPauseMenu } from './ui/pauseMenu';
+import { createDialogue } from './ui/dialogue';
+import { showIntro, type Intro } from './ui/intro';
+import { journalPage } from './ui/journal';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
 import { showTitle } from './ui/titleScreen';
@@ -81,6 +84,7 @@ interface StartOptions {
   debug: boolean; // exposes the game (and the world scene) on `window` for console poking and scripted checks
   arena: boolean; // the combat arena instead of the open world
   fresh?: boolean; // the open world: forget the save and start anew
+  intro?: boolean; // show the new game's opening first (not with ?fresh, which is for testing)
   creature?: string;
   variant?: Variant;
 }
@@ -140,6 +144,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
     change: shell.change,
     resume: capture,
     map: opts.arena ? undefined : () => map.show(),
+    journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
     quit: () => void (location.href = location.pathname),
   });
   if (store) startAutosave(game, store);
@@ -155,6 +160,8 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
+  const dialogue = createDialogue(game);
+  const intro: Intro | null = opts.intro ? showIntro(capture) : null;
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter);
   const map = createMapScreen(game, painter, capture);
@@ -179,12 +186,13 @@ function startGame(opts: StartOptions, shell: Shell): void {
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
-        if (pause.open || map.open) return; // the world stands still
+        if (pause.open || map.open || dialogue.open || intro?.open) return; // the world stands still
         simTime += dt;
         stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
       },
       render(blend) {
-        const alpha = pause.open || map.open ? 1 : blend;
+        const still = pause.open || map.open || dialogue.open || !!intro?.open;
+        const alpha = still ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
         state.cap = settings.fxCap;
@@ -209,7 +217,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
         const fx = computeFx(state);
         applyReality(fx, game.reality);
         lightReality(game.reality);
-        audio.update(fx, time, camera, pause.open || map.open);
+        audio.update(fx, time, camera, still);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
@@ -261,7 +269,7 @@ function title(opts: StartOptions, shell: Shell): void {
     start(fresh) {
       shell.music?.fadeOut(2.5);
       shell.music = undefined;
-      startGame({ ...opts, fresh }, shell);
+      startGame({ ...opts, fresh, intro: fresh }, shell);
     },
   });
 }

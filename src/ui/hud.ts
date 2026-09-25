@@ -18,6 +18,7 @@ import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
 import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
 import type { MapPainter } from './mapPainter';
+import { menuOpen } from './menuKit';
 import { createMinimap } from './minimap';
 
 const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
@@ -105,12 +106,16 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   g.events.on('Travelled', (e) => show(e.name.toUpperCase()));
   g.events.on('Vanquished', (e) => show(`${e.name.toUpperCase()} VANQUISHED`));
   g.events.on('Discovered', (e) => say(`ELDER SIGN FOUND · ${e.name.toUpperCase()}`));
+  g.events.on('QuestChanged', (e) => say(e.done ? `DONE · ${e.title.toUpperCase()}` : e.stage === 0 ? `JOURNAL · ${e.title.toUpperCase()}` : `${e.title.toUpperCase()} · UPDATED`));
   g.events.on('RestRefused', () => say('SOMETHING HUNTS YOU · NO REST'));
 
   const v = new Vector3();
   return {
     update(camera) {
       minimap.update();
+      const busy = menuOpen() ? 'hidden' : 'visible'; // a dialogue or menu has the screen
+      setStyle(prompt, 'visibility', busy);
+      setStyle(notice, 'visibility', busy);
       const c = g.ecs.c;
       const h = c.health.get(me)!;
       const s = c.stamina.get(me)!;
@@ -135,7 +140,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setStyle(title, 'opacity', String(Math.min(1, Math.max(0, (titleUntil - now) / 600)).toFixed(2)));
       const act = fightAction(g);
       const near = interactable(g);
-      setText(prompt, act ? `E · ${act.label}` : near ? `E · ${near.kind === 'sign' ? 'rest at' : 'pass through'} ${near.name}` : '');
+      const verb = near?.kind === 'npc' ? 'talk to' : near?.kind === 'sign' ? 'rest at' : 'pass through';
+      setText(prompt, act ? `E · ${act.label}` : near ? `E · ${verb} ${near.name}` : '');
       bosses.update();
       foes.update(camera, canvas);
 

@@ -9,8 +9,10 @@
 import type { RegionDef } from '../data/regions';
 import type { Game } from '../systems/components';
 import { cellsOf, isExplored } from '../systems/exploration';
+import { NPCS } from '../data/npcs';
+import { npcPlace } from '../systems/npcs';
 import { mapPlaces, type MapPlace } from '../world/mapData';
-import { regionRect } from '../world/worldMap';
+import { regionAt, regionRect } from '../world/worldMap';
 import { artOf, type Art } from './mapArt';
 
 export interface MapView {
@@ -191,6 +193,28 @@ export function createMapPainter(g: Game): MapPainter {
         const [x, y] = [sx(p.x), sy(p.z)];
         if (x < -20 || y < -20 || x > view.w + 20 || y > view.h + 20) continue;
         if (isExplored(ow.explored, p.x, p.z) || (p.kind === 'sign' && ow.discovered.has(p.id))) place(ctx, p, x, y, labels);
+      }
+      for (const n of NPCS) { // the people met in the dream: a figure where they stand, named once met
+        const at = npcPlace(n);
+        if (!at || !inRealm.has(regionAt(at.x, at.z)?.id ?? '') || !isExplored(ow.explored, at.x, at.z)) continue;
+        const [x, y] = [sx(at.x), sy(at.z)];
+        ctx.fillStyle = ow.met.has(n.id) ? BONE : DIM;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y - 3, 2.2, 0, Math.PI * 2);
+        ctx.moveTo(x - 3, y + 4);
+        ctx.lineTo(x, y - 1);
+        ctx.lineTo(x + 3, y + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        if (labels && ow.met.has(n.id)) {
+          ctx.font = '10px monospace';
+          ctx.textAlign = 'left';
+          ctx.fillStyle = DIM;
+          ctx.fillText(n.name, x + 6, y + 12);
+        }
       }
       for (const d of g.ecs.query('drop')) {
         const at = g.ecs.c.transform.get(d)!.pos;

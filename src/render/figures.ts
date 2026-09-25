@@ -1,7 +1,7 @@
 /**
  * Procedural low-poly figures (spec §3B: tweened primitives, no skeletal assets): the investigator,
- * the placeholder Deep One, the training dummy, an Echo drop, a tome on its lectern, and the world's
- * Elder Signs and gates. Each is a
+ * the placeholder Deep One, the training dummy, an Echo drop, a tome on its lectern, a note on its
+ * crate, the world's Elder Signs and gates, and the people met in the dream (npcFigures.ts). Each is a
  * small joint hierarchy that poses.ts drives. Arms and legs hang along -y from their pivots; forward
  * is +z, the figure's right is -x. Phase 2 replaces the enemies with generated sprites.
  */
@@ -12,6 +12,7 @@ import { LANTERN } from '../data/tuning';
 import { box, tint } from './meshKit';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { TextureKind } from './textures';
+import { npcFigure } from './npcFigures';
 import { elderSignGeometry, gateGeometry } from './signMeshes';
 import { createWorldMaterial } from './worldMaterial';
 
@@ -49,7 +50,7 @@ function group(parent: THREE.Object3D, x = 0, y = 0, z = 0): THREE.Group {
   return g;
 }
 
-function skeleton(rig: Rig, f: Frame): Figure {
+export function skeleton(rig: Rig, f: Frame): Figure {
   const root = new THREE.Group();
   const body = group(root, 0, f.hip, 0);
   const torso = group(body);
@@ -73,7 +74,7 @@ function skeleton(rig: Rig, f: Frame): Figure {
 }
 
 /** Adds a mesh with its own world material, so a hit flash lights only this figure. */
-function part(fig: Figure, parent: THREE.Object3D, geo: THREE.BufferGeometry, texture: TextureKind, emissive = 0): THREE.Mesh {
+export function part(fig: Figure, parent: THREE.Object3D, geo: THREE.BufferGeometry, texture: TextureKind, emissive = 0): THREE.Mesh {
   const material = createWorldMaterial({ texture, uvScale: [0.5, 0.5], emissive, vertexColors: true, character: fig.character });
   fig.materials.push(material);
   const mesh = new THREE.Mesh(geo, material);
@@ -81,8 +82,8 @@ function part(fig: Figure, parent: THREE.Object3D, geo: THREE.BufferGeometry, te
   return mesh;
 }
 
-const shade = (c: Rgb, k: number): Rgb => scaleRgb(c, k);
-const cylinder = (r0: number, r1: number, h: number, y: number, c: Rgb): THREE.BufferGeometry =>
+export const shade = (c: Rgb, k: number): Rgb => scaleRgb(c, k);
+export const cylinder = (r0: number, r1: number, h: number, y: number, c: Rgb): THREE.BufferGeometry =>
   tint(new THREE.CylinderGeometry(r0, r1, h, 9).translate(0, y, 0), c);
 
 /**
@@ -193,8 +194,17 @@ function gate(): Figure {
   return f;
 }
 
-const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate };
+/** A note left on a crate: a letter or a clipping, its paper glowing faintly so it reads in the dark. */
+function note(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  part(f, f.body, box(0.6, 0.5, 0.45, 0, 0.25, 0, shade(mixRgb(BASE.rust, BASE.charcoal, 0.3), 1.7)), 'wood');
+  part(f, f.body, box(0.26, 0.02, 0.34, 0.05, 0.51, 0, shade(BASE.bone, 1.1)).rotateY(0.3), 'cloth', 0.7);
+  return f;
+}
+
+const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate, note };
 
 export function buildFigure(model: string): Figure {
+  if (model.startsWith('npc:')) return npcFigure(model.slice(4));
   return (BUILDERS[model] ?? dummy)();
 }
