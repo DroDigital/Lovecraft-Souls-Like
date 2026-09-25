@@ -6,6 +6,11 @@
 
 export const BOSS = {
   arena: 20, // arena radius where the site gives none
+  margin: 8, // metres past its ring's edge a boss still holds the investigator...
+  grace: 150, // ...and frames it waits for them to come back from beyond that before it gives up
+  rim: 2.5, // metres inside the ring's edge a boss keeps to
+  evadeRange: 3.5, // metres (past its body) inside which a quick foe may slip a blow...
+  evadeEvery: 75, // ...and frames between its tries
   minions: 3, // summons alive at once per summoner
   summonRing: [2.5, 4.5] as const, // a summon rises this far from its summoner
   teleport: [3.5, 8] as const, // a teleport lands this far from its target

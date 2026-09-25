@@ -50,6 +50,51 @@ export interface VolleyDef {
   pool?: PoolDef; // left where it lands
 }
 
+/** Marked ground (the eruption): spots about the target that burst in turn once their delay runs out. */
+export interface MarksDef {
+  frame: number; // the frame they are marked
+  count: number;
+  ring: readonly [number, number]; // metres from the target the spots after the first lie (the first is under it)
+  delay: number; // frames from the marking to the first burst...
+  stagger: number; // ...and between one burst and the next
+  radius: number;
+  damage: number;
+  poise: number;
+}
+
+/** A ring racing out along the ground from the attacker (the quake): roll through it or guard. */
+export interface WaveDef {
+  frame: number;
+  speed: number; // m/s
+  width: number; // metres thick
+  reach: number; // metres before it dies away
+  damage: number;
+  poise: number;
+}
+
+/** A beam swept across an arc over its window (the sweeping beam): get behind it or roll through it. */
+export interface SweepDef {
+  window: Window;
+  arc: readonly [from: number, to: number]; // degrees, as a hit's
+  length: number;
+  width: number; // metres either side of the beam's line
+  damage: number;
+  poise: number;
+}
+
+/** Bolts loosed every few frames in several directions at once, the pattern turning as it goes (the barrage). */
+export interface BarrageDef {
+  window: Window;
+  arms: number;
+  every: number; // frames between bursts
+  spin: number; // degrees the pattern turns between bursts
+  speed: number;
+  radius: number;
+  range: number;
+  damage: number;
+  poise: number;
+}
+
 /** The special attacks' effects (spec §3E), run by systems/specials.ts over the window. */
 export type EffectKind = 'teleport' | 'summon' | 'gaze' | 'darkness';
 
@@ -81,6 +126,12 @@ export interface MoveDef {
   use?: 'laudanum' | 'reagent'; // which consumable (default Laudanum)
   anim?: SwingAnim; // how the weapon arm moves (poses.ts); by default it follows the hit arc
   hold?: boolean; // stays on its last frame until the game ends it (death)
+  marks?: MarksDef;
+  wave?: WaveDef;
+  sweep?: SweepDef;
+  barrage?: BarrageDef;
+  pull?: { window: Window; speed: number; range: number }; // draws hostiles in range toward the attacker (m/s)
+  then?: string; // a creature's chain: the move it runs straight into as this one ends
 }
 
 /** Distinct swings, so a chain of blows never looks the same twice. */

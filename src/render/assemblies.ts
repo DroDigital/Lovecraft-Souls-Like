@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { createRng } from '../core/rng';
 import type { AssemblyRecipe } from '../data/schema';
 import { tint } from './meshKit';
+import { beyond, halo } from './eldritch';
 import { batchRigid } from './rigidBatch';
 import { ANOMALY, CREATURE_COLORS, scaleRgb, type Rgb } from './palette';
 import { createWorldMaterial } from './worldMaterial';
@@ -37,14 +38,15 @@ const PROFILE: readonly (readonly [number, number])[] = [
   [0.02, 1],
 ];
 
-export function buildAssembly(r: AssemblyRecipe, seed = 1): Assembly {
+/** `wrongness` (eldritch.ts): how far the body refuses to hold its shape, by its place in the Mythos. */
+export function buildAssembly(r: AssemblyRecipe, seed = 1, wrongness = 0): Assembly {
   const rng = createRng(seed);
   const pal = CREATURE_COLORS[r.palette];
   const h = r.scale;
   const root = new THREE.Group();
   const materials: THREE.ShaderMaterial[] = [];
   const mat = (emissive = 0): THREE.ShaderMaterial => {
-    const m = createWorldMaterial({ texture: 'flesh', seed: seed + 3, uvScale: [3, 3], emissive, vertexColors: true, character: 'creature' });
+    const m = createWorldMaterial({ texture: 'flesh', seed: seed + 3, uvScale: [3, 3], emissive, vertexColors: true, character: 'creature', eldritch: wrongness, bodyScale: h });
     materials.push(m);
     return m;
   };
@@ -129,6 +131,14 @@ export function buildAssembly(r: AssemblyRecipe, seed = 1): Assembly {
     chains.push({ base, joints, phase: rng() * Math.PI * 2 });
   }
 
+  const rings: THREE.Group[] = [];
+  if (beyond(wrongness)) { // an outer god's shards, lit like its eyes (so no draw of their own)
+    const ring = halo(h, rng, TEXTURE_GAIN);
+    ring.rings.forEach((g, i) => g.add(new THREE.Mesh(ring.geos[i], eyeMat)));
+    root.add(ring.root);
+    rings.push(...ring.rings);
+  }
+
   const batch = batchRigid(root); // one draw per material, not one per segment
   return {
     root,
@@ -138,6 +148,7 @@ export function buildAssembly(r: AssemblyRecipe, seed = 1): Assembly {
       root.rotation.x = lean * 0.25;
       for (const w of wings) w.rotation.z = Math.sin(time * 0.7) * 0.25 * Math.sign(w.position.x);
       for (const [i, s] of spheres.entries()) s.position.y = (s.userData.baseY as number) + Math.sin(time * 0.8 + i) * h * 0.02;
+      for (const g of rings) g.rotation.y = time * (g.userData.speed as number);
       for (const c of chains) {
         c.joints.forEach((j, k) => {
           const sway = Math.sin(time * 1.3 + c.phase + k * 0.8) * (0.18 + lash * 0.4);

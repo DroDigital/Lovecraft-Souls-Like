@@ -6,7 +6,8 @@
  */
 
 import type { Entity } from '../core/ecs';
-import { compileAttack } from '../data/attacks';
+import { ATTACKS, compileAttack } from '../data/attacks';
+import { EVADE } from './bossArena';
 import type { Place } from '../data/arena';
 import { REACTIONS, type MoveDef } from '../data/moves';
 import { BOSS } from '../data/tuning';
@@ -61,6 +62,7 @@ export function bodyOf(def: EntityDef): { height: number; radius: number } {
 export function attacksOf(def: EntityDef): AttackId[] {
   const ids = new Set<AttackId>(def.behavior.attacks);
   for (const ph of def.bossScript?.phases ?? []) for (const a of ph.attacks) ids.add(a.id);
+  for (const id of [...ids]) for (let f = ATTACKS[id].follow; f && !ids.has(f); f = ATTACKS[f].follow) ids.add(f); // and the chains they run into
   return [...ids];
 }
 
@@ -68,6 +70,8 @@ export function toCombatant(def: EntityDef, variant?: Variant): CombatantDef {
   const { height, radius } = bodyOf(def);
   const moves: Record<string, MoveDef> = { ...REACTIONS, death: { frames: 80, hold: true } };
   for (const id of attacksOf(def)) moves[id] = compileAttack(id, def.stats, height);
+  const brain = phaseBrain(def, 0, height); // a boss starts in its script's first phase (bossFight.ts moves it on)
+  if (brain.params.evade > 0) moves.evade = EVADE;
   return {
     name: def.name,
     model: creatureModel(def.id, variant),
@@ -78,7 +82,7 @@ export function toCombatant(def: EntityDef, variant?: Variant): CombatantDef {
     height,
     aimHeight: Math.min(6, height * 0.6),
     bounty: def.drops.echoes,
-    brain: phaseBrain(def, 0, height), // a boss starts in its script's first phase (bossFight.ts moves it on)
+    brain,
     moves,
   };
 }

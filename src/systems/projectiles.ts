@@ -37,8 +37,6 @@ export function launch(g: Game, id: Entity, v: VolleyDef): void {
   const [dx, dy, dz] = [aim.x - from.x, aim.y - from.y, aim.z - from.z];
   const flat = Math.max(0.5, Math.hypot(dx, dz));
   const yaw0 = Math.atan2(dx, dz);
-  const faction = c.combatant.get(id)?.faction ?? 'enemy';
-  const conjured = c.phantom.has(id);
   for (let i = 0; i < v.count; i++) {
     const yaw = yaw0 + (v.count > 1 ? (i / (v.count - 1) - 0.5) * v.spread * DEG : 0);
     let vel: V3;
@@ -49,12 +47,21 @@ export function launch(g: Game, id: Entity, v: VolleyDef): void {
       const len = Math.hypot(flat, dy);
       vel = { x: Math.sin(yaw) * v.speed * (flat / len), y: v.speed * (dy / len), z: Math.cos(yaw) * v.speed * (flat / len) };
     }
-    const e = g.ecs.spawn();
-    c.transform.set(e, { pos: { ...from }, prev: { ...from }, yaw, prevYaw: yaw });
-    const life = Math.min(BOSS.boltLife, Math.ceil((v.range / v.speed) * SIM.hz) + (v.lob ? 60 : 0));
-    c.bolt.set(e, { owner: id, faction, vel, radius: v.radius, damage: conjured ? 0 : v.damage, poise: conjured ? 0 : v.poise, life, lob: v.lob, conjured, passed: [], pool: v.pool });
-    c.model.set(e, 'fx:bolt');
+    loose(g, id, from, vel, v);
   }
+}
+
+/** One bolt from `owner`, leaving `from` at `vel`. */
+export function loose(g: Game, owner: Entity, from: V3, vel: V3, v: Pick<VolleyDef, 'speed' | 'radius' | 'range' | 'damage' | 'poise' | 'lob' | 'pool'>): void {
+  const c = g.ecs.c;
+  const conjured = c.phantom.has(owner);
+  const yaw = Math.atan2(vel.x, vel.z);
+  const e = g.ecs.spawn();
+  c.transform.set(e, { pos: { ...from }, prev: { ...from }, yaw, prevYaw: yaw });
+  const life = Math.min(BOSS.boltLife, Math.ceil((v.range / v.speed) * SIM.hz) + (v.lob ? 60 : 0));
+  const faction = c.combatant.get(owner)?.faction ?? 'enemy';
+  c.bolt.set(e, { owner, faction, vel, radius: v.radius, damage: conjured ? 0 : v.damage, poise: conjured ? 0 : v.poise, life, lob: v.lob, conjured, passed: [], pool: v.pool });
+  c.model.set(e, 'fx:bolt');
 }
 
 function land(g: Game, e: Entity, at: V3): void {

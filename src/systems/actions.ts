@@ -52,6 +52,7 @@ export function advance(a: Actor): void {
     a.idle = 0;
     a.move = null;
     a.frame = 0;
+    if (def.then && a.moves[def.then]) startMove(a, def.then); // a creature's chain runs straight on
   }
 }
 

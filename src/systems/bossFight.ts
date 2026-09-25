@@ -15,6 +15,7 @@ import { defOf } from './creatures';
 import { phaseAt, phaseBrain } from './fightPhase';
 import { SIGNATURES } from './signatures';
 import { summon } from './specials';
+import { clearStrikes } from './strikes';
 
 /** Fights under way: engaged, with their boss alive. */
 export const engagedFights = (g: Game): [Entity, Fight][] =>
@@ -119,5 +120,6 @@ export function registerFights(g: Game): void {
   g.events.on('Respawned', () => {
     for (const [e, f] of g.ecs.c.fight) resetFight(g, e, f);
     for (const m of [...g.ecs.c.minion.keys()]) g.ecs.despawn(m);
+    clearStrikes(g);
   });
 }

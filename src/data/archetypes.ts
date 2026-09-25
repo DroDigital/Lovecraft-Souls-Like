@@ -20,6 +20,7 @@ const BASE: ArchetypeParams = {
   hover: 0,
   mobile: true,
   turnRate: 5,
+  evade: 0,
 };
 
 const arch = (p: Partial<ArchetypeParams>): ArchetypeParams => ({ ...BASE, ...p });
@@ -32,9 +33,9 @@ export const ARCHETYPES: Readonly<Record<ArchetypeId, ArchetypeParams>> = {
   /** Slow, heavy hitter that walks straight in. */
   brute: arch({ aggro: 14, cooldown: [60, 110], turnRate: 3 }),
   /** Keeps just out of reach, circles, darts in. */
-  skirmisher: arch({ range: [2.5, 5], strafe: 0.8, cooldown: [35, 70], flee: 0.3, turnRate: 7 }),
+  skirmisher: arch({ range: [2.5, 5], strafe: 0.8, cooldown: [35, 70], flee: 0.3, turnRate: 7, evade: 0.3 }),
   /** Keeps its distance and works from range. */
-  caster: arch({ aggro: 22, range: [7, 13], strafe: 0.4, cooldown: [70, 120], flee: 0.5 }),
+  caster: arch({ aggro: 22, range: [7, 13], strafe: 0.4, cooldown: [70, 120], flee: 0.5, evade: 0.3 }),
   /** Circles high, then dives. */
   flyer_swoop: arch({ aggro: 24, fov: 360, range: [3, 8], strafe: 0.7, hover: 2.5, cooldown: [50, 90] }),
   /** Hangs in the air at range. */
@@ -46,7 +47,7 @@ export const ARCHETYPES: Readonly<Record<ArchetypeId, ArchetypeParams>> = {
   /** Unseen except while it strikes. */
   invisible_stalker: arch({ hide: 'invisible', fov: 360, hearing: 8, strafe: 0.5, cooldown: [40, 90] }),
   /** Works on the mind from mid range and avoids melee. */
-  mind_thief: arch({ aggro: 20, range: [5, 10], strafe: 0.6, cooldown: [80, 140], flee: 0.6 }),
+  mind_thief: arch({ aggro: 20, range: [5, 10], strafe: 0.6, cooldown: [80, 140], flee: 0.6, evade: 0.4 }),
   /** Never moves; lashes out at anything in reach. */
   stationary_horror: arch({ fov: 360, hearing: 10, mobile: false, range: [0, 99], cooldown: [45, 90], turnRate: 2 }),
   /** Arena foe: follows its boss script's attacks; never leashes. */

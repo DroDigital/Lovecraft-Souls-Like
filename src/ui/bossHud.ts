@@ -20,7 +20,7 @@ export interface BossHud {
 }
 
 export function createBossHud(g: Game, root: HTMLElement, say: (text: string) => void, show: (title: string) => void): BossHud {
-  const box = el('position:absolute;left:50%;top:5%;width:52%;margin-left:-26%', '', root);
+  const box = el('position:absolute;left:50%;bottom:100px;width:52%;margin-left:-26%;display:flex;flex-direction:column-reverse', '', root); // bottom centre, as a boss's bar should be
   const slots = Array.from({ length: BARS }, () => {
     const slot = el('margin-bottom:6px', '', box);
     const name = el('letter-spacing:3px;font-size:13px', '', slot);

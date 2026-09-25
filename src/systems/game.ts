@@ -47,6 +47,7 @@ import { createMind, registerSanity, sanitySystem } from './sanity';
 import { applySave, type SaveData } from './save';
 import { spawnCombatant, spawnPlayer } from './spawn';
 import { specialSystem } from './specials';
+import { strikeSystem } from './strikes';
 import { registerVariantSwap } from './variantSwap';
 import { vitalsSystem } from './vitals';
 
@@ -137,6 +138,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   meleeSystem(g);
   shotSystem(g);
   specialSystem(g);
+  strikeSystem(g);
   boltSystem(g);
   hazardSystem(g);
   vitalsSystem(g, dt);

@@ -49,6 +49,16 @@ export const ATTACK_IDS = [
   'roar',
   'gaze',
   'darkness',
+  'eruption',
+  'quake',
+  'sweep_beam',
+  'barrage',
+  'vortex',
+  'vortex_burst',
+  'combo',
+  'combo_2',
+  'combo_3',
+  'delayed_slam',
 ] as const;
 export type AttackId = (typeof ATTACK_IDS)[number];
 
@@ -164,6 +174,7 @@ export interface ArchetypeParams {
   hover: number; // metres above the ground it is drawn at
   mobile: boolean;
   turnRate: number; // rad/s
+  evade: number; // 0..1: chance it slips a blow winding up close by (bossArena.ts)
 }
 
 export interface Behavior {

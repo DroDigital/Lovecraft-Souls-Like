@@ -53,6 +53,8 @@ export interface WorldMaterialOptions {
   vary?: number; // world-space tone variation, 0..1 (ground and walls), so repeats do not show
   bomb?: boolean; // blend a turned second sample by a noise mask: organic textures never repeat
   texture2?: TextureKind; // a second texture blended in by the geometry's aSplat attribute (roads)
+  eldritch?: number; // 0..1: how far the body refuses to hold its shape (shaders/eldritch.ts)
+  bodyScale?: number; // metres: the body's height, which that is measured in
 }
 
 const textures = new Map<string, THREE.DataTexture>();
@@ -90,6 +92,9 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
       uUvScroll: { value: new THREE.Vector2(du, dv) },
       uEmissive: { value: o.emissive ?? 0 },
       uCharacter: { value: o.character === 'player' ? 2 : o.character ? 1 : 0 },
+      uEldritch: { value: o.eldritch ?? 0 },
+      uBodyScale: { value: o.bodyScale ?? 1 },
+      uGhost: { value: 0 },
     },
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,

@@ -2,8 +2,11 @@
  * World material GLSL (spec §2): Gouraud vertex lighting (ambient, moon, glow), the player's lantern
  * per pixel with a smooth falloff, PS1 vertex snapping, affine texture wobble (uv·w passed through,
  * divided per fragment), world-space texture variation (so no ground repeats), fog fading to
- * near-black, and sanity-driven non-Euclidean vertex displacement.
+ * near-black, sanity-driven non-Euclidean vertex displacement, and the eldritch bodies' wrongness
+ * (shaders/eldritch.ts).
  */
+
+import { ELDRITCH_FRAG, ELDRITCH_VERT } from './eldritch';
 
 /**
  * The player's lantern (world and sprite shaders): inverse-square decay, windowed smoothly to nothing
@@ -67,6 +70,7 @@ uniform vec2 uUvScale;
 uniform vec2 uUvScroll;
 
 attribute float aSplat; // the second ground texture's share (roads, paths); 0 where a mesh has none
+${ELDRITCH_VERT}
 
 varying vec2 vUv;
 varying vec3 vUvw;
@@ -95,7 +99,8 @@ vec3 displace(vec3 wp) {
 }
 
 void main() {
-  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vLocal = position / max(uBodyScale, 0.001);
+  vec4 wp = modelMatrix * vec4(uEldritch > 0.0 ? writhe(position, normal) : position, 1.0);
   vec3 wn = normalize(mat3(modelMatrix) * normal);
   vWorld = wp.xyz;
   wp.xyz = displace(wp.xyz);
@@ -153,6 +158,7 @@ varying float vFog;
 varying float vSplat;
 ${LANTERN_GLSL}
 ${NOISE_GLSL}
+${ELDRITCH_FRAG}
 vec3 sampleMap(sampler2D map, vec2 uv) {
   vec3 t = texture(map, uv).rgb;
   if (uBomb > 0.5) {
@@ -181,7 +187,7 @@ void main() {
   float ld = length(toLamp);
   float facing = mix(1.0, max(dot(normalize(vNormal), toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
   vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, uCharacterLight, min(uCharacter, 1.0)) * (1.0 - uEmissive) * vTint;
-  vec3 col = tex * (vLight + lamp);
+  vec3 col = eldritch(tex * (vLight + lamp));
   gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
 }
 `;

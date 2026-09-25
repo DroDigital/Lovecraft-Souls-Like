@@ -33,7 +33,7 @@ describe('boss scripts (spec §3E)', () => {
       for (const { id } of phase.attacks) {
         const m = moves[id];
         expect(m, `phase ${i}: ${id}`).toBeDefined();
-        expect(m.hit ?? m.volley ?? m.shot ?? m.pool ?? m.effect ?? m.sanity, `phase ${i}: ${id} does something`).toBeDefined();
+        expect(m.hit ?? m.volley ?? m.shot ?? m.pool ?? m.effect ?? m.sanity ?? m.marks ?? m.wave ?? m.sweep ?? m.barrage ?? m.pull, `phase ${i}: ${id} does something`).toBeDefined();
       }
       for (const s of phase.summons ?? []) expect(getEntity(s), `phase ${i}: summon ${s}`).toBeDefined();
       for (const h of phase.realityHooks ?? []) expect(HOOKS[h], `phase ${i}: ${h}`).toBeDefined();

@@ -11,10 +11,10 @@ import type { Tier } from '../data/schema';
 import type { UpgradeId } from '../data/tuning';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
-import type { Bolt, Fight, Hazard, Prop, Reality } from './fightTypes';
+import type { Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
 import type { Band, GameEvents } from './gameEvents';
 
-export type { ArenaCircle, Bolt, Fight, Hazard, Prop, Reality } from './fightTypes';
+export type { ArenaCircle, Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
 export { BANDS, type Band, type GameEvents, type HitOutcome } from './gameEvents';
 import type { InputBuffer } from './inputBuffer';
 import type { LockState } from './lockOn';
@@ -93,6 +93,7 @@ export interface Brain {
   strafe: 1 | -1; // circling direction
   cooldown: number; // frames before the next attack
   speed: number;
+  evadeIn?: number; // frames before it may try to slip another blow
 }
 
 export interface Drop {
@@ -184,6 +185,8 @@ export function createStores() {
     prop: new Map<Entity, Prop>(),
     bolt: new Map<Entity, Bolt>(),
     hazard: new Map<Entity, Hazard>(),
+    mark: new Map<Entity, Mark>(), // an eruption's marked ground (strikes.ts)
+    wave: new Map<Entity, Wave>(), // a quake's ring
     unseen: new Map<Entity, { revealed: number }>(), // invisible unless revealed (frames left): the Dunwich Horror
     shove: new Map<Entity, { x: number; z: number; frames: number }>(), // metres per frame, for this many frames
   };

@@ -52,4 +52,6 @@ export interface GameEvents {
   Notice: { text: string }; // a short line mid-screen
   Ending: { id: string }; // one of the three endings (endings.ts)
   Healed: { entity: Entity; amount: number }; // a shot of West's Reagent
+  Erupted: { at: V3; radius: number; by: Entity }; // a marked spot bursts
+  Quaked: { at: V3; by: Entity }; // a ring goes racing out
 }

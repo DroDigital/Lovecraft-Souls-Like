@@ -27,7 +27,7 @@ const between = (g: Game, [lo, hi]: readonly [number, number]): number => lo + M
 
 /** The frame a move's blow (or effect) lands on; null for a move with none. */
 export const strikeFrame = (m: MoveDef | undefined): number | null =>
-  m?.hit?.window[0] ?? m?.volley?.frame ?? m?.shot?.frame ?? m?.pool?.frame ?? m?.effect?.window[0] ?? null;
+  m?.hit?.window[0] ?? m?.volley?.frame ?? m?.shot?.frame ?? m?.pool?.frame ?? m?.marks?.frame ?? m?.wave?.frame ?? m?.sweep?.window[0] ?? m?.barrage?.window[0] ?? m?.effect?.window[0] ?? null;
 
 function decoy(g: Game, e: Entity, f: Fight): void {
   const k = creatureOf(g, e);

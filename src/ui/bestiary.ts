@@ -9,6 +9,7 @@ import { ENTITIES, paramsOf, variantOf } from '../data/registry';
 import { TIERS, type AssemblyRecipe, type EntityDef } from '../data/schema';
 import { FX } from '../data/tuning';
 import { buildAssembly, type Assembly } from '../render/assemblies';
+import { WRONGNESS } from '../render/eldritch';
 import { buildAtlas, CELL, cellOrigin, SPRITE_STATES, spriteKey, STATE_POSES, type SpriteAtlas } from '../render/sprites/atlas';
 import { worldUniforms } from '../render/worldMaterial';
 
@@ -112,7 +113,7 @@ export function startBestiary(): void {
     defs.forEach((d, i) => {
       const ctx = tile(grid, d).getContext('2d')!;
       if (d.sprite) sprites.push({ ctx, key: spriteKey(d.id) });
-      else colossi.push({ ctx, asm: buildAssembly(d.assembly!, i + 1), recipe: d.assembly! });
+      else colossi.push({ ctx, asm: buildAssembly(d.assembly!, i + 1, WRONGNESS[d.tier]), recipe: d.assembly! });
     });
   }
   const three = colossi.length > 0 ? assemblyRenderer() : null;

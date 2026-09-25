@@ -17,6 +17,7 @@ import { createAudioEngine, type AudioEngine } from './render/audio/engine';
 import { createGameAudio } from './render/audio/gameAudio';
 import { playMenuMusic, type Music } from './render/audio/music';
 import { playSound } from './render/audio/synth';
+import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
@@ -146,6 +147,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
   const combatFx = createCombatFx(game, particles);
+  const bossFx = createBossFx(scene, game, particles);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
@@ -194,6 +196,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
         hidden.update(time);
         fights.update(alpha, time);
         combatFx.update();
+        bossFx.update(alpha, time, camera);
         particles.update(time, camera);
 
         fxController.update(state, camera.position, time);

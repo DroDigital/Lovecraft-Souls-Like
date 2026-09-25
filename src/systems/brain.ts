@@ -7,6 +7,9 @@
  *   data when the cooldown allows, and keeps its distance while below its `flee` health fraction.
  * - return: gave up (target lost or leash exceeded); walks home and heals on arrival.
  * - follow: allies trail the player (once met) until something threatens.
+ * A boss is bound to its arena instead of a leash (bossArena.ts): it wakes as the investigator
+ * steps into its ring, holds them while they stay near it, backs off only a little and never
+ * past its rim.
  */
 
 import type { Entity } from '../core/ecs';
@@ -14,8 +17,11 @@ import { distXZ, yawOf, type XZ } from '../core/geom';
 import type { BrainDef } from '../data/archetypes';
 import type { Rng } from '../core/rng';
 import { startMove } from './actions';
-import { isAbsent, type Brain, type Game, type Mover } from './components';
+import { arenaOf, evade, holdInside, rimGap, within } from './bossArena';
+import { isAbsent, type ArenaCircle, type Brain, type Game, type Mover } from './components';
+import { targetsOf } from './combat';
 import { perceive } from './perception';
+import { BOSS } from '../data/tuning';
 
 const LOSE_FRAMES = 120; // frames without perceiving the target before giving up
 const FOLLOW = [2.5, 4] as const; // allies: stop within, walk beyond (metres from the player)
@@ -48,13 +54,14 @@ function circle(m: Mover, from: XZ, to: XZ, speed: number, dir: 1 | -1): void {
   m.vz = (dx / d) * speed * dir;
 }
 
-function engage(g: Game, id: Entity, br: Brain, m: Mover, target: Entity): void {
+function engage(g: Game, id: Entity, br: Brain, m: Mover, target: Entity, arena: ArenaCircle | undefined): void {
   const p = br.def.params;
   const pos = g.ecs.c.transform.get(id)!.pos;
   const tp = g.ecs.c.transform.get(target)!.pos;
   const d = distXZ(pos, tp);
   const h = g.ecs.c.health.get(id)!;
   const fleeing = h.hp < h.max * p.flee;
+  if (evade(g, id, br)) return;
   if (br.cooldown === 0) {
     const attack = chooseAttack(br.def, d, g.rng);
     if (attack) {
@@ -65,13 +72,26 @@ function engage(g: Game, id: Entity, br: Brain, m: Mover, target: Entity): void 
     }
   }
   if (!p.mobile) return;
-  const [near, far] = fleeing ? [p.range[1], p.range[1] + 4] : p.range;
+  // A boss gives little ground: it backs off only from close by, slowly, and circles at its rim.
+  const [near, far] = fleeing ? [arena ? Math.min(p.range[1], 5) : p.range[1], p.range[1] + (arena ? 1 : 4)] : [arena ? Math.min(p.range[0], 4) : p.range[0], p.range[1]];
+  const cornered = arena !== undefined && rimGap(arena, pos) < BOSS.rim + 2;
   if (d > far) walk(m, pos, tp, br.speed);
-  else if (d < near) walk(m, pos, tp, br.speed, true);
-  else if (p.strafe > 0) {
+  else if (d < near && !cornered) walk(m, pos, tp, br.speed * (arena ? 0.6 : 1), true);
+  else if (p.strafe > 0 || (d < near && cornered)) {
     if (g.rng() < 0.01) br.strafe = br.strafe === 1 ? -1 : 1;
-    circle(m, pos, tp, br.speed * p.strafe, br.strafe);
+    circle(m, pos, tp, br.speed * Math.max(p.strafe, 0.5), br.strafe);
   }
+  if (arena) holdInside(arena, pos, m, br.speed);
+}
+
+/** A boss's quarry: the investigator while they are in reach of its ring (awake: its margin too); nothing beyond it. */
+function arenaSight(g: Game, id: Entity, br: Brain, arena: ArenaCircle, seen: Entity | null): Entity | null {
+  const c = g.ecs.c;
+  const pp = c.transform.get(g.player.id)?.pos;
+  const margin = br.state === 'engage' ? BOSS.margin : 0;
+  const inPlay = (e: Entity | null): boolean => e !== null && within(arena, c.transform.get(e)!.pos, margin);
+  if (inPlay(seen)) return seen;
+  return pp && within(arena, pp, margin) && targetsOf(g, id).includes(g.player.id) ? g.player.id : null;
 }
 
 export function brainSystem(g: Game): void {
@@ -86,8 +106,11 @@ export function brainSystem(g: Game): void {
     if (isAbsent(g, id) || a.frozen || (health.get(id)?.hp ?? 0) <= 0) continue;
     const ally = br.def.archetype === 'ally';
     const anchor: XZ = ally ? transform.get(g.player.id)!.pos : home.get(id) ?? tr.pos;
-    const seen = perceive(g, id, br.target, p);
+    const arena = arenaOf(g, id);
+    const perceived = perceive(g, id, br.target, p);
+    const seen = arena ? arenaSight(g, id, br, arena, perceived) : perceived;
     br.lost = seen === null ? br.lost + 1 : 0;
+    if (br.evadeIn) br.evadeIn--;
     if (seen !== null) br.target = seen;
     const target = br.target;
     const tp = target === null ? undefined : transform.get(target)?.pos;
@@ -106,11 +129,12 @@ export function brainSystem(g: Game): void {
         else if (distXZ(tr.pos, anchor) < FOLLOW[0]) m.face = null;
       }
     } else if (br.state === 'engage') {
-      if (target === null || !tp || br.lost > LOSE_FRAMES || (!ally && distXZ(tr.pos, anchor) > p.leash)) {
+      const lose = arena ? BOSS.grace : LOSE_FRAMES;
+      if (target === null || !tp || br.lost > lose || (!ally && !arena && distXZ(tr.pos, anchor) > p.leash)) {
         [br.state, br.target] = [ally ? 'follow' : 'return', null];
         continue;
       }
-      engage(g, id, br, m, target);
+      engage(g, id, br, m, target, arena);
     } else if (distXZ(tr.pos, anchor) > 0.3 && p.mobile) {
       walk(m, tr.pos, anchor, br.speed);
     } else {

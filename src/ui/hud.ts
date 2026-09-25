@@ -58,7 +58,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
   const reticle = el(`position:absolute;width:8px;height:8px;margin:-5px 0 0 -5px;border:1px solid ${BONE};transform:rotate(45deg)`, '', root);
   const notice = el('position:absolute;left:0;right:0;top:64%;text-align:center;font-size:16px;letter-spacing:4px', '', root);
   const title = el('position:absolute;left:0;right:0;top:22%;text-align:center;font-size:24px;letter-spacing:8px', '', root);
-  const prompt = el('position:absolute;left:0;right:0;bottom:88px;text-align:center;letter-spacing:2px;opacity:.85', '', root);
+  const prompt = el('position:absolute;left:0;right:0;bottom:64px;text-align:center;letter-spacing:2px;opacity:.85', '', root);
   const banner = el(`position:absolute;left:0;right:0;top:38%;text-align:center;font-size:44px;letter-spacing:14px;color:${RUST}`, 'UNMADE', root);
   el('font-size:12px;letter-spacing:2px;color:#d9d0b8aa', 'your Echoes lie where you fell', banner);
   banner.style.display = 'none';

@@ -7,7 +7,7 @@ import { setSanity } from '../src/systems/sanity';
 import { worldLayout } from '../src/world/placements';
 import { bossGame, calm, engage } from './bossHelpers';
 import { steps } from './helpers';
-import { deathblow, kill, record, run } from './worldHelpers';
+import { deathblow, kill, record } from './worldHelpers';
 import { strike } from '../src/systems/combat';
 
 /** The Outsider fighting by a three-phase script: summons rise with the second, which also lights lamps. */
@@ -75,7 +75,8 @@ describe('boss fights (spec §3E)', () => {
     steps(g, 1);
     const minions = [...fight.minions];
     strike(g, boss, g.player.id, deathblow);
-    run(g, 200);
+    const back = record(g, 'Respawned');
+    for (let i = 0; i < 400 && back.length === 0; i++) steps(g, 1); // (the arena's investigator rises inside its ring, where it wakes again)
     expect(fight.engaged).toBe(false);
     expect(fight.phase).toBe(0);
     expect(fight.props).toEqual([]);
