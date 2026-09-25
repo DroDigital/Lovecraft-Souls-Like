@@ -41,7 +41,10 @@ function slumber(g: Game, e: Entity): void {
 }
 
 export const AZATHOTH_SIGNATURE: Signature = {
-  engage: (_g, _e, f) => void (f.sig.left = AZATHOTH.survive),
+  engage(g, e, f) {
+    const h = g.ecs.c.health.get(e)!;
+    f.sig.left = Math.round((AZATHOTH.survive * h.hp) / h.max); // the song takes up where it broke off
+  },
   step(g, e, f) {
     const h = g.ecs.c.health.get(e)!;
     [h.ward, h.floor] = [0, 1];

@@ -2,8 +2,9 @@
  * Population (spec §3D): the creatures of the chunks around the investigator. Spawn points in the
  * loaded 5 × 5 chunks get their creature, nearest chunks first and never more than 60 alive (the AI
  * budget), unless it was killed since the last rest or, for a boss, slain for good. A creature that
- * strays beyond the 7 × 7 is let go, and the dead are cleared away after their death throes. Also
- * announces each region the investigator enters. Pure: no Three.js.
+ * strays beyond the 7 × 7 is let go, remembering its wounds for when it stands again (only resting
+ * or dying makes a foe whole), and the dead are cleared away after their death throes. Also announces each region the
+ * investigator enters. Pure: no Three.js.
  */
 
 import { getEntity } from '../data/registry';
@@ -39,6 +40,8 @@ export function populationSystem(g: Game): void {
     if (tr && !c.dead.has(e) && chunkSpan(chunkOf(tr.pos.x), chunkOf(tr.pos.z), pcx, pcz) <= WORLD.keep) continue;
     ow.alive.delete(id);
     ow.dirty = true;
+    const h = c.health.get(e);
+    if (h && h.hp > 0 && h.hp < h.max && !c.dead.has(e)) ow.wounds.set(id, h.hp / h.max); // it comes back as wounded
     if (tr) g.ecs.despawn(e);
   }
   if (!ow.dirty && g.frame % RESCAN !== 0) return;
@@ -50,6 +53,12 @@ export function populationSystem(g: Game): void {
       if (getEntity(s.entity)?.bossScript?.called && !ow.called.has(s.entity)) continue; // not called yet: its arena waits empty
       const e = spawnCreature(g, s.entity, s.at, s.variant);
       if (e === undefined) continue;
+      const wound = ow.wounds.get(s.id);
+      if (wound !== undefined) {
+        const h = c.health.get(e)!;
+        h.hp = Math.max(1, h.max * wound);
+        ow.wounds.delete(s.id);
+      }
       if (s.arena) setArena(g, e, s.arena);
       c.origin.set(e, s.id);
       ow.alive.set(s.id, e);

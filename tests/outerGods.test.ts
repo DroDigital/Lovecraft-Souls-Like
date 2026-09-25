@@ -138,6 +138,10 @@ describe('the outer gods (spec §3E)', () => {
     steps(b.g, AZATHOTH.survive / 2);
     expect(h.hp / h.max).toBeCloseTo(0.5, 1);
     expect(b.fight.phase).toBe(1);
+    b.g.ecs.c.brain.get(b.boss)!.state = 'return'; // the investigator fled its court: the song breaks off
+    steps(b.g, 1);
+    engage(b);
+    expect(b.fight.sig.left / AZATHOTH.survive).toBeCloseTo(0.5, 1); // and takes up where it was
   });
 
   it("'Umr at-Tawil yields in its last phase and offers passage through the Gate", () => {

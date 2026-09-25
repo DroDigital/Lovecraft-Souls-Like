@@ -4,8 +4,9 @@
  * its weighted attacks replace the last ones, its summons rise (unless it calls them itself with a
  * summon attack), its arena change happens, and its reality hooks hold while it lasts (reality.ts).
  * A signature mechanic runs beside it where the spec gives one (signatures.ts). The investigator's
- * death, or the boss giving up the chase, resets the fight; the boss's death ends it. Its summons,
- * decoys and props go with it either way. Pure: no Three.js.
+ * death resets the fight (and, as it does every foe, the boss's health); the boss giving up the
+ * chase resets the fight but keeps its wounds, so the next fight takes up the phase they bring. The
+ * boss's death ends it. Its summons, decoys and props go with it either way. Pure: no Three.js.
  */
 
 import type { Entity } from '../core/ecs';
@@ -65,7 +66,7 @@ function clearArena(g: Game, f: Fight): void {
   f.changes.clear();
 }
 
-/** Back to before the fight began: its first phase returns (its health is the reset's business). */
+/** Back to before the fight began. Its health is not the reset's business: only death and resting restore it (death.ts). */
 export function resetFight(g: Game, e: Entity, f: Fight): void {
   if (f.engaged) SIGNATURES[f.id]?.reset?.(g, e, f);
   clearArena(g, f);

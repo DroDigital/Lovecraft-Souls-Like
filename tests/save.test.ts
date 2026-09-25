@@ -67,6 +67,21 @@ describe('save and load', () => {
     expect(parseSave(broken({ drop: { x: 1, y: 2, z: 3 } }))).toBeNull();
   });
 
+  it('wounded foes stay wounded through a reload', () => {
+    const g = createWorldGame();
+    run(g, 1);
+    const [id, foe] = [...g.overworld!.alive][0];
+    const h = g.ecs.c.health.get(foe)!;
+    h.hp = h.max * 0.3;
+    const saved = parseSave(JSON.stringify(snapshot(g)))!;
+    expect(saved.wounds?.[id]).toBeCloseTo(0.3);
+    const loaded = createWorldGame({ save: saved });
+    run(loaded, 1);
+    const back = loaded.ecs.c.health.get(loaded.overworld!.alive.get(id)!)!;
+    expect(back.hp / back.max).toBeCloseTo(0.3);
+    expect(parseSave(JSON.stringify({ ...saved, wounds: { [id]: 'half' } }))).toBeNull();
+  });
+
   it('unknown Elder Signs and places off the land fall back to the start', () => {
     const s: SaveData = { ...snapshot(createWorldGame()), sign: 'nowhere', discovered: ['nowhere', 'arkham_heath'], at: { x: 9999, z: 9999, yaw: 0 } };
     const g = createWorldGame({ save: s });

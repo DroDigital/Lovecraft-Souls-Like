@@ -43,6 +43,24 @@ describe('population', () => {
     expect(creatureOf(g, id)).toBeDefined();
   });
 
+  it('a wounded foe let go comes back wounded; only a rest makes it whole', () => {
+    const g = game();
+    const [id, foe] = [...g.overworld!.alive].find(([k, e]) => k.startsWith('p:') && !isAbsent(g, e))!;
+    const h = g.ecs.c.health.get(foe)!;
+    h.hp = h.max * 0.4;
+    travel(g, 'arkham_heath');
+    run(g, 1);
+    travel(g, 'hub_quad');
+    run(g, 1);
+    const back = g.ecs.c.health.get(creatureOf(g, id)!)!;
+    expect(back.hp / back.max).toBeCloseTo(0.4);
+    const s = signPlace('hub_quad')!;
+    goTo(g, s.rest.x, s.rest.z);
+    rest(g, 'hub_quad');
+    expect(back.hp).toBe(back.max);
+    expect(g.overworld!.wounds.size).toBe(0);
+  });
+
   it('the killed stay dead until a rest; a boss stays slain', () => {
     const g = game();
     const [id, foe] = [...g.overworld!.alive].find(([k, e]) => k.startsWith('p:') && !isAbsent(g, e))!;
