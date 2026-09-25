@@ -1,6 +1,6 @@
 /**
- * The game's sound (Phase 6): event stingers (cues.ts), creature calls, and the drones for where the
- * investigator stands. A creature calls at random within its voice's interval while it is in the world
+ * The game's sound (Phase 6): event stingers (cues.ts), creature calls, the drones for where the
+ * investigator stands, and a boss fight's music (bossMusic.ts). A creature calls at random within its voice's interval while it is in the world
  * and not lying hidden, and at once when it turns on the investigator; the listener is the camera.
  * Read-only on the simulation.
  */
@@ -14,6 +14,7 @@ import { voiceOf, type Voice } from '../../data/voices';
 import { engagedFights } from '../../systems/bossFight';
 import { isAbsent, isConcealed, type Game, type GameEvents } from '../../systems/components';
 import type { FxParams } from '../fx';
+import { createBossMusic } from './bossMusic';
 import { CUES, cueFor, nextCall, placeSound, type Cue } from './cues';
 import type { Drones } from './drones';
 import type { AudioEngine } from './engine';
@@ -54,6 +55,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     return v;
   };
   const callers = new Map<Entity, Caller>();
+  const music = createBossMusic(e);
   let region: string | null = null;
 
   function calls(seconds: number): void {
@@ -89,7 +91,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       e.detune = fx.detune + fx.wobble * Math.sin(seconds * 0.7);
       e.setDistortion(fx.distortion);
       region = g.overworld ? (g.overworld.region ?? region) : 'arena'; // out at sea, the last shore's drone
-      drones.set(region, engagedFights(g).length > 0);
+      const [fight] = engagedFights(g);
+      drones.set(region, !!fight);
+      music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
       drones.update(fx, seconds);
       if (!paused) calls(seconds);
     },

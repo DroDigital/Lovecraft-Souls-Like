@@ -1,14 +1,16 @@
 /**
  * The minimap (playtest round 1): top right, round, north up and centred on the investigator,
- * showing the ground they have seen within EXPLORE.minimap metres and what is marked on it. It
- * also drives the map art's slow drawing, a little each frame. Absent in the arena.
+ * showing the ground they have seen within EXPLORE.minimap metres and what is marked on it, and
+ * where the story leads (on the rim when it lies beyond). It also drives the map art's slow drawing, a little each frame. Absent in the arena.
  */
 
 import { EXPLORE } from '../data/tuning';
 import type { Game } from '../systems/components';
+import { mainLead } from '../systems/lead';
 import { realmOf } from '../world/mapData';
 import { regionAt } from '../world/worldMap';
 import { BONE, el } from './hudKit';
+import { drawLead } from './leadMark';
 import { workArt } from './mapArt';
 import type { MapPainter } from './mapPainter';
 
@@ -38,7 +40,9 @@ export function createMinimap(g: Game, root: HTMLElement, painter: MapPainter): 
       const p = g.ecs.c.transform.get(g.player.id)!.pos;
       const region = g.overworld.region ?? regionAt(p.x, p.z)?.id;
       if (!region) return;
-      painter.paint(ctx, { cx: p.x, cz: p.z, scale: SIZE / 2 / EXPLORE.minimap, w: SIZE, h: SIZE }, realmOf(region), false);
+      const view = { cx: p.x, cz: p.z, scale: SIZE / 2 / EXPLORE.minimap, w: SIZE, h: SIZE };
+      painter.paint(ctx, view, realmOf(region), false);
+      drawLead(ctx, view, mainLead(g)?.at ?? null, realmOf(region), true);
     },
   };
 }

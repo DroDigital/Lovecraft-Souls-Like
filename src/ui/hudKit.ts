@@ -3,6 +3,10 @@
 export const BONE = '#d9d0b8';
 export const RUST = '#74493a';
 export const SEA = '#5d6c70';
+/** A period book face for the title, menus and what is read (system fonts: no font files); the HUD keeps monospace. */
+export const SERIF = "'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif";
+/** A telegram's or typescript's face. */
+export const TYPEWRITER = "'Courier New',Courier,monospace";
 
 export function el(style: string, text = '', parent?: HTMLElement): HTMLDivElement {
   const d = document.createElement('div');

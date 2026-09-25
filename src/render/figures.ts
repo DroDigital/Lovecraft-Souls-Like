@@ -12,6 +12,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, tint } from './meshKit';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { TextureKind } from './textures';
+import { axeGeometry, razorGeometry } from './armsMeshes';
 import { investigator } from './investigator';
 import { npcFigure } from './npcFigures';
 import { elderSignGeometry, gateGeometry } from './signMeshes';
@@ -39,6 +40,7 @@ export interface Figure {
   footL: THREE.Group;
   skirt: THREE.Group[]; // coat panels hung at the hips, right then left, swinging with the thighs (poses.ts)
   flash: THREE.Object3D | null; // muzzle flash
+  arms?: Record<string, THREE.Object3D>; // the investigator's weapons in hand, one shown at a time (actorViews.ts)
   hip: number; // pelvis height
   thigh: number; // hip to knee
   shin: number; // knee to sole
@@ -210,7 +212,32 @@ function note(): Figure {
   return f;
 }
 
-const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate, note };
+/** An Echo cache: an iron-bound casket, its lid thrown back on Void Green shards (Echoes are wrong), so it reads in the dark. */
+function cache(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const wood = shade(mixRgb(BASE.rust, BASE.charcoal, 0.5), 1.6);
+  const iron = shade(BASE.charcoal, 1.3);
+  const lid = box(0.56, 0.05, 0.38, 0, 0, 0.19, wood).rotateX(-2.1).translate(0, 0.3, -0.19); // hinged at the back, thrown open
+  part(f, f.body, mergeGeometries([box(0.56, 0.3, 0.38, 0, 0.15, 0, wood), box(0.58, 0.04, 0.4, 0, 0.07, 0, iron), box(0.58, 0.04, 0.4, 0, 0.23, 0, iron), lid]), 'wood');
+  const shard = (r: number, x: number, z: number): THREE.BufferGeometry => tint(new THREE.OctahedronGeometry(r, 0).translate(x, 0.32, z), ANOMALY.green);
+  part(f, f.body, mergeGeometries([shard(0.07, -0.13, 0.03), shard(0.09, 0.03, -0.04), shard(0.06, 0.15, 0.06)]), 'flesh', 0.9);
+  return f;
+}
+
+/** A found weapon on a low trestle, its steel catching the light so it reads in the dark. */
+function armRack(geo: () => THREE.BufferGeometry): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const wood = shade(mixRgb(BASE.rust, BASE.charcoal, 0.45), 1.5);
+  part(f, f.body, mergeGeometries([box(0.9, 0.06, 0.36, 0, 0.5, 0, wood), box(0.06, 0.5, 0.3, -0.36, 0.25, 0, wood), box(0.06, 0.5, 0.3, 0.36, 0.25, 0, wood)]), 'wood');
+  part(f, f.body, geo().rotateZ(Math.PI / 2).rotateY(Math.PI / 2).translate(0.38, 0.58, -0.05), 'cloth', 0.45);
+  return f;
+}
+
+const BUILDERS: Record<string, () => Figure> = {
+  player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate, note, cache,
+  'arm:axe': () => armRack(axeGeometry),
+  'arm:razor': () => armRack(razorGeometry),
+};
 
 export function buildFigure(model: string): Figure {
   if (model.startsWith('npc:')) return npcFigure(model.slice(4));

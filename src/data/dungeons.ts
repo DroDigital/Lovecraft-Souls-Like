@@ -32,6 +32,7 @@ export interface RoomDef {
   gate?: { id: string; name: string; to: string };
   tome?: { name: string; insight: number };
   vial?: string; // a Silver Vial lies here (its unique name): one more dose of West's Reagent
+  weapon?: string; // a weapon lies here (data/weapons.ts)
 }
 
 export interface DungeonDef {
@@ -64,7 +65,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
   {
     id: 'witch_house', name: 'The Witch House', region: 'arkham', rooms: [
       room('hallway', 'corridor', undefined, 'e'),
-      room('parlour', 'hall', 'hallway', 'w', { spawns: ['rat_swarm', 'rat_swarm'] }),
+      room('parlour', 'hall', 'hallway', 'w', { spawns: ['rat_swarm', 'rat_swarm'], weapon: 'razor' }),
       room('stair', 'stair', 'parlour', 'n', { rise: 4, spawns: ['reanimated_corpse'] }),
       room('landing', 'corridor', 'stair', 'n', { sign: { id: 'arkham_witch', name: 'Witch House Stair' } }),
       room('closet', 'hall', 'landing', 'w', { hidden: { minInsight: 1 }, tome: { name: "Keziah's Formulae", insight: 1 } }),

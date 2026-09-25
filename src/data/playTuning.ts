@@ -35,6 +35,14 @@ export const AUDIO = {
   pan: 0.8, // the widest stereo placement
 };
 
+/** Boss music (playtest round 4, render/audio/bossMusic.ts; the scores are data/music.ts). Times in seconds. */
+export const MUSIC = {
+  level: 0.45, // the music's share of the drones' bus (offline renders: it sits under the blows' stingers)
+  fadeIn: 2.5,
+  fadeOut: 3.5,
+  ahead: 0.25, // notes are scheduled this far ahead on the audio clock
+};
+
 /** The settings menu (Phase 6): [min, max, step, default]. */
 export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
@@ -42,6 +50,51 @@ export const SETTINGS = {
   resolution: [0.5, 2, 0.25, 1], // internal resolution, × RENDER's 400 × 225
   volume: [0, 1, 0.05, 0.7],
 } satisfies Record<string, readonly [number, number, number, number]>;
+
+/** Levels bought with Echoes at an Elder Sign (playtest round 4): what one level of each attribute adds, and the most levels. */
+export const LEVELS: Record<'vigour' | 'endurance' | 'might', { max: number; hp?: number; stamina?: number; damage?: number }> = {
+  vigour: { max: 20, hp: 12 },
+  endurance: { max: 20, stamina: 8 },
+  might: { max: 20, damage: 0.04 }, // share added to the investigator's blows and shots
+};
+export type LevelId = keyof typeof LEVELS;
+
+/** Echoes the next level costs: base + step·n + curve·n², n being the levels bought so far. */
+export const LEVEL_COST = { base: 250, step: 90, curve: 9 };
+
+export interface SkyDef {
+  moon: number; // the moon's radius, radians (0: none)
+  stars: number; // their density
+  clouds: number; // cover
+  haze: number; // the horizon's moonlit glow
+}
+
+/** The night sky over each realm (playtest round 4, render/sky.ts). */
+export const SKY = {
+  base: { moon: 0.034, stars: 1, clouds: 0.5, haze: 1 } as SkyDef,
+  regions: {
+    innsmouth: { clouds: 0.7 }, // sea mist
+    mountains: { stars: 1.6, clouds: 0.15, haze: 0.8 },
+    pnakotus: { stars: 1.4, clouds: 0.1 }, // desert air
+    kn_yan: { moon: 0, stars: 0, clouds: 0, haze: 0.35 }, // under the earth
+    dreamlands: { moon: 0.075, stars: 1.3, clouds: 0.3, haze: 1.3 }, // the Dreamlands' moon hangs near
+    rlyeh: { stars: 0.5, clouds: 0.8, haze: 0.7 },
+    yuggoth: { moon: 0, stars: 1.8, clouds: 0, haze: 0.3 }, // no moon over Yuggoth: the sun a star among the rest
+    beyond: { moon: 0, stars: 0.5, clouds: 0, haze: 0 },
+  } as Readonly<Record<string, Partial<SkyDef>>>,
+  haze: [0.075, 0.085, 0.09] as Vec3, // the moonlit haze, added to the fog's colour off the horizon
+  moonColor: [0.86, 0.85, 0.8] as Vec3,
+  fade: 3, // seconds to ease into another realm's sky...
+  jump: 30, // ...unless the camera leapt this many metres at once (a journey): then at once
+  close: 0.6, // seconds for a dungeon's walls to close it off
+};
+
+/** Echo caches (playtest round 4): what the casket at a dungeon's dead end holds. */
+export const CACHE = {
+  bounties: 3, // times the richest bounty among the dungeon's creatures...
+  least: 150, // ...but never less...
+  most: 6000, // ...nor more
+};
 
 /** Consumables: Laudanum steadies the mind (tuning.ts), West's Reagent closes wounds. */
 export const REAGENT = {

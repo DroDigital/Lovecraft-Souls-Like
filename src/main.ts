@@ -21,6 +21,7 @@ import { playSound } from './render/audio/synth';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
+import { createSky, inDungeon } from './render/sky';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
 import { createCreatureViews } from './render/creatureViews';
@@ -54,9 +55,11 @@ import { createPauseMenu } from './ui/pauseMenu';
 import { createDialogue } from './ui/dialogue';
 import { showIntro, type Intro } from './ui/intro';
 import { journalPage } from './ui/journal';
+import { armsPage } from './ui/armsPage';
 import { createJourneys } from './ui/journeys';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
+import { startTitleBackdrop } from './ui/titleBackdrop';
 import { showTitle } from './ui/titleScreen';
 import { createVeil, type Veil } from './ui/veil';
 import { createArenaScene } from './world/arenaScene';
@@ -110,6 +113,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
     resume: capture,
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
+    arms: (back, show) => armsPage(game, back, show),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
   });
   if (store) startAutosave(game, store);
@@ -123,6 +127,8 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const combatFx = createCombatFx(game, particles);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
+  const sky = createSky();
+  scene.add(sky.mesh);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
@@ -173,6 +179,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
           resize();
         }
         placeCamera(camera, game, alpha);
+        sky.update(camera, time, game.overworld?.region ?? null, !!world && inDungeon(camera.position.x, camera.position.z));
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);
@@ -233,10 +240,11 @@ function createShell(): Shell {
   return shell;
 }
 
-/** The title screen, with its music, until a choice starts the world. */
+/** The title screen over its live stair, with its music, until a choice starts the world. */
 function title(opts: StartOptions, shell: Shell): void {
   shell.music = playMenuMusic(shell.settings.volume);
   shell.veil.haunt(true);
+  const backdrop = startTitleBackdrop(shell.settings.fxCap, shell.settings.resolution);
   showTitle({
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
@@ -244,6 +252,7 @@ function title(opts: StartOptions, shell: Shell): void {
     start(fresh, close) {
       void shell.veil.cover('', 1.1).then(() => {
         close();
+        backdrop.stop();
         startGame({ ...opts, fresh, intro: fresh }, shell);
       });
     },

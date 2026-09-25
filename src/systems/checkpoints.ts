@@ -10,13 +10,14 @@ import { nearestNpc, talk } from './npcs';
 import type { InputFrame } from '../core/input';
 import { distXZ } from '../core/geom';
 import type { Place } from '../data/arena';
-import { CAMERA, LAUDANUM, SANITY, WORLD } from '../data/tuning';
+import { CAMERA, SANITY, WORLD } from '../data/tuning';
 import { worldLayout, type GatePlace, type SignPlace } from '../world/placements';
 import { yawOfDir } from '../world/worldMap';
 import { isAbsent, type Game } from './components';
 import { resetFoes, restore } from './death';
 import { spawnPiece } from './hiddenLayer';
 import { spawnTome } from './insight';
+import { laudanumMax } from './levels';
 import { setLock } from './lockOn';
 import { reopen } from './overworld';
 import { setSanity } from './sanity';
@@ -37,7 +38,7 @@ export function furnishWorld(g: Game): void {
   };
   for (const s of w.signs) c.sign.set(put(s.x, s.z, yawOfDir(s.face), 'elderSign'), { id: s.id, name: s.name });
   for (const t of w.gates) c.gate.set(put(t.x, t.z, yawOfDir(t.face), 'gate'), { id: t.id, name: t.name, to: t.to });
-  for (const t of w.tomes) if (!g.overworld?.read.has(t.name)) spawnTome(g, { ...t.at, name: t.name, insight: t.insight, vial: t.vial, note: t.note });
+  for (const t of w.tomes) if (!g.overworld?.read.has(t.name)) spawnTome(g, { ...t.at, name: t.name, insight: t.insight, vial: t.vial, note: t.note, echoes: t.echoes, weapon: t.weapon });
   for (const p of w.pieces) spawnPiece(g, p);
 }
 
@@ -84,7 +85,7 @@ export function rest(g: Game, id: string): boolean {
   discover(g, id);
   const tr = g.ecs.c.transform.get(g.player.id)!;
   restore(g, g.player.id, { x: tr.pos.x, z: tr.pos.z, yaw: tr.yaw });
-  g.player.laudanum = LAUDANUM.doses;
+  g.player.laudanum = laudanumMax(g);
   g.player.reagent = g.player.reagentMax;
   setSanity(g, SANITY.max);
   ow.sign = id;

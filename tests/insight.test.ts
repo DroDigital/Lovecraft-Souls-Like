@@ -71,20 +71,17 @@ describe('tomes and upgrades', () => {
 
   it('spends insight on upgrades, and refuses when short of it', () => {
     const g = createGame();
-    const me = g.player.id;
-    expect(buyUpgrade(g, 'vigour')).toBe(false);
-    changeInsight(g, 4, 'debug', 'test');
+    expect(buyUpgrade(g, 'resolve')).toBe(false);
+    changeInsight(g, 5, 'debug', 'test');
     const log = insightLog(g);
-    expect(buyUpgrade(g, 'vigour')).toBe(true);
-    expect(g.ecs.c.health.get(me)!.max).toBe(PLAYER.hp + UPGRADES.vigour.hp!);
-    expect(buyUpgrade(g, 'endurance')).toBe(true);
-    expect(g.ecs.c.stamina.get(me)!.max).toBe(PLAYER.stamina + UPGRADES.endurance.stamina!);
+    const doses = g.player.laudanum;
+    expect(buyUpgrade(g, 'draught')).toBe(true);
+    expect(g.player.laudanum).toBe(doses + UPGRADES.draught.doses!); // carried at once
     expect(buyUpgrade(g, 'resolve')).toBe(true);
     expect(g.mind.insight).toBe(0);
     expect(buyUpgrade(g, 'resolve')).toBe(false);
     expect(log.map((e) => [e.change, e.source])).toEqual([
-      [-1, 'Vigour'],
-      [-1, 'Endurance'],
+      [-3, 'Draught'],
       [-2, 'Resolve'],
     ]);
     loseSanity(g, 10);

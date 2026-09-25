@@ -5,17 +5,17 @@
 
 import { ENDINGS, type EndingId } from '../data/endings';
 import type { Game } from '../systems/components';
-import { BONE, el } from './hudKit';
+import { BONE, el, SERIF } from './hudKit';
 import { button, createScreen } from './menuKit';
 
-const BUTTON = `display:inline-block;margin:28px 10px 0;padding:6px 16px;font:12px monospace;letter-spacing:2px;color:${BONE};background:#141416;border:1px solid ${BONE}55;cursor:pointer`;
+const BUTTON = `display:inline-block;margin:28px 10px 0;padding:6px 16px;font:14px ${SERIF};letter-spacing:2px;color:${BONE};background:#141416;border:1px solid ${BONE}55;cursor:pointer`;
 
 export interface EndingCard {
   readonly open: boolean;
 }
 
 export function createEndingCard(g: Game): EndingCard {
-  const screen = createScreen(4, '#050506', 'left:50%;top:34%;width:min(640px,90vw);transform:translate(-50%,-30%);text-align:center;font:14px/1.8 monospace');
+  const screen = createScreen(4, '#050506', `left:50%;top:34%;width:min(640px,90vw);transform:translate(-50%,-30%);text-align:center;font:16px/1.8 ${SERIF}`);
   const walkOn = (): void => screen.close();
   g.events.on('Ending', ({ id }) => {
     const e = ENDINGS[id as EndingId];

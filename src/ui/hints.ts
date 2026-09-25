@@ -1,10 +1,11 @@
 /**
  * Hints for a new investigator (playtest round 1): a line at the upper left the first time each
- * thing comes up — moving, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
- * a quest, a boss, insight — then never again (remembered in this browser, not in the save).
+ * thing comes up — moving, where the story leads, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
+ * a level within reach, a quest, a boss, insight — then never again (remembered in this browser, not in the save).
  */
 
 import type { Game } from '../systems/components';
+import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { BONE, el, setStyle, setText } from './hudKit';
 
 const KEY = 'lovecraft-souls-like/hints';
@@ -12,11 +13,13 @@ const SHOW_MS = 9000;
 
 const HINTS = {
   move: 'WASD to move, the mouse to look (click to capture it). Space dodges; hold it to run.',
+  lead: 'The ◇ on the minimap marks where the story leads. The Journal (Esc) says what to do there.',
   fight: 'Left mouse strikes (Shift for a heavy blow). Right mouse blocks, and calls off a swing that has not landed; Shift + right mouse parries. Q locks on.',
   hurt: "R injects West's Reagent and closes wounds. Its doses come back when you rest.",
   mind: 'T takes a swallow of Laudanum and steadies the mind.',
   sign: 'Rest at an Elder Sign with E. You rise at the last one you rested at, and the creatures you killed come back.',
   echoes: 'You dropped your Echoes where you fell. Reach the spot again to take them back.',
+  level: 'You carry Echoes enough for a level (▲). Rest at an Elder Sign to grow stronger, before you fall and drop them.',
   map: 'M opens the map. Ground you have seen stays drawn on it.',
   quest: 'The pause menu (Esc) has a Journal with what you have been asked to do.',
   boss: 'Watch the ground: a boss shows where its blows will land. Roll through rings and beams.',
@@ -52,12 +55,16 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   });
   g.events.on('SanityBandChanged', () => hint('mind'));
   g.events.on('Discovered', () => hint('sign'));
-  g.events.on('Echoes', (e) => e.change === 'dropped' && hint('echoes'));
+  g.events.on('Echoes', (e) => {
+    if (e.change === 'dropped') hint('echoes');
+    if ((e.change === 'earned' || e.change === 'recovered') && LEVEL_IDS.some((id) => canLevel(g, id))) hint('level');
+  });
   g.events.on('RegionEntered', () => hint('map'));
   g.events.on('QuestChanged', () => hint('quest'));
   g.events.on('BossEngaged', () => hint('boss'));
   g.events.on('InsightChanged', (e) => e.change > 0 && e.cause !== 'load' && hint('insight'));
   hint('move');
+  hint('lead');
   return {
     update() {
       const now = performance.now();

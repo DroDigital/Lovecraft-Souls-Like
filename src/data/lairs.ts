@@ -82,7 +82,7 @@ export const LAIRS: readonly DungeonDef[] = [
   {
     id: 'whateley_farm', name: 'The Whateley Farmhouse', region: 'dunwich', rooms: [
       room('yard', 'corridor', undefined, 's', { spawns: ['thousand_young'] }),
-      room('kitchen', 'hall', 'yard', 'n'),
+      room('kitchen', 'hall', 'yard', 'n', { weapon: 'axe' }),
       stair('loft', 'kitchen', 'n', 4, { spawns: ['thousand_young'] }),
       room('upstairs', 'hall', 'loft', 'n', { boss: ['wilbur_whateley'], vial: 'Silver Vial of the Boarded Rooms' }),
     ],

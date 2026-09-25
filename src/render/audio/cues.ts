@@ -44,6 +44,7 @@ export const CUES: Handlers = {
   Died: (e, g) => (e.entity === g.player.id ? inside('death') : null),
   Respawned: (e, g) => (e.entity === g.player.id ? inside('rise') : null),
   Echoes: (e) => (e.change === 'recovered' ? inside('echoes') : null),
+  LevelUp: () => inside('levelUp'),
   LockChanged: (e) => (e.target !== null ? inside('lock') : null),
   SanityBandChanged: (e) => inside(bandIndex(e.to) > bandIndex(e.from) ? 'worse' : 'better'),
   SanityLost: (e) => ({ sound: 'slip', at: null, gain: Math.min(1, 0.45 + e.amount / 20) }),

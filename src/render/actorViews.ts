@@ -117,6 +117,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     v.blend.watch(move, guard, time);
     pose(f, { move, def, frame, speed, stride: v.stride, guard, flinch, rollYaw, time, ground: groundAbout(f.root) });
     v.blend.apply(time);
+    if (f.arms && id === g.player.id) for (const [w, m] of Object.entries(f.arms)) m.visible = w === g.player.weapon; // the weapon in hand
     const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);

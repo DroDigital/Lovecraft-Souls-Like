@@ -5,7 +5,7 @@
  */
 
 import { INTRO } from '../data/intro';
-import { BONE } from './hudKit';
+import { BONE, TYPEWRITER } from './hudKit';
 import { button, createScreen, el, type Page } from './menuKit';
 
 export interface Intro {
@@ -30,7 +30,7 @@ export function showIntro(done: () => void): Intro {
       const card = INTRO[i];
       el(p, 'div', card.heading, `letter-spacing:3px;color:${BONE};opacity:.8;margin-bottom:14px`);
       const telegram = i === 0;
-      for (const para of card.text) el(p, 'p', para, `font-size:${telegram ? 13 : 14}px;line-height:1.7;margin:0 0 12px;${telegram ? 'letter-spacing:2px' : ''}`);
+      for (const para of card.text) el(p, 'p', para, `font-size:${telegram ? 14 : 16}px;line-height:1.7;margin:0 0 12px;${telegram ? `letter-spacing:2px;font-family:${TYPEWRITER}` : ''}`);
       const row = el(p, 'div', '', 'display:flex;justify-content:space-between;align-items:center;margin-top:18px');
       el(row, 'div', 'Esc · skip', 'opacity:.3;font-size:10px');
       button(row, i < INTRO.length - 1 ? 'E · Turn the page' : 'E · Wake', next).style.cssText = 'width:auto;display:inline-block';
