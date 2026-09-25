@@ -24,7 +24,7 @@ export const FX = {
   capDefault: 1, // accessibility cap on stress, 0..1 (the settings menu's default)
   pixelCrush: [0, 1] as Ramp, // extra low-res pixel size
   snapPixels: [1, 4] as Ramp, // PS1 vertex snap grid, in low-res pixels
-  affine: [1, 2.5] as Ramp, // 1 = PS1 affine mapping; >1 exaggerates the wobble
+  affine: [1.25, 10] as Ramp, // texels the PS1 affine mapping may stray from the true one: a shiver when calm, walls swim when mad
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,
   fogColor: [0.058, 0.07, 0.068] as Vec3, // cold grey-green, near black, but a shade above the unlit sides of things, so they stand out against it as shapes
