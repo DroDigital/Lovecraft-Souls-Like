@@ -92,7 +92,8 @@ function drain(g: Game, dt: number): number {
 export function sanitySystem(g: Game, dt: number): void {
   loseSanity(g, drain(g, dt));
   const a = g.ecs.c.actor.get(g.player.id)!;
-  if (!a.frozen && a.frame === moveDef(a)?.item) restoreSanity(g, LAUDANUM.sanity);
+  const def = moveDef(a);
+  if (!a.frozen && a.frame === def?.item && def.use !== 'reagent') restoreSanity(g, LAUDANUM.sanity);
 }
 
 /** Subscribes the event-driven rules: landed blows take the attacker's sanityDamage; respawning restores sanity and Laudanum. */

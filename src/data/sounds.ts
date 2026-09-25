@@ -87,6 +87,7 @@ export const STINGERS = {
   title: [tone('sine', 65.4, 4, 0.4, { attack: 0.02 }), tone('sine', 98.7, 3, 0.18), tone('sine', 157, 2.5, 0.1), tone('sine', 231, 2, 0.06), noise('lowpass', 500, 0.3, 0.2)],
   ending: chord('sine', [65.4, 98, 130.8, 196, 293.7, 440], 8, 0.5, { attack: 2 }),
   select: [tone('triangle', 880, 0.12, 0.05, { to: 870 })],
+  healed: [noise('highpass', 3000, 0.12, 0.12), ...notes('sine', [[0.08, 523.3, 0.9], [0.18, 784, 0.9], [0.3, 1046.5, 1.1]], 0.07, { attack: 0.05 }), tone('sine', 98, 1.2, 0.2, { attack: 0.2, to: 131 })],
 } satisfies Record<string, Sound>;
 
 export type StingerId = keyof typeof STINGERS;

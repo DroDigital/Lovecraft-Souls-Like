@@ -13,7 +13,7 @@ import { getEntity, type Variant } from '../data/registry';
 import { DEEP_ONE, TRAINING_DUMMY } from '../data/placeholders';
 import type { Place } from '../data/arena';
 import { START_SIGN } from '../data/sites';
-import { CAMERA, LAUDANUM, SIM, WORLD } from '../data/tuning';
+import { CAMERA, LAUDANUM, REAGENT, SIM, WORLD } from '../data/tuning';
 import { createArenaWorld } from '../world/arena';
 import type { CollisionWorld } from '../world/colliders';
 import { createWorldCollision } from '../world/worldCollision';
@@ -39,6 +39,7 @@ import { playerControl } from './playerControl';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
 import { createReality, realitySystem, registerReality } from './reality';
+import { reagentSystem, registerReagent } from './reagent';
 import { registerHastur } from './signatures/hastur';
 import { registerNyarlathotep } from './signatures/nyarlathotep';
 import { shotSystem } from './revolver';
@@ -64,7 +65,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, echoes: 0, checkpoint: { ...spawn }, laudanum: LAUDANUM.doses },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, echoes: 0, checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -79,6 +80,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
   registerHallucinations(g);
   registerFights(g);
   registerReality(g);
+  registerReagent(g);
   return g;
 }
 
@@ -139,6 +141,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   hazardSystem(g);
   vitalsSystem(g, dt);
   sanitySystem(g, dt);
+  reagentSystem(g);
   fightSystem(g);
   realitySystem(g);
   lockSystem(g);

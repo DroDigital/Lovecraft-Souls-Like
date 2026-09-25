@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { FX, GRADE } from '../data/tuning';
 import type { FxParams } from './fx';
-import { ANOMALY_HUES, buildPalette, COLD_TINT, RIM, WARM_TINT } from './palette';
+import { ANOMALY_HUES, buildPalette, COLD_TINT, WARM_TINT } from './palette';
 import { POST_FRAG, POST_VERT } from './shaders/post';
 
 function createUniforms(source: THREE.Texture, palette: Float32Array) {
@@ -23,9 +23,7 @@ function createUniforms(source: THREE.Texture, palette: Float32Array) {
     uCold: { value: new THREE.Vector3(...COLD_TINT) },
     uWarm: { value: new THREE.Vector3(...WARM_TINT) },
     uSplit: { value: new THREE.Vector2(...GRADE.split) },
-    uRimColor: { value: new THREE.Vector3(...RIM) },
-    uRimAmount: { value: new THREE.Vector2(GRADE.rim, GRADE.rimCreature) },
-    uRimBackdrop: { value: new THREE.Vector2(...GRADE.rimBackdrop) },
+    uHurt: { value: new THREE.Vector4(0, 0, 0, 0) },
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
     uQuantize: { value: 0 },
     uDither: { value: 0 },

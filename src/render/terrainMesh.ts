@@ -17,11 +17,12 @@ const GAIN = 2; // textures average about half brightness; tints are doubled (as
 const ROWS_PER_STEP = 8;
 
 const materials = new Map<GroundTexture, THREE.ShaderMaterial>();
+const ORGANIC = new Set<GroundTexture>(['rot', 'grass', 'mud', 'sand', 'snow', 'flesh', 'water']);
 
-/** One shared material per ground texture. */
+/** One shared material per ground texture: varied in world space, and (organic ground) bombed with a turned second sample, so it never repeats. */
 export function groundMaterial(texture: GroundTexture): THREE.ShaderMaterial {
   let m = materials.get(texture);
-  if (!m) materials.set(texture, (m = createWorldMaterial({ texture, vertexColors: true })));
+  if (!m) materials.set(texture, (m = createWorldMaterial({ texture, vertexColors: true, vary: 0.9, bomb: ORGANIC.has(texture) })));
   return m;
 }
 

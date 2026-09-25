@@ -51,4 +51,5 @@ export interface GameEvents {
   Title: { text: string }; // a set piece's words across the screen
   Notice: { text: string }; // a short line mid-screen
   Ending: { id: string }; // one of the three endings (endings.ts)
+  Healed: { entity: Entity; amount: number }; // a shot of West's Reagent
 }

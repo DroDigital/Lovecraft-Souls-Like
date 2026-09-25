@@ -40,7 +40,8 @@ export const CONTROLS: readonly (readonly [string, string, string])[] = [
   ['Dodge (hold: sprint)', 'Space', 'B'],
   ['Revolver', 'F', 'X'],
   ['Lock on / switch', 'Q or MMB / ← → or flick', 'R3 / flick right stick'],
-  ['Laudanum', 'R', 'Y'],
+  ["West's Reagent (heal)", 'R', 'Y'],
+  ['Laudanum (sanity)', 'T', 'd-pad down'],
   ['Rest, pass a gate, act', 'E', 'A'],
   ['Pause', 'Esc', 'Start'],
 ];

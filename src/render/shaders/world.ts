@@ -1,38 +1,45 @@
 /**
- * World material GLSL (spec §2): Gouraud vertex lighting (ambient, moon, glow, the player's
- * lantern), PS1 vertex snapping, affine texture wobble (uv·w passed through, divided per
- * fragment), fog fading to near-black, and sanity-driven non-Euclidean vertex displacement.
- * With uMarkCharacters on, alpha marks characters for the post pass's rim light (see post.ts); 1 elsewhere.
+ * World material GLSL (spec §2): Gouraud vertex lighting (ambient, moon, glow), the player's lantern
+ * per pixel with a smooth falloff, PS1 vertex snapping, affine texture wobble (uv·w passed through,
+ * divided per fragment), world-space texture variation (so no ground repeats), fog fading to
+ * near-black, and sanity-driven non-Euclidean vertex displacement.
  */
 
 /**
- * The player's lantern (world and sprite shaders): inverse-square decay inside its reach, and an
- * edge band (hard × range to range) whose distance wanders with the angle around the lantern.
+ * The player's lantern (world and sprite shaders): inverse-square decay, windowed smoothly to nothing
+ * at its range, so the pool of light fades naturally instead of ending at an edge.
  */
 export const LANTERN_GLSL = /* glsl */ `
 uniform vec3 uLanternPos;
 uniform vec3 uLanternColor;
 uniform float uLanternRange;
-uniform float uLanternHard;
 uniform float uLanternDecay;
-uniform float uLanternRagged;
 
-float lanternDecay(float d) {
-  return 1.0 / (1.0 + uLanternDecay * d * d);
+float lanternFalloff(float d) {
+  float x = clamp(d / max(uLanternRange, 0.001), 0.0, 1.0);
+  float x2 = x * x;
+  float win = 1.0 - x2 * x2;
+  return win * win / (1.0 + uLanternDecay * d * d);
 }
 
-// Where a point sits in the edge band: <= 0 fully in the light, >= 1 beyond it.
-float lanternEdge(vec3 toLamp) {
-  vec2 h = toLamp.xz;
-  float a = dot(h, h) > 1e-6 ? atan(h.y, h.x) : 0.0;
-  float wander = 0.5 * sin(3.0 * a + 1.7) + 0.3 * sin(7.0 * a + 0.4) + 0.2 * sin(11.0 * a + 2.9);
-  float d = length(toLamp) * (1.0 + uLanternRagged * wander);
-  return (d - uLanternRange * uLanternHard) / (uLanternRange * (1.0 - uLanternHard));
-}
-
-// Smooth reach, for surfaces that do not dither the edge (sprites).
 float lanternAt(vec3 toLamp) {
-  return lanternDecay(length(toLamp)) * (1.0 - smoothstep(0.0, 1.0, lanternEdge(toLamp)));
+  return lanternFalloff(length(toLamp));
+}
+`;
+
+/** Cheap value noise over the world, for texture variation. */
+export const NOISE_GLSL = /* glsl */ `
+float hash12(vec2 p) {
+  vec3 q = fract(vec3(p.xyx) * 0.1031);
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.x + q.y) * q.z);
+}
+
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 `;
 
@@ -53,25 +60,23 @@ uniform vec3 uAmbient;
 uniform vec3 uGlowPos;
 uniform vec3 uGlowColor;
 uniform float uGlowRange;
-uniform float uLanternFacing;
-uniform float uCharacter;
-uniform float uCharacterLight;
-uniform float uRimNear;
-uniform float uRimFar;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform float uEmissive;
 uniform vec2 uUvScale;
 uniform vec2 uUvScroll;
 
+attribute float aSplat; // the second ground texture's share (roads, paths); 0 where a mesh has none
+
 varying vec2 vUv;
 varying vec3 vUvw;
 varying vec3 vLight;
-varying vec3 vLamp;
-varying float vLampEdge;
+varying vec3 vTint;
+varying vec3 vWorld;
+varying vec3 vNormal;
 varying float vFog;
-varying float vRim;
-${LANTERN_GLSL}
+varying float vSplat;
+
 // Non-Euclidean distortion. Nothing moves near the camera, so combat stays readable.
 vec3 displace(vec3 wp) {
   vec3 rel = wp - uCamPos;
@@ -92,6 +97,7 @@ vec3 displace(vec3 wp) {
 void main() {
   vec4 wp = modelMatrix * vec4(position, 1.0);
   vec3 wn = normalize(mat3(modelMatrix) * normal);
+  vWorld = wp.xyz;
   wp.xyz = displace(wp.xyz);
 
   vec4 vp = viewMatrix * wp;
@@ -115,49 +121,67 @@ void main() {
 #ifdef USE_COLOR
   tint = color;
 #endif
+  vTint = tint;
   vLight = mix(light, vec3(1.0), uEmissive) * tint;
-  // The lantern goes separately: the fragment shader dithers its edge band. Characters take a fixed
-  // share of it (no N·L, like sprites), so their values hold as they turn.
-  vec3 toLamp = uLanternPos - wp.xyz;
-  float ld = length(toLamp);
-  float facing = mix(1.0, max(dot(wn, toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
-  vLamp = uLanternColor * lanternDecay(ld) * mix(facing, uCharacterLight, min(uCharacter, 1.0)) * (1.0 - uEmissive) * tint;
-  vLampEdge = lanternEdge(toLamp);
+  vNormal = wn;
+  vSplat = aSplat;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
-  vRim = 1.0 - smoothstep(uRimNear, uRimFar, -vp.z);
 }
 `;
 
 export const WORLD_FRAG = /* glsl */ `
 uniform sampler2D uMap;
+uniform sampler2D uMap2;
 uniform float uAffine;
 uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uCharacter;
-uniform float uMarkCharacters;
+uniform float uCharacterLight;
+uniform float uLanternFacing;
+uniform float uEmissive;
+uniform float uVary; // world-space tone variation (0: none)
+uniform float uBomb; // 1: a second, turned sample blends in by a noise mask, so organic ground never repeats
+uniform float uHasMap2; // 1: uMap2 blends in by vSplat (roads)
 
 varying vec2 vUv;
 varying vec3 vUvw;
 varying vec3 vLight;
-varying vec3 vLamp;
-varying float vLampEdge;
+varying vec3 vTint;
+varying vec3 vWorld;
+varying vec3 vNormal;
 varying float vFog;
-varying float vRim;
-
-float bayer4(vec2 p) {
-  const float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
-  ivec2 q = ivec2(mod(p, 4.0));
-  return (m[q.x + q.y * 4] + 0.5) / 16.0;
+varying float vSplat;
+${LANTERN_GLSL}
+${NOISE_GLSL}
+vec3 sampleMap(sampler2D map, vec2 uv) {
+  vec3 t = texture(map, uv).rgb;
+  if (uBomb > 0.5) {
+    vec2 uv2 = mat2(0.0, 1.0, -1.0, 0.0) * uv * 0.83 + vec2(0.37, 0.71);
+    float m = smoothstep(0.38, 0.62, vnoise(vWorld.xz * 0.09 + 11.0));
+    t = mix(t, texture(map, uv2).rgb, m);
+  }
+  return t;
 }
 
 void main() {
   // WebGL2 has no noperspective: uv·w / w interpolates affinely, like the PS1.
   vec2 uv = mix(vUv, vUvw.xy / vUvw.z, uAffine);
-  // Across the lantern's edge band each pixel is either lit or dark, thinning out in an ordered dither.
-  float lamp = step(bayer4(gl_FragCoord.xy), 1.0 - smoothstep(0.0, 1.0, vLampEdge));
-  vec3 col = texture(uMap, uv).rgb * (vLight + vLamp * lamp);
-  float fog = vFog * uFogAmount;
-  float mark = (uCharacter > 1.5 ? 0.5 : 0.0) + 0.25 * (1.0 - vRim);
-  gl_FragColor = vec4(mix(col, uFogColor, fog), uCharacter * uMarkCharacters > 0.5 ? mark : 1.0);
+  vec3 tex = sampleMap(uMap, uv);
+  if (uHasMap2 > 0.5 && vSplat > 0.01) {
+    float edge = vSplat + 0.35 * (vnoise(vWorld.xz * 0.9) - 0.5);
+    tex = mix(tex, texture(uMap2, uv).rgb, smoothstep(0.35, 0.65, edge));
+  }
+  if (uVary > 0.0) {
+    float n = 0.6 * vnoise(vWorld.xz * 0.045) + 0.4 * vnoise(vWorld.xz * 0.23 + 5.0);
+    tex *= 1.0 + uVary * (n - 0.5) * 0.8;
+  }
+  // The lantern, per pixel: a smooth pool, brightest at the investigator. Characters take a fixed
+  // share of it (no N·L, like sprites), so their values hold as they turn.
+  vec3 toLamp = uLanternPos - vWorld;
+  float ld = length(toLamp);
+  float facing = mix(1.0, max(dot(normalize(vNormal), toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
+  vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, uCharacterLight, min(uCharacter, 1.0)) * (1.0 - uEmissive) * vTint;
+  vec3 col = tex * (vLight + lamp);
+  gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
 }
 `;

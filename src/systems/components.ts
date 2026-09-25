@@ -209,6 +209,8 @@ export interface Pilot {
   echoes: number; // carried currency
   checkpoint: Place; // the last Elder Sign
   laudanum: number; // doses left
+  reagent: number; // West's Reagent: doses left...
+  reagentMax: number; // ...and the most it holds (Silver Vials add to it)
 }
 
 /** The investigator's mind (spec §3A). */

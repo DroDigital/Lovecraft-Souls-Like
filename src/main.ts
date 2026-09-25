@@ -15,7 +15,11 @@ import { createActorViews } from './render/actorViews';
 import { createDrones, type Drones } from './render/audio/drones';
 import { createAudioEngine, type AudioEngine } from './render/audio/engine';
 import { createGameAudio } from './render/audio/gameAudio';
+import { playMenuMusic, type Music } from './render/audio/music';
 import { playSound } from './render/audio/synth';
+import { createCombatFx } from './render/combatFx';
+import { createHurtFx } from './render/hurtFx';
+import { createParticles } from './render/particles';
 import { createCreatureViews } from './render/creatureViews';
 import { createFightViews } from './render/fightViews';
 import { placeCamera } from './render/followCamera';
@@ -62,6 +66,7 @@ function playerStats(g: Game): string {
 
 /** What outlives the title screen: the settings (kept in localStorage) and the audio. */
 interface Shell {
+  music?: Music; // the title screen's, while it plays
   settings: Settings;
   change(id: SettingId, v: number): void;
   store: SaveStore | null;
@@ -139,6 +144,9 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const fights = createFightViews(scene, game);
   const fxController = createFxController(game);
   const audio = createGameAudio(shell.engine, shell.drones, game);
+  const particles = createParticles(scene);
+  const combatFx = createCombatFx(game, particles);
+  const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const hud = createHud(game, canvas);
@@ -177,6 +185,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
           resize();
         }
         placeCamera(camera, game, alpha);
+        hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z);
         views.update(alpha, time);
@@ -184,6 +193,8 @@ function startGame(opts: StartOptions, shell: Shell): void {
         creatures.update(alpha, time, camera);
         hidden.update(time);
         fights.update(alpha, time);
+        combatFx.update();
+        particles.update(time, camera);
 
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
@@ -222,27 +233,25 @@ function createShell(): Shell {
   const change = (id: SettingId, v: number): void => {
     settings[id] = clampSetting(id, v);
     storeSettings(store, settings);
-    if (id === 'volume') engine.setVolume(settings.volume);
+    if (id === 'volume') {
+      engine.setVolume(settings.volume);
+      shell.music?.setVolume(settings.volume);
+    }
   };
-  return { settings, change, store, engine, drones: createDrones(engine) };
+  const shell: Shell = { settings, change, store, engine, drones: createDrones(engine) };
+  return shell;
 }
 
-/** The title screen, humming its drone, until a choice starts the world. */
+/** The title screen, with its music, until a choice starts the world. */
 function title(opts: StartOptions, shell: Shell): void {
-  let open = true;
-  shell.drones.set('title', false);
-  const hum = (): void => {
-    if (!open) return;
-    shell.drones.update(null, performance.now() / 1000);
-    requestAnimationFrame(hum);
-  };
-  hum();
+  shell.music = playMenuMusic(shell.settings.volume);
   showTitle({
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
     change: shell.change,
     start(fresh) {
-      open = false;
+      shell.music?.fadeOut(2.5);
+      shell.music = undefined;
       startGame({ ...opts, fresh }, shell);
     },
   });

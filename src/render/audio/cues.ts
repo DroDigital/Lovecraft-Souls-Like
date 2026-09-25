@@ -69,6 +69,7 @@ export const CUES: Handlers = {
   Rammed: () => inside('rammed'),
   Title: () => inside('title'),
   Ending: () => inside('ending'),
+  Healed: () => inside('healed'),
 };
 
 /** The cue for an event, or null when it makes no sound. */

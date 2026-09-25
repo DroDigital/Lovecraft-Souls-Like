@@ -85,8 +85,8 @@ export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshe
     if (k % PER_STEP === PER_STEP - 1) yield;
   }
   const meshes: THREE.Mesh[] = [];
-  stoneMaterial ??= createWorldMaterial({ texture: 'stone', seed: 6, vertexColors: true });
-  woodMaterial ??= createWorldMaterial({ texture: 'wood', seed: 6, uvScale: [0.5, 0.5], vertexColors: true });
+  stoneMaterial ??= createWorldMaterial({ texture: 'stone', seed: 6, vertexColors: true, vary: 0.6 });
+  woodMaterial ??= createWorldMaterial({ texture: 'wood', seed: 6, uvScale: [0.5, 0.5], vertexColors: true, vary: 0.5 });
   if (stone.length) meshes.push(new THREE.Mesh(mergeGeometries(stone), stoneMaterial));
   if (wood.length) meshes.push(new THREE.Mesh(mergeGeometries(wood), woodMaterial));
   done(meshes);

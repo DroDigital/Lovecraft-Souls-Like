@@ -8,7 +8,7 @@
 import type { Place } from '../data/arena';
 import { ENDING_IDS } from '../data/endings';
 import { START_SIGN } from '../data/sites';
-import { LAUDANUM, PLAYER, UPGRADES, type UpgradeId } from '../data/tuning';
+import { LAUDANUM, PLAYER, REAGENT, UPGRADES, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
@@ -34,6 +34,8 @@ export interface SaveData {
   upgrades: Record<UpgradeId, number>;
   seen: string[];
   laudanum: number;
+  reagent?: number; // West's Reagent: doses left and the most it holds
+  reagentMax?: number;
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   ending?: string; // the ending chosen
@@ -68,6 +70,8 @@ export function snapshot(g: Game): SaveData {
     upgrades: { ...g.mind.upgrades },
     seen: [...g.mind.seen],
     laudanum: g.player.laudanum,
+    reagent: g.player.reagent,
+    reagentMax: g.player.reagentMax,
     named: ow.named,
     called: [...ow.called],
     ...(ow.ending && { ending: ow.ending }),
@@ -124,6 +128,8 @@ export function applySave(g: Game, s: SaveData): void {
   setSanity(g, s.sanity);
   g.player.echoes = Math.max(0, Math.round(s.echoes));
   g.player.laudanum = clampInt(s.laudanum, 0, LAUDANUM.doses);
+  g.player.reagentMax = clampInt(s.reagentMax ?? REAGENT.doses, REAGENT.doses, REAGENT.maxDoses);
+  g.player.reagent = clampInt(s.reagent ?? g.player.reagentMax, 0, g.player.reagentMax);
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);
 }

@@ -58,8 +58,6 @@ const unitLuma = (c: Rgb): Rgb => scaleRgb(c, 1 / luma(c));
 export const COLD_TINT: Rgb = unitLuma(hexToRgb('#4e5b56'));
 export const WARM_TINT: Rgb = unitLuma(hexToRgb('#d6c4a0'));
 
-/** The characters' 1-px rim light: a pale, cold edge. */
-export const RIM: Rgb = hexToRgb('#a3aea8');
 
 /** The grade's tint at luma `l` (the post shader mirrors this), so `l * gradeTint(l)` is the graded colour. */
 export function gradeTint(l: number): Rgb {

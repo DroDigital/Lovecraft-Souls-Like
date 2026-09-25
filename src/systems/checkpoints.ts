@@ -84,6 +84,7 @@ export function rest(g: Game, id: string): boolean {
   const tr = g.ecs.c.transform.get(g.player.id)!;
   restore(g, g.player.id, { x: tr.pos.x, z: tr.pos.z, yaw: tr.yaw });
   g.player.laudanum = LAUDANUM.doses;
+  g.player.reagent = g.player.reagentMax;
   setSanity(g, SANITY.max);
   ow.sign = id;
   g.player.checkpoint = { ...s.rest };

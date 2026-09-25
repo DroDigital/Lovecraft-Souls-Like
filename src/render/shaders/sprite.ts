@@ -2,9 +2,10 @@
  * Creature billboards (spec §2): instanced quads that turn about the vertical axis to face the
  * camera, Doom-style, sampling the sprite atlas. They share the world's vertex snapping, light
  * (ambient, moon and lantern, without normals) and fog. Atlas alpha marks lit pixels (1) and
- * self-lit pixels (glow markings ~0.63, eye glints ~0.82); transparency is dithered. Output alpha can mark a
- * creature for the post pass's rim, or (the Colour Out of Space) a hue outside the palette that the post
- * pass leaves alone (see post.ts).
+ * self-lit pixels (glow markings ~0.63, eye glints ~0.82); transparency is dithered. Self-lit eyes and
+ * markings fade into the dark beyond a short distance, so a creature is not spotted from afar by its
+ * eyes. Output alpha can mark (the Colour Out of Space) a hue outside the palette that the post pass
+ * leaves alone (see post.ts).
  */
 
 import { LANTERN_GLSL } from './world';
@@ -17,8 +18,6 @@ uniform float uFogFar;
 uniform vec3 uAmbient;
 uniform vec3 uLightColor;
 uniform float uCharacterLight;
-uniform float uRimNear;
-uniform float uRimFar;
 
 attribute vec4 aCell; // u0, v0 (top), u1, v1 (bottom)
 attribute vec4 aInfo; // flash, opacity, flip, outside the palette
@@ -26,7 +25,7 @@ attribute vec4 aInfo; // flash, opacity, flip, outside the palette
 varying vec2 vUv;
 varying vec3 vLight;
 varying float vFog;
-varying float vRim;
+varying float vDist;
 varying float vFlash;
 varying float vOpacity;
 varying float vOutside;
@@ -48,7 +47,7 @@ void main() {
   vUv = vec2(mix(aCell.x, aCell.z, u), mix(aCell.y, aCell.w, 1.0 - uv.y));
   vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(uLanternPos - wp)) * uCharacterLight;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
-  vRim = 1.0 - smoothstep(uRimNear, uRimFar, -vp.z);
+  vDist = -vp.z;
   vFlash = aInfo.x;
   vOpacity = aInfo.y;
   vOutside = aInfo.w;
@@ -61,11 +60,12 @@ uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uMarkCharacters;
 uniform float uTime;
+uniform vec2 uEyeRange; // metres over which self-lit eyes and markings sink into the dark
 
 varying vec2 vUv;
 varying vec3 vLight;
 varying float vFog;
-varying float vRim;
+varying float vDist;
 varying float vFlash;
 varying float vOpacity;
 varying float vOutside;
@@ -89,6 +89,7 @@ void main() {
     gl_FragColor = vec4(hue * (0.55 + 0.45 * dot(col, vec3(0.3333))), uMarkCharacters > 0.5 ? 0.31 : 1.0);
     return;
   }
-  gl_FragColor = vec4(mix(col, uFogColor, fog * (glow ? 0.5 : 1.0)), uMarkCharacters > 0.5 ? 0.25 * (1.0 - vRim) : 1.0);
+  if (glow) fog = max(fog, smoothstep(uEyeRange.x, uEyeRange.y, vDist));
+  gl_FragColor = vec4(mix(col, uFogColor, fog), 1.0);
 }
 `;

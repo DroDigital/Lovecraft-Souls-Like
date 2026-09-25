@@ -24,7 +24,7 @@ type Kind = 'stone' | 'slab' | 'wood';
 const materials = new Map<Kind, THREE.ShaderMaterial>();
 const material = (k: Kind): THREE.ShaderMaterial => {
   let m = materials.get(k);
-  if (!m) materials.set(k, (m = createWorldMaterial({ texture: k, seed: 8, vertexColors: true, ...(k === 'wood' && { uvScale: [0.5, 0.5] as const }) })));
+  if (!m) materials.set(k, (m = createWorldMaterial({ texture: k, seed: 8, vertexColors: true, vary: 0.7, ...(k === 'wood' && { uvScale: [0.5, 0.5] as const }) })));
   return m;
 };
 

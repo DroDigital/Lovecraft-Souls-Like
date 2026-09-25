@@ -8,13 +8,14 @@
  */
 
 import { Vector3, type Camera } from 'three';
-import { SANITY } from '../data/tuning';
+import { HURT, SANITY } from '../data/tuning';
 import type { Band, Game, HitOutcome } from '../systems/components';
 import { interactable } from '../systems/checkpoints';
 import { aimPoint } from '../systems/lockOn';
 import { bandIndex } from '../systems/sanity';
 import { fightAction } from '../systems/fightActions';
 import { createBossHud } from './bossHud';
+import { createFoeBars } from './foeBars';
 import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
 
 const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
@@ -39,18 +40,21 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
   const root = el(`position:fixed;inset:0;pointer-events:none;font:12px/1.4 monospace;color:${BONE};z-index:1`);
   const vitals = el('position:absolute;left:16px;bottom:16px;width:240px', '', root);
   const hp = bar(vitals, RUST);
+  const chip = el(`position:absolute;left:0;top:0;height:100%;width:100%;background:${BONE}aa`, '', hp.parentElement!);
+  hp.parentElement!.insertBefore(chip, hp);
+  hp.style.position = 'relative';
+  let chipPct = 100;
+  let chipHold = 0;
   const stamina = bar(vitals, SEA);
   const sanity = bar(vitals, BONE);
   for (const floor of SANITY.bands) el(`position:absolute;left:${floor}%;top:-3px;bottom:-3px;width:1px;background:${BONE}99`, '', sanity.parentElement!);
   const mind = el('display:flex;justify-content:space-between;letter-spacing:2px;font-size:11px', '', vitals);
   const band = el('', '', mind);
   const laudanum = el('opacity:.7', '', mind);
+  const reagent = el(`opacity:.85;margin-top:2px;letter-spacing:2px;font-size:11px`, '', vitals);
   const counters = el('position:absolute;right:16px;bottom:16px;font-size:14px;letter-spacing:2px;text-align:right', '', root);
   const insight = el('', '', counters);
   const echoes = el('', '', counters);
-  const target = el('position:absolute;left:50%;bottom:44px;width:280px;margin-left:-140px;text-align:center', '', root);
-  const targetName = el('letter-spacing:2px', '', target);
-  const targetHp = bar(target, RUST);
   const reticle = el(`position:absolute;width:8px;height:8px;margin:-5px 0 0 -5px;border:1px solid ${BONE};transform:rotate(45deg)`, '', root);
   const notice = el('position:absolute;left:0;right:0;top:64%;text-align:center;font-size:16px;letter-spacing:4px', '', root);
   const title = el('position:absolute;left:0;right:0;top:22%;text-align:center;font-size:24px;letter-spacing:8px', '', root);
@@ -72,6 +76,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
     titleUntil = performance.now() + TITLE_MS;
   };
   const bosses = createBossHud(g, root, say, show);
+  const foes = createFoeBars(g, root);
   const me = g.player.id;
   g.events.on('Hit', (e) => {
     const n = NOTICES[e.outcome];
@@ -106,11 +111,19 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
       const h = c.health.get(me)!;
       const s = c.stamina.get(me)!;
       setStyle(hp, 'width', percent(h.hp, h.max));
+      const now0 = performance.now();
+      const pct = (100 * h.hp) / h.max;
+      if (pct >= chipPct) chipPct = pct;
+      else if (chipHold === 0) chipHold = now0 + HURT.chipDelay * 1000;
+      else if (now0 > chipHold) chipPct = Math.max(pct, chipPct - HURT.chipRate / 60);
+      if (chipPct <= pct) chipHold = 0;
+      setStyle(chip, 'width', `${chipPct.toFixed(1)}%`);
       setStyle(stamina, 'width', percent(s.value, s.max));
       setStyle(sanity, 'width', percent(g.mind.sanity, SANITY.max));
       setStyle(sanity, 'background', BAND_COLOURS[g.mind.band]);
       setText(band, `${g.mind.band.toUpperCase()} ${Math.ceil(g.mind.sanity)}`);
       setText(laudanum, `LAUDANUM ×${g.player.laudanum}`);
+      setText(reagent, `REAGENT ×${g.player.reagent}`);
       setText(insight, `INSIGHT ${g.mind.insight}`);
       setText(echoes, `ECHOES ${g.player.echoes}`);
       const now = performance.now();
@@ -120,13 +133,11 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
       const near = interactable(g);
       setText(prompt, act ? `E · ${act.label}` : near ? `E · ${near.kind === 'sign' ? 'rest at' : 'pass through'} ${near.name}` : '');
       bosses.update();
+      foes.update(camera, canvas);
 
       const t = g.lock.target;
       const aim = t === null ? null : aimPoint(g, t);
-      setStyle(target, 'display', aim ? 'block' : 'none');
       if (t === null || !aim) return setStyle(reticle, 'display', 'none');
-      setText(targetName, c.combatant.get(t)?.name ?? '');
-      setStyle(targetHp, 'width', percent(c.health.get(t)!.hp, c.health.get(t)!.max));
       v.set(aim.x, aim.y, aim.z).project(camera);
       if (v.z >= 1) return setStyle(reticle, 'display', 'none');
       const r = canvas.getBoundingClientRect();

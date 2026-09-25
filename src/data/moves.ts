@@ -77,9 +77,14 @@ export interface MoveDef {
   motion?: { window: Window; distance: number; dir: 'facing' | 'input' | 'back' };
   track?: { window: Window; rate: number }; // turn toward the target during these frames (rad/s)
   sanity?: SanityDef;
-  item?: number; // the frame a consumable takes effect (Laudanum)
+  item?: number; // the frame a consumable takes effect
+  use?: 'laudanum' | 'reagent'; // which consumable (default Laudanum)
+  anim?: SwingAnim; // how the weapon arm moves (poses.ts); by default it follows the hit arc
   hold?: boolean; // stays on its last frame until the game ends it (death)
 }
+
+/** Distinct swings, so a chain of blows never looks the same twice. */
+export type SwingAnim = 'slash' | 'backhand' | 'thrust' | 'overhead' | 'spin';
 
 export type MoveSet = Readonly<Record<string, MoveDef>>;
 
@@ -91,8 +96,9 @@ export const REACTIONS = {
   death: { frames: 150, hold: true },
 } satisfies MoveSet;
 
-const slash = (arc: readonly [number, number], light: string): MoveDef => ({
+const slash = (arc: readonly [number, number], light: string, anim: SwingAnim): MoveDef => ({
   frames: 32,
+  anim,
   stamina: 14,
   cancel: 20,
   combo: { light, heavy: 'heavy1' },
@@ -101,8 +107,9 @@ const slash = (arc: readonly [number, number], light: string): MoveDef => ({
   hit: { window: [9, 13], damage: 22, poise: 14, guard: 18, hitstop: 2, reach: 1.3, radius: 0.45, height: 1.2, arc },
 });
 
-const cleave = (arc: readonly [number, number], heavy: string, damage: number, windup: number): MoveDef => ({
+const cleave = (arc: readonly [number, number], heavy: string, damage: number, windup: number, anim: SwingAnim): MoveDef => ({
   frames: windup + 32,
+  anim,
   stamina: 26,
   cancel: windup + 16,
   combo: { light: 'light1', heavy },
@@ -121,13 +128,14 @@ const cleave = (arc: readonly [number, number], heavy: string, damage: number, w
   },
 });
 
-/** The investigator: sword-cane chains (light ×3, heavy ×2), roll, backstep, parry, revolver, a swallow of Laudanum. */
+/** The investigator: sword-cane chains (light ×3, heavy ×2), roll, backstep, parry, revolver, a swallow of Laudanum, a shot of West's Reagent. */
 export const PLAYER_MOVES = {
   ...REACTIONS,
-  light1: slash([70, -70], 'light2'),
-  light2: slash([-70, 70], 'light3'),
+  light1: slash([70, -70], 'light2', 'slash'),
+  light2: slash([-70, 70], 'light3', 'backhand'),
   light3: {
     frames: 44,
+    anim: 'thrust',
     stamina: 18,
     cancel: 30,
     combo: { light: 'light1', heavy: 'heavy1' },
@@ -135,8 +143,8 @@ export const PLAYER_MOVES = {
     motion: { window: [6, 16], distance: 0.9, dir: 'facing' },
     hit: { window: [14, 18], damage: 30, poise: 22, guard: 26, hitstop: 3, reach: 1.6, radius: 0.4, height: 1.25, arc: [0, 0] },
   },
-  heavy1: cleave([100, -60], 'heavy2', 44, 24),
-  heavy2: cleave([-100, 60], 'heavy1', 48, 26),
+  heavy1: cleave([100, -60], 'heavy2', 44, 24, 'overhead'),
+  heavy2: cleave([-100, 60], 'heavy1', 48, 26, 'spin'),
   roll: { frames: 30, stamina: 18, cancel: 22, iframes: [2, 15], motion: { window: [0, 20], distance: 4.2, dir: 'input' } },
   backstep: { frames: 22, stamina: 12, cancel: 16, iframes: [1, 7], motion: { window: [0, 12], distance: 2.4, dir: 'back' } },
   parry: { frames: 36, stamina: 10, parry: [3, 11] },
@@ -147,7 +155,8 @@ export const PLAYER_MOVES = {
     track: { window: [0, 6], rate: 10 },
     shot: { frame: 7, damage: 7, poise: 4, range: 22, hitstop: 2 },
   },
-  drink: { frames: 60, cancel: 48, item: 34 },
+  drink: { frames: 60, cancel: 48, item: 34, use: 'laudanum' },
+  inject: { frames: 64, cancel: 50, item: 36, use: 'reagent' },
   scatter: { frames: 30, cancel: 22 }, // a boss fight's E actions (spec §3E): the Powder of Ibn Ghazi...
   kindle: { frames: 40, cancel: 30 }, // ...relighting a lamp...
   chant: { frames: 180 }, // ...and the incantation, which works only if it is chanted to its end
