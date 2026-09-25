@@ -87,6 +87,13 @@ export const STINGERS = {
   title: [tone('sine', 65.4, 4, 0.4, { attack: 0.02 }), tone('sine', 98.7, 3, 0.18), tone('sine', 157, 2.5, 0.1), tone('sine', 231, 2, 0.06), noise('lowpass', 500, 0.3, 0.2)],
   ending: chord('sine', [65.4, 98, 130.8, 196, 293.7, 440], 8, 0.5, { attack: 2 }),
   select: [tone('triangle', 880, 0.12, 0.05, { to: 870 })],
+  healed: [noise('highpass', 3000, 0.12, 0.12), ...notes('sine', [[0.08, 523.3, 0.9], [0.18, 784, 0.9], [0.3, 1046.5, 1.1]], 0.07, { attack: 0.05 }), tone('sine', 98, 1.2, 0.2, { attack: 0.2, to: 131 })],
+  marked: [noise('bandpass', 400, 0.9, 0.25, { to: 2400, q: 3, attack: 0.7 }), tone('sine', 60, 0.9, 0.2, { to: 90, attack: 0.6 })], // the ground about to go
+  erupted: [noise('lowpass', 900, 0.5, 0.7, { to: 120 }), tone('sine', 70, 0.6, 0.6, { to: 30 }), noise('bandpass', 1800, 0.25, 0.25, { at: 0.03, q: 2 })],
+  quaked: [tone('sine', 45, 1.3, 0.7, { to: 28 }), noise('lowpass', 250, 1.1, 0.5, { attack: 0.05, to: 80 })],
+  swept: [tone('sawtooth', 110, 1.2, 0.18, { to: 220, filter: lp(900, 2400) }), noise('highpass', 3000, 1, 0.12, { attack: 0.2 }), tone('sine', 55, 1.2, 0.3)],
+  page: [noise('bandpass', 2200, 0.18, 0.2, { q: 1.5 }), noise('bandpass', 3000, 0.15, 0.15, { at: 0.12, q: 1.5 })],
+  quest: [tone('triangle', 392, 1.4, 0.1, { attack: 0.05 }), tone('triangle', 587.3, 1.4, 0.08, { at: 0.15 })],
 } satisfies Record<string, Sound>;
 
 export type StingerId = keyof typeof STINGERS;

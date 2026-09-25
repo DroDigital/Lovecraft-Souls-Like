@@ -1,10 +1,9 @@
 /**
  * The single fullscreen post pass (spec §2): sanity warp (UV ripple + chromatic split),
- * split-tone grade with colour isolation, the characters' 1-px rim light, palette quantisation
- * with 4×4 Bayer dithering. It renders at the low-res size; the browser upscales the canvas
- * nearest-neighbour. Scene alpha marks characters: creatures 0..0.25, the player 0.5..0.75 (rising
- * as their rim fades out with distance), a hue outside the palette (the Colour Out of Space) ~0.31,
- * which is neither graded nor quantised, everything else 1.
+ * split-tone grade with colour isolation, palette quantisation with 4×4 Bayer dithering, and a red
+ * vignette on the side a blow came from. It renders at the low-res size; the browser upscales the
+ * canvas nearest-neighbour. Scene alpha below 0.5 marks a hue outside the palette (the Colour Out of
+ * Space), which is neither graded nor quantised.
  */
 
 export const POST_VERT = /* glsl */ `
@@ -29,9 +28,7 @@ uniform float uMinSat;
 uniform vec3 uCold;
 uniform vec3 uWarm;
 uniform vec2 uSplit;
-uniform vec3 uRimColor;
-uniform vec2 uRimAmount; // player, creatures
-uniform vec2 uRimBackdrop;
+uniform vec4 uHurt; // the investigator's recent wound: x strength, yz the screen direction it came from
 uniform vec3 uAnomalyHues;
 uniform float uQuantize;
 uniform float uDither;
@@ -67,25 +64,14 @@ vec3 isolate(vec3 c) {
   return mix(graded, vivid, mask);
 }
 
-// 0 = world, 1 = creature, 2 = the player, 3 = outside the palette.
-float kindOf(float a) {
-  return a > 0.875 ? 0.0 : a > 0.375 ? 2.0 : a > 0.28 ? 3.0 : 1.0;
-}
-
-// 2. Rim light: a character pixel whose left, right or upper neighbour is backdrop or the other kind
-// of character, and not clearly brighter, gets a pale edge (creatures a stronger one). It fades out
-// with distance, so far creatures read as silhouettes and eye glints.
-vec3 rim(vec3 col, vec4 centre, vec2 uv, vec2 px) {
-  float kind = kindOf(centre.a);
-  if (kind == 0.0 || kind == 3.0) return col;
-  float l = dot(centre.rgb, LUMA);
-  float edge = 0.0;
-  for (int i = 0; i < 3; i++) {
-    vec4 n = texture(tScene, uv + (i == 0 ? vec2(-px.x, 0.0) : i == 1 ? vec2(px.x, 0.0) : vec2(0.0, px.y)));
-    if (kindOf(n.a) != kind) edge = max(edge, 1.0 - smoothstep(uRimBackdrop.x, uRimBackdrop.y, dot(n.rgb, LUMA) - l));
-  }
-  float near = 1.0 - 4.0 * (kind == 2.0 ? centre.a - 0.5 : centre.a);
-  return mix(col, uRimColor, (kind == 2.0 ? uRimAmount.x : uRimAmount.y) * near * edge);
+// 2. A wound: the screen's edge darkens toward red, most on the side the blow came from.
+vec3 hurt(vec3 col, vec2 uv) {
+  if (uHurt.x <= 0.0) return col;
+  vec2 c = uv - 0.5;
+  float edge = smoothstep(0.25, 0.75, length(c * vec2(1.0, 0.8)) * 1.35);
+  float side = 0.55 + 0.45 * max(0.0, dot(normalize(c + 1e-4), uHurt.yz));
+  float k = clamp(uHurt.x * edge * side, 0.0, 0.85);
+  return mix(col, vec3(0.28, 0.02, 0.03) * (0.5 + dot(col, LUMA)), k);
 }
 
 // 3. Palette quantisation with 4x4 Bayer dithering.
@@ -124,7 +110,7 @@ void main() {
   vec2 split = uChroma * (0.4 + r) * vec2(cos(uTime * 0.7), sin(uTime * 0.9));
 
   vec4 centre = texture(tScene, uv);
-  if (kindOf(centre.a) == 3.0) {
+  if (centre.a < 0.5) {
     gl_FragColor = vec4(centre.rgb, 1.0); // outside the palette: no grade, no quantising
     return;
   }
@@ -136,7 +122,7 @@ void main() {
     b = isolate(b);
     e = isolate(e);
   }
-  vec3 col = rim(vec3(a.r, b.g, e.b), centre, uv, size / uRes);
+  vec3 col = hurt(vec3(a.r, b.g, e.b), uv);
   if (uQuantize > 0.5) col = quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }

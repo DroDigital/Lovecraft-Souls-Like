@@ -13,7 +13,7 @@ import { getEntity, type Variant } from '../data/registry';
 import { DEEP_ONE, TRAINING_DUMMY } from '../data/placeholders';
 import type { Place } from '../data/arena';
 import { START_SIGN } from '../data/sites';
-import { CAMERA, LAUDANUM, SIM, WORLD } from '../data/tuning';
+import { CAMERA, LAUDANUM, REAGENT, SIM, WORLD } from '../data/tuning';
 import { createArenaWorld } from '../world/arena';
 import type { CollisionWorld } from '../world/colliders';
 import { createWorldCollision } from '../world/worldCollision';
@@ -30,15 +30,19 @@ import { fightActionSystem } from './fightActions';
 import { hallucinationSystem, registerHallucinations } from './hallucinations';
 import { hazardSystem } from './hazards';
 import { registerHiddenLayer, spawnPiece } from './hiddenLayer';
+import { explorationSystem } from './exploration';
 import { createBuffer } from './inputBuffer';
 import { insightSystem, spawnTome } from './insight';
 import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
 import { playerControl } from './playerControl';
+import { spawnNpcs } from './npcs';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
+import { questSystem } from './quests';
 import { createReality, realitySystem, registerReality } from './reality';
+import { reagentSystem, registerReagent } from './reagent';
 import { registerHastur } from './signatures/hastur';
 import { registerNyarlathotep } from './signatures/nyarlathotep';
 import { shotSystem } from './revolver';
@@ -46,6 +50,7 @@ import { createMind, registerSanity, sanitySystem } from './sanity';
 import { applySave, type SaveData } from './save';
 import { spawnCombatant, spawnPlayer } from './spawn';
 import { specialSystem } from './specials';
+import { strikeSystem } from './strikes';
 import { registerVariantSwap } from './variantSwap';
 import { vitalsSystem } from './vitals';
 
@@ -64,7 +69,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, echoes: 0, checkpoint: { ...spawn }, laudanum: LAUDANUM.doses },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, echoes: 0, checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -79,6 +84,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
   registerHallucinations(g);
   registerFights(g);
   registerReality(g);
+  registerReagent(g);
   return g;
 }
 
@@ -91,6 +97,7 @@ export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; sa
   registerNyarlathotep(g);
   if (save) g.overworld.read = new Set(save.read); // unread tomes only
   furnishWorld(g);
+  spawnNpcs(g);
   if (save) applySave(g, save);
   populationSystem(g);
   cameraSystem(g, 0, 0, 0);
@@ -135,15 +142,19 @@ export function stepGame(g: Game, input: InputFrame): void {
   meleeSystem(g);
   shotSystem(g);
   specialSystem(g);
+  strikeSystem(g);
   boltSystem(g);
   hazardSystem(g);
   vitalsSystem(g, dt);
   sanitySystem(g, dt);
+  reagentSystem(g);
   fightSystem(g);
   realitySystem(g);
   lockSystem(g);
   cameraSystem(g, input.lookX, input.lookY, dt);
   insightSystem(g);
+  explorationSystem(g);
+  questSystem(g);
   hallucinationSystem(g);
   deathSystem(g);
   populationSystem(g);

@@ -11,6 +11,7 @@ import { PLAYER, SANITY, UPGRADES, type UpgradeId } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
 import { isAbsent, isConcealed, isUnseen, type Game, type GameEvents } from './components';
 import { aimPoint, playerEye, viewAngle } from './lockOn';
+import { addVial } from './reagent';
 import { loseSanity } from './sanity';
 
 const DEG = Math.PI / 180;
@@ -58,7 +59,15 @@ export function insightSystem(g: Game): void {
   for (const [id, t] of tome) {
     if (distXZ(transform.get(id)!.pos, pp) > PLAYER.pickupRadius) continue;
     g.ecs.despawn(id);
-    changeInsight(g, t.insight, 'tome', t.name);
+    if (!t.vial) {
+      if (t.insight > 0) changeInsight(g, t.insight, 'tome', t.name);
+      g.overworld?.read.add(t.name);
+      g.events.emit('Read', { name: t.name });
+    } else {
+      addVial(g);
+      g.overworld?.read.add(t.name);
+      g.events.emit('Notice', { text: `SILVER VIAL · REAGENT DOSES ${g.player.reagentMax}` });
+    }
   }
 }
 
@@ -79,11 +88,11 @@ export function buyUpgrade(g: Game, id: UpgradeId): boolean {
 }
 
 /** Puts a tome in the world. */
-export function spawnTome(g: Pick<Game, 'ecs' | 'world'>, t: { x: number; z: number; yaw: number; name: string; insight: number }): Entity {
+export function spawnTome(g: Pick<Game, 'ecs' | 'world'>, t: { x: number; z: number; yaw: number; name: string; insight: number; vial?: boolean; note?: boolean }): Entity {
   const e = g.ecs.spawn();
   const pos = { x: t.x, y: g.world.ground(t.x, t.z), z: t.z };
   g.ecs.c.transform.set(e, { pos, prev: { ...pos }, yaw: t.yaw, prevYaw: t.yaw });
-  g.ecs.c.tome.set(e, { name: t.name, insight: t.insight });
-  g.ecs.c.model.set(e, 'tome');
+  g.ecs.c.tome.set(e, { name: t.name, insight: t.insight, vial: t.vial, note: t.note });
+  g.ecs.c.model.set(e, t.vial ? 'vial' : t.note ? 'note' : 'tome');
   return e;
 }

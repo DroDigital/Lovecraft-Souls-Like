@@ -31,6 +31,7 @@ export interface RoomDef {
   sign?: { id: string; name: string }; // an Elder Sign
   gate?: { id: string; name: string; to: string };
   tome?: { name: string; insight: number };
+  vial?: string; // a Silver Vial lies here (its unique name): one more dose of West's Reagent
 }
 
 export interface DungeonDef {
@@ -41,11 +42,14 @@ export interface DungeonDef {
   rooms: readonly RoomDef[];
 }
 
+import { LAIRS } from './lairs';
+
 type Extras = Omit<RoomDef, 'id' | 'kind' | 'from' | 'dir'>;
 const room = (id: string, kind: RoomKind, from: string | undefined, dir: Dir, x: Extras = {}): RoomDef => ({ id, kind, from, dir, ...x });
 const stair = (id: string, from: string, dir: Dir, rise: number): RoomDef => room(id, 'stair', from, dir, { rise });
 
 export const DUNGEONS: readonly DungeonDef[] = [
+  ...LAIRS,
   {
     id: 'library', name: 'University Library', region: 'hub', rooms: [
       room('foyer', 'hall', undefined, 's'),

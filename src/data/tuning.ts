@@ -27,7 +27,7 @@ export const FX = {
   affine: [1, 2.5] as Ramp, // 1 = PS1 affine mapping; >1 exaggerates the wobble
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,
-  fogColor: [0.03, 0.04, 0.037] as Vec3, // cold grey-green, near black
+  fogColor: [0.058, 0.07, 0.068] as Vec3, // cold grey-green, near black, but a shade above the unlit sides of things, so they stand out against it as shapes
   desaturate: [0.85, 1] as Ramp, // toward bone/sepia
   anomalyStress: [0, 0.7] as Ramp, // added to anomalyProximity when boosting anomaly hues
   hueWidth: 0.1, // anomaly hue window, in 0..1 hue units
@@ -56,79 +56,36 @@ export const FX = {
   distortion: [0, 0.85] as Ramp, // waveshaper amount, 0..1
 };
 
-/** Procedural audio (Phase 6): the recipes are data/sounds.ts and data/voices.ts. Times in seconds. */
-export const AUDIO = {
-  glide: 0.25, // level changes of the sanity drone
-  fade: 4, // a region's drone crossfades into the next over this long...
-  bossFade: 2, // ...and a boss fight's bed swells in and out over this
-  swellHz: 0.06, // drones breathe this slowly...
-  swell: 0.3, // ...by this share of their level
-  polyphony: 24, // one-shot sounds at once; more are dropped
-  near: 3, // metres: sounds are whole this close, fading to nothing at their range
-  eventRange: 40, // the range of event stingers (blows, shots) away from the investigator
-  callGap: 2.5, // a creature calls at most this often, even when it turns on the investigator
-  pan: 0.8, // the widest stereo placement
-};
-
-/** The settings menu (Phase 6): [min, max, step, default]. */
-export const SETTINGS = {
-  fxCap: [0, 1, 0.05, FX.capDefault], // caps every sanity effect (accessibility)
-  sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
-  resolution: [0.5, 2, 0.25, 1], // internal resolution, × RENDER's 400 × 225
-  volume: [0, 1, 0.05, 0.7],
-} satisfies Record<string, readonly [number, number, number, number]>;
-
 export const LIGHT = {
   dir: [-0.45, 0.8, 0.4] as Vec3, // toward the moon (normalised at use); the ?look test's light
   color: [0.7, 0.68, 0.63] as Vec3,
   ambient: [0.19, 0.19, 0.21] as Vec3,
-  nightAmbient: [0.018, 0.024, 0.022] as Vec3, // the arena at night: a faint cold ambient...
-  nightMoon: [0.2, 0.24, 0.26] as Vec3, // ...a very dim cold moon, so architecture beyond the lantern reads as faint shapes...
+  nightAmbient: [0.034, 0.041, 0.04] as Vec3, // night: a faint cold ambient...
+  nightMoon: [0.38, 0.43, 0.47] as Vec3, // ...a dim cold moon, so houses, trees and stones beyond the lantern read as shapes...
   nightMoonDir: [-0.7, 0.35, 0.45] as Vec3, // ...low in the sky, so it finds walls and pillars more than the floor
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
   echoGlowRange: 6, // a dropped Echo's faint light
   echoGlowIntensity: 0.6,
   character: 0.65, // share of the lantern (and, for sprites, the moon) characters take, without N·L: their values hold as they turn
+  eyes: [6, 13] as const, // metres over which self-lit eyes and markings sink into the dark: no spotting a creature from afar
 };
 
-/** The investigator's lantern: a warm point light at the hip, the arena's only real light. */
+/** The investigator's lantern: a warm point light at the hip, the night's only real light. */
 export const LANTERN = {
   color: [1, 0.82, 0.58] as Vec3,
   intensity: 1.5,
-  range: 6, // metres; nothing beyond is lit
-  hard: 0.75, // the edge band starts at this fraction of the range and ends at the range (ordered-dithered)
-  ragged: 0.12, // the edge band's distance wanders by up to this fraction around the lantern
-  decay: 0.05, // inverse-square falloff inside the range, per m², so the pool is brightest at the player
+  range: 11, // metres: the light fades smoothly to nothing here (no hard edge)
+  decay: 0.12, // inverse-square falloff, per m², so the pool is brightest at the player
   facing: 0.5, // weight of N·L: surfaces turned away keep 1 - facing of the light
   height: 0.9, // metres above the player's feet: it hangs at the belt...
   forward: 0.25, // ...ahead of the player...
   side: 0.3, // ...and to their left, so the pool is brightest on that side
 };
 
-/** Post colour grade (spec §2): split toning by luma, and the characters' rim light. */
+/** Post colour grade (spec §2): split toning by luma. */
 export const GRADE = {
   split: [0.03, 0.2] as const, // luma: cold grey-green shadows and fog at the first, warm bone/sepia lights from the second
-  rim: 0.4, // strength of the player's 1-px rim...
-  rimCreature: 0.6, // ...and every other character's, stronger so a creature never merges with the dark player...
-  rimBackdrop: [0.03, 0.15] as const, // ...where the neighbour (backdrop or the other kind) is at most this much brighter (luma)
-  rimFade: [9, 15] as const, // metres from the camera over which the rim fades out: far creatures are silhouettes and eyes
-};
-
-/** Debug orbit camera of the Phase 0 look-test scene. */
-export const ORBIT = {
-  target: [0, 2.2, 0] as Vec3,
-  radius: [9, 34] as Ramp, // auto-orbit breathes between these (metres)
-  radiusPeriod: 45, // seconds
-  yawSpeed: 0.07, // rad/s
-  pitch: 0.18, // rad
-  pitchMin: -0.05,
-  pitchMax: 1.2,
-  dragSensitivity: 0.005, // rad per pixel
-  zoomSensitivity: 0.001, // per wheel delta unit
-  zoomMin: 0.3,
-  zoomMax: 2.5,
-  minHeightAboveGround: 1.5,
 };
 
 /** The player character (spec §3B). Speeds in m/s, turn rates in rad/s. */
@@ -258,7 +215,7 @@ export const FEEDBACK = {
 export const WORLD = {
   seed: 1926,
   chunk: 64, // streaming grid
-  regionChunks: 4, // a region tile is 4 × 4 chunks
+  regionChunks: 8, // a region tile is 8 × 8 chunks (512 m)
   load: 2, // chunks within this Chebyshev radius of the player's are loaded (5 × 5)...
   keep: 3, // ...and unloaded beyond this one (7 × 7)
   sliceMs: 2, // chunk generation budget per rendered frame
@@ -292,3 +249,4 @@ export const DUNGEON = {
 };
 
 export * from './bossTuning';
+export * from './playTuning';

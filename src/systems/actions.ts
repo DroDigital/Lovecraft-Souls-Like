@@ -52,6 +52,7 @@ export function advance(a: Actor): void {
     a.idle = 0;
     a.move = null;
     a.frame = 0;
+    if (def.then && a.moves[def.then]) startMove(a, def.then); // a creature's chain runs straight on
   }
 }
 
@@ -72,12 +73,16 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   const speed = Math.hypot(m.vx, m.vz);
   const moving = speed > 0.1;
   const dodge = moving ? 'roll' : 'backstep';
-  const move = action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? dodge : action === 'item' ? 'drink' : action;
+  const move = action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? dodge : action === 'item' ? 'drink' : action === 'heal' ? 'inject' : action;
   const def = a.moves[move];
   if (!def) return;
   if (action === 'item') {
     if (g.player.laudanum <= 0) return;
     g.player.laudanum--; // spent as the vial comes up, even if a blow cuts the swallow short
+  }
+  if (action === 'heal') {
+    if (g.player.reagent <= 0) return;
+    g.player.reagent--; // likewise the Reagent, as the needle comes up
   }
   if (st && def.stamina) spend(st, def.stamina);
   startMove(a, move);

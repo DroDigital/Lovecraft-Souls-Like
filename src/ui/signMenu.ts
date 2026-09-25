@@ -28,7 +28,7 @@ export function createSignMenu(g: Game): SignMenu {
     const ow = g.overworld!;
     const here = signPlace(ow.sign);
     el(panel, 'div', (here?.name ?? 'Elder Sign').toUpperCase(), 'font-size:18px;letter-spacing:4px');
-    el(panel, 'div', 'Rested. Wounds close, the mind steadies, and the slain rise again.', 'opacity:.6;margin-top:2px');
+    el(panel, 'div', 'You rest. Your health, sanity, Laudanum and Reagent are restored, and the creatures you killed are back.', 'opacity:.6;margin-top:2px');
     heading(panel, `INSIGHT ${g.mind.insight}`);
     for (const id of Object.keys(UPGRADES) as UpgradeId[]) {
       const u = UPGRADES[id];

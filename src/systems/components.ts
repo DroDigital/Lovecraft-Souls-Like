@@ -11,10 +11,11 @@ import type { Tier } from '../data/schema';
 import type { UpgradeId } from '../data/tuning';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
-import type { Bolt, Fight, Hazard, Prop, Reality } from './fightTypes';
+import type { Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
+import type { Explored } from './exploration';
 import type { Band, GameEvents } from './gameEvents';
 
-export type { ArenaCircle, Bolt, Fight, Hazard, Prop, Reality } from './fightTypes';
+export type { ArenaCircle, Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
 export { BANDS, type Band, type GameEvents, type HitOutcome } from './gameEvents';
 import type { InputBuffer } from './inputBuffer';
 import type { LockState } from './lockOn';
@@ -93,6 +94,7 @@ export interface Brain {
   strafe: 1 | -1; // circling direction
   cooldown: number; // frames before the next attack
   speed: number;
+  evadeIn?: number; // frames before it may try to slip another blow
 }
 
 export interface Drop {
@@ -139,6 +141,8 @@ export interface Phantom {
 export interface Tome {
   name: string;
   insight: number;
+  vial?: boolean; // a Silver Vial: one more dose of West's Reagent
+  note?: boolean; // a letter, clipping or report (documents.ts), not a tome
 }
 
 /** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */
@@ -183,6 +187,9 @@ export function createStores() {
     prop: new Map<Entity, Prop>(),
     bolt: new Map<Entity, Bolt>(),
     hazard: new Map<Entity, Hazard>(),
+    mark: new Map<Entity, Mark>(), // an eruption's marked ground (strikes.ts)
+    wave: new Map<Entity, Wave>(), // a quake's ring
+    npc: new Map<Entity, string>(), // someone met in the dream (npcs.ts): their id
     unseen: new Map<Entity, { revealed: number }>(), // invisible unless revealed (frames left): the Dunwich Horror
     shove: new Map<Entity, { x: number; z: number; frames: number }>(), // metres per frame, for this many frames
   };
@@ -209,6 +216,8 @@ export interface Pilot {
   echoes: number; // carried currency
   checkpoint: Place; // the last Elder Sign
   laudanum: number; // doses left
+  reagent: number; // West's Reagent: doses left...
+  reagentMax: number; // ...and the most it holds (Silver Vials add to it)
 }
 
 /** The investigator's mind (spec §3A). */
@@ -235,6 +244,10 @@ export interface Overworld {
   region: string | null; // where the investigator is
   chunk: number; // the investigator's chunk key
   dirty: boolean; // spawn points need another look
+  explored: Explored; // the ground seen, for the map (exploration.ts)
+  lookedFrom: number; // the cell the investigator last looked around from
+  quests: Map<string, number>; // each quest begun: its open stage, or its stage count once done (quests.ts)
+  met: Set<string>; // the people talked with (npcs.ts)
 }
 
 export interface Game {

@@ -63,6 +63,30 @@ export interface Hazard {
   next: number; // frames to the next tick
 }
 
+/** A marked spot on the ground (the eruption): it bursts once its delay runs out. */
+export interface Mark {
+  owner: Entity;
+  faction: 'player' | 'enemy';
+  radius: number;
+  delay: number; // frames left before it bursts...
+  total: number; // ...out of this many (the telegraph fills over them)
+  damage: number;
+  poise: number;
+}
+
+/** A ring racing out along the ground from where it was loosed (the quake). */
+export interface Wave {
+  owner: Entity;
+  faction: 'player' | 'enemy';
+  r: number; // metres out its leading edge has come
+  speed: number; // metres a frame
+  width: number;
+  reach: number;
+  damage: number;
+  poise: number;
+  struck: Entity[]; // each body it passes it strikes once
+}
+
 /** The world as the bosses' reality hooks bend it (spec §3E); the renderer and HUD read it. */
 export interface Reality {
   hooks: Set<RealityHook>; // live this step: the engaged bosses' phase hooks together

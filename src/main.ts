@@ -15,7 +15,13 @@ import { createActorViews } from './render/actorViews';
 import { createDrones, type Drones } from './render/audio/drones';
 import { createAudioEngine, type AudioEngine } from './render/audio/engine';
 import { createGameAudio } from './render/audio/gameAudio';
+import { playMenuMusic, type Music } from './render/audio/music';
 import { playSound } from './render/audio/synth';
+import { createBossFx } from './render/bossFx';
+import { createCombatFx } from './render/combatFx';
+import { createShadows } from './render/shadows';
+import { createHurtFx } from './render/hurtFx';
+import { createParticles } from './render/particles';
 import { createCreatureViews } from './render/creatureViews';
 import { createFightViews } from './render/fightViews';
 import { placeCamera } from './render/followCamera';
@@ -44,7 +50,12 @@ import { createEndingCard } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
 import { setMenuSound } from './ui/menuKit';
+import { createMapPainter } from './ui/mapPainter';
+import { createMapScreen } from './ui/mapScreen';
 import { createPauseMenu } from './ui/pauseMenu';
+import { createDialogue } from './ui/dialogue';
+import { showIntro, type Intro } from './ui/intro';
+import { journalPage } from './ui/journal';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
 import { showTitle } from './ui/titleScreen';
@@ -62,6 +73,7 @@ function playerStats(g: Game): string {
 
 /** What outlives the title screen: the settings (kept in localStorage) and the audio. */
 interface Shell {
+  music?: Music; // the title screen's, while it plays
   settings: Settings;
   change(id: SettingId, v: number): void;
   store: SaveStore | null;
@@ -73,6 +85,7 @@ interface StartOptions {
   debug: boolean; // exposes the game (and the world scene) on `window` for console poking and scripted checks
   arena: boolean; // the combat arena instead of the open world
   fresh?: boolean; // the open world: forget the save and start anew
+  intro?: boolean; // show the new game's opening first (not with ?fresh, which is for testing)
   creature?: string;
   variant?: Variant;
 }
@@ -119,17 +132,20 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const scene = world?.scene ?? createArenaScene();
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game);
   const ending = createEndingCard(game);
+  const capture = (): void => {
+    try {
+      const r: unknown = canvas.requestPointerLock();
+      if (r instanceof Promise) r.catch(() => undefined);
+    } catch {
+      // No pointer lock: a click on the canvas captures the mouse, as ever.
+    }
+  };
   const pause = createPauseMenu({
     settings,
     change: shell.change,
-    resume: () => {
-      try {
-        const r: unknown = canvas.requestPointerLock();
-        if (r instanceof Promise) r.catch(() => undefined);
-      } catch {
-        // No pointer lock: a click on the canvas captures the mouse, as ever.
-      }
-    },
+    resume: capture,
+    map: opts.arena ? undefined : () => map.show(),
+    journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
     quit: () => void (location.href = location.pathname),
   });
   if (store) startAutosave(game, store);
@@ -139,9 +155,18 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const fights = createFightViews(scene, game);
   const fxController = createFxController(game);
   const audio = createGameAudio(shell.engine, shell.drones, game);
+  const particles = createParticles(scene);
+  const combatFx = createCombatFx(game, particles);
+  const bossFx = createBossFx(scene, game, particles);
+  const shadows = createShadows(scene, game);
+  const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
-  const hud = createHud(game, canvas);
+  const dialogue = createDialogue(game);
+  const intro: Intro | null = opts.intro ? showIntro(capture) : null;
+  const painter = createMapPainter(game);
+  const hud = createHud(game, canvas, painter);
+  const map = createMapScreen(game, painter, capture);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(opts) : [])], panelOptions(game, shell)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
@@ -163,12 +188,13 @@ function startGame(opts: StartOptions, shell: Shell): void {
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
-        if (pause.open) return; // the world stands still
+        if (pause.open || map.open || dialogue.open || intro?.open) return; // the world stands still
         simTime += dt;
         stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
       },
       render(blend) {
-        const alpha = pause.open ? 1 : blend;
+        const still = pause.open || map.open || dialogue.open || !!intro?.open;
+        const alpha = still ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
         state.cap = settings.fxCap;
@@ -177,6 +203,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
           resize();
         }
         placeCamera(camera, game, alpha);
+        hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z);
         views.update(alpha, time);
@@ -184,12 +211,16 @@ function startGame(opts: StartOptions, shell: Shell): void {
         creatures.update(alpha, time, camera);
         hidden.update(time);
         fights.update(alpha, time);
+        combatFx.update();
+        bossFx.update(alpha, time, camera);
+        shadows.update(alpha);
+        particles.update(time, camera);
 
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
         applyReality(fx, game.reality);
         lightReality(game.reality);
-        audio.update(fx, time, camera, pause.open);
+        audio.update(fx, time, camera, still);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
@@ -222,28 +253,26 @@ function createShell(): Shell {
   const change = (id: SettingId, v: number): void => {
     settings[id] = clampSetting(id, v);
     storeSettings(store, settings);
-    if (id === 'volume') engine.setVolume(settings.volume);
+    if (id === 'volume') {
+      engine.setVolume(settings.volume);
+      shell.music?.setVolume(settings.volume);
+    }
   };
-  return { settings, change, store, engine, drones: createDrones(engine) };
+  const shell: Shell = { settings, change, store, engine, drones: createDrones(engine) };
+  return shell;
 }
 
-/** The title screen, humming its drone, until a choice starts the world. */
+/** The title screen, with its music, until a choice starts the world. */
 function title(opts: StartOptions, shell: Shell): void {
-  let open = true;
-  shell.drones.set('title', false);
-  const hum = (): void => {
-    if (!open) return;
-    shell.drones.update(null, performance.now() / 1000);
-    requestAnimationFrame(hum);
-  };
-  hum();
+  shell.music = playMenuMusic(shell.settings.volume);
   showTitle({
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
     change: shell.change,
     start(fresh) {
-      open = false;
-      startGame({ ...opts, fresh }, shell);
+      shell.music?.fadeOut(2.5);
+      shell.music = undefined;
+      startGame({ ...opts, fresh, intro: fresh }, shell);
     },
   });
 }

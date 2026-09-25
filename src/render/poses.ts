@@ -8,6 +8,7 @@
 import type { MoveDef } from '../data/moves';
 import { PLAYER } from '../data/tuning';
 import type { Figure } from './figures';
+import { swing } from './swings';
 
 export interface PoseInput {
   move: string | null;
@@ -21,7 +22,6 @@ export interface PoseInput {
   time: number;
 }
 
-const DEG = Math.PI / 180;
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t));
 const ease = (t: number): number => {
   const c = clamp01(t);
@@ -50,44 +50,25 @@ function locomotion(f: Figure, p: PoseInput): void {
   if (p.guard) f.armR.rotation.set(-1.25, -0.2, 0.6, 'YXZ'); // cane across the body
 }
 
-/** The weapon arm follows the hit arc: wind up past its start, sweep it during the active frames, return. */
-function swing(f: Figure, d: MoveDef, frame: number): void {
-  const h = d.hit!;
-  const [w0, w1] = h.window;
-  const a0 = h.arc[0] * DEG;
-  const a1 = h.arc[1] * DEG;
-  const back = a0 + (a0 - a1) * 0.25;
-  const up = Math.PI / 2;
-  let yaw: number;
-  let pitch: number;
-  if (frame < w0) {
-    const t = ease(frame / w0);
-    [yaw, pitch] = [back * t, (up + 0.35) * t];
-  } else if (frame < w1) {
-    const t = (frame - w0) / (w1 - w0);
-    [yaw, pitch] = [back + (a1 - back) * t, up + 0.35 * (1 - t)];
-  } else {
-    const t = 1 - ease((frame - w1) / Math.max(1, d.frames - w1));
-    [yaw, pitch] = [a1 * t, up * t];
-  }
-  f.armR.rotation.set(-pitch, -yaw, 0, 'YXZ'); // + arc = the figure's right = -x
-  if (Math.abs(a0 - a1) < 0.8) f.armL.rotation.set(-pitch, yaw, 0, 'YXZ'); // thrusts and lunges use both arms
-  f.torso.rotation.y = -yaw * 0.35;
-  f.legR.rotation.x = 0.3;
-  f.legL.rotation.x = -0.25;
-  const m = d.motion;
-  if (m?.dir === 'facing') f.body.rotation.x += 0.3 * bump((frame - m.window[0]) / (m.window[1] - m.window[0] + 6));
-}
-
+/**
+ * A dodge roll: a short dive, a tucked somersault along the roll direction (knees to chest, arms
+ * wrapped, head down, the body low), then coming up through a crouch.
+ */
 function roll(f: Figure, d: MoveDef, p: PoseInput): void {
   const [m0, m1] = d.motion!.window;
-  const t = (p.frame - m0) / (m1 - m0);
-  const tuck = bump(t);
-  f.body.rotation.set(2 * Math.PI * ease(t), p.rollYaw, 0, 'YXZ');
-  f.body.position.y = f.hip * (1 - 0.5 * tuck);
-  f.legR.rotation.x = f.legL.rotation.x = -1.3 * tuck;
-  f.armR.rotation.x = f.armL.rotation.x = -1.1 * tuck;
-  f.head.rotation.x = 0.5 * tuck;
+  const t = (p.frame - m0) / (m1 - m0); // 0..1 over the travel, beyond 1 while recovering
+  const dive = bump(t / 0.3);
+  const spin = ease((t - 0.1) / 0.72);
+  const tuck = bump((t - 0.04) / 0.86);
+  const crouch = bump((t - 0.78) / 0.7);
+  f.body.rotation.set(0.55 * dive * (1 - spin) + Math.PI * 2 * spin, p.rollYaw, 0.1 * tuck, 'YXZ');
+  f.body.position.y = f.hip * (1 - 0.52 * tuck - 0.12 * crouch);
+  f.torso.rotation.x = 0.95 * tuck + 0.35 * crouch;
+  f.head.rotation.x = 0.75 * tuck - 0.2 * crouch;
+  f.legR.rotation.x = -2.1 * tuck - 0.5 * crouch; // the lead foot comes down first...
+  f.legL.rotation.x = -1.8 * tuck + 0.35 * crouch; // ...the other braces behind
+  f.armR.rotation.set(-1.0 * tuck - 0.9 * dive, 0, -0.35 * tuck, 'YXZ');
+  f.armL.rotation.set(-1.0 * tuck - 0.9 * dive, 0, 0.35 * tuck, 'YXZ');
 }
 
 function backstep(f: Figure, t: number): void {
@@ -112,6 +93,15 @@ function drink(f: Figure, d: MoveDef, frame: number): void {
   const t = frame < at ? ease(frame / (at - 4)) : 1 - ease((frame - at - 6) / Math.max(1, d.frames - at - 14));
   f.armL.rotation.set(-2.2 * t, -0.7 * t, 0, 'YXZ'); // forward, up and across, so the hand is at the lips
   f.head.rotation.x -= 0.4 * clamp01((frame - at + 10) / 10) * t;
+}
+
+/** A shot of West's Reagent: the off-hand brings the syringe to the side of the neck, the head tips away. */
+function inject(f: Figure, d: MoveDef, frame: number): void {
+  const at = d.item!;
+  const t = frame < at ? ease(frame / (at - 6)) : 1 - ease((frame - at - 8) / Math.max(1, d.frames - at - 16));
+  f.armL.rotation.set(-2.5 * t, -0.9 * t, 0.2 * t, 'YXZ');
+  f.head.rotation.z = -0.35 * t;
+  f.torso.rotation.x = 0.12 * t * clamp01((frame - at + 4) / 6); // it stings
 }
 
 /** Off-hand revolver: raise, fire (muzzle flash and kick), lower. */
@@ -175,7 +165,7 @@ export function pose(f: Figure, p: PoseInput): void {
   else if (d.motion?.dir === 'back') backstep(f, p.frame / d.frames);
   else if (d.parry) parry(f, d, p.frame);
   else if (d.shot) aim(f, d, p.frame);
-  else if (d.item !== undefined) drink(f, d, p.frame);
+  else if (d.item !== undefined) (d.use === 'reagent' ? inject : drink)(f, d, p.frame);
   f.body.rotation.x -= 0.18 * p.flinch;
   f.head.rotation.x -= 0.25 * p.flinch;
 }

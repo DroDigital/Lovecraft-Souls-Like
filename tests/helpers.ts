@@ -42,7 +42,7 @@ export function place(g: Game, id: Entity, x: number, z: number, yaw: number): v
 export const range = (from: number, to: number): number[] => Array.from({ length: to - from }, (_, i) => from + i);
 
 const windows = (m: MoveDef): Window[] =>
-  [m.iframes, m.parry, m.interrupt, m.hit?.window, m.motion?.window, m.track?.window, m.sanity?.window, m.effect?.window].filter((w) => w !== undefined);
+  [m.iframes, m.parry, m.interrupt, m.hit?.window, m.motion?.window, m.track?.window, m.sanity?.window, m.effect?.window, m.sweep?.window, m.barrage?.window, m.pull?.window].filter((w) => w !== undefined);
 
 /** Every reaction exists; every window, cancel, hitstop and combo link is valid. */
 export function expectValidMoveSet(set: MoveSet): void {
@@ -58,7 +58,8 @@ export function expectValidMoveSet(set: MoveSet): void {
     for (const stop of [m.hit?.hitstop, m.shot?.hitstop]) {
       if (stop !== undefined) expect([2, 3, 4], id).toContain(stop);
     }
-    for (const at of [m.shot?.frame, m.volley?.frame, m.pool?.frame]) if (at !== undefined) expect(at, id).toBeLessThan(m.frames);
+    for (const at of [m.shot?.frame, m.volley?.frame, m.pool?.frame, m.marks?.frame, m.wave?.frame]) if (at !== undefined) expect(at, id).toBeLessThan(m.frames);
+    if (m.then !== undefined) expect(set[m.then], `${id} runs on into ${m.then}`).toBeDefined();
     if (m.item !== undefined) expect(m.item, id).toBeLessThan(m.frames);
     if (m.sanity) expect(m.sanity.amount, id).toBeGreaterThan(0);
     if (m.interrupt && m.hit) expect(m.interrupt[1], `${id} interrupt is a wind-up`).toBeLessThanOrEqual(m.hit.window[0]);

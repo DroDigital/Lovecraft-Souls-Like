@@ -30,6 +30,13 @@ export interface AttackDef {
   unblockable?: boolean;
   sanity?: number; // sanity damage = sanity × stats.sanityDamage, over the active frames
   effect?: EffectKind;
+  marks?: { count: number; ring: readonly [number, number]; delay: number; stagger: number; radius: number }; // the eruption (see MarksDef)
+  wave?: { speed: number; width: number; reach: number }; // the quake (see WaveDef)
+  sweep?: { arc: readonly [number, number]; length: number; width: number }; // the sweeping beam, over the active frames
+  barrage?: { arms: number; every: number; spin: number; speed: number; radius: number }; // over the active frames
+  pull?: { speed: number; range: number }; // the vortex draws its prey in over the active frames
+  follow?: AttackId; // runs straight on into this attack as it ends (a chain)
+  tight?: boolean; // its hit grows only with the root of the body's size (a burst at a colossus's heart stays dodgeable)
 }
 
 const melee = (d: Omit<AttackDef, 'kind'>): AttackDef => ({ kind: 'melee', ...d });
@@ -55,6 +62,17 @@ export const ATTACKS: Readonly<Record<AttackId, AttackDef>> = {
   roar: { kind: 'special', windup: 24, active: 12, recovery: 30, power: 0, poise: 0, range: [0, 12], sanity: 1.5 },
   gaze: { kind: 'special', windup: 30, active: 20, recovery: 30, power: 0, poise: 0, range: [0, 20], sanity: 0.5, effect: 'gaze' },
   darkness: { kind: 'special', windup: 36, active: 1, recovery: 30, power: 0, poise: 0, range: [4, 30], effect: 'darkness' },
+  // The dodging game: marked ground, rings and beams to roll through, patterns to weave between, chains to read.
+  eruption: { kind: 'area', windup: 28, active: 1, recovery: 44, power: 1.3, poise: 1.6, range: [0, 16], marks: { count: 5, ring: [2.5, 5.5], delay: 42, stagger: 7, radius: 1.7 } },
+  quake: { kind: 'area', windup: 32, active: 1, recovery: 42, power: 1.1, poise: 1.4, range: [0, 11], wave: { speed: 8, width: 1.1, reach: 15 } },
+  sweep_beam: { kind: 'ranged', windup: 46, active: 44, recovery: 34, power: 1.2, poise: 1.2, range: [3, 15], sweep: { arc: [75, -75], length: 17, width: 0.7 } },
+  barrage: { kind: 'ranged', windup: 30, active: 70, recovery: 30, power: 0.55, poise: 0.4, range: [0, 14], barrage: { arms: 4, every: 9, spin: 13, speed: 7.5, radius: 0.35 } },
+  vortex: { kind: 'special', windup: 24, active: 54, recovery: 1, power: 0, poise: 0, range: [3, 11], pull: { speed: 3, range: 12 }, follow: 'vortex_burst' },
+  vortex_burst: { kind: 'area', windup: 8, active: 6, recovery: 44, power: 1.5, poise: 2, range: [0, 0], reach: 0, radius: 4.2, height: 0.3, arc: [180, -180], tight: true },
+  combo: melee({ windup: 16, active: 6, recovery: 6, power: 0.8, poise: 0.7, range: [0, 2.4], reach: 1.3, radius: 0.5, height: 0.6, arc: [80, -60], lunge: 0.8, follow: 'combo_2' }),
+  combo_2: melee({ windup: 10, active: 6, recovery: 8, power: 0.8, poise: 0.7, range: [0, 0], reach: 1.3, radius: 0.5, height: 0.55, arc: [-70, 80], lunge: 0.6, follow: 'combo_3' }),
+  combo_3: melee({ windup: 34, active: 5, recovery: 36, power: 1.5, poise: 1.6, range: [0, 0], reach: 1.5, radius: 0.8, height: 0.4, arc: [0, 0], lunge: 1.4 }),
+  delayed_slam: melee({ windup: 54, active: 5, recovery: 34, power: 1.8, poise: 2, range: [0, 2.6], reach: 1.5, radius: 0.9, height: 0.4, arc: [0, 0] }),
 };
 
 /** Body size relative to a human (1.9 m); big bodies reach further. */
@@ -85,10 +103,18 @@ export function compileAttack(id: AttackId, stats: Stats, height: number): MoveD
     move.sanity = { window: [a.windup, a.windup + a.active], amount: a.sanity * stats.sanityDamage, range, sight: a.effect === 'gaze' };
   }
   if (a.effect) move.effect = { window: [a.windup, a.windup + a.active], kind: a.effect, range: a.range[1] * k };
+  if (a.follow) move.then = a.follow;
+  if (a.pull) move.pull = { window: [a.windup, a.windup + a.active], speed: a.pull.speed, range: a.pull.range * k };
   if (a.kind === 'special' || stats.damage <= 0 || (damage <= 0 && !pool)) return move;
   move.interrupt = [Math.round(a.windup * 0.3), a.windup];
   const b = a.bolts;
-  if (b) {
+  const s = Math.sqrt(k);
+  const active = [a.windup, a.windup + a.active] as const;
+  if (a.marks) move.marks = { frame: a.windup, ...a.marks, ring: [a.marks.ring[0] * s, a.marks.ring[1] * s], radius: a.marks.radius * s, damage, poise };
+  else if (a.wave) move.wave = { frame: a.windup, speed: a.wave.speed * s, width: a.wave.width * s, reach: a.wave.reach * s, damage, poise };
+  else if (a.sweep) move.sweep = { window: active, arc: a.sweep.arc, length: a.sweep.length * s, width: a.sweep.width * s, damage, poise };
+  else if (a.barrage) move.barrage = { window: active, ...a.barrage, radius: a.barrage.radius * s, range: a.range[1] * k * 1.6, damage, poise };
+  else if (b) {
     const range = a.range[1] * k * 1.5;
     move.volley = { frame: a.windup, count: b.count, spread: b.spread, speed: b.speed, radius: b.radius * Math.sqrt(k), range, damage, poise, lob: !!b.lob, pool };
   } else if (pool) move.pool = { frame: a.windup, ...pool };
@@ -100,8 +126,8 @@ export function compileAttack(id: AttackId, stats: Stats, height: number): MoveD
       poise,
       guard: Math.round(damage * 1.3),
       hitstop,
-      reach: (a.reach ?? 1) * k,
-      radius: (a.radius ?? 0.5) * k,
+      reach: (a.reach ?? 1) * (a.tight ? s : k),
+      radius: (a.radius ?? 0.5) * (a.tight ? s : k),
       height: Math.min(1.3, Math.max(0.3, (a.height ?? 0.5) * height)),
       arc: a.arc ?? [0, 0],
       ...(a.push && { push: a.push * Math.sqrt(k) }),

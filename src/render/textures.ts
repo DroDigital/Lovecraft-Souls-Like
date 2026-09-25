@@ -1,97 +1,95 @@
 /**
- * Procedural 64×64 world textures (spec §2): stone, floor slabs, wood, rot, wet flesh, water,
- * figure cloth. Pure (no Three.js): tileable RGBA8 pixels built only from the muted base palette.
+ * Procedural 128×128 world textures (spec §2): natural ground (rot, grass, mud, sand, snow), wet
+ * flesh, water and figure cloth here; masonry, flagstones, brick, cobbles, clapboard, shingles and
+ * wood in textureMasonry.ts. Pure (no Three.js): tileable RGBA8 pixels built only from the muted base
+ * palette. A texture spans twice the texels of the old 64-texel set at the same density, so it repeats
+ * half as often; world materials also vary it in world space (shaders/world.ts).
  */
 
 import { fbm } from '../core/noise';
 import { hash2 } from '../core/rng';
-import { BASE, mixRgb, scaleRgb, type Rgb } from './palette';
+import { BASE, mixRgb, scaleRgb } from './palette';
+import { brick, clapboard, cobble, shingle, slab, stone, wood, type TexelFn } from './textureMasonry';
 
-export const TEXTURE_SIZE = 64;
-export const TEXTURE_KINDS = ['stone', 'slab', 'wood', 'rot', 'flesh', 'water', 'cloth'] as const;
+export const TEXTURE_SIZE = 128;
+/** UV units per texture repeat: geometry UVs count 64 texels to the unit, as they always have. */
+export const UV_PER_TEXTURE = TEXTURE_SIZE / 64;
+export const TEXTURE_KINDS = [
+  'stone', 'slab', 'wood', 'rot', 'flesh', 'water', 'cloth', 'grass', 'mud', 'sand', 'snow', 'cobble', 'brick', 'clapboard', 'shingle',
+] as const;
 export type TextureKind = (typeof TEXTURE_KINDS)[number];
 
-/** Colour at texture coordinate (u, v) in [0, 1). Must tile across the edges. */
-type TexelFn = (u: number, v: number, seed: number) => Rgb;
-
-/** Distance in pixels from `t` (0..1 across a cell `px` pixels wide) to the nearest cell edge. */
-const edgePx = (t: number, px: number): number => Math.min(t, 1 - t) * px;
-
-/** Staggered masonry: 2 blocks × 4 rows, mortar, per-block tone, grain, cracks. */
-const stone: TexelFn = (u, v, seed) => {
-  const y = v * 4;
-  const row = Math.floor(y);
-  const x = u * 2 + (row % 2) * 0.5;
-  const col = Math.floor(x);
-  const mortar = Math.min(edgePx(x - col, 32), edgePx(y - row, 16));
-  const tone = hash2(col % 2, row, seed);
-  const grain = fbm(u * 8, v * 8, seed, 3, 8);
-  const crack = 1 - Math.abs(2 * fbm(u * 4, v * 4, seed + 7, 3, 4) - 1);
-  let c = mixRgb(BASE.charcoal, BASE.seaGrey, 0.35 + 0.35 * tone);
-  c = mixRgb(c, BASE.bone, 0.3 * grain);
-  if (crack > 0.93) c = scaleRgb(c, 0.55);
-  if (mortar < 1.2) c = scaleRgb(BASE.charcoal, 0.7);
-  return c;
-};
-
-/** Floor flagstones: 2 × 2 slabs of 32 texels in staggered rows, grout darker than the slab (never black),
- *  faint grain, and a few thin, low-contrast cracks. */
-const slab: TexelFn = (u, v, seed) => {
-  const y = v * 2;
-  const row = Math.floor(y);
-  const x = u * 2 + (row % 2) * 0.5;
-  const col = Math.floor(x);
-  const grout = Math.min(edgePx(x - col, 32), edgePx(y - row, 32));
-  const tone = hash2(col % 2, row, seed);
-  const grain = fbm(u * 8, v * 8, seed, 2, 8);
-  const crack = 1 - Math.abs(2 * fbm(u * 4, v * 4, seed + 7, 3, 4) - 1);
-  let c = mixRgb(BASE.seaGrey, BASE.bone, 0.15 + 0.2 * tone);
-  c = scaleRgb(c, 0.88 + 0.16 * grain);
-  if (crack > 0.975 && hash2(col % 2, row, seed + 5) < 0.5) c = scaleRgb(c, 0.8);
-  if (grout < 1) c = scaleRgb(c, 0.55);
-  return c;
-};
-
-/** Four vertical planks with dark seams and wavy grain. */
-const wood: TexelFn = (u, v, seed) => {
-  const x = u * 4;
-  const plank = Math.floor(x);
-  const fx = x - plank;
-  const warp = fbm(u * 16, v * 2, seed + plank * 31, 3, 16, 2);
-  const grain = 0.5 + 0.5 * Math.sin((fx * 5 + warp * 2.5) * Math.PI * 2);
-  let c = mixRgb(scaleRgb(BASE.rust, 0.55), BASE.rust, 0.3 + 0.4 * hash2(plank, 0, seed));
-  c = mixRgb(c, BASE.bone, 0.08 + 0.14 * grain);
-  if (edgePx(fx, 16) < 1) c = scaleRgb(BASE.charcoal, 0.6);
-  return c;
-};
-
-/** Rotting ground: mottled earth, dark wet patches, pale fungus specks. */
+/** Rotting ground: mottled earth, dark wet patches, a scatter of pale fungus that never forms a pattern. */
 const rot: TexelFn = (u, v, seed) => {
-  const blot = fbm(u * 4, v * 4, seed, 4, 4);
-  const fine = fbm(u * 16, v * 16, seed + 5, 2, 16);
+  const blot = fbm(u * 8, v * 8, seed, 4, 8);
+  const fine = fbm(u * 32, v * 32, seed + 5, 2, 32);
   let c = mixRgb(BASE.charcoal, BASE.rust, 0.25 + 0.35 * blot);
   c = mixRgb(c, BASE.seaGrey, 0.35 * (1 - blot));
-  c = scaleRgb(c, 0.75 + 0.5 * fine);
-  if (blot < 0.38) c = scaleRgb(c, 0.6);
-  if (fine > 0.74) c = mixRgb(c, BASE.bone, 0.45);
+  c = scaleRgb(c, 0.8 + 0.35 * fine);
+  if (blot < 0.38) c = scaleRgb(c, 0.7);
+  if (fine > 0.8 && hash2(Math.floor(u * 64), Math.floor(v * 64), seed) < 0.5) c = mixRgb(c, BASE.bone, 0.3);
+  return c;
+};
+
+/** Dead grass: tufts of pale straw over bare earth, darker hollows, a few bright stalks. */
+const grass: TexelFn = (u, v, seed) => {
+  const clump = fbm(u * 6, v * 6, seed, 3, 6);
+  const tuft = fbm(u * 40, v * 40, seed + 3, 2, 40);
+  const stalk = hash2(Math.floor(u * 128), Math.floor(v * 128), seed + 9);
+  const earth = mixRgb(BASE.charcoal, BASE.rust, 0.3);
+  const straw = mixRgb(mixRgb(BASE.seaGrey, BASE.bone, 0.3), BASE.rust, 0.18);
+  let c = mixRgb(earth, straw, Math.min(1, Math.max(0, (clump - 0.3) * 1.8 + (tuft - 0.5) * 0.9)));
+  c = scaleRgb(c, 0.8 + 0.35 * tuft);
+  if (stalk > 0.96 && clump > 0.42) c = mixRgb(c, BASE.bone, 0.25);
+  return c;
+};
+
+/** Mud: dark wet earth, tracks of standing water with pale glints, clods. */
+const mud: TexelFn = (u, v, seed) => {
+  const wet = fbm(u * 4, v * 4, seed, 4, 4);
+  const clod = fbm(u * 24, v * 24, seed + 4, 2, 24);
+  let c = mixRgb(scaleRgb(BASE.charcoal, 0.9), BASE.rust, 0.25 + 0.2 * clod);
+  if (wet > 0.58) c = mixRgb(scaleRgb(BASE.seaGrey, 0.35), BASE.seaGrey, 0.25 * clod);
+  if (wet > 0.58 && clod > 0.72) c = mixRgb(c, BASE.bone, 0.35);
+  return scaleRgb(c, 0.85 + 0.3 * clod);
+};
+
+/** Sand: fine grain in wind ripples, darker grit in the troughs. */
+const sand: TexelFn = (u, v, seed) => {
+  const warp = fbm(u * 4, v * 4, seed, 3, 4);
+  const ripple = 0.5 + 0.5 * Math.sin((v * 12 + warp * 2.2) * Math.PI * 2);
+  const grain = hash2(Math.floor(u * 128), Math.floor(v * 128), seed);
+  let c = mixRgb(mixRgb(BASE.bone, BASE.rust, 0.3), BASE.bone, 0.3 + 0.4 * ripple);
+  c = scaleRgb(c, 0.9 + 0.14 * grain);
+  if (ripple < 0.12) c = scaleRgb(c, 0.8);
+  return c;
+};
+
+/** Snow: bright drifts shaded in soft hollows, a little blown grit. */
+const snow: TexelFn = (u, v, seed) => {
+  const drift = fbm(u * 4, v * 4, seed, 4, 4);
+  const crust = fbm(u * 32, v * 32, seed + 6, 2, 32);
+  let c = mixRgb(mixRgb(BASE.seaGrey, BASE.bone, 0.5), BASE.bone, 0.5 + 0.5 * drift);
+  c = scaleRgb(c, 0.92 + 0.1 * crust);
+  if (hash2(Math.floor(u * 128), Math.floor(v * 128), seed + 1) > 0.992) c = scaleRgb(BASE.charcoal, 1.4);
   return c;
 };
 
 /** Wet flesh: pale meat, dark branching veins, glossy glints. */
 const flesh: TexelFn = (u, v, seed) => {
-  const vein = 1 - Math.abs(2 * fbm(u * 4, v * 4, seed, 4, 4) - 1);
-  const meat = fbm(u * 8, v * 8, seed + 3, 3, 8);
-  const gloss = fbm(u * 16, v * 16, seed + 9, 2, 16);
+  const vein = 1 - Math.abs(2 * fbm(u * 8, v * 8, seed, 4, 8) - 1);
+  const meat = fbm(u * 16, v * 16, seed + 3, 3, 16);
+  const gloss = fbm(u * 32, v * 32, seed + 9, 2, 32);
   let c = mixRgb(BASE.rust, BASE.bone, 0.35 + 0.35 * meat);
   if (vein > 0.86) c = scaleRgb(BASE.rust, 0.45);
   if (gloss > 0.72) c = mixRgb(c, BASE.bone, 0.6);
   return c;
 };
 
-/** Dark still water: wavy horizontal ripples with pale crests. */
+/** Dark still water: wavy ripples with pale crests. */
 const water: TexelFn = (u, v, seed) => {
-  const warp = fbm(u * 4, v * 4, seed, 3, 4);
-  const wave = 0.5 + 0.5 * Math.sin((v * 5 + warp * 1.2) * Math.PI * 2);
+  const warp = fbm(u * 8, v * 8, seed, 3, 8);
+  const wave = 0.5 + 0.5 * Math.sin((v * 10 + warp * 1.2) * Math.PI * 2);
   let c = mixRgb(scaleRgb(BASE.seaGrey, 0.3), BASE.seaGrey, 0.2 + 0.5 * wave * warp);
   if (wave > 0.93) c = mixRgb(c, BASE.bone, 0.3);
   return c;
@@ -99,13 +97,13 @@ const water: TexelFn = (u, v, seed) => {
 
 /** Figure cloth: near-flat mid grey in broad value blocks (4-texel folds, 8-texel patches), so tinted parts read as shapes. */
 const cloth: TexelFn = (u, v, seed) => {
-  const fold = hash2(Math.floor(u * 16), 0, seed);
-  const patch = hash2(Math.floor(u * 8), Math.floor(v * 8), seed + 1);
+  const fold = hash2(Math.floor(u * 32), 0, seed);
+  const patch = hash2(Math.floor(u * 16), Math.floor(v * 16), seed + 1);
   const k = 0.5 * (0.86 + 0.16 * fold + 0.12 * patch);
   return [k, k, k];
 };
 
-const TEXELS: Record<TextureKind, TexelFn> = { stone, slab, wood, rot, flesh, water, cloth };
+const TEXELS: Record<TextureKind, TexelFn> = { stone, slab, wood, rot, flesh, water, cloth, grass, mud, sand, snow, cobble, brick, clapboard, shingle };
 
 const to8 = (x: number): number => Math.round(Math.min(1, Math.max(0, x)) * 255);
 

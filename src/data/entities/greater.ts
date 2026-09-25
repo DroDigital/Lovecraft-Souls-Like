@@ -24,7 +24,7 @@ export const GREATER = tier('greater', [
     bossVariant: {
       name: 'Elder Shoggoth', sprite: { scale: 9, eyes: 16 }, stats: { hp: 5200, poise: 900, damage: 60 },
       drops: { echoes: 8000 }, insightOnSight: 2, behavior: { archetype: 'boss' },
-      bossScript: phases(ph(1, { tentacle_burst: 2, grab: 1, slam: 1, aoe_ring: 1 }, { hooks: ['darkness'] }), ph(0.5, { tentacle_burst: 2, charge: 2, aoe_ring: 1, roar: 1 }, { hooks: ['darkness'] })),
+      bossScript: phases(ph(1, { tentacle_burst: 2, grab: 1, slam: 1, aoe_ring: 1, vortex: 1 }, { hooks: ['darkness'] }), ph(0.5, { tentacle_burst: 2, charge: 2, aoe_ring: 1, roar: 1, quake: 1 }, { hooks: ['darkness'] })),
     },
   },
   {
@@ -47,7 +47,7 @@ export const GREATER = tier('greater', [
     bossVariant: {
       name: 'Polyp Swarm', sprite: { scale: 8, tentacles: 14 }, stats: { hp: 5000, poise: 800, damage: 55 },
       drops: { echoes: 8000 }, insightOnSight: 2, behavior: { archetype: 'boss' },
-      bossScript: phases(ph(1, { wind_push: 2, grab: 1, tentacle_burst: 1 }, { hooks: ['decoys'] }), ph(0.5, { wind_push: 2, aoe_ring: 1, tentacle_burst: 1, grab: 1 }, { hooks: ['decoys', 'control_swap'] })),
+      bossScript: phases(ph(1, { wind_push: 2, grab: 1, tentacle_burst: 1, vortex: 1 }, { hooks: ['decoys'] }), ph(0.5, { wind_push: 2, aoe_ring: 1, tentacle_burst: 1, grab: 1, barrage: 1 }, { hooks: ['decoys', 'control_swap'] })),
     },
   },
   {

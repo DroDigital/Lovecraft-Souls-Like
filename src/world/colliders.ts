@@ -1,5 +1,5 @@
 /**
- * Static collision (spec §1: no physics engine): box and vertical-cylinder colliders over a
+ * Static collision (spec §1: no physics engine): box, turned-box and vertical-cylinder colliders over a
  * heightfield, inside a walkable area (the arena's circle, or the open world's land). The open world
  * hands out only the colliders near a query (its chunk index). Kinematic capsule push-out and ray
  * casts. Pure.
@@ -23,7 +23,33 @@ export interface CylinderCollider {
   y1: number;
 }
 
-export type Collider = BoxCollider | CylinderCollider;
+/** A box turned about the vertical axis: walls, fences and houses at any angle. */
+export interface OrientedBoxCollider {
+  kind: 'obox';
+  x: number; // centre
+  z: number;
+  hx: number; // half extents along its own x and z
+  hz: number;
+  yaw: number; // radians, yaw 0 faces +z like everything else
+  y0: number;
+  y1: number;
+}
+
+export type Collider = BoxCollider | CylinderCollider | OrientedBoxCollider;
+
+/** A point in an oriented box's own frame (its axes aligned with x and z). */
+export function toBoxFrame(c: OrientedBoxCollider, x: number, z: number): { x: number; z: number } {
+  const [s, k] = [Math.sin(c.yaw), Math.cos(c.yaw)];
+  const [dx, dz] = [x - c.x, z - c.z];
+  return { x: dx * k - dz * s, z: dx * s + dz * k };
+}
+
+/** The xz rectangle around a collider, for bucketing. */
+export function colliderBounds(c: Collider): { x0: number; z0: number; x1: number; z1: number } {
+  if (c.kind === 'box') return { x0: c.min.x, z0: c.min.z, x1: c.max.x, z1: c.max.z };
+  const r = c.kind === 'cylinder' ? c.radius : Math.hypot(c.hx, c.hz);
+  return { x0: c.x - r, z0: c.z - r, x1: c.x + r, z1: c.z + r };
+}
 
 export interface CollisionWorld {
   colliders: Collider[]; // checked everywhere
@@ -75,6 +101,15 @@ function pushOut(w: CollisionWorld, list: readonly Collider[], pos: V3, r: numbe
     if (c.kind === 'box') {
       if (pos.y + h <= c.min.y || pos.y >= c.max.y) continue;
       pushOutOfRect(pos, r, c.min.x, c.min.z, c.max.x, c.max.z);
+    } else if (c.kind === 'obox') {
+      if (pos.y + h <= c.y0 || pos.y >= c.y1) continue;
+      const l = toBoxFrame(c, pos.x, pos.z);
+      const q = { x: l.x, y: 0, z: l.z };
+      pushOutOfRect(q, r, -c.hx, -c.hz, c.hx, c.hz);
+      if (q.x === l.x && q.z === l.z) continue;
+      const [s, k] = [Math.sin(c.yaw), Math.cos(c.yaw)];
+      pos.x = c.x + q.x * k + q.z * s;
+      pos.z = c.z - q.x * s + q.z * k;
     } else {
       if (pos.y + h <= c.y0 || pos.y >= c.y1) continue;
       const dx = pos.x - c.x;
@@ -102,7 +137,14 @@ export function resolveCapsule(w: CollisionWorld, pos: V3, r: number, h: number)
 function firstHit(w: CollisionWorld, list: readonly Collider[], from: V3, d: V3, t: number): number {
   for (const c of list) {
     if (w.off.has(c)) continue;
-    const hit = c.kind === 'box' ? segmentBox(from, d, c.min, c.max) : segmentCylinder(from, d, c.x, c.z, c.radius, c.y0, c.y1);
+    let hit: number;
+    if (c.kind === 'box') hit = segmentBox(from, d, c.min, c.max);
+    else if (c.kind === 'cylinder') hit = segmentCylinder(from, d, c.x, c.z, c.radius, c.y0, c.y1);
+    else {
+      const o = toBoxFrame(c, from.x, from.z);
+      const e = toBoxFrame(c, from.x + d.x, from.z + d.z);
+      hit = segmentBox({ x: o.x, y: from.y, z: o.z }, { x: e.x - o.x, y: d.y, z: e.z - o.z }, { x: -c.hx, y: c.y0, z: -c.hz }, { x: c.hx, y: c.y1, z: c.hz });
+    }
     if (hit < t) t = hit;
   }
   return t;

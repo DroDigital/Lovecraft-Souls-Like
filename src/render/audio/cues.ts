@@ -69,6 +69,13 @@ export const CUES: Handlers = {
   Rammed: () => inside('rammed'),
   Title: () => inside('title'),
   Ending: () => inside('ending'),
+  Healed: () => inside('healed'),
+  Marked: (e) => ({ sound: 'marked', at: { ...e.at } }),
+  Erupted: (e) => ({ sound: 'erupted', at: { ...e.at } }),
+  Quaked: (e) => ({ sound: 'quaked', at: { ...e.at } }),
+  Swept: (e, g) => ({ sound: 'swept', at: at(g, e.by) }),
+  Read: () => inside('page'),
+  QuestChanged: () => inside('quest'),
 };
 
 /** The cue for an event, or null when it makes no sound. */

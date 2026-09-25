@@ -26,7 +26,7 @@ function meanStep(px: Uint8Array, seam: boolean): number {
 describe.each(TEXTURE_KINDS)('%s texture', (kind) => {
   const px = generateTexture(kind, 1);
 
-  it('is 64×64 opaque RGBA and deterministic', () => {
+  it('is 128×128 opaque RGBA and deterministic', () => {
     expect(px.length).toBe(S * S * 4);
     for (let i = 3; i < px.length; i += 4) expect(px[i]).toBe(255);
     expect(generateTexture(kind, 1)).toEqual(px);
@@ -56,10 +56,11 @@ describe('floor slab texture', () => {
   const rowMean = (ys: number[]): number => ys.reduce((a, y) => a + Array.from({ length: S }, (_, x) => lumaAt(px, x, y)).reduce((b, c) => b + c, 0) / S, 0) / ys.length;
 
   it('has grout darker than the slab, but never black', () => {
-    const grout = rowMean([0, 31, 32, 63]); // the seams between rows of slabs
-    const slab = rowMean([8, 12, 16, 20, 24, 40, 44, 48, 52, 56]);
+    const seams = [0, 31, 32, 63, 64, 95, 96, 127]; // between the four rows of slabs
+    const grout = rowMean(seams);
+    const slab = rowMean([8, 12, 16, 20, 24, 40, 44, 48, 52, 56, 72, 80, 88, 104, 112, 120]);
     expect(grout).toBeLessThan(slab * 0.75);
-    for (const y of [0, 31, 32, 63]) for (let x = 0; x < S; x++) expect(lumaAt(px, x, y)).toBeGreaterThan(0.1);
+    for (const y of seams) for (let x = 0; x < S; x++) expect(lumaAt(px, x, y)).toBeGreaterThan(0.1);
   });
 });
 

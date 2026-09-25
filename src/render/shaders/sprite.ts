@@ -2,12 +2,15 @@
  * Creature billboards (spec §2): instanced quads that turn about the vertical axis to face the
  * camera, Doom-style, sampling the sprite atlas. They share the world's vertex snapping, light
  * (ambient, moon and lantern, without normals) and fog. Atlas alpha marks lit pixels (1) and
- * self-lit pixels (glow markings ~0.63, eye glints ~0.82); transparency is dithered. Output alpha can mark a
- * creature for the post pass's rim, or (the Colour Out of Space) a hue outside the palette that the post
- * pass leaves alone (see post.ts).
+ * self-lit pixels (glow markings ~0.63, eye glints ~0.82); transparency is dithered. Self-lit eyes and
+ * markings fade into the dark beyond a short distance, so a creature is not spotted from afar by its
+ * eyes. Output alpha can mark (the Colour Out of Space) a hue outside the palette that the post pass
+ * leaves alone (see post.ts). The higher a creature stands in the Mythos, the less its body holds
+ * together: rows slip, its darkest parts open onto a starry void, a faint double lags beside it.
  */
 
-import { LANTERN_GLSL } from './world';
+import { VOID_GLSL } from './eldritch';
+import { LANTERN_GLSL, NOISE_GLSL } from './world';
 
 export const SPRITE_VERT = /* glsl */ `
 uniform vec2 uRes;
@@ -17,19 +20,20 @@ uniform float uFogFar;
 uniform vec3 uAmbient;
 uniform vec3 uLightColor;
 uniform float uCharacterLight;
-uniform float uRimNear;
-uniform float uRimFar;
 
 attribute vec4 aCell; // u0, v0 (top), u1, v1 (bottom)
 attribute vec4 aInfo; // flash, opacity, flip, outside the palette
+attribute float aWeird; // 0..1: how far it refuses to hold its shape (eldritch.ts)
 
 varying vec2 vUv;
 varying vec3 vLight;
 varying float vFog;
-varying float vRim;
+varying float vDist;
 varying float vFlash;
 varying float vOpacity;
 varying float vOutside;
+varying float vWeird;
+varying vec4 vCell;
 ${LANTERN_GLSL}
 void main() {
   vec3 origin = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -48,10 +52,12 @@ void main() {
   vUv = vec2(mix(aCell.x, aCell.z, u), mix(aCell.y, aCell.w, 1.0 - uv.y));
   vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(uLanternPos - wp)) * uCharacterLight;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
-  vRim = 1.0 - smoothstep(uRimNear, uRimFar, -vp.z);
+  vDist = -vp.z;
   vFlash = aInfo.x;
   vOpacity = aInfo.y;
   vOutside = aInfo.w;
+  vWeird = aWeird;
+  vCell = aCell;
 }
 `;
 
@@ -61,14 +67,19 @@ uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uMarkCharacters;
 uniform float uTime;
+uniform vec2 uEyeRange; // metres over which self-lit eyes and markings sink into the dark
 
 varying vec2 vUv;
 varying vec3 vLight;
 varying float vFog;
-varying float vRim;
+varying float vDist;
 varying float vFlash;
 varying float vOpacity;
 varying float vOutside;
+varying float vWeird;
+varying vec4 vCell;
+${NOISE_GLSL}
+${VOID_GLSL}
 
 float bayer4(vec2 p) {
   const float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
@@ -76,11 +87,29 @@ float bayer4(vec2 p) {
   return (m[q.x + q.y * 4] + 0.5) / 16.0;
 }
 
+/** Rows of a body that will not hold its shape slip sideways now and then (the higher, the more often). */
+vec2 slip(vec2 uv) {
+  float w = vCell.z - vCell.x;
+  float band = floor((uv.y - vCell.y) / (vCell.w - vCell.y) * 12.0);
+  float beat = floor(uTime * (2.0 + 6.0 * vWeird));
+  float on = step(1.0 - 0.2 * vWeird, hash12(vec2(band, beat)));
+  uv.x += on * (hash12(vec2(beat, band + 7.0)) - 0.5) * 0.3 * w * vWeird;
+  return vec2(clamp(uv.x, vCell.x, vCell.z), uv.y);
+}
+
 void main() {
-  vec4 t = texture(uAtlas, vUv);
+  vec2 uv = vWeird > 0.2 ? slip(vUv) : vUv;
+  vec4 t = texture(uAtlas, uv);
+  if (vWeird >= 0.6 && t.a < 0.3) { // a faint double of it, lagging to one side
+    vec2 lag = vec2(clamp(uv.x + sin(uTime * 1.3) * 0.08 * (vCell.z - vCell.x), vCell.x, vCell.z), uv.y);
+    if (texture(uAtlas, lag).a < 0.3 || 0.3 * vOpacity < bayer4(gl_FragCoord.xy)) discard;
+    gl_FragColor = vec4(mix(voidAt(gl_FragCoord.xy, uTime) + vec3(0.12, 0.0, 0.18), uFogColor, vFog * uFogAmount), 1.0);
+    return;
+  }
   if (t.a < 0.3 || vOpacity < bayer4(gl_FragCoord.xy)) discard;
   bool glow = t.a < 0.9;
   vec3 col = glow ? t.rgb : t.rgb * vLight;
+  if (vWeird >= 0.5 && !glow) col = mix(col, voidAt(gl_FragCoord.xy, uTime), smoothstep(0.24, 0.12, dot(t.rgb, vec3(0.3333))) * vWeird); // its darkest parts open onto nothing
   col = mix(col, vec3(1.0), vFlash);
   float fog = vFog * uFogAmount;
   if (vOutside > 0.5) {
@@ -89,6 +118,7 @@ void main() {
     gl_FragColor = vec4(hue * (0.55 + 0.45 * dot(col, vec3(0.3333))), uMarkCharacters > 0.5 ? 0.31 : 1.0);
     return;
   }
-  gl_FragColor = vec4(mix(col, uFogColor, fog * (glow ? 0.5 : 1.0)), uMarkCharacters > 0.5 ? 0.25 * (1.0 - vRim) : 1.0);
+  if (glow) fog = max(fog, smoothstep(uEyeRange.x, uEyeRange.y, vDist));
+  gl_FragColor = vec4(mix(col, uFogColor, fog), 1.0);
 }
 `;

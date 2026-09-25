@@ -99,7 +99,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     const since = time - v.hitAt;
     const flinch = Math.max(0, 1 - since / FEEDBACK.flinchSeconds);
     pose(f, { move: a?.move ?? null, def, frame, speed, stride: v.stride, guard: a?.guard ?? false, flinch, rollYaw, time });
-    const flash = FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds);
+    const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);
   }

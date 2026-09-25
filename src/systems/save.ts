@@ -1,23 +1,26 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
  * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
- * health, the mind (sanity, insight, upgrades, horrors beheld) and Laudanum. Parsing checks every
+ * health, the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, and the
+ * quests and the people met. Parsing checks every
  * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
  */
 
 import type { Place } from '../data/arena';
 import { ENDING_IDS } from '../data/endings';
+import { QUESTS } from '../data/quests';
 import { START_SIGN } from '../data/sites';
-import { LAUDANUM, PLAYER, UPGRADES, type UpgradeId } from '../data/tuning';
+import { LAUDANUM, PLAYER, REAGENT, UPGRADES, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
+import { packExplored, unpackExplored } from './exploration';
 import { changeInsight } from './insight';
 import { setSanity } from './sanity';
 import { spawnDrop } from './spawn';
 
 export const SAVE_KEY = 'lovecraft-souls-like/save';
-const VERSION = 1;
+const VERSION = 2; // 2: the world doubled in size (playtest round 1), so a version 1 position means nothing now
 
 export interface SaveData {
   version: typeof VERSION;
@@ -34,9 +37,14 @@ export interface SaveData {
   upgrades: Record<UpgradeId, number>;
   seen: string[];
   laudanum: number;
+  reagent?: number; // West's Reagent: doses left and the most it holds
+  reagentMax?: number;
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   ending?: string; // the ending chosen
+  explored?: Record<string, string>; // the ground seen, as base64 bits by region (exploration.ts)
+  quests?: Record<string, number>; // each quest begun: its stage (quests.ts)
+  met?: string[]; // the people talked with
 }
 
 /** The part of the Web Storage API a save needs (localStorage, or a stand-in in tests). */
@@ -68,9 +76,14 @@ export function snapshot(g: Game): SaveData {
     upgrades: { ...g.mind.upgrades },
     seen: [...g.mind.seen],
     laudanum: g.player.laudanum,
+    reagent: g.player.reagent,
+    reagentMax: g.player.reagentMax,
     named: ow.named,
     called: [...ow.called],
     ...(ow.ending && { ending: ow.ending }),
+    explored: packExplored(ow.explored),
+    quests: Object.fromEntries(ow.quests),
+    met: [...ow.met],
   };
 }
 
@@ -93,6 +106,9 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.drop !== null && !has(o.drop, 'x', 'y', 'z', 'amount')) return null;
   if ((o.named !== undefined && !isNum(o.named)) || (o.called !== undefined && !isStrings(o.called))) return null;
   if (o.ending !== undefined && !(ENDING_IDS as readonly unknown[]).includes(o.ending)) return null;
+  if (o.explored !== undefined && (typeof o.explored !== 'object' || o.explored === null)) return null;
+  if (o.quests !== undefined && (typeof o.quests !== 'object' || o.quests === null || !Object.values(o.quests).every(isNum))) return null;
+  if (o.met !== undefined && !isStrings(o.met)) return null;
   return o as unknown as SaveData;
 }
 
@@ -111,6 +127,9 @@ export function applySave(g: Game, s: SaveData): void {
   ow.named = clampInt(s.named ?? 0, 0, 99);
   ow.called = new Set(s.called ?? []);
   ow.ending = s.ending ?? null;
+  ow.explored = unpackExplored(s.explored);
+  ow.quests = new Map(Object.entries(s.quests ?? {}).filter(([id]) => QUESTS[id]).map(([id, n]) => [id, clampInt(n, -1, QUESTS[id].stages.length)]));
+  ow.met = new Set(s.met ?? []);
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
   for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k], 0, UPGRADES[k].max);
   const h = c.health.get(g.player.id)!;
@@ -124,6 +143,8 @@ export function applySave(g: Game, s: SaveData): void {
   setSanity(g, s.sanity);
   g.player.echoes = Math.max(0, Math.round(s.echoes));
   g.player.laudanum = clampInt(s.laudanum, 0, LAUDANUM.doses);
+  g.player.reagentMax = clampInt(s.reagentMax ?? REAGENT.doses, REAGENT.doses, REAGENT.maxDoses);
+  g.player.reagent = clampInt(s.reagent ?? g.player.reagentMax, 0, g.player.reagentMax);
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);
 }

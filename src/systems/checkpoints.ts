@@ -6,6 +6,7 @@
  * realm. Pure: no Three.js.
  */
 
+import { nearestNpc, talk } from './npcs';
 import type { InputFrame } from '../core/input';
 import { distXZ } from '../core/geom';
 import type { Place } from '../data/arena';
@@ -36,7 +37,7 @@ export function furnishWorld(g: Game): void {
   };
   for (const s of w.signs) c.sign.set(put(s.x, s.z, yawOfDir(s.face), 'elderSign'), { id: s.id, name: s.name });
   for (const t of w.gates) c.gate.set(put(t.x, t.z, yawOfDir(t.face), 'gate'), { id: t.id, name: t.name, to: t.to });
-  for (const t of w.tomes) if (!g.overworld?.read.has(t.name)) spawnTome(g, { ...t.at, name: t.name, insight: t.insight });
+  for (const t of w.tomes) if (!g.overworld?.read.has(t.name)) spawnTome(g, { ...t.at, name: t.name, insight: t.insight, vial: t.vial, note: t.note });
   for (const p of w.pieces) spawnPiece(g, p);
 }
 
@@ -84,6 +85,7 @@ export function rest(g: Game, id: string): boolean {
   const tr = g.ecs.c.transform.get(g.player.id)!;
   restore(g, g.player.id, { x: tr.pos.x, z: tr.pos.z, yaw: tr.yaw });
   g.player.laudanum = LAUDANUM.doses;
+  g.player.reagent = g.player.reagentMax;
   setSanity(g, SANITY.max);
   ow.sign = id;
   g.player.checkpoint = { ...s.rest };
@@ -124,12 +126,12 @@ export function passGate(g: Game, id: string): boolean {
 }
 
 export interface Interactable {
-  kind: 'sign' | 'gate';
+  kind: 'sign' | 'gate' | 'npc';
   id: string;
   name: string;
 }
 
-/** The nearest sign or gate within reach of a free investigator, if any. */
+/** The nearest sign, gate or person within reach of a free investigator, if any. */
 export function interactable(g: Game): Interactable | null {
   if (!g.overworld || g.ecs.c.actor.get(g.player.id)!.move !== null) return null;
   const pp = g.ecs.c.transform.get(g.player.id)!.pos;
@@ -142,7 +144,8 @@ export function interactable(g: Game): Interactable | null {
   const w = worldLayout();
   for (const s of w.signs) consider('sign', s);
   for (const t of w.gates) consider('gate', t);
-  return best;
+  const npc = nearestNpc(g);
+  return npc && npc.d <= bestD ? { kind: 'npc', id: npc.id, name: npc.name } : best; // a person before the sign they stand by
 }
 
 /** One step: signs found by coming near, and the interact button (rest, or pass a gate). */
@@ -154,4 +157,5 @@ export function checkpointSystem(g: Game, input: InputFrame): void {
   const t = interactable(g);
   if (t?.kind === 'sign') rest(g, t.id);
   else if (t?.kind === 'gate') passGate(g, t.id);
+  else if (t?.kind === 'npc') talk(g, t.id);
 }
