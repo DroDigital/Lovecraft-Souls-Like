@@ -11,6 +11,7 @@ import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { MODEL_PREFIX } from '../systems/creatures';
 import { buildFigure, type Figure } from './figures';
+import { cadence, type Ground } from './gait';
 import { FX_PREFIX } from './fightViews';
 import { box } from './meshKit';
 import { BASE } from './palette';
@@ -19,7 +20,8 @@ import { createWorldMaterial } from './worldMaterial';
 
 interface View {
   figure: Figure;
-  stride: number;
+  stride: number; // stride phase, radians
+  speed: number; // ground speed, eased so a stop or start does not snap the legs
   lastTime: number;
   hitAt: number; // sim seconds of the last landed blow
 }
@@ -66,7 +68,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
       if (views.has(id) || model.startsWith(MODEL_PREFIX) || model.startsWith(FX_PREFIX)) continue; // roster creatures: creatureViews; bolts, pools and props: fightViews
       const figure = buildFigure(model);
       scene.add(figure.root);
-      views.set(id, { figure, stride: 0, lastTime: 0, hitAt: -Infinity });
+      views.set(id, { figure, stride: 0, speed: 0, lastTime: 0, hitAt: -Infinity });
     }
     for (const [id, v] of views) {
       if (g.ecs.c.model.has(id)) continue;
@@ -74,6 +76,14 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
       dispose(v.figure);
       views.delete(id);
     }
+  }
+
+  /** The lie of the land about a figure standing on it (none on a floor, deck or step: those are level). */
+  function groundAbout(root: THREE.Object3D): Ground | undefined {
+    const [rx, ry, rz, yaw] = [root.position.x, root.position.y, root.position.z, root.rotation.y];
+    if (Math.abs(g.world.ground(rx, rz) - ry) > 0.05) return undefined;
+    const [s, c] = [Math.sin(yaw), Math.cos(yaw)];
+    return (x, z) => Math.min(0.3, Math.max(-0.3, g.world.ground(rx + x * c + z * s, rz - x * s + z * c) - ry));
   }
 
   function draw(id: Entity, v: View, alpha: number, time: number): void {
@@ -89,16 +99,18 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
       f.root.position.x += (Math.random() - 0.5) * FEEDBACK.shakeMetres;
       f.root.position.z += (Math.random() - 0.5) * FEEDBACK.shakeMetres;
     }
-    const speed = Math.hypot(tr.pos.x - tr.prev.x, tr.pos.z - tr.prev.z) * SIM.hz;
-    v.stride += (speed * Math.max(0, time - v.lastTime) * 2 * Math.PI) / FEEDBACK.strideMetres;
+    const dt = Math.min(0.1, Math.max(0, time - v.lastTime));
+    v.speed += (Math.hypot(tr.pos.x - tr.prev.x, tr.pos.z - tr.prev.z) * SIM.hz - v.speed) * Math.min(1, dt * FEEDBACK.strideEase);
+    v.stride += 2 * Math.PI * cadence(v.speed) * dt;
     v.lastTime = time;
+    const speed = v.speed;
 
     const def = a ? moveDef(a) : undefined;
     const frame = a && def ? Math.min(a.frame + (a.hitstop > 0 ? 0 : alpha), def.frames - 1) : 0;
     const rollYaw = a && def?.motion?.dir === 'input' ? wrapAngle(yawOf(a.dir.x, a.dir.z) - tr.yaw) : 0;
     const since = time - v.hitAt;
     const flinch = Math.max(0, 1 - since / FEEDBACK.flinchSeconds);
-    pose(f, { move: a?.move ?? null, def, frame, speed, stride: v.stride, guard: a?.guard ?? false, flinch, rollYaw, time });
+    pose(f, { move: a?.move ?? null, def, frame, speed, stride: v.stride, guard: a?.guard ?? false, flinch, rollYaw, time, ground: groundAbout(f.root) });
     const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);

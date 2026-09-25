@@ -5,7 +5,8 @@
  * - idle: waits at home until it perceives a hostile (allies follow the player instead).
  * - engage: keeps its preferred range to the target (approach, back off, circle), attacks from
  *   data when the cooldown allows, and keeps its distance while below its `flee` health fraction.
- * - return: gave up (target lost or leash exceeded); walks home and heals on arrival.
+ * - return: gave up (target lost or leash exceeded); walks home, keeping its wounds (only the
+ *   investigator resting or dying makes a foe whole: death.ts).
  * - follow: allies trail the player (once met) until something threatens.
  * A boss is bound to its arena instead of a leash (bossArena.ts): it wakes as the investigator
  * steps into its ring, holds them while they stay near it, backs off only a little and never
@@ -141,10 +142,8 @@ export function brainSystem(g: Game): void {
       br.state = 'idle';
       const h = home.get(id);
       if (h) m.face = h.yaw;
-      const hp = health.get(id)!;
-      hp.hp = hp.max;
       const po = poise.get(id)!;
-      po.value = po.max;
+      po.value = po.max; // it gathers itself, but its wounds stay
     }
   }
 }

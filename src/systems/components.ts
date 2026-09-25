@@ -236,6 +236,7 @@ export interface Overworld {
   discovered: Set<string>; // Elder Signs found: fast-travel destinations
   slain: Set<string>; // spawn ids of bosses and optional bosses, gone for good
   killed: Set<string>; // spawn ids of foes killed since the last rest or death
+  wounds: Map<string, number>; // spawn id → health fraction of a wounded foe let go: it comes back so, until a rest or death
   read: Set<string>; // tomes read
   named: number; // times Hastur's name has appeared (signatures/hastur.ts)
   called: Set<string>; // bosses called into the world: until then their spawn stays empty

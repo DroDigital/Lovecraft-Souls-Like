@@ -60,6 +60,7 @@ export const STINGERS = {
   death: [...chord('sawtooth', [55, 58.27, 82.41, 87.31], 3.5, 0.3, { attack: 0.05, filter: lp(900, 120) }), tone('sine', 41, 4, 0.4, { to: 30 }), noise('lowpass', 300, 2.5, 0.2)],
   rise: [noise('lowpass', 300, 2, 0.2, { to: 1200, attack: 1.2 }), tone('sine', 55, 2.2, 0.25, { to: 110, attack: 1 })],
   sight: [...chord('sawtooth', [233.1, 246.9, 349.2, 370], 1.8, 0.28, { attack: 0.02, vibrato: [6, 18], filter: lp(3000, 700) }), noise('highpass', 2500, 1.2, 0.08, { attack: 0.05 })],
+  slip: [tone('sine', 62, 0.22, 0.45, { to: 44 }), tone('sine', 2637, 0.9, 0.025, { at: 0.03, attack: 0.15, to: 2489, vibrato: [8, 30] })], // sanity lost at once: a thud in the chest, a thin ringing
   worse: [tone('sine', 55, 0.18, 0.6, { to: 40 }), tone('sine', 55, 0.22, 0.5, { to: 38, at: 0.24 }), tone('sine', 3150, 1.4, 0.035, { at: 0.05, attack: 0.4, vibrato: [7, 25] })],
   better: [noise('lowpass', 900, 1.2, 0.12, { to: 300, attack: 0.3 }), tone('triangle', 392, 1.4, 0.06, { attack: 0.3 })],
   insight: [tone('sine', 1318.5, 2.2, 0.12), tone('sine', 1975.5, 1.8, 0.08, { at: 0.12 }), tone('sine', 2637, 1.4, 0.06, { at: 0.24 })],

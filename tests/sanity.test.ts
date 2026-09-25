@@ -7,7 +7,8 @@ import { startMove } from '../src/systems/actions';
 import { strike } from '../src/systems/combat';
 import type { Band, Game } from '../src/systems/components';
 import { createGame, stepGame } from '../src/systems/game';
-import { auraShare, bandOf, nextBand, setSanity } from '../src/systems/sanity';
+import { auraShare, bandOf, loseSanity, nextBand, setSanity } from '../src/systems/sanity';
+import { callsForLaudanum } from '../src/ui/mindHud';
 import { place, press, scriptedGame, steps } from './helpers';
 
 const blow = (damage: number) => ({ damage, poise: 0, guard: 5, hitstop: 2, parryable: false, interrupts: false });
@@ -145,6 +146,32 @@ describe('sanity drains', () => {
     startMove(g.ecs.c.actor.get(gazer)!, 'gaze');
     steps(g, 80);
     expect(g.mind.sanity).toBeCloseTo(100 - gaze.amount, 5);
+  });
+});
+
+describe('sudden losses', () => {
+  it('a loss of SANITY.jolt or more at once is announced; a slow drain is not', () => {
+    const g = createGame();
+    const lost: number[] = [];
+    g.events.on('SanityLost', (e) => lost.push(e.amount));
+    loseSanity(g, SANITY.jolt / 3);
+    loseSanity(g, 6);
+    expect(lost).toEqual([6]);
+    setSanity(g, 2);
+    loseSanity(g, 10); // only what there was to lose
+    expect(lost).toEqual([6, 2]);
+  });
+
+  it('a failing mind is pointed to its Laudanum while a dose is left and none is being drunk', () => {
+    const g = createGame();
+    expect(callsForLaudanum(g)).toBe(false);
+    setSanity(g, 39);
+    expect(callsForLaudanum(g)).toBe(true);
+    startMove(g.ecs.c.actor.get(g.player.id)!, 'drink');
+    expect(callsForLaudanum(g)).toBe(false);
+    g.ecs.c.actor.get(g.player.id)!.move = null;
+    g.player.laudanum = 0;
+    expect(callsForLaudanum(g)).toBe(false);
   });
 });
 

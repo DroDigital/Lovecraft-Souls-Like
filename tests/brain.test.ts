@@ -100,7 +100,7 @@ describe('archetype brains', () => {
     expect(g.ecs.c.brain.get(ally)!.target).toBe(deepOne);
   });
 
-  it('gives up beyond its leash, walks home and heals', () => {
+  it('gives up beyond its leash and walks home, keeping its wounds', () => {
     const g = createGame();
     const foe = find(g, 'deepOne');
     g.ecs.c.health.get(g.player.id)!.hp = 0; // nothing left to hunt
@@ -112,7 +112,7 @@ describe('archetype brains', () => {
     expect(br.state).toBe('return');
     steps(g, 700);
     expect(br.state).toBe('idle');
-    expect(g.ecs.c.health.get(foe)!.hp).toBe(g.ecs.c.health.get(foe)!.max);
+    expect(g.ecs.c.health.get(foe)!.hp).toBe(50); // only resting or dying makes it whole
     expect(distXZ(g.ecs.c.transform.get(foe)!.pos, ARENA.deepOne)).toBeLessThan(0.5);
   });
 });

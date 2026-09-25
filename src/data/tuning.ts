@@ -24,7 +24,7 @@ export const FX = {
   capDefault: 1, // accessibility cap on stress, 0..1 (the settings menu's default)
   pixelCrush: [0, 1] as Ramp, // extra low-res pixel size
   snapPixels: [1, 4] as Ramp, // PS1 vertex snap grid, in low-res pixels
-  affine: [1, 2.5] as Ramp, // 1 = PS1 affine mapping; >1 exaggerates the wobble
+  affine: [1.25, 10] as Ramp, // texels the PS1 affine mapping may stray from the true one: a shiver when calm, walls swim when mad
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,
   fogColor: [0.058, 0.07, 0.068] as Vec3, // cold grey-green, near black, but a shade above the unlit sides of things, so they stand out against it as shapes
@@ -128,6 +128,7 @@ export const SANITY = {
   max: 100,
   bands: [70, 40, 15], // floors of Lucid, Uneasy, Fractured; below the last is Unmoored
   hysteresis: 3, // a band falls at its floor but climbs back only this many points past it
+  jolt: 1.5, // a loss this large at once is felt: announced as SanityLost, so the bar jolts and it is heard
   auraNear: 3, // metres beyond a creature's body where its aura is at full strength...
   auraFar: 12, // ...fading to nothing here
   sightRange: 30, // metres: first sight needs a creature this close, in line of sight...
@@ -206,7 +207,7 @@ export const FEEDBACK = {
   flinchSeconds: 0.25,
   tracerSeconds: 0.07, // revolver tracer
   shakeMetres: 0.07, // jitter during hitstop
-  strideMetres: 1.5, // ground covered per walk cycle
+  strideEase: 14, // per second: how quickly a figure's stride takes up its ground speed (render/gait.ts)
   echoGlowHeight: 0.6, // light above an Echo drop
   revealSeconds: 0.5, // hidden-layer geometry flickers this long as it comes and goes
 };

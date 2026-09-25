@@ -20,7 +20,8 @@ export interface SignMenu {
   readonly open: boolean;
 }
 
-export function createSignMenu(g: Game): SignMenu {
+/** `go` makes a long jump under the veil (journeys.ts). */
+export function createSignMenu(g: Game, go: (words: string, jump: () => void) => void): SignMenu {
   const screen = createScreen(3, '#050506cc');
   const close = (): void => screen.close();
 
@@ -43,11 +44,11 @@ export function createSignMenu(g: Game): SignMenu {
     heading(panel, regions.size ? 'TRAVEL' : 'TRAVEL · no other Elder Sign found yet');
     for (const [region, signs] of regions) {
       el(panel, 'div', getRegion(region)?.name ?? region, 'margin:6px 0 0;opacity:.55');
-      for (const s of signs) button(panel, s.name, () => void (travel(g, s.id), close()));
+      for (const s of signs) button(panel, s.name, () => (close(), go(s.name.toUpperCase(), () => travel(g, s.id))));
     }
     if (here?.dream) {
       heading(panel, 'THE SLEEPER’S SIGN');
-      button(panel, 'Descend the Seventy Steps of Light Slumber', () => void (dream(g), close()));
+      button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
     }
     const endings = courtEndings(g, ow.sign);
     if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');

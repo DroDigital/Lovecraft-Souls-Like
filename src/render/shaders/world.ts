@@ -1,7 +1,7 @@
 /**
  * World material GLSL (spec §2): Gouraud vertex lighting (ambient, moon, glow), the player's lantern
  * per pixel with a smooth falloff, PS1 vertex snapping, affine texture wobble (uv·w passed through,
- * divided per fragment), world-space texture variation (so no ground repeats), fog fading to
+ * divided per fragment, held within a few texels of the true mapping), world-space texture variation (so no ground repeats), fog fading to
  * near-black, sanity-driven non-Euclidean vertex displacement, and the eldritch bodies' wrongness
  * (shaders/eldritch.ts).
  */
@@ -159,23 +159,35 @@ varying float vSplat;
 ${LANTERN_GLSL}
 ${NOISE_GLSL}
 ${ELDRITCH_FRAG}
-vec3 sampleMap(sampler2D map, vec2 uv) {
-  vec3 t = texture(map, uv).rgb;
+// Mip levels come from the true mapping's gradients (gx, gy), so none jumps along a face's diagonal.
+vec3 sampleMap(sampler2D map, vec2 uv, vec2 gx, vec2 gy) {
+  vec3 t = textureGrad(map, uv, gx, gy).rgb;
   if (uBomb > 0.5) {
-    vec2 uv2 = mat2(0.0, 1.0, -1.0, 0.0) * uv * 0.83 + vec2(0.37, 0.71);
+    mat2 turn = mat2(0.0, 1.0, -1.0, 0.0) * 0.83;
+    vec2 uv2 = turn * uv + vec2(0.37, 0.71);
     float m = smoothstep(0.38, 0.62, vnoise(vWorld.xz * 0.09 + 11.0));
-    t = mix(t, texture(map, uv2).rgb, m);
+    t = mix(t, textureGrad(map, uv2, turn * gx, turn * gy).rgb, m);
   }
   return t;
 }
 
+// The PS1's affine mapping (WebGL2 has no noperspective: uv·w / w interpolates affinely), held
+// within uAffine texels of the true mapping: far faces keep their wobble, but a large face up close
+// only shivers instead of shearing and swelling as the view turns.
+vec2 affineUv(vec2 texels) {
+  vec2 off = (vUvw.xy / vUvw.z - vUv) * texels;
+  float len = length(off);
+  return vUv + off * (min(len, uAffine) / max(len, 1e-4)) / texels;
+}
+
 void main() {
-  // WebGL2 has no noperspective: uv·w / w interpolates affinely, like the PS1.
-  vec2 uv = mix(vUv, vUvw.xy / vUvw.z, uAffine);
-  vec3 tex = sampleMap(uMap, uv);
+  vec2 uv = affineUv(vec2(textureSize(uMap, 0)));
+  vec2 gx = dFdx(vUv);
+  vec2 gy = dFdy(vUv);
+  vec3 tex = sampleMap(uMap, uv, gx, gy);
   if (uHasMap2 > 0.5 && vSplat > 0.01) {
     float edge = vSplat + 0.35 * (vnoise(vWorld.xz * 0.9) - 0.5);
-    tex = mix(tex, texture(uMap2, uv).rgb, smoothstep(0.35, 0.65, edge));
+    tex = mix(tex, textureGrad(uMap2, uv, gx, gy).rgb, smoothstep(0.35, 0.65, edge));
   }
   if (uVary > 0.0) {
     float n = 0.6 * vnoise(vWorld.xz * 0.045) + 0.4 * vnoise(vWorld.xz * 0.23 + 5.0);

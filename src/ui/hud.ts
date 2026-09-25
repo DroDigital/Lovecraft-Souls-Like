@@ -1,18 +1,16 @@
 /**
- * The HUD, a DOM overlay: health, stamina and sanity bars (ticks mark the band floors, and the bar
- * takes an anomaly colour once the mind fractures), the band and the Laudanum left, carried
- * Echoes and insight, the lock-on reticle with the target's name and health, short notices
+ * The HUD, a DOM overlay: health and stamina bars, the mind's sanity bar with its band and Laudanum
+ * (mindHud.ts), carried Echoes and insight, the lock-on reticle with the target's name and health, short notices
  * (combat, bands, first sights, insight, Elder Signs), titles for regions entered, places reached and
  * bosses vanquished, the interact prompt near an Elder Sign or gate (or for a boss fight's
  * action), the death banner, the boss fights' half (bossHud.ts) and the minimap (minimap.ts).
  */
 
 import { Vector3, type Camera } from 'three';
-import { HURT, SANITY } from '../data/tuning';
-import type { Band, Game, HitOutcome } from '../systems/components';
+import { HURT } from '../data/tuning';
+import type { Game, HitOutcome } from '../systems/components';
 import { interactable } from '../systems/checkpoints';
 import { aimPoint } from '../systems/lockOn';
-import { bandIndex } from '../systems/sanity';
 import { fightAction } from '../systems/fightActions';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
@@ -20,9 +18,9 @@ import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
 import { createHints } from './hints';
+import { createMindHud } from './mindHud';
 import { createMinimap } from './minimap';
 
-const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
 const NOTICE_MS = 1100;
 const TITLE_MS = 2600;
 
@@ -52,11 +50,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   let chipPct = 100;
   let chipHold = 0;
   const stamina = bar(vitals, SEA);
-  const sanity = bar(vitals, BONE);
-  for (const floor of SANITY.bands) el(`position:absolute;left:${floor}%;top:-3px;bottom:-3px;width:1px;background:${BONE}99`, '', sanity.parentElement!);
-  const mind = el('display:flex;justify-content:space-between;letter-spacing:2px;font-size:11px', '', vitals);
-  const band = el('', '', mind);
-  const laudanum = el('opacity:.7', '', mind);
+  const mind = createMindHud(g, vitals, (text: string) => say(text));
   const reagent = el(`opacity:.85;margin-top:2px;letter-spacing:2px;font-size:11px`, '', vitals);
   const counters = el('position:absolute;right:16px;bottom:16px;font-size:14px;letter-spacing:2px;text-align:right', '', root);
   const insight = el('', '', counters);
@@ -97,7 +91,6 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
     if (e.entity === me) banner.style.display = 'block';
   });
   g.events.on('Respawned', () => (banner.style.display = 'none'));
-  g.events.on('SanityBandChanged', (e) => say(`${bandIndex(e.to) > bandIndex(e.from) ? '▼' : '▲'} ${e.to.toUpperCase()}`));
   g.events.on('FirstSight', (e) => {
     if (e.sanity || e.insight) say([e.name.toUpperCase(), e.sanity && signed(-e.sanity, 'SANITY'), e.insight && signed(e.insight, 'INSIGHT')].filter(Boolean).join('  '));
   });
@@ -131,10 +124,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       if (chipPct <= pct) chipHold = 0;
       setStyle(chip, 'width', `${chipPct.toFixed(1)}%`);
       setStyle(stamina, 'width', percent(s.value, s.max));
-      setStyle(sanity, 'width', percent(g.mind.sanity, SANITY.max));
-      setStyle(sanity, 'background', BAND_COLOURS[g.mind.band]);
-      setText(band, `${g.mind.band.toUpperCase()} ${Math.ceil(g.mind.sanity)}`);
-      setText(laudanum, `LAUDANUM ×${g.player.laudanum}`);
+      mind.update(now0);
       setText(reagent, `REAGENT ×${g.player.reagent}`);
       setText(insight, `INSIGHT ${g.mind.insight}`);
       setText(echoes, `ECHOES ${g.player.echoes}`);

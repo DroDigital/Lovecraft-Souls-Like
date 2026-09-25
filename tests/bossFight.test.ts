@@ -99,15 +99,25 @@ describe('boss fights (spec §3E)', () => {
     expect(g.ecs.c.prop.size).toBe(0);
   });
 
-  it('resets when the boss gives up the chase', () => {
+  it('resets when the boss gives up the chase, but keeps its wounds and takes up their phase again', () => {
     const b = scripted();
+    const h = b.g.ecs.c.health.get(b.boss)!;
     engage(b);
-    b.g.ecs.c.health.get(b.boss)!.hp *= 0.5;
+    h.hp *= 0.5;
     steps(b.g, 1);
+    const investigator = b.g.ecs.c.health.get(b.g.player.id)!;
+    investigator.hp = 0; // nothing left in its ring to hunt
     b.g.ecs.c.brain.get(b.boss)!.state = 'return';
     steps(b.g, 1);
     expect(b.fight.engaged).toBe(false);
     expect(b.fight.minions).toEqual([]);
+    steps(b.g, 600); // it walks home and waits there
+    expect(b.g.ecs.c.brain.get(b.boss)!.state).toBe('idle');
+    expect(h.hp).toBe(h.max * 0.5);
+    investigator.hp = investigator.max;
+    engage(b);
+    expect(b.fight.phase).toBe(1);
+    expect(b.fight.changes.has('lamps')).toBe(true);
   });
 
   it('keeps its phase through a variant swap', () => {

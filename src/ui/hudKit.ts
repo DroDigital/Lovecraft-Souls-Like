@@ -23,7 +23,7 @@ export function setText(e: HTMLElement, text: string): void {
   if (e.textContent !== text) e.textContent = text;
 }
 
-export function setStyle(e: HTMLElement, key: 'width' | 'background' | 'opacity' | 'display' | 'left' | 'top' | 'visibility', value: string): void {
+export function setStyle(e: HTMLElement, key: 'width' | 'background' | 'opacity' | 'display' | 'left' | 'top' | 'visibility' | 'color', value: string): void {
   if (e.style[key] !== value) e.style[key] = value;
 }
 
