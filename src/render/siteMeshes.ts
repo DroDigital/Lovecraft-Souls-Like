@@ -15,6 +15,7 @@ import type { Part } from '../world/dungeonParts';
 import type { ArenaPlace, Dungeon } from '../world/placements';
 import { box, tileUv, tint } from './meshKit';
 import { mixRgb, scaleRgb, type Rgb } from './palette';
+import type { LightSpot } from './worldLights';
 import { createWorldMaterial } from './worldMaterial';
 
 const STONE: Rgb = [0.9, 0.9, 0.88];
@@ -22,6 +23,7 @@ const WOOD: Rgb = [0.75, 0.7, 0.62];
 const PER_STEP = 12;
 
 type Kind = 'stone' | 'slab' | 'wood' | 'glow';
+type Built = { kind: Kind; geo: THREE.BufferGeometry; light?: LightSpot }; // a flame is a light too (worldLights.ts)
 const FLAME: Rgb = [1, 0.78, 0.5];
 const IRON: Rgb = [0.3, 0.29, 0.3];
 const materials = new Map<Kind, THREE.ShaderMaterial>();
@@ -35,7 +37,7 @@ const material = (k: Kind): THREE.ShaderMaterial => {
 };
 
 /** A wall's masonry: a plinth and a cornice along it, pilasters every few metres, now and then an iron sconce with its flame, and rubble at its foot. */
-function wallDetail(min: V3, max: V3, c: Rgb): { kind: Kind; geo: THREE.BufferGeometry }[] {
+function wallDetail(min: V3, max: V3, c: Rgb): Built[] {
   const [w, h, d] = [max.x - min.x, max.y - min.y, max.z - min.z];
   if (h < 2 || Math.max(w, d) < 2) return [];
   const alongX = w >= d;
@@ -47,7 +49,7 @@ function wallDetail(min: V3, max: V3, c: Rgb): { kind: Kind; geo: THREE.BufferGe
     return tileUv(box(alongX ? l : t, hh, alongX ? t : l, x, y, z, scaleRgb(c, tone)), l, hh);
   };
   const stone = [slab(len, thick + 0.16, 0.45, min.y + 0.22, 0, 0, 0.8), slab(len, thick + 0.12, 0.22, max.y - 0.11, 0, 0, 0.85)];
-  const glow: THREE.BufferGeometry[] = [];
+  const glow: Built[] = [];
   const n = Math.floor(len / 4);
   const seed = Math.abs(Math.round(cx * 7 + cz * 13));
   for (let k = 1; k < n; k++) {
@@ -58,7 +60,7 @@ function wallDetail(min: V3, max: V3, c: Rgb): { kind: Kind; geo: THREE.BufferGe
       const a = side * (thick / 2 + 0.28);
       const [x, z] = at(t, a);
       stone.push(tint(box(0.08, 0.3, 0.08, x, min.y + 2.1, z, IRON), IRON));
-      glow.push(box(0.12, 0.18, 0.12, x, min.y + 2.35, z, FLAME));
+      glow.push({ kind: 'glow', geo: box(0.12, 0.18, 0.12, x, min.y + 2.35, z, FLAME), light: { x, y: min.y + 2.4, z, kind: 'torch' } });
     }
   }
   for (let k = 0; k < Math.floor(len / 3); k++) { // rubble fallen from it
@@ -69,7 +71,7 @@ function wallDetail(min: V3, max: V3, c: Rgb): { kind: Kind; geo: THREE.BufferGe
     stone.push(tint(new THREE.IcosahedronGeometry(r, 0).scale(1, 0.6, 1).translate(x, min.y + r * 0.4, z), scaleRgb(c, 0.75)));
   }
   for (const g of stone) if (!g.index) g.setIndex([...Array(g.getAttribute('position').count).keys()]);
-  return [{ kind: 'stone', geo: mergeGeometries(stone) }, ...(glow.length ? [{ kind: 'glow' as const, geo: mergeGeometries(glow) }] : [])];
+  return [{ kind: 'stone', geo: mergeGeometries(stone) }, ...glow];
 }
 
 /** An open-topped box seen from inside: a pit's four walls and its floor, in shadow. */
@@ -94,7 +96,7 @@ function well(x: number, z: number, radius: number, top: number, c: Rgb): THREE.
   return [rim, lip, shaft];
 }
 
-function partGeometry(p: Part, c: Rgb): { kind: Kind; geo: THREE.BufferGeometry }[] {
+function partGeometry(p: Part, c: Rgb): Built[] {
   if (p.shape === 'cyl') {
     if (p.look === 'rim') return well(p.x, p.z, p.radius, p.y1, c).map((geo) => ({ kind: 'stone', geo }));
     const h = p.y1 - p.y0;
@@ -127,16 +129,20 @@ function meshes(groups: Map<Kind, THREE.BufferGeometry[]>): THREE.Mesh[] {
   return [...groups].filter(([, g]) => g.length).map(([k, g]) => new THREE.Mesh(mergeGeometries(g), material(k)));
 }
 
-/** Builds a legacy dungeon; `done` receives its meshes. */
-export function* dungeonJob(d: Dungeon, done: (meshes: THREE.Mesh[]) => void): Generator<void, void> {
+/** Builds a legacy dungeon; `done` receives its meshes and its sconces' flames as lights. */
+export function* dungeonJob(d: Dungeon, done: (meshes: THREE.Mesh[], lights: LightSpot[]) => void): Generator<void, void> {
   const tone = getRegion(d.layout.region)?.biome.tint ?? STONE;
   const c = mixRgb(STONE, tone, 0.35);
   const groups = new Map<Kind, THREE.BufferGeometry[]>([['stone', []], ['slab', []], ['wood', []], ['glow', []]]);
+  const lights: LightSpot[] = [];
   for (let k = 0; k < d.parts.length; k++) {
-    for (const { kind, geo } of partGeometry(d.parts[k], c)) groups.get(kind)!.push(geo);
+    for (const { kind, geo, light } of partGeometry(d.parts[k], c)) {
+      groups.get(kind)!.push(geo);
+      if (light) lights.push(light);
+    }
     if (k % PER_STEP === PER_STEP - 1) yield;
   }
-  done(meshes(groups));
+  done(meshes(groups), lights);
 }
 
 /** Builds an arena's ring of standing stones (and its well); `done` receives the mesh. */

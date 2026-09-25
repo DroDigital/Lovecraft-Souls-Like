@@ -61,10 +61,16 @@ function roof(profile: readonly (readonly [number, number])[], w: number, over: 
   return { roof: r, gables: g };
 }
 
-function windows(w: number, d: number, top: number, rng: Rng, lit: number): { frames: THREE.BufferGeometry[]; panes: THREE.BufferGeometry[]; glows: THREE.BufferGeometry[] } {
+/** A lit window's glass, and where its light spills from: half a metre out from the wall. */
+interface Lit {
+  geo: THREE.BufferGeometry;
+  at: [number, number, number];
+}
+
+function windows(w: number, d: number, top: number, rng: Rng, lit: number): { frames: THREE.BufferGeometry[]; panes: THREE.BufferGeometry[]; glows: Lit[] } {
   const frames: THREE.BufferGeometry[] = [];
   const panes: THREE.BufferGeometry[] = [];
-  const glows: THREE.BufferGeometry[] = [];
+  const glows: Lit[] = [];
   const floors = top > 4.6 ? [0.35, 0.72] : [0.42];
   for (const f of floors) {
     const y = 0.4 + top * f;
@@ -74,12 +80,14 @@ function windows(w: number, d: number, top: number, rng: Rng, lit: number): { fr
         const z = side * (d + 0.03);
         frames.push(box(0.95, 1.3, 0.05, x, y, z, TRIM));
         const on = rng() < lit; // one draw: a lit window glows in the lamplight's colour
-        (on ? glows : panes).push(box(0.7, 1.05, 0.08, x, y, z, on ? LIT : PANE));
+        if (on) glows.push({ geo: box(0.7, 1.05, 0.08, x, y, z, LIT), at: [x, y, side * (d + 0.55)] });
+        else panes.push(box(0.7, 1.05, 0.08, x, y, z, PANE));
       }
       const x = side * (w + 0.03);
       frames.push(box(0.05, 1.3, 0.95, x, y, 0, TRIM));
       const on = rng() < lit;
-      (on ? glows : panes).push(box(0.08, 1.05, 0.7, x, y, 0, on ? LIT : PANE));
+      if (on) glows.push({ geo: box(0.08, 1.05, 0.7, x, y, 0, LIT), at: [side * (w + 0.55), y, 0] });
+      else panes.push(box(0.08, 1.05, 0.7, x, y, 0, PANE));
     }
   }
   return { frames, panes, glows };
@@ -130,6 +138,6 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
     { mat: 'wood', geo: tileUv(mergeGeometries([...frames, ...panes, ...door]), 1, 1) },
   ];
   if (chimneys.length) pieces.push({ mat: 'brick', geo: mergeGeometries(chimneys) });
-  if (glows.length) pieces.push({ mat: 'glow', geo: mergeGeometries(glows) });
+  for (const g of glows) pieces.push({ mat: 'glow', geo: g.geo, light: 'window', at: g.at });
   return pieces;
 }

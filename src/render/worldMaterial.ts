@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { FX, LANTERN, LIGHT, type Vec3 } from '../data/tuning';
 import type { FxParams } from './fx';
 import { ANOMALY } from './palette';
-import { WORLD_FRAG, WORLD_VERT } from './shaders/world';
+import { LAMP_SLOTS, WORLD_FRAG, WORLD_VERT } from './shaders/world';
 import { generateTexture, TEXTURE_SIZE, UV_PER_TEXTURE, type TextureKind } from './textures';
 
 const v3 = (c: Vec3): THREE.Vector3 => new THREE.Vector3(c[0], c[1], c[2]);
@@ -33,7 +33,11 @@ export const worldUniforms = {
   uLanternRange: { value: LANTERN.range },
   uLanternDecay: { value: LANTERN.decay },
   uLanternFacing: { value: LANTERN.facing },
+  uLamps: { value: Array.from({ length: LAMP_SLOTS }, () => new THREE.Vector4()) }, // the world's nearest lights (worldLights.ts)
+  uLampColors: { value: Array.from({ length: LAMP_SLOTS }, () => new THREE.Vector3()) },
   uCharacterLight: { value: LIGHT.character },
+  uLanternSelf: { value: LANTERN.self },
+  uSelfMax: { value: LANTERN.selfMax },
   uEyeRange: { value: new THREE.Vector2(...LIGHT.eyes) },
   uMarkCharacters: { value: 0 }, // 1: the Colour's sprite marks alpha for the post pass; 0 keeps direct-to-canvas renders opaque
   uFogNear: { value: 0 },

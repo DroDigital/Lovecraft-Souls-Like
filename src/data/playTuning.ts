@@ -88,6 +88,31 @@ export const SKY = {
   close: 0.6, // seconds for a dungeon's walls to close it off
 };
 
+export type LightKind = 'lamp' | 'window' | 'fire' | 'torch';
+
+interface LightDef {
+  color: Vec3;
+  strength: number; // of the light it casts...
+  range: number; // ...out to here (metres)
+  halo: number; // the glow about it: its radius (metres)...
+  haloGain: number; // ...and brightness
+  flicker: number; // share its light wavers by (flames)
+}
+
+/** The world's lights (playtest round 5, render/worldLights.ts): street lamps, fires, torches and lit windows. */
+export const LIGHTS = {
+  reach: 42, // metres: the farthest a light is chosen to light the world about it
+  haloReach: 75, // metres: the farthest a halo is drawn
+  haloFog: 0.55, // halos pierce the fog: they fade by only this share of it
+  lantern: { color: [1, 0.82, 0.58] as Vec3, halo: 0.34, haloGain: 0.6 }, // the investigator's own, which lights by its own rules (lantern.ts)
+  kinds: {
+    lamp: { color: [1, 0.8, 0.52], strength: 2.6, range: 11, halo: 1.4, haloGain: 0.8, flicker: 0.03 }, // a pool about six metres across under a lamp three and a half up, and the walls about it
+    window: { color: [1, 0.76, 0.48], strength: 1.1, range: 6.5, halo: 0.9, haloGain: 0.38, flicker: 0 }, // a warm patch on the wall and ground before it
+    fire: { color: [1, 0.66, 0.36], strength: 3, range: 13, halo: 1.8, haloGain: 0.75, flicker: 0.2 },
+    torch: { color: [1, 0.72, 0.42], strength: 2, range: 8.5, halo: 0.85, haloGain: 0.7, flicker: 0.14 },
+  } satisfies Record<LightKind, LightDef>,
+};
+
 /** Echo caches (playtest round 4): what the casket at a dungeon's dead end holds. */
 export const CACHE = {
   bounties: 3, // times the richest bounty among the dungeon's creatures...

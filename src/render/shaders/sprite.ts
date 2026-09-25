@@ -10,7 +10,7 @@
  */
 
 import { VOID_GLSL } from './eldritch';
-import { LANTERN_GLSL, NOISE_GLSL } from './world';
+import { LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL } from './world';
 
 export const SPRITE_VERT = /* glsl */ `
 uniform vec2 uRes;
@@ -35,6 +35,7 @@ varying float vOutside;
 varying float vWeird;
 varying vec4 vCell;
 ${LANTERN_GLSL}
+${LAMPS_GLSL}
 void main() {
   vec3 origin = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
   float w = length(instanceMatrix[0].xyz);
@@ -50,7 +51,7 @@ void main() {
   gl_Position = clip;
   float u = aInfo.z > 0.5 ? 1.0 - uv.x : uv.x;
   vUv = vec2(mix(aCell.x, aCell.z, u), mix(aCell.y, aCell.w, 1.0 - uv.y));
-  vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(uLanternPos - wp)) * uCharacterLight;
+  vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(uLanternPos - wp) + lampLight(wp, vec3(0.0, 1.0, 0.0), 0.0)) * uCharacterLight;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
   vDist = -vp.z;
   vFlash = aInfo.x;

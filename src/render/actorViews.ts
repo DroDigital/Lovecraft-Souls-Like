@@ -33,6 +33,8 @@ export interface ActorViews {
   update(alpha: number, time: number): void;
   /** Where the glow light sits this frame (the Echo drop), or null. */
   readonly glow: THREE.Vector3 | null;
+  /** Where the investigator's lantern flame is drawn this frame, or null while they are not. */
+  readonly flame: THREE.Vector3 | null;
 }
 
 function dispose(f: Figure): void {
@@ -54,6 +56,8 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
   let tracerUntil = -1;
   const glowAt = new THREE.Vector3();
   let glow: THREE.Vector3 | null = null;
+  const flameAt = new THREE.Vector3();
+  let flame: THREE.Vector3 | null = null;
 
   g.events.on('Hit', (e) => {
     const v = views.get(e.target);
@@ -121,15 +125,20 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);
+    if (f.flame && id === g.player.id) flame = f.flame.getWorldPosition(flameAt); // posed: it tumbles with a roll
   }
 
   return {
     get glow() {
       return glow;
     },
+    get flame() {
+      return flame;
+    },
     update(alpha, time) {
       sync();
       glow = null;
+      flame = null;
       for (const [id, v] of views) draw(id, v, alpha, time);
       tracer.visible = time < tracerUntil;
     },

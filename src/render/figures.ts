@@ -41,6 +41,7 @@ export interface Figure {
   skirt: THREE.Group[]; // coat panels hung at the hips, right then left, swinging with the thighs (poses.ts)
   flash: THREE.Object3D | null; // muzzle flash
   arms?: Record<string, THREE.Object3D>; // the investigator's weapons in hand, one shown at a time (actorViews.ts)
+  flame?: THREE.Object3D; // the investigator's lantern flame: its halo hangs here (worldLights.ts)
   hip: number; // pelvis height
   thigh: number; // hip to knee
   shin: number; // knee to sole
