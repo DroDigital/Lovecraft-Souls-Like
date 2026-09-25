@@ -54,4 +54,5 @@ export interface GameEvents {
   Healed: { entity: Entity; amount: number }; // a shot of West's Reagent
   Erupted: { at: V3; radius: number; by: Entity }; // a marked spot bursts
   Quaked: { at: V3; by: Entity }; // a ring goes racing out
+  Explored: { region: string }; // more of a region seen (exploration.ts)
 }

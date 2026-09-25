@@ -2,7 +2,8 @@
  * Menus (Phase 6): a screen is an overlay with one panel whose page can change. While any screen is
  * open the game hears no key presses. The arrow keys, or a pad's d-pad and left stick, move between
  * the page's buttons and sliders; Enter or Space (pad A) choose; left and right move a slider; Esc
- * (pad B) goes back. With no screen open, the pad's Start calls the `onPadStart` listeners.
+ * (pad B) goes back. With no screen open, the pad's Start calls the `onPadStart` listeners and its
+ * Select the `onPadSelect` ones. A page may hear keys and read the pad itself (the map).
  */
 
 import { BONE } from './hudKit';
@@ -11,6 +12,8 @@ export interface Page {
   build(panel: HTMLElement): void;
   back?: () => void;
   backKeys?: readonly string[]; // keys besides Esc that go back
+  keys?: (e: KeyboardEvent) => void; // hears every key pressed while it is open (the map pans and zooms)
+  pad?: (pad: Gamepad) => void; // reads the pad each frame while it is open
 }
 
 export interface Screen {
@@ -26,17 +29,20 @@ interface Entry {
 }
 
 const GRACE_MS = 250;
-const PAD = { a: 0, b: 1, start: 9, up: 12, down: 13, left: 14, right: 15 };
+const PAD = { a: 0, b: 1, select: 8, start: 9, up: 12, down: 13, left: 14, right: 15 };
 const STICK = 0.6;
 const REPEAT_MS = [380, 110] as const; // a held direction repeats after the first, then every second
 
 const stack: Entry[] = [];
 const padStart: (() => void)[] = [];
+const padSelect: (() => void)[] = [];
 let sound: () => void = () => undefined;
 let started = false;
 
 export const menuOpen = (): boolean => stack.length > 0;
 export const onPadStart = (fn: () => void): void => void padStart.push(fn);
+/** With no screen open, the pad's Select (Back) calls these (the map). */
+export const onPadSelect = (fn: () => void): void => void padSelect.push(fn);
 /** A soft tick as the focus moves or a choice is made. */
 export const setMenuSound = (fn: () => void): void => void (sound = fn);
 
@@ -82,6 +88,7 @@ function onKey(e: KeyboardEvent): void {
   const top = stack.at(-1);
   if (!top) return;
   e.stopImmediatePropagation();
+  top.page.keys?.(e);
   if (e.code === 'Escape' || top.page.backKeys?.includes(e.code)) {
     e.preventDefault();
     if (!e.repeat) back(top);
@@ -116,8 +123,10 @@ function pollPad(now: number): void {
       if (el instanceof HTMLButtonElement && top.panel.contains(el)) el.click();
       else focusAt(top.panel, 0);
     }
-    if (edge(PAD.b) || edge(PAD.start)) back(top);
+    if (edge(PAD.b) || edge(PAD.start) || edge(PAD.select)) back(top);
+    if (pad) top.page.pad?.(pad);
   } else if (edge(PAD.start)) for (const fn of padStart) fn();
+  else if (edge(PAD.select)) for (const fn of padSelect) fn();
   if (lx < -STICK) down.add(-1); // stick sideways, latched like a button
   if (lx > STICK) down.add(-2);
   prev = down;

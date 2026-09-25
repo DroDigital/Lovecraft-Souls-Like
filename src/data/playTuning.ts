@@ -65,3 +65,11 @@ export const FOE_BARS = {
   range: 22, // metres
   height: 0.35, // metres above the head
 };
+
+/** The map (playtest round 1): what the investigator has seen stays drawn; the rest lies under fog. */
+export const EXPLORE = {
+  cell: 16, // metres: the fog's grain
+  sight: 56, // metres around the investigator that come to be known
+  every: 8, // frames between looks around
+  minimap: 110, // metres from the centre to the minimap's edge
+};

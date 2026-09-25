@@ -12,6 +12,7 @@ import type { UpgradeId } from '../data/tuning';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
 import type { Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
+import type { Explored } from './exploration';
 import type { Band, GameEvents } from './gameEvents';
 
 export type { ArenaCircle, Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
@@ -241,6 +242,8 @@ export interface Overworld {
   region: string | null; // where the investigator is
   chunk: number; // the investigator's chunk key
   dirty: boolean; // spawn points need another look
+  explored: Explored; // the ground seen, for the map (exploration.ts)
+  lookedFrom: number; // the cell the investigator last looked around from
 }
 
 export interface Game {

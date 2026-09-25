@@ -30,6 +30,7 @@ import { fightActionSystem } from './fightActions';
 import { hallucinationSystem, registerHallucinations } from './hallucinations';
 import { hazardSystem } from './hazards';
 import { registerHiddenLayer, spawnPiece } from './hiddenLayer';
+import { explorationSystem } from './exploration';
 import { createBuffer } from './inputBuffer';
 import { insightSystem, spawnTome } from './insight';
 import { aimPoint, lockSystem } from './lockOn';
@@ -149,6 +150,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   lockSystem(g);
   cameraSystem(g, input.lookX, input.lookY, dt);
   insightSystem(g);
+  explorationSystem(g);
   hallucinationSystem(g);
   deathSystem(g);
   populationSystem(g);

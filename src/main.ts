@@ -49,6 +49,8 @@ import { createEndingCard } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
 import { setMenuSound } from './ui/menuKit';
+import { createMapPainter } from './ui/mapPainter';
+import { createMapScreen } from './ui/mapScreen';
 import { createPauseMenu } from './ui/pauseMenu';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
@@ -125,17 +127,19 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const scene = world?.scene ?? createArenaScene();
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game);
   const ending = createEndingCard(game);
+  const capture = (): void => {
+    try {
+      const r: unknown = canvas.requestPointerLock();
+      if (r instanceof Promise) r.catch(() => undefined);
+    } catch {
+      // No pointer lock: a click on the canvas captures the mouse, as ever.
+    }
+  };
   const pause = createPauseMenu({
     settings,
     change: shell.change,
-    resume: () => {
-      try {
-        const r: unknown = canvas.requestPointerLock();
-        if (r instanceof Promise) r.catch(() => undefined);
-      } catch {
-        // No pointer lock: a click on the canvas captures the mouse, as ever.
-      }
-    },
+    resume: capture,
+    map: opts.arena ? undefined : () => map.show(),
     quit: () => void (location.href = location.pathname),
   });
   if (store) startAutosave(game, store);
@@ -151,7 +155,9 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
-  const hud = createHud(game, canvas);
+  const painter = createMapPainter(game);
+  const hud = createHud(game, canvas, painter);
+  const map = createMapScreen(game, painter, capture);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(opts) : [])], panelOptions(game, shell)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
@@ -173,12 +179,12 @@ function startGame(opts: StartOptions, shell: Shell): void {
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
-        if (pause.open) return; // the world stands still
+        if (pause.open || map.open) return; // the world stands still
         simTime += dt;
         stepGame(game, menu?.open || ending.open ? emptyInput() : frame);
       },
       render(blend) {
-        const alpha = pause.open ? 1 : blend;
+        const alpha = pause.open || map.open ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
         state.cap = settings.fxCap;
@@ -203,7 +209,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
         const fx = computeFx(state);
         applyReality(fx, game.reality);
         lightReality(game.reality);
-        audio.update(fx, time, camera, pause.open);
+        audio.update(fx, time, camera, pause.open || map.open);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);

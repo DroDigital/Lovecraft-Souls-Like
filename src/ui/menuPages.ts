@@ -43,6 +43,7 @@ export const CONTROLS: readonly (readonly [string, string, string])[] = [
   ["West's Reagent (heal)", 'R', 'Y'],
   ['Laudanum (sanity)', 'T', 'd-pad down'],
   ['Rest, pass a gate, act', 'E', 'A'],
+  ['Map', 'M', 'Select'],
   ['Pause', 'Esc', 'Start'],
 ];
 

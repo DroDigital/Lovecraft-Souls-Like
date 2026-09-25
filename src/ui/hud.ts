@@ -4,7 +4,7 @@
  * Echoes and insight, the lock-on reticle with the target's name and health, short notices
  * (combat, bands, first sights, insight, Elder Signs), titles for regions entered, places reached and
  * bosses vanquished, the interact prompt near an Elder Sign or gate (or for a boss fight's
- * action), the death banner, and the boss fights' half (bossHud.ts).
+ * action), the death banner, the boss fights' half (bossHud.ts) and the minimap (minimap.ts).
  */
 
 import { Vector3, type Camera } from 'three';
@@ -17,6 +17,8 @@ import { fightAction } from '../systems/fightActions';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
 import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
+import type { MapPainter } from './mapPainter';
+import { createMinimap } from './minimap';
 
 const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: '#d80073' };
 const NOTICE_MS = 1100;
@@ -36,8 +38,9 @@ export interface Hud {
   update(camera: Camera): void;
 }
 
-export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
+export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter): Hud {
   const root = el(`position:fixed;inset:0;pointer-events:none;font:12px/1.4 monospace;color:${BONE};z-index:1`);
+  const minimap = createMinimap(g, root, painter);
   const vitals = el('position:absolute;left:16px;bottom:16px;width:240px', '', root);
   const hp = bar(vitals, RUST);
   const chip = el(`position:absolute;left:0;top:0;height:100%;width:100%;background:${BONE}aa`, '', hp.parentElement!);
@@ -107,6 +110,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement): Hud {
   const v = new Vector3();
   return {
     update(camera) {
+      minimap.update();
       const c = g.ecs.c;
       const h = c.health.get(me)!;
       const s = c.stamina.get(me)!;

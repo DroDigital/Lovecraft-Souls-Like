@@ -1,7 +1,7 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
  * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
- * health, the mind (sanity, insight, upgrades, horrors beheld) and Laudanum. Parsing checks every
+ * health, the mind (sanity, insight, upgrades, horrors beheld), Laudanum and the ground seen. Parsing checks every
  * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
  */
 
@@ -12,6 +12,7 @@ import { LAUDANUM, PLAYER, REAGENT, UPGRADES, type UpgradeId } from '../data/tun
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
+import { packExplored, unpackExplored } from './exploration';
 import { changeInsight } from './insight';
 import { setSanity } from './sanity';
 import { spawnDrop } from './spawn';
@@ -39,6 +40,7 @@ export interface SaveData {
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   ending?: string; // the ending chosen
+  explored?: Record<string, string>; // the ground seen, as base64 bits by region (exploration.ts)
 }
 
 /** The part of the Web Storage API a save needs (localStorage, or a stand-in in tests). */
@@ -75,6 +77,7 @@ export function snapshot(g: Game): SaveData {
     named: ow.named,
     called: [...ow.called],
     ...(ow.ending && { ending: ow.ending }),
+    explored: packExplored(ow.explored),
   };
 }
 
@@ -97,6 +100,7 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.drop !== null && !has(o.drop, 'x', 'y', 'z', 'amount')) return null;
   if ((o.named !== undefined && !isNum(o.named)) || (o.called !== undefined && !isStrings(o.called))) return null;
   if (o.ending !== undefined && !(ENDING_IDS as readonly unknown[]).includes(o.ending)) return null;
+  if (o.explored !== undefined && (typeof o.explored !== 'object' || o.explored === null)) return null;
   return o as unknown as SaveData;
 }
 
@@ -115,6 +119,7 @@ export function applySave(g: Game, s: SaveData): void {
   ow.named = clampInt(s.named ?? 0, 0, 99);
   ow.called = new Set(s.called ?? []);
   ow.ending = s.ending ?? null;
+  ow.explored = unpackExplored(s.explored);
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
   for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k], 0, UPGRADES[k].max);
   const h = c.health.get(g.player.id)!;
