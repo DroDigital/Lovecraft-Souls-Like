@@ -22,8 +22,7 @@ export const RENDER = {
 
 export const FX = {
   capDefault: 1, // accessibility cap on stress, 0..1 (the settings menu's default)
-  pixelCrush: [0, 1] as Ramp, // extra low-res pixel size
-  snapPixels: [1, 4] as Ramp, // PS1 vertex snap grid, in low-res pixels
+  snapPixels: 1, // PS1 vertex snap grid, in low-res pixels (madness no longer coarsens it, nor the pixels: playtest round 7)
   affine: [1.25, 10] as Ramp, // texels the PS1 affine mapping may stray from the true one: a shiver when calm, walls swim when mad
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,

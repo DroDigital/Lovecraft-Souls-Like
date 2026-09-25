@@ -7,6 +7,7 @@ import {
   EFFECT_PARAMS,
   EFFECTS,
   lensAt,
+  STEADY,
   sanityStress,
   type FxState,
 } from '../src/render/fx';
@@ -28,10 +29,15 @@ describe('sanity stress', () => {
 });
 
 describe('computeFx', () => {
-  it.each(EFFECTS)('%s responds to the sanity slider', (id) => {
+  it.each(EFFECTS.filter((id) => !STEADY.includes(id)))('%s responds to the sanity slider', (id) => {
     const calm = computeFx(state(100));
     const mad = computeFx(state(0));
     expect(EFFECT_PARAMS[id].some((key) => calm[key] !== mad[key])).toBe(true);
+  });
+
+  it('madness warps the picture but never coarsens its pixels (playtest round 7)', () => {
+    for (const id of STEADY) expect(EFFECT_PARAMS[id].every((key) => computeFx(state(100))[key] === computeFx(state(0))[key])).toBe(true);
+    expect(computeFx(state(0)).ripple).toBeGreaterThan(0);
   });
 
   it('turns every effect off with its toggle', () => {
@@ -40,7 +46,6 @@ describe('computeFx', () => {
     const fx = computeFx(s);
     expect(fx).toMatchObject({
       lowRes: false,
-      pixelCrush: 0,
       snapPixels: 0,
       affine: 0,
       fogAmount: 0,

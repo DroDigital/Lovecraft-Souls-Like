@@ -16,7 +16,6 @@ export const POST_FRAG = /* glsl */ `
 uniform sampler2D tScene;
 uniform vec2 uRes;
 uniform float uTime;
-uniform float uCrush;
 uniform float uRipple;
 uniform float uChroma;
 uniform float uIsolate;
@@ -98,9 +97,8 @@ vec3 quantize(vec3 c, vec2 cell) {
 }
 
 void main() {
-  float size = 1.0 + uCrush;
-  vec2 cell = floor(gl_FragCoord.xy / size);
-  vec2 uv = (cell + 0.5) * size / uRes;
+  vec2 cell = floor(gl_FragCoord.xy);
+  vec2 uv = (cell + 0.5) / uRes;
 
   // 4. Sanity warp: UV ripple and chromatic split, scaled by (1 - sanity/100).
   vec2 c = uv - 0.5;

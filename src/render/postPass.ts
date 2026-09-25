@@ -11,7 +11,6 @@ function createUniforms(source: THREE.Texture, palette: Float32Array) {
     tScene: { value: source },
     uRes: { value: new THREE.Vector2(1, 1) },
     uTime: { value: 0 },
-    uCrush: { value: 0 },
     uRipple: { value: 0 },
     uChroma: { value: 0 },
     uIsolate: { value: 0 },
@@ -61,7 +60,6 @@ export function updatePostUniforms(post: PostPass, fx: FxParams, time: number, r
   const u = post.uniforms;
   u.uRes.value.copy(res);
   u.uTime.value = time;
-  u.uCrush.value = fx.pixelCrush;
   u.uRipple.value = fx.ripple;
   u.uChroma.value = fx.chroma;
   u.uIsolate.value = fx.isolate ? 1 : 0;
