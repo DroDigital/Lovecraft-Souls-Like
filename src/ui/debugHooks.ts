@@ -42,9 +42,12 @@ export function panelOptions(game: Game, settings: Settings, change: (id: Settin
     sanity: { get: () => game.mind.sanity, set: (v) => setSanity(game, v) },
     cap: { get: () => settings.fxCap, set: (v) => change('fxCap', v) },
     insight: { get: () => game.mind.insight, set: (v) => changeInsight(game, v - game.mind.insight, 'debug', 'debug panel') },
-    actions: (Object.keys(UPGRADES) as UpgradeId[]).map((id) => ({
-      label: `spend ${UPGRADES[id].cost} insight: ${upgradeName(id)}`,
-      run: () => void buyUpgrade(game, id),
-    })),
+    actions: [
+      ...(Object.keys(UPGRADES) as UpgradeId[]).map((id) => ({
+        label: `spend ${UPGRADES[id].cost} insight: ${upgradeName(id)}`,
+        run: () => void buyUpgrade(game, id),
+      })),
+      { label: '+1000 Echoes', run: () => void (game.player.echoes += 1000) },
+    ],
   };
 }

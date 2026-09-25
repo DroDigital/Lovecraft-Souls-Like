@@ -105,7 +105,7 @@ describe('the people met in the dream', () => {
   });
 
   it('every tome and note in the world has its text, and every text lies somewhere', () => {
-    const placed = worldLayout().tomes.filter((t) => !t.vial).map((t) => t.name);
+    const placed = worldLayout().tomes.filter((t) => !t.vial && !t.echoes).map((t) => t.name);
     for (const name of placed) expect(DOCUMENTS[name], name).toBeDefined();
     for (const name of Object.keys(DOCUMENTS)) expect(placed, name).toContain(name);
     for (const t of worldLayout().tomes.filter((x) => x.note)) expect(DOCUMENTS[t.name].kind).toBe('note');

@@ -144,11 +144,10 @@ export const LAUDANUM = {
   sanity: 30, // restored per dose
 };
 
-/** Insight upgrades (spec §3A): insight per level, the most levels, and what each level adds. */
-export const UPGRADES: Record<'vigour' | 'endurance' | 'resolve', { cost: number; max: number; hp?: number; stamina?: number; resist?: number }> = {
-  vigour: { cost: 1, max: 10, hp: 20 },
-  endurance: { cost: 1, max: 10, stamina: 15 },
+/** Insight upgrades (spec §3A): insight per level, the most levels, and what each level adds. The body's strength is bought with Echoes (LEVELS). */
+export const UPGRADES: Record<'resolve' | 'draught', { cost: number; max: number; resist?: number; doses?: number }> = {
   resolve: { cost: 2, max: 4, resist: 0.15 }, // every sanity loss shrinks by this fraction per level
+  draught: { cost: 3, max: 2, doses: 1 }, // one more dose of Laudanum carried per level
 };
 export type UpgradeId = keyof typeof UPGRADES;
 

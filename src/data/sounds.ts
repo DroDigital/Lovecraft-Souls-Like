@@ -63,6 +63,7 @@ export const STINGERS = {
   slip: [tone('sine', 62, 0.22, 0.45, { to: 44 }), tone('sine', 2637, 0.9, 0.025, { at: 0.03, attack: 0.15, to: 2489, vibrato: [8, 30] })], // sanity lost at once: a thud in the chest, a thin ringing
   worse: [tone('sine', 55, 0.18, 0.6, { to: 40 }), tone('sine', 55, 0.22, 0.5, { to: 38, at: 0.24 }), tone('sine', 3150, 1.4, 0.035, { at: 0.05, attack: 0.4, vibrato: [7, 25] })],
   better: [noise('lowpass', 900, 1.2, 0.12, { to: 300, attack: 0.3 }), tone('triangle', 392, 1.4, 0.06, { attack: 0.3 })],
+  levelUp: [...chord('triangle', [146.8, 220, 293.7, 440], 2.4, 0.34, { attack: 0.08 }), ...notes('sine', [[0.05, 587.3, 1.2], [0.16, 880, 1.4], [0.27, 1174.7, 1.6]], 0.07), tone('sine', 73.4, 2.6, 0.3, { attack: 0.05 })], // a level bought: an open chord that blooms
   insight: [tone('sine', 1318.5, 2.2, 0.12), tone('sine', 1975.5, 1.8, 0.08, { at: 0.12 }), tone('sine', 2637, 1.4, 0.06, { at: 0.24 })],
   echoes: notes('sine', [[0, 880, 0.6], [0.07, 1108.7, 0.6], [0.14, 1318.5, 0.6], [0.21, 1760, 0.9]], 0.08),
   found: [tone('triangle', 659.3, 1.8, 0.14), tone('triangle', 987.8, 1.6, 0.1, { at: 0.18 }), tone('sine', 1318.5, 1.8, 0.07, { at: 0.36 })],

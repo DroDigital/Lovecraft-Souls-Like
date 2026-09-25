@@ -52,7 +52,8 @@ describe('HiddenLayer', () => {
     const pos = { x: jamb.min.x + 0.1, y: 0, z: (jamb.min.z + jamb.max.z) / 2 };
     resolveCapsule(g.world, pos, 0.4, 1.8);
     expect(pos.x).toBeCloseTo(jamb.min.x - 0.4); // pushed out of the jamb
-    expect(buyUpgrade(g, 'vigour')).toBe(true);
+    changeInsight(g, 1, 'debug', 'test');
+    expect(buyUpgrade(g, 'resolve')).toBe(true); // two insight
     expect(g.mind.insight).toBe(0);
     expect(shown(g, door)).toBe(false);
     expect(passes(g, door)).toBe(true);

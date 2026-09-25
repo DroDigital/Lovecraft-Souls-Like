@@ -12,6 +12,7 @@ import { LAUDANUM, SANITY, UPGRADES } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
 import { BANDS, isAbsent, type Band, type Game, type Mind } from './components';
+import { laudanumMax } from './levels';
 import { aimPoint, playerEye } from './lockOn';
 
 export const bandIndex = (b: Band): number => BANDS.indexOf(b);
@@ -36,7 +37,7 @@ export function nextBand(current: Band, sanity: number): Band {
 }
 
 export function createMind(): Mind {
-  return { sanity: SANITY.max, band: 'lucid', insight: 0, seen: new Set(), upgrades: { vigour: 0, endurance: 0, resolve: 0 }, phantomIn: 0 };
+  return { sanity: SANITY.max, band: 'lucid', insight: 0, seen: new Set(), upgrades: { resolve: 0, draught: 0 }, phantomIn: 0 };
 }
 
 /** Sets sanity (clamped to 0–100) and moves the band, announcing a change. */
@@ -106,7 +107,7 @@ export function registerSanity(g: Game): void {
     if (target === g.player.id && damage > 0 && !lingering) loseSanity(g, g.ecs.c.dread.get(attacker)?.blow ?? 0);
   });
   g.events.on('Respawned', () => {
-    g.player.laudanum = LAUDANUM.doses;
+    g.player.laudanum = laudanumMax(g);
     setSanity(g, SANITY.max);
   });
 }

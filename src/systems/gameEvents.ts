@@ -2,6 +2,7 @@
 
 import type { Entity } from '../core/ecs';
 import type { V3 } from '../core/geom';
+import type { LevelId } from '../data/tuning';
 
 export type HitOutcome =
   | 'dodged'
@@ -23,7 +24,8 @@ export interface GameEvents {
   Shot: { shooter: Entity; from: V3; to: V3; target: Entity | null };
   Died: { entity: Entity; killer: Entity | null; at: V3 };
   Respawned: { entity: Entity };
-  Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost'; amount: number; total: number };
+  Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost' | 'spent'; amount: number; total: number };
+  LevelUp: { attribute: LevelId; level: number; total: number }; // a level bought with Echoes: the attribute's level and the investigator's
   LockChanged: { target: Entity | null };
   SanityBandChanged: { from: Band; to: Band; sanity: number };
   SanityLost: { amount: number; sanity: number }; // a loss of at least SANITY.jolt at once (a blow, a sight, a burst), not a slow drain

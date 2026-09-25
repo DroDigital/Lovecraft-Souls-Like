@@ -1,7 +1,7 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
  * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
- * health, the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
+ * health, levels, the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
  * quests and the people met, and the wounds of foes still standing. Parsing checks every
  * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
  */
@@ -10,13 +10,14 @@ import type { Place } from '../data/arena';
 import { ENDING_IDS } from '../data/endings';
 import { QUESTS } from '../data/quests';
 import { START_SIGN } from '../data/sites';
-import { LAUDANUM, PLAYER, REAGENT, UPGRADES, type UpgradeId } from '../data/tuning';
+import { LEVELS, REAGENT, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
 import { packExplored, unpackExplored } from './exploration';
 import { woundsNow } from './overworld';
 import { changeInsight } from './insight';
+import { applyLevels, laudanumMax, LEVEL_IDS } from './levels';
 import { setSanity } from './sanity';
 import { spawnDrop } from './spawn';
 
@@ -35,7 +36,8 @@ export interface SaveData {
   hp: number;
   sanity: number;
   insight: number;
-  upgrades: Record<UpgradeId, number>;
+  upgrades: Partial<Record<UpgradeId | 'vigour' | 'endurance', number>>; // before levels, Vigour and Endurance were bought with insight
+  levels?: Record<LevelId, number>; // bought with Echoes (playtest round 4)
   seen: string[];
   laudanum: number;
   reagent?: number; // West's Reagent: doses left and the most it holds
@@ -76,6 +78,7 @@ export function snapshot(g: Game): SaveData {
     sanity: g.mind.sanity,
     insight: g.mind.insight,
     upgrades: { ...g.mind.upgrades },
+    levels: { ...g.player.levels },
     seen: [...g.mind.seen],
     laudanum: g.player.laudanum,
     reagent: g.player.reagent,
@@ -93,6 +96,7 @@ export function snapshot(g: Game): SaveData {
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const isStrings = (x: unknown): x is string[] => Array.isArray(x) && x.every((s) => typeof s === 'string');
 const has = (x: unknown, ...keys: string[]): x is Record<string, unknown> => typeof x === 'object' && x !== null && keys.every((k) => isNum((x as Record<string, unknown>)[k]));
+const isCounts = (x: unknown): boolean => typeof x === 'object' && x !== null && Object.values(x).every(isNum);
 
 /** A save from JSON, or null when it is missing, damaged or of another version. */
 export function parseSave(json: string | null): SaveData | null {
@@ -104,7 +108,7 @@ export function parseSave(json: string | null): SaveData | null {
     return null;
   }
   if (!has(o, 'version', 'echoes', 'hp', 'sanity', 'insight', 'laudanum') || o.version !== VERSION) return null;
-  if (!has(o.at, 'x', 'z', 'yaw') || typeof o.sign !== 'string' || !has(o.upgrades, ...UPGRADE_IDS)) return null;
+  if (!has(o.at, 'x', 'z', 'yaw') || typeof o.sign !== 'string' || !isCounts(o.upgrades) || (o.levels !== undefined && !isCounts(o.levels))) return null;
   if (![o.discovered, o.slain, o.read, o.seen].every(isStrings)) return null;
   if (o.drop !== null && !has(o.drop, 'x', 'y', 'z', 'amount')) return null;
   if ((o.named !== undefined && !isNum(o.named)) || (o.called !== undefined && !isStrings(o.called))) return null;
@@ -136,18 +140,19 @@ export function applySave(g: Game, s: SaveData): void {
   ow.met = new Set(s.met ?? []);
   ow.wounds = new Map(Object.entries(s.wounds ?? {}).map(([id, f]) => [id, Math.min(1, Math.max(0.01, f))]));
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
-  for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k], 0, UPGRADES[k].max);
+  for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k] ?? 0, 0, UPGRADES[k].max);
+  const was = s.levels ?? { vigour: ((s.upgrades.vigour ?? 0) * 20) / LEVELS.vigour.hp!, endurance: ((s.upgrades.endurance ?? 0) * 15) / LEVELS.endurance.stamina!, might: 0 }; // an older save's insight upgrades (20 health, 15 stamina a level) as the levels nearest them
+  for (const k of LEVEL_IDS) g.player.levels[k] = clampInt(was[k] ?? 0, 0, LEVELS[k].max);
+  applyLevels(g);
   const h = c.health.get(g.player.id)!;
-  h.max = PLAYER.hp + m.upgrades.vigour * (UPGRADES.vigour.hp ?? 0);
   h.hp = Math.min(h.max, Math.max(1, s.hp));
   const st = c.stamina.get(g.player.id)!;
-  st.max = PLAYER.stamina + m.upgrades.endurance * (UPGRADES.endurance.stamina ?? 0);
   st.value = st.max;
   m.seen = new Set(s.seen);
   changeInsight(g, clampInt(s.insight, 0, 999) - m.insight, 'load', 'save');
   setSanity(g, s.sanity);
   g.player.echoes = Math.max(0, Math.round(s.echoes));
-  g.player.laudanum = clampInt(s.laudanum, 0, LAUDANUM.doses);
+  g.player.laudanum = clampInt(s.laudanum, 0, laudanumMax(g));
   g.player.reagentMax = clampInt(s.reagentMax ?? REAGENT.doses, REAGENT.doses, REAGENT.maxDoses);
   g.player.reagent = clampInt(s.reagent ?? g.player.reagentMax, 0, g.player.reagentMax);
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });

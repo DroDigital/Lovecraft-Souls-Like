@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { START_SIGN } from '../src/data/sites';
-import { PLAYER, UPGRADES } from '../src/data/tuning';
+import { LEVELS, PLAYER } from '../src/data/tuning';
 import { signPlace, travel } from '../src/systems/checkpoints';
 import { createWorldGame } from '../src/systems/game';
 import { buyUpgrade, changeInsight } from '../src/systems/insight';
+import { buyLevel, levelCost } from '../src/systems/levels';
 import { setSanity } from '../src/systems/sanity';
 import { clearSave, loadSave, parseSave, SAVE_KEY, saveGame, snapshot, type SaveData } from '../src/systems/save';
 import { spawnDrop } from '../src/systems/spawn';
@@ -22,8 +23,10 @@ function played() {
   const at = g.ecs.c.transform.get(g.player.id)!.pos;
   spawnDrop(g, 55, { x: at.x + 3, y: at.y, z: at.z });
   changeInsight(g, 5, 'debug', 'test');
-  buyUpgrade(g, 'vigour');
-  buyUpgrade(g, 'vigour');
+  g.player.echoes += levelCost(0) + levelCost(1); // spent at once
+  buyLevel(g, 'vigour');
+  buyLevel(g, 'vigour');
+  buyUpgrade(g, 'resolve');
   g.ecs.c.health.get(g.player.id)!.hp = 77;
   setSanity(g, 35);
   g.mind.seen.add('deep_one');
@@ -41,7 +44,7 @@ describe('save and load', () => {
     expect(again.at.x).toBeCloseTo(saved.at.x);
     expect(again.at.z).toBeCloseTo(saved.at.z);
     expect(loaded.mind.band).toBe('fractured');
-    expect(loaded.ecs.c.health.get(loaded.player.id)!.max).toBe(PLAYER.hp + 2 * UPGRADES.vigour.hp!);
+    expect(loaded.ecs.c.health.get(loaded.player.id)!.max).toBe(PLAYER.hp + 2 * LEVELS.vigour.hp!);
     expect(loaded.player.checkpoint).toEqual(signPlace('rlyeh_door')!.rest);
     expect(loaded.overworld!.region).toBe('rlyeh');
   });
@@ -63,8 +66,18 @@ describe('save and load', () => {
     expect(parseSave(broken({ echoes: 'lots' }))).toBeNull();
     expect(parseSave(broken({ at: { x: 1 } }))).toBeNull();
     expect(parseSave(broken({ discovered: [1, 2] }))).toBeNull();
-    expect(parseSave(broken({ upgrades: { vigour: 1 } }))).toBeNull();
+    expect(parseSave(broken({ upgrades: { resolve: 'high' } }))).toBeNull();
+    expect(parseSave(broken({ levels: { vigour: 'x' } }))).toBeNull();
     expect(parseSave(broken({ drop: { x: 1, y: 2, z: 3 } }))).toBeNull();
+  });
+
+  it("an older save's insight upgrades become the nearest levels", () => {
+    const old: SaveData = { ...snapshot(createWorldGame()), upgrades: { vigour: 3, endurance: 2, resolve: 1 } };
+    delete old.levels;
+    const loaded = createWorldGame({ save: parseSave(JSON.stringify(old))! });
+    expect(loaded.player.levels).toEqual({ vigour: 5, endurance: 4, might: 0 }); // 60 health and 30 stamina, as before
+    expect(loaded.mind.upgrades).toEqual({ resolve: 1, draught: 0 });
+    expect(loaded.ecs.c.health.get(loaded.player.id)!.max).toBe(PLAYER.hp + 5 * LEVELS.vigour.hp!);
   });
 
   it('wounded foes stay wounded through a reload', () => {

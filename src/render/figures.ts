@@ -210,7 +210,19 @@ function note(): Figure {
   return f;
 }
 
-const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate, note };
+/** An Echo cache: an iron-bound casket, its lid thrown back on Void Green shards (Echoes are wrong), so it reads in the dark. */
+function cache(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const wood = shade(mixRgb(BASE.rust, BASE.charcoal, 0.5), 1.6);
+  const iron = shade(BASE.charcoal, 1.3);
+  const lid = box(0.56, 0.05, 0.38, 0, 0, 0.19, wood).rotateX(-2.1).translate(0, 0.3, -0.19); // hinged at the back, thrown open
+  part(f, f.body, mergeGeometries([box(0.56, 0.3, 0.38, 0, 0.15, 0, wood), box(0.58, 0.04, 0.4, 0, 0.07, 0, iron), box(0.58, 0.04, 0.4, 0, 0.23, 0, iron), lid]), 'wood');
+  const shard = (r: number, x: number, z: number): THREE.BufferGeometry => tint(new THREE.OctahedronGeometry(r, 0).translate(x, 0.32, z), ANOMALY.green);
+  part(f, f.body, mergeGeometries([shard(0.07, -0.13, 0.03), shard(0.09, 0.03, -0.04), shard(0.06, 0.15, 0.06)]), 'flesh', 0.9);
+  return f;
+}
+
+const BUILDERS: Record<string, () => Figure> = { player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate, note, cache };
 
 export function buildFigure(model: string): Figure {
   if (model.startsWith('npc:')) return npcFigure(model.slice(4));

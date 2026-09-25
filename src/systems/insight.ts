@@ -59,7 +59,12 @@ export function insightSystem(g: Game): void {
   for (const [id, t] of tome) {
     if (distXZ(transform.get(id)!.pos, pp) > PLAYER.pickupRadius) continue;
     g.ecs.despawn(id);
-    if (!t.vial) {
+    if (t.echoes) {
+      g.player.echoes += t.echoes;
+      g.overworld?.read.add(t.name); // taken for good
+      g.events.emit('Echoes', { change: 'earned', amount: t.echoes, total: g.player.echoes });
+      g.events.emit('Notice', { text: `A CACHE OF ECHOES · +${t.echoes}` });
+    } else if (!t.vial) {
       if (t.insight > 0) changeInsight(g, t.insight, 'tome', t.name);
       g.overworld?.read.add(t.name);
       g.events.emit('Read', { name: t.name });
@@ -79,20 +84,17 @@ export function buyUpgrade(g: Game, id: UpgradeId): boolean {
   const m = g.mind;
   if (m.insight < u.cost || m.upgrades[id] >= u.max) return false;
   m.upgrades[id]++;
-  const h = g.ecs.c.health.get(g.player.id)!;
-  const s = g.ecs.c.stamina.get(g.player.id)!;
-  if (u.hp) [h.max, h.hp] = [h.max + u.hp, h.hp + u.hp];
-  if (u.stamina) [s.max, s.value] = [s.max + u.stamina, s.value + u.stamina];
+  if (u.doses) g.player.laudanum += u.doses; // the new dose is carried at once
   changeInsight(g, -u.cost, 'upgrade', upgradeName(id));
   return true;
 }
 
 /** Puts a tome in the world. */
-export function spawnTome(g: Pick<Game, 'ecs' | 'world'>, t: { x: number; z: number; yaw: number; name: string; insight: number; vial?: boolean; note?: boolean }): Entity {
+export function spawnTome(g: Pick<Game, 'ecs' | 'world'>, t: { x: number; z: number; yaw: number; name: string; insight: number; vial?: boolean; note?: boolean; echoes?: number }): Entity {
   const e = g.ecs.spawn();
   const pos = { x: t.x, y: g.world.ground(t.x, t.z), z: t.z };
   g.ecs.c.transform.set(e, { pos, prev: { ...pos }, yaw: t.yaw, prevYaw: t.yaw });
-  g.ecs.c.tome.set(e, { name: t.name, insight: t.insight, vial: t.vial, note: t.note });
-  g.ecs.c.model.set(e, t.vial ? 'vial' : t.note ? 'note' : 'tome');
+  g.ecs.c.tome.set(e, { name: t.name, insight: t.insight, vial: t.vial, note: t.note, echoes: t.echoes });
+  g.ecs.c.model.set(e, t.vial ? 'vial' : t.echoes ? 'cache' : t.note ? 'note' : 'tome');
   return e;
 }

@@ -13,6 +13,7 @@ import type { HitDef } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
 import { isAbsent, isConcealed, type Actor, type Combatant, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
+import { might } from './levels';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
 
@@ -122,7 +123,7 @@ export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow, fr
   const defender = { actor: ta, health: h, poise: poise.get(target)!, stamina: stamina.get(target) };
   const felt = g.ecs.c.phantom.has(attacker)
     ? { ...blow, damage: 0, poise: 0, guard: 0 }
-    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * (h.ward ?? 1)) };
+    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * might(g, attacker) * (h.ward ?? 1)) };
   const { outcome, damage } = resolveHit(defender, felt, frontal);
   if (outcome === 'parried' && aa) startMove(aa, 'parried');
   if (outcome !== 'dodged' && blow.hitstop > 0) {

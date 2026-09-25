@@ -43,6 +43,24 @@ export const SETTINGS = {
   volume: [0, 1, 0.05, 0.7],
 } satisfies Record<string, readonly [number, number, number, number]>;
 
+/** Levels bought with Echoes at an Elder Sign (playtest round 4): what one level of each attribute adds, and the most levels. */
+export const LEVELS: Record<'vigour' | 'endurance' | 'might', { max: number; hp?: number; stamina?: number; damage?: number }> = {
+  vigour: { max: 20, hp: 12 },
+  endurance: { max: 20, stamina: 8 },
+  might: { max: 20, damage: 0.04 }, // share added to the investigator's blows and shots
+};
+export type LevelId = keyof typeof LEVELS;
+
+/** Echoes the next level costs: base + step·n + curve·n², n being the levels bought so far. */
+export const LEVEL_COST = { base: 250, step: 90, curve: 9 };
+
+/** Echo caches (playtest round 4): what the casket at a dungeon's dead end holds. */
+export const CACHE = {
+  bounties: 3, // times the richest bounty among the dungeon's creatures...
+  least: 150, // ...but never less...
+  most: 6000, // ...nor more
+};
+
 /** Consumables: Laudanum steadies the mind (tuning.ts), West's Reagent closes wounds. */
 export const REAGENT = {
   doses: 4, // at the start; each Silver Vial found adds one

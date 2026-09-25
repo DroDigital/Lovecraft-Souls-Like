@@ -8,7 +8,7 @@ import type { HiddenPieceDef, Place } from '../data/arena';
 import type { MoveSet } from '../data/moves';
 import type { BrainDef } from '../data/archetypes';
 import type { Tier } from '../data/schema';
-import type { UpgradeId } from '../data/tuning';
+import type { LevelId, UpgradeId } from '../data/tuning';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
 import type { Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
@@ -143,6 +143,7 @@ export interface Tome {
   insight: number;
   vial?: boolean; // a Silver Vial: one more dose of West's Reagent
   note?: boolean; // a letter, clipping or report (documents.ts), not a tome
+  echoes?: number; // an Echo cache (world/caches.ts), not a tome
 }
 
 /** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */
@@ -215,6 +216,7 @@ export interface Pilot {
   blockHeld: boolean;
   blockRaised: boolean; // block pressed since the last move began, and still held: it calls off an attack
   echoes: number; // carried currency
+  levels: Record<LevelId, number>; // bought with Echoes at an Elder Sign (levels.ts)
   checkpoint: Place; // the last Elder Sign
   laudanum: number; // doses left
   reagent: number; // West's Reagent: doses left...

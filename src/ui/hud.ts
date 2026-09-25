@@ -12,6 +12,7 @@ import type { Game, HitOutcome } from '../systems/components';
 import { interactable } from '../systems/checkpoints';
 import { aimPoint } from '../systems/lockOn';
 import { fightAction } from '../systems/fightActions';
+import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
 import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
@@ -127,7 +128,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       mind.update(now0);
       setText(reagent, `REAGENT ×${g.player.reagent}`);
       setText(insight, `INSIGHT ${g.mind.insight}`);
-      setText(echoes, `ECHOES ${g.player.echoes}`);
+      const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
+      setText(echoes, `ECHOES ${g.player.echoes}${ready ? '  ▲' : ''}`);
       const now = performance.now();
       setStyle(notice, 'opacity', String(Math.min(1, Math.max(0, (noticeUntil - now) / 300)).toFixed(2)));
       setStyle(title, 'opacity', String(Math.min(1, Math.max(0, (titleUntil - now) / 600)).toFixed(2)));

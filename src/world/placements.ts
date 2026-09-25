@@ -13,6 +13,7 @@ import { DUNGEONS, type Dir } from '../data/dungeons';
 import { REGIONS, type RegionDef } from '../data/regions';
 import { DREAM_DESCENT, SITES, type ArenaSite } from '../data/sites';
 import { DUNGEON, WORLD } from '../data/tuning';
+import { echoCaches } from './caches';
 import { colliderBounds, type Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
@@ -48,6 +49,7 @@ export interface TomePlace {
   insight: number;
   vial?: boolean; // a Silver Vial, not a tome
   note?: boolean; // a letter, clipping or report (documents.ts)
+  echoes?: number; // an Echo cache, not a tome (caches.ts)
   region: string;
   at: Place;
 }
@@ -203,7 +205,8 @@ function build(): WorldLayout {
       const b = PAD.dungeon;
       bucket({ x0: layout.rect.x0 - b, z0: layout.rect.z0 - b, x1: layout.rect.x1 + b, z1: layout.rect.z1 + b }, (k) => k.pads.push(rp));
       bucket(layout.rect, (k) => k.dungeons.push(layout));
-      for (const r of layout.rooms) furnish(w, region, def.id, r, sign, gate, spawn);
+      const caches = echoCaches(def);
+      for (const r of layout.rooms) furnish(w, region, def.id, r, sign, gate, spawn, caches.get(r.def.id));
       const first = layout.rooms[0];
       if (def.id === DREAM_DESCENT && first) w.dream = { x: first.x, z: first.z, yaw: yawOfDir(first.axis) };
     }
@@ -234,8 +237,8 @@ function arena(w: WorldLayout, region: RegionDef, p: XZ, a: ArenaSite, y: number
   });
 }
 
-/** What stands in a dungeon room: its Elder Sign, gate, tome, bosses, allies and spawns. */
-function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void): void {
+/** What stands in a dungeon room: its Elder Sign, gate, tome or Echo cache, bosses, allies and spawns. */
+function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void, cache?: number): void {
   const s = roomSpots(r);
   const pt = ([u, v]: readonly [number, number]) => {
     const p = roomPoint(r, u, v);
@@ -254,6 +257,10 @@ function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayo
   if (d.tome) {
     const p = pt(s.tome);
     w.tomes.push({ name: d.tome.name, insight: d.tome.insight, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
+  }
+  if (cache) {
+    const p = pt(s.tome);
+    w.tomes.push({ name: `Echoes: ${dungeon}/${d.id}`, insight: 0, echoes: cache, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
   }
   if (d.vial) {
     const p = pt(d.tome ? [s.tome[0], -s.tome[1]] : s.tome);
