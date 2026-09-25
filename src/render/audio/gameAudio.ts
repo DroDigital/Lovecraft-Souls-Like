@@ -93,6 +93,11 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   g.events.on('Hit', (ev) => {
     if (ev.target === g.player.id && !ev.lingering && HURT.has(ev.outcome)) recorded('hurt', null, 1);
   });
+  g.events.on('Vanished', ({ at, struck }) => {
+    if (!struck) return;
+    play({ sound: 'vanish', at });
+    recorded('whisper', at, 25, { pitch: 1.2 });
+  });
   g.events.on('Died', ({ entity }) => {
     const rosterId = g.ecs.c.dread.get(entity)?.id;
     const v = rosterId ? voice(rosterId) : null;
@@ -148,7 +153,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       drones.update(fx, seconds);
       if (paused) return;
       calls(seconds);
-      foley.update(seconds, place);
+      foley.update(seconds, place, (at) => play({ sound: 'danger', at: { ...at } }));
     },
   };
 }

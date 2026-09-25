@@ -1,9 +1,10 @@
 /**
  * Hints for a new investigator (playtest round 1): a line at the upper left the first time each
  * thing comes up — moving, where the story leads, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
- * a level within reach, a quest, a boss, insight — then never again (remembered in this browser, not in the save).
+ * a level within reach, a quest, a boss, insight, a grab, a hallucination — then never again (remembered in this browser, not in the save).
  */
 
+import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { BONE, el, setStyle, setText } from './hudKit';
@@ -24,6 +25,8 @@ const HINTS = {
   quest: 'The pause menu (Esc) has a Journal with what you have been asked to do.',
   boss: 'Watch the ground: a boss shows where its blows will land. Roll through rings and beams.',
   insight: 'Insight buys strength when you rest at an Elder Sign.',
+  grab: 'A crimson flare means a grab: no guard stops it. Roll away (Space).',
+  phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum (T) or rest steadies it.',
 } as const;
 type HintId = keyof typeof HINTS;
 
@@ -50,10 +53,14 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   };
   g.events.on('Hit', (e) => {
     if (e.target === g.player.id && e.damage > 0) hint('fight');
+    const by = g.ecs.c.actor.get(e.attacker);
+    if (e.target === g.player.id && by && moveDef(by)?.hit?.unblockable) hint('grab');
+    if (e.target === g.player.id && g.ecs.c.phantom.has(e.attacker)) hint('phantom');
     const h = g.ecs.c.health.get(g.player.id);
     if (e.target === g.player.id && h && h.hp < h.max * 0.6) hint('hurt');
   });
   g.events.on('SanityBandChanged', () => hint('mind'));
+  g.events.on('Vanished', (e) => e.struck && hint('phantom'));
   g.events.on('Discovered', () => hint('sign'));
   g.events.on('Echoes', (e) => {
     if (e.change === 'dropped') hint('echoes');

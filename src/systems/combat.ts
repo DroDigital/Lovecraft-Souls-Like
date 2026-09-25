@@ -2,7 +2,7 @@
  * Melee combat (spec §3B): each active frame a hitbox sphere sweeps its slice of the attack arc
  * (a capsule) against the hurt capsules of hostile bodies. Resolution order: i-frames, parry,
  * block / guard break, damage (riposte bonus), interrupt, poise / stagger; then hitstop (2–4
- * frames on attacker and victim) and events. The sanity band scales the investigator's blows both
+ * frames on attacker and victim) and events. A blow comes down to a body too short for it. The sanity band scales the investigator's blows both
  * ways; a hallucination's blows carry no damage (their sanity cost is hallucinations.ts); a boss's
  * ward (its hooks and signature) scales what it takes. Grabs pass a guard; wind shoves.
  */
@@ -146,6 +146,16 @@ export function shove(g: Game, target: Entity, from: V3, metres: number): void {
   g.ecs.c.shove.set(target, { x: (dx / d) * (metres / SHOVE_FRAMES), z: (dz / d) * (metres / SHOVE_FRAMES), frames: SHOVE_FRAMES });
 }
 
+/**
+ * A blow swung over a short body comes down to it (playtest round 7: a cane's slash at chest height
+ * passed over the Zoogs, the Cat from Saturn and Brown Jenkin): the sweep drops to just under the
+ * target's top, never below the attacker's knee.
+ */
+export function aimAt(g: Game, target: Entity, feet: number, s: V3): V3 {
+  const top = g.ecs.c.transform.get(target)!.pos.y + g.ecs.c.body.get(target)!.height - 0.1;
+  return s.y > top ? { ...s, y: Math.max(feet + 0.25, top) } : s;
+}
+
 export function meleeSystem(g: Game): void {
   const { actor, transform } = g.ecs.c;
   for (const [id, a] of actor) {
@@ -158,7 +168,7 @@ export function meleeSystem(g: Game): void {
     const s1 = hitCentre(tr.pos, tr.yaw, hit, (k + 1) / n);
     for (const t of targetsOf(g, id)) {
       if (a.hits.has(t)) continue;
-      const { gap2, radius } = capsuleGap2(g, t, s0, s1);
+      const { gap2, radius } = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
       if (gap2 > (hit.radius + radius) ** 2) continue;
       a.hits.add(t);
       const outcome = strike(g, id, t, { ...hit, parryable: !hit.unblockable, interrupts: false });

@@ -1,11 +1,14 @@
 /**
  * Combat's particles (render only): blood and ichor where blows land, sparks off a guard or a
  * parry, dust where the investigator dives into a roll and comes up out of it, muzzle smoke, the
- * Reagent's green glow, and the dust of the fallen. Driven by game events and the player's move.
+ * Reagent's green glow, and the dust of the fallen. A creature winding up a grab (no guard stops it)
+ * flares crimson about the head; a hallucination struck comes apart into dark smoke and violet motes
+ * (playtest round 7). Driven by game events and the actors' moves.
  */
 
 import type { Entity } from '../core/ecs';
 import type { V3 } from '../core/geom';
+import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { Particles } from './particles';
@@ -18,6 +21,8 @@ const BLOOD: Rgb = scaleRgb(BASE.rust, 0.7);
 const ICHOR: Rgb = mixRgb(BASE.seaGrey, BASE.charcoal, 0.5);
 const SPARK: Rgb = mixRgb(BASE.bone, [1, 0.85, 0.6], 0.5);
 const DUST: Rgb = mixRgb(BASE.bone, BASE.seaGrey, 0.5);
+const DANGER: Rgb = [1, 0.12, 0.08];
+const SMOKE: Rgb = scaleRgb(BASE.charcoal, 0.8);
 
 const rand = (a: number, b: number): number => a + (b - a) * Math.random();
 
@@ -73,11 +78,44 @@ export function createCombatFx(g: Game, fx: Particles): CombatFx {
   g.events.on('Died', ({ entity, at }) => {
     if (entity !== g.player.id && c.combatant.has(entity)) dust(at, 12, 1.4, 0.5);
   });
+  g.events.on('Vanished', ({ at, struck }) => {
+    for (let i = 0; i < (struck ? 34 : 18); i++) {
+      const a = rand(0, Math.PI * 2);
+      const r = rand(0.1, 0.5);
+      const mote = i % 3 === 0;
+      fx.spawn({
+        x: at.x + Math.cos(a) * r, y: at.y + rand(0.2, 1.7), z: at.z + Math.sin(a) * r,
+        vx: Math.cos(a) * rand(0.2, 0.9), vy: rand(0.3, 1.4), vz: Math.sin(a) * rand(0.2, 0.9),
+        life: rand(0.7, 1.4), size: mote ? rand(0.04, 0.08) : rand(0.2, 0.4), grow: mote ? 0 : 2.4,
+        color: mote ? ANOMALY.purple : SMOKE, glow: mote, alpha: mote ? 1 : 0.55, drag: 1.5,
+      });
+    }
+  });
+  /** A crimson flare about the head of each creature as it begins a grab. */
+  const winding = new Map<Entity, string | null>();
+  const warn = (): void => {
+    for (const [id, a] of c.actor) {
+      if (id === g.player.id) continue;
+      const was = winding.get(id) ?? null;
+      winding.set(id, a.move);
+      if (a.move === was || !moveDef(a)?.hit?.unblockable) continue;
+      const p = pos(id);
+      if (!p) continue;
+      const y = p.y + height(id) * 1.05;
+      for (let i = 0; i < 14; i++) {
+        const k = rand(0, Math.PI * 2);
+        fx.spawn({ x: p.x, y, z: p.z, vx: Math.cos(k) * rand(0.4, 1.4), vy: rand(-0.3, 0.8), vz: Math.sin(k) * rand(0.4, 1.4), life: rand(0.25, 0.5), size: rand(0.05, 0.1), color: DANGER, glow: true, drag: 2 });
+      }
+      fx.spawn({ x: p.x, y, z: p.z, life: 0.35, size: 0.5, grow: 0.2, color: DANGER, glow: true });
+    }
+    for (const id of winding.keys()) if (!c.actor.has(id)) winding.delete(id);
+  };
 
   let rolling = false;
   let landed = false;
   return {
     update() {
+      warn();
       const a = c.actor.get(g.player.id);
       const p = pos(g.player.id);
       if (!a || !p) return;

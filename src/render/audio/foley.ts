@@ -3,7 +3,7 @@
  * investigator's footsteps, one a stride, on what they walk on (the sea's shallows, a dungeon's stone,
  * a road, open ground); the whoosh of every blow a moment before it lands (the investigator's cuts
  * and swings, a creature's lower the bigger it is); a roll's tumble and a backstep's scuffs; the
- * Laudanum's cork. Read-only on the simulation.
+ * Laudanum's cork; and a warning as a grab winds up. Read-only on the simulation.
  */
 
 import type { Entity } from '../../core/ecs';
@@ -47,8 +47,8 @@ export const strideAt = (speed: number): number => {
 export const reached = (at: number, frame: number, was: number | null): boolean => frame >= at && (was === null || was < at);
 
 export interface Foley {
-  /** `place` says how a sound at a spot is heard. */
-  update(seconds: number, place: (at: V3, range: number) => { gain: number; pan: number }): void;
+  /** `place` says how a sound at a spot is heard; `warn` sounds a grab winding up there. */
+  update(seconds: number, place: (at: V3, range: number) => { gain: number; pan: number }, warn: (at: V3) => void): void;
 }
 
 export function createFoley(g: Game, sampler: Sampler): Foley {
@@ -77,7 +77,7 @@ export function createFoley(g: Game, sampler: Sampler): Foley {
     play(STEPS[surfaceAt(g, tr.pos.x, tr.pos.y, tr.pos.z)], 0.55 + 0.45 * Math.min(1, speed / PACE[1]));
   }
 
-  function moves(place: (at: V3, range: number) => { gain: number; pan: number }): void {
+  function moves(place: (at: V3, range: number) => { gain: number; pan: number }, warn: (at: V3) => void): void {
     const { actor, transform, body } = g.ecs.c;
     for (const [id, a] of actor) {
       const was = seen.get(id);
@@ -96,6 +96,7 @@ export function createFoley(g: Game, sampler: Sampler): Foley {
         if (a.move === 'backstep' && (reached(2, a.frame, prev) || reached(10, a.frame, prev))) play(STEPS[surface()], 0.8);
         if (a.move === 'drink' && reached(10, a.frame, prev)) play('cork');
       }
+      if (!player && def.hit?.unblockable && prev === null) warn(transform.get(id)!.pos); // a grab: no guard will stop it
       if (!def.hit || !reached(Math.max(0, def.hit.window[0] - SWING_LEAD), a.frame, prev)) continue;
       if (player) {
         const heavy = a.move.startsWith('heavy') || def.hit.poise >= 30;
@@ -112,9 +113,9 @@ export function createFoley(g: Game, sampler: Sampler): Foley {
   }
 
   return {
-    update(seconds, place) {
+    update(seconds, place, warn) {
       steps(seconds);
-      moves(place);
+      moves(place, warn);
     },
   };
 }

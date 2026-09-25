@@ -116,7 +116,7 @@ export const STAMINA = {
 export const COMBAT = {
   bufferMs: 150, // input buffer window: one queued action
   comboGrace: 8, // frames after an attack ends in which the next press still continues its chain
-  guardArcDeg: 120, // block and parry only stop hits from inside this frontal arc
+  guardArcDeg: 180, // block and parry stop hits from anywhere in front (was 120: blows from the flank went through; playtest round 7)
   riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe
   poiseReset: 120, // frames without poise damage before poise refills
   dummyReset: 180, // frames without damage before the immortal training dummy heals
