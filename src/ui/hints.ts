@@ -12,7 +12,7 @@ const SHOW_MS = 9000;
 
 const HINTS = {
   move: 'WASD to move, the mouse to look (click to capture it). Space dodges; hold it to run.',
-  fight: 'Left mouse strikes (Shift for a heavy blow). Right mouse blocks, Shift + right mouse parries. Q locks on.',
+  fight: 'Left mouse strikes (Shift for a heavy blow). Right mouse blocks, and calls off a swing that has not landed; Shift + right mouse parries. Q locks on.',
   hurt: "R injects West's Reagent and closes wounds. Its doses come back when you rest.",
   mind: 'T takes a swallow of Laudanum and steadies the mind.',
   sign: 'Rest at an Elder Sign with E. You rise at the last one you rested at, and the creatures you killed come back.',

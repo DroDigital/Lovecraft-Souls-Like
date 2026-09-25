@@ -1,6 +1,7 @@
 /**
  * Draws every entity that has a `model` as a primitive figure: interpolated transforms, procedural
- * poses, hitstop shake, hit flashes, and the revolver's tracer. Read-only on the simulation.
+ * poses eased into one another (poseBlend.ts), hitstop shake, hit flashes, and the revolver's tracer.
+ * Read-only on the simulation.
  */
 
 import * as THREE from 'three';
@@ -15,6 +16,7 @@ import { cadence, type Ground } from './gait';
 import { FX_PREFIX } from './fightViews';
 import { box } from './meshKit';
 import { BASE } from './palette';
+import { createPoseBlend, type PoseBlend } from './poseBlend';
 import { pose } from './poses';
 import { createWorldMaterial } from './worldMaterial';
 
@@ -24,6 +26,7 @@ interface View {
   speed: number; // ground speed, eased so a stop or start does not snap the legs
   lastTime: number;
   hitAt: number; // sim seconds of the last landed blow
+  blend: PoseBlend; // eases one pose into the next when the move or guard changes
 }
 
 export interface ActorViews {
@@ -68,7 +71,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
       if (views.has(id) || model.startsWith(MODEL_PREFIX) || model.startsWith(FX_PREFIX)) continue; // roster creatures: creatureViews; bolts, pools and props: fightViews
       const figure = buildFigure(model);
       scene.add(figure.root);
-      views.set(id, { figure, stride: 0, speed: 0, lastTime: 0, hitAt: -Infinity });
+      views.set(id, { figure, stride: 0, speed: 0, lastTime: 0, hitAt: -Infinity, blend: createPoseBlend(figure) });
     }
     for (const [id, v] of views) {
       if (g.ecs.c.model.has(id)) continue;
@@ -110,7 +113,10 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     const rollYaw = a && def?.motion?.dir === 'input' ? wrapAngle(yawOf(a.dir.x, a.dir.z) - tr.yaw) : 0;
     const since = time - v.hitAt;
     const flinch = Math.max(0, 1 - since / FEEDBACK.flinchSeconds);
-    pose(f, { move: a?.move ?? null, def, frame, speed, stride: v.stride, guard: a?.guard ?? false, flinch, rollYaw, time, ground: groundAbout(f.root) });
+    const [move, guard] = [a?.move ?? null, a?.guard ?? false];
+    v.blend.watch(move, guard, time);
+    pose(f, { move, def, frame, speed, stride: v.stride, guard, flinch, rollYaw, time, ground: groundAbout(f.root) });
+    v.blend.apply(time);
     const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);

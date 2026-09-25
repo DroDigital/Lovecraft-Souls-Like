@@ -213,6 +213,7 @@ export interface Pilot {
   dodgeHeld: number; // frames the dodge button has been down, -1 while up
   sprinting: boolean;
   blockHeld: boolean;
+  blockRaised: boolean; // block pressed since the last move began, and still held: it calls off an attack
   echoes: number; // carried currency
   checkpoint: Place; // the last Elder Sign
   laudanum: number; // doses left

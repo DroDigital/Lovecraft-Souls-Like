@@ -27,10 +27,10 @@ const framesWhere = (move: keyof typeof PLAYER_MOVES, outcome: HitOutcome): numb
 
 describe('i-frame windows', () => {
   it('the roll is invulnerable on exactly its i-frame window', () => {
-    expect(PLAYER_MOVES.roll.iframes).toEqual([2, 15]);
-    expect(framesWhere('roll', 'dodged')).toEqual(range(2, 15));
+    expect(PLAYER_MOVES.roll.iframes).toEqual([2, 24]);
+    expect(framesWhere('roll', 'dodged')).toEqual(range(2, 24));
     expect(outcomeAt('roll', 1)).toBe('hit');
-    expect(outcomeAt('roll', 15)).toBe('hit');
+    expect(outcomeAt('roll', 24)).toBe('hit');
   });
 
   it('the backstep has a shorter window', () => {

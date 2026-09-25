@@ -16,7 +16,7 @@ describe('dodge button', () => {
     stepGame(g, forward());
     stepGame(g, forward({ pressed: { ...emptyInput().pressed, dodge: true }, released: { ...emptyInput().released, dodge: true } }));
     expect(a.move).toBe('roll');
-    steps(g, 40);
+    steps(g, 60); // the roll is over
     stepGame(g, press('dodge'));
     steps(g, 3, { ...emptyInput(), held: { ...emptyInput().held, dodge: true } });
     expect(a.move).toBeNull(); // the dodge fires on release

@@ -196,7 +196,7 @@ export const PLAYER_MOVES = {
   },
   heavy1: cleave([100, -60], 'heavy2', 44, 24, 'overhead'),
   heavy2: cleave([-100, 60], 'heavy1', 48, 26, 'spin'),
-  roll: { frames: 30, stamina: 18, cancel: 22, iframes: [2, 15], motion: { window: [0, 20], distance: 4.2, dir: 'input' } },
+  roll: { frames: 48, stamina: 18, cancel: 36, iframes: [2, 24], motion: { window: [0, 34], distance: 4.2, dir: 'input' } }, // a full tumble takes the better part of a second
   backstep: { frames: 22, stamina: 12, cancel: 16, iframes: [1, 7], motion: { window: [0, 12], distance: 2.4, dir: 'back' } },
   parry: { frames: 36, stamina: 10, parry: [3, 11] },
   shoot: {

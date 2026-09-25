@@ -39,6 +39,7 @@ export function playerControl(g: Game, real: InputFrame): void {
   }
   for (const b of BUFFERED) if (input.pressed[b]) bufferPress(p.buffer, b);
   p.blockHeld = input.held.block;
+  p.blockRaised = input.held.block && (p.blockRaised || input.pressed.block);
 
   // Camera-relative stick: forward = (sin yaw, cos yaw), right = (-cos yaw, sin yaw).
   const fx = Math.sin(g.camera.yaw);

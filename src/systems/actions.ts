@@ -1,6 +1,8 @@
 /**
  * Action state machine for every combatant (spec §3B): move frames, hitstop, combo chains, and the
- * player's buffered action, consumed at the end of recovery or at a cancel window. The item
+ * player's buffered action, consumed at the end of recovery or at a cancel window. Raising the guard
+ * (block pressed, or a parry) calls off the investigator's attack while it winds up or recovers,
+ * though not while the blow is landing; a blow struck with the guard already up plays out. The item
  * action swallows a dose of Laudanum (its sanity returns on the move's `item` frame, sanity.ts).
  */
 
@@ -63,6 +65,20 @@ export function comboMove(a: Actor, button: 'light' | 'heavy'): string {
   return next ?? `${button}1`; // chains start at light1 / heavy1
 }
 
+/** Whether the guard may cut the move short now: an attack (a blow or a shot) winding up or recovering, not while it lands. */
+export function guardCancels(a: Actor): boolean {
+  const def = moveDef(a);
+  if (def?.hit) return a.frame < def.hit.window[0] || a.frame >= def.hit.window[1];
+  if (def?.shot) return a.frame !== def.shot.frame;
+  return false;
+}
+
+/** Calls the move off; a chain begins afresh after it. */
+function callOff(a: Actor): void {
+  Object.assign(a, { move: null, frame: 0, last: null });
+  a.hits.clear();
+}
+
 /** Starts the player's action if any stamina is left: faces the lock target or the stick, rolls along the stick. */
 function startAction(g: Game, a: Actor, action: ActionId): void {
   const { stamina, transform, mover } = g.ecs.c;
@@ -86,6 +102,7 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   }
   if (st && def.stamina) spend(st, def.stamina);
   startMove(a, move);
+  g.player.blockRaised = false; // a blow struck from behind a raised guard plays out
 
   const tr = transform.get(id)!;
   if (moving) a.dir = { x: m.vx / speed, z: m.vz / speed };
@@ -102,6 +119,8 @@ export function actionSystem(g: Game): void {
   for (const [id, a] of actor) if (!isAbsent(g, id)) advance(a);
   const p = g.player;
   const a = actor.get(p.id)!;
+  const parrying = p.buffer.action === 'parry' && canAfford(g.ecs.c.stamina.get(p.id)); // a parry that cannot start calls nothing off
+  if (!a.frozen && guardCancels(a) && (p.blockRaised || parrying)) callOff(a); // raising the guard cuts an attack short
   if (!a.frozen && canAct(a)) {
     const action = takeBuffered(p.buffer);
     if (action) startAction(g, a, action);
