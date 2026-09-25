@@ -7,10 +7,12 @@
  */
 
 import type { Game } from '../systems/components';
+import { mainLead } from '../systems/lead';
 import { exploredShare } from '../systems/exploration';
 import { realmOf, realmRect } from '../world/mapData';
 import { regionAt } from '../world/worldMap';
 import { BONE } from './hudKit';
+import { drawLead } from './leadMark';
 import { workArt } from './mapArt';
 import type { MapPainter, MapView } from './mapPainter';
 import { createScreen, el, menuOpen, onPadSelect, type Page } from './menuKit';
@@ -31,6 +33,7 @@ const LEGEND: readonly [string, string][] = [
   ['◉', 'Boss (struck through once slain)'],
   ['◆', 'Your Echoes'],
   ['♙', 'Someone met in the dream'],
+  ['◇', 'Where the story leads'],
 ];
 
 export function createMapScreen(g: Game, painter: MapPainter, resume: () => void): MapScreen {
@@ -69,6 +72,7 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
     if (held.has('ArrowDown') || held.has('KeyS')) view.cz -= step;
     workArt(ART_MS);
     painter.paint(ctx, view, realm(), true);
+    drawLead(ctx, view, mainLead(g)?.at ?? null, realm(), false);
     requestAnimationFrame(frame);
   };
 

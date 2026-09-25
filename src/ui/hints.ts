@@ -1,6 +1,6 @@
 /**
  * Hints for a new investigator (playtest round 1): a line at the upper left the first time each
- * thing comes up — moving, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
+ * thing comes up — moving, where the story leads, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
  * a level within reach, a quest, a boss, insight — then never again (remembered in this browser, not in the save).
  */
 
@@ -13,6 +13,7 @@ const SHOW_MS = 9000;
 
 const HINTS = {
   move: 'WASD to move, the mouse to look (click to capture it). Space dodges; hold it to run.',
+  lead: 'The ◇ on the minimap marks where the story leads. The Journal (Esc) says what to do there.',
   fight: 'Left mouse strikes (Shift for a heavy blow). Right mouse blocks, and calls off a swing that has not landed; Shift + right mouse parries. Q locks on.',
   hurt: "R injects West's Reagent and closes wounds. Its doses come back when you rest.",
   mind: 'T takes a swallow of Laudanum and steadies the mind.',
@@ -63,6 +64,7 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   g.events.on('BossEngaged', () => hint('boss'));
   g.events.on('InsightChanged', (e) => e.change > 0 && e.cause !== 'load' && hint('insight'));
   hint('move');
+  hint('lead');
   return {
     update() {
       const now = performance.now();
