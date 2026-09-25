@@ -1,9 +1,9 @@
 /**
- * The main menu (Phase 6): the name set as a logo over its stair (playtest round 4), and a call to
- * press any key (the first key or click is what lets the browser play the title's music), then
- * Continue (when a save exists), New game (which asks before forgetting a save), Settings and
- * Controls. Its choice starts the open world; the title stays until the veil has covered it
- * (main.ts), over the live stair behind it (titleBackdrop.ts).
+ * The main menu (Phase 6): the name set as a logo over its stair (playtest round 4), Continue (when a
+ * save exists), New game (which asks before forgetting a save), Settings and Controls. It opens on
+ * the first key press or click (what lets a browser play the title's theme), or by itself when the
+ * theme sounds without one (main.ts). Its choice starts the open world; the title stays until the
+ * veil has covered it, over the live stair behind it (titleBackdrop.ts).
  */
 
 import { GAME_NAME, TITLE_LINES } from '../data/intro';
@@ -16,6 +16,10 @@ export interface TitleOptions {
   hasSave: boolean;
   settings: Settings;
   change(id: SettingId, v: number): void;
+  /** Resolves when the title may open without a key press or click (its theme sounds without one). */
+  byItself: Promise<void>;
+  /** The title opens: its first key press or click, or by itself. */
+  open(): void;
   start(fresh: boolean, close: () => void): void;
 }
 
@@ -47,9 +51,11 @@ export function showTitle(o: TitleOptions): void {
   const wake = (): void => {
     if (awake) return;
     awake = true;
+    o.open();
     removeEventListener('pointerdown', wake, true);
     setTimeout(() => screen.show(main), 350); // a beat, and the waking key or click is spent before the menu stands under it
   };
+  void o.byItself.then(wake);
   const gate: Page = {
     keys: wake,
     build(p) {

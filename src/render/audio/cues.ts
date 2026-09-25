@@ -98,5 +98,8 @@ export function placeSound(listener: V3, right: V3, at: V3 | null, range: number
   return { gain: k > 0 ? k * k : 0, pan: flat < 1e-3 ? 0 : (AUDIO.pan * (dx * right.x + dz * right.z)) / flat };
 }
 
+/** A low-pass for a sound heard at `gain` (placeSound's): whole up close, dulled toward the edge of its range. */
+export const dullness = (gain: number): number => 1200 + 18800 * gain;
+
 /** When a creature next calls: `now` plus a wait drawn from its voice's interval. */
 export const nextCall = (v: Voice, now: number, rand: () => number): number => now + v.every[0] + (v.every[1] - v.every[0]) * rand();

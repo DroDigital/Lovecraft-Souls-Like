@@ -1,8 +1,10 @@
 /**
- * Procedural sound recipes (spec §5, Phase 6: no audio files). A sound is layers, each an oscillator
- * or generated noise with a pitch glide, an envelope (a short attack, then an exponential fade over
- * its duration) and an optional sweeping filter; render/audio/synth.ts plays them. The stingers here
- * answer game events (render/audio/cues.ts); creature voices and drones are in voices.ts.
+ * Procedural sound recipes (spec §5, Phase 6). A sound is layers, each an oscillator or generated
+ * noise with a pitch glide, an envelope (a short attack, then an exponential fade over its duration)
+ * and an optional sweeping filter; render/audio/synth.ts plays them. The stingers here answer game
+ * events (render/audio/cues.ts); creature voices and drones are in voices.ts. Since playtest round 6
+ * recorded sounds (samples.ts) play in place of some, or over them with a share of the recipe kept
+ * beneath; the recipes still play wherever a recording has not loaded.
  */
 
 export type Wave = 'sine' | 'triangle' | 'square' | 'sawtooth';

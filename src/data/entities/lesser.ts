@@ -177,7 +177,7 @@ export const LESSER = tier('lesser', [
     stats: st(120, 24, 13, 3.8, 0.2, 2), drops: { echoes: 60 }, insightOnSight: 0,
   },
   {
-    id: 'child_of_yig', name: 'Child of Yig', source: 'The Curse of Yig', regions: ['kn_yan'], canonLooks: true,
+    id: 'child_of_yig', name: 'Child of Yig', source: 'The Curse of Yig', regions: ['kn_yan'], canonLooks: true, voice: 'hiss',
     sprite: { silhouette: 'swarm', palette: 'sand', scale: 1.4, eyes: 1 },
     behavior: { archetype: 'swarm', attacks: ['bite'] },
     stats: st(70, 6, 8, 4, 0.4, 2), drops: { echoes: 40 }, insightOnSight: 0,
