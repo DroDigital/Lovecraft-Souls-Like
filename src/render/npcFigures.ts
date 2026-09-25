@@ -40,7 +40,7 @@ function hat(look: NpcLook, dark: Rgb): THREE.BufferGeometry | null {
 export function npcFigure(id: string): Figure {
   const look: NpcLook = npcDef(id)?.look ?? { coat: 'grey', hat: 'none', hair: 'dark' };
   const robe = look.coat === 'robe';
-  const f = skeleton('humanoid', { hip: 0.9, hunch: look.stoop ?? 0, shoulder: [0.27, 0.57], hipX: 0.11, neck: [0.63, 0] });
+  const f = skeleton('humanoid', { hip: 0.9, hunch: look.stoop ?? 0, shoulder: [0.27, 0.57], hipX: 0.11, neck: [0.63, 0], leg: 0.88, thigh: 0.42, upper: 0.3, fore: 0.28 });
   const coat = shade(COATS[look.coat], 2);
   const sleeve = shade(COATS[look.coat], 2.3);
   const dark = shade(BASE.charcoal, 2);
@@ -53,7 +53,14 @@ export function npcFigure(id: string): Figure {
   part(f, f.head, mergeGeometries(head), 'cloth');
   const h = hat(look, dark);
   if (h) part(f, f.head, h, 'cloth', look.hat === 'band' ? 0.6 : 0);
-  for (const arm of [f.armR, f.armL]) part(f, arm, mergeGeometries([box(0.12, 0.56, 0.13, 0, -0.28, 0, sleeve), box(0.09, 0.1, 0.1, 0, -0.61, 0.01, pale)]), 'cloth');
-  for (const leg of [f.legR, f.legL]) part(f, leg, box(0.16, 0.88, 0.18, 0, -0.44, 0, robe ? coat : dark), 'cloth');
+  for (const [arm, elbow, hand] of [[f.armR, f.elbowR, f.handR], [f.armL, f.elbowL, f.handL]]) {
+    part(f, arm, box(0.12, 0.32, 0.13, 0, -0.15, 0, sleeve), 'cloth');
+    part(f, elbow, box(0.115, 0.28, 0.125, 0, -0.13, 0, sleeve), 'cloth');
+    part(f, hand, box(0.09, 0.1, 0.1, 0, -0.03, 0.01, pale), 'cloth');
+  }
+  for (const [leg, knee] of [[f.legR, f.kneeR], [f.legL, f.kneeL]]) {
+    part(f, leg, box(0.16, 0.45, 0.18, 0, -0.21, 0, robe ? coat : dark), 'cloth');
+    part(f, knee, box(0.15, 0.47, 0.17, 0, -0.225, 0, robe ? coat : dark), 'cloth');
+  }
   return f;
 }

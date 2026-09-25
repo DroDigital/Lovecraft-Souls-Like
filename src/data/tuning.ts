@@ -206,7 +206,7 @@ export const FEEDBACK = {
   flinchSeconds: 0.25,
   tracerSeconds: 0.07, // revolver tracer
   shakeMetres: 0.07, // jitter during hitstop
-  strideMetres: 1.5, // ground covered per walk cycle
+  strideEase: 14, // per second: how quickly a figure's stride takes up its ground speed (render/gait.ts)
   echoGlowHeight: 0.6, // light above an Echo drop
   revealSeconds: 0.5, // hidden-layer geometry flickers this long as it comes and goes
 };
