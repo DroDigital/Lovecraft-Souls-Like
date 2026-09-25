@@ -21,6 +21,7 @@ import { playSound } from './render/audio/synth';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
+import { createSky, inDungeon } from './render/sky';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
 import { createCreatureViews } from './render/creatureViews';
@@ -123,6 +124,8 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const combatFx = createCombatFx(game, particles);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
+  const sky = createSky();
+  scene.add(sky.mesh);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
@@ -173,6 +176,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
           resize();
         }
         placeCamera(camera, game, alpha);
+        sky.update(camera, time, game.overworld?.region ?? null, !!world && inDungeon(camera.position.x, camera.position.z));
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);

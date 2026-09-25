@@ -54,6 +54,33 @@ export type LevelId = keyof typeof LEVELS;
 /** Echoes the next level costs: base + step·n + curve·n², n being the levels bought so far. */
 export const LEVEL_COST = { base: 250, step: 90, curve: 9 };
 
+export interface SkyDef {
+  moon: number; // the moon's radius, radians (0: none)
+  stars: number; // their density
+  clouds: number; // cover
+  haze: number; // the horizon's moonlit glow
+}
+
+/** The night sky over each realm (playtest round 4, render/sky.ts). */
+export const SKY = {
+  base: { moon: 0.034, stars: 1, clouds: 0.5, haze: 1 } as SkyDef,
+  regions: {
+    innsmouth: { clouds: 0.7 }, // sea mist
+    mountains: { stars: 1.6, clouds: 0.15, haze: 0.8 },
+    pnakotus: { stars: 1.4, clouds: 0.1 }, // desert air
+    kn_yan: { moon: 0, stars: 0, clouds: 0, haze: 0.35 }, // under the earth
+    dreamlands: { moon: 0.075, stars: 1.3, clouds: 0.3, haze: 1.3 }, // the Dreamlands' moon hangs near
+    rlyeh: { stars: 0.5, clouds: 0.8, haze: 0.7 },
+    yuggoth: { moon: 0, stars: 1.8, clouds: 0, haze: 0.3 }, // no moon over Yuggoth: the sun a star among the rest
+    beyond: { moon: 0, stars: 0.5, clouds: 0, haze: 0 },
+  } as Readonly<Record<string, Partial<SkyDef>>>,
+  haze: [0.075, 0.085, 0.09] as Vec3, // the moonlit haze, added to the fog's colour off the horizon
+  moonColor: [0.86, 0.85, 0.8] as Vec3,
+  fade: 3, // seconds to ease into another realm's sky...
+  jump: 30, // ...unless the camera leapt this many metres at once (a journey): then at once
+  close: 0.6, // seconds for a dungeon's walls to close it off
+};
+
 /** Echo caches (playtest round 4): what the casket at a dungeon's dead end holds. */
 export const CACHE = {
   bounties: 3, // times the richest bounty among the dungeon's creatures...

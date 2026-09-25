@@ -15,7 +15,7 @@ import type { Piece, PropMat } from './propShapes';
 
 const TRIM: Rgb = scaleRgb(BASE.bone, 1.1);
 const PANE: Rgb = scaleRgb(BASE.charcoal, 0.5);
-const LIT: Rgb = scaleRgb(mixRgb(BASE.bone, [1, 0.78, 0.45], 0.6), 0.55);
+const LIT: Rgb = scaleRgb(mixRgb(BASE.bone, [1, 0.78, 0.45], 0.6), 0.85);
 const DOOR: Rgb = scaleRgb(mixRgb(BASE.rust, BASE.charcoal, 0.5), 1.4);
 
 /** A roof and its two gable ends from a profile across the depth: [z, y] points from eave to eave. */
@@ -73,11 +73,13 @@ function windows(w: number, d: number, top: number, rng: Rng, lit: number): { fr
         if (side > 0 && f === floors[0] && Math.abs(x) < 1.1) continue; // the door
         const z = side * (d + 0.03);
         frames.push(box(0.95, 1.3, 0.05, x, y, z, TRIM));
-        (rng() < lit ? glows : panes).push(box(0.7, 1.05, 0.08, x, y, z, rng() < lit ? LIT : PANE));
+        const on = rng() < lit; // one draw: a lit window glows in the lamplight's colour
+        (on ? glows : panes).push(box(0.7, 1.05, 0.08, x, y, z, on ? LIT : PANE));
       }
       const x = side * (w + 0.03);
       frames.push(box(0.05, 1.3, 0.95, x, y, 0, TRIM));
-      (rng() < lit ? glows : panes).push(box(0.08, 1.05, 0.7, x, y, 0, PANE));
+      const on = rng() < lit;
+      (on ? glows : panes).push(box(0.08, 1.05, 0.7, x, y, 0, on ? LIT : PANE));
     }
   }
   return { frames, panes, glows };
@@ -114,7 +116,7 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
   const stacks = style === 'brick' ? [-1, 1] : style === 'stone' ? [] : [rng() < 0.5 ? -1 : 1];
   for (const s of stacks) chimneys.push(tileUv(box(0.8, rh + 1.6, 0.8, s * wx * 0.7, top + (rh + 1.6) / 2 - 0.3, -wd * 0.2, scaleRgb(BASE.bone, 1.2)), 0.8, rh + 1.6));
 
-  const { frames, panes, glows } = windows(wx, wd, h, rng, 0.14);
+  const { frames, panes, glows } = windows(wx, wd, h, rng, 0.3);
   const door = [box(1.1, 2.1, 0.1, 0, 0.4 + 1.05, wd + 0.05, DOOR), box(1.3, 0.12, 0.12, 0, 0.4 + 2.15, wd + 0.06, TRIM)];
   const step = box(1.8, 0.3, 0.8, 0, 0.15, wd + 0.5, scaleRgb(c, 0.75));
   if (style === 'clapboard' && rng() < 0.45) {
