@@ -58,6 +58,7 @@ import { journalPage } from './ui/journal';
 import { createJourneys } from './ui/journeys';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './ui/settings';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
+import { startTitleBackdrop } from './ui/titleBackdrop';
 import { showTitle } from './ui/titleScreen';
 import { createVeil, type Veil } from './ui/veil';
 import { createArenaScene } from './world/arenaScene';
@@ -237,10 +238,11 @@ function createShell(): Shell {
   return shell;
 }
 
-/** The title screen, with its music, until a choice starts the world. */
+/** The title screen over its live stair, with its music, until a choice starts the world. */
 function title(opts: StartOptions, shell: Shell): void {
   shell.music = playMenuMusic(shell.settings.volume);
   shell.veil.haunt(true);
+  const backdrop = startTitleBackdrop(shell.settings.fxCap, shell.settings.resolution);
   showTitle({
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
@@ -248,6 +250,7 @@ function title(opts: StartOptions, shell: Shell): void {
     start(fresh, close) {
       void shell.veil.cover('', 1.1).then(() => {
         close();
+        backdrop.stop();
         startGame({ ...opts, fresh, intro: fresh }, shell);
       });
     },

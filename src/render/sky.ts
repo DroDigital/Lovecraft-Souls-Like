@@ -6,7 +6,7 @@
  */
 
 import * as THREE from 'three';
-import { FX, LIGHT, RENDER, SKY, type SkyDef } from '../data/tuning';
+import { FX, LIGHT, RENDER, SKY, type SkyDef, type Vec3 } from '../data/tuning';
 import { worldLayout } from '../world/placements';
 import { chunkOf } from '../world/worldMap';
 import { SKY_FRAG, SKY_VERT } from './shaders/sky';
@@ -26,14 +26,15 @@ export function inDungeon(x: number, z: number): boolean {
     .dungeons.some(({ rect: r }) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
 }
 
-export function createSky(): Sky {
+/** `moonDir` is toward the moon (the moonlight's direction by default; the title hangs its own). */
+export function createSky(moonDir: Vec3 = LIGHT.nightMoonDir): Sky {
   const start = skyOf(null);
   const u = {
     uTime: { value: 0 },
     uFogColor: { value: new THREE.Vector3(...FX.fogColor) },
     uHazeColor: { value: new THREE.Vector3(...SKY.haze) },
     uMoonColor: { value: new THREE.Vector3(...SKY.moonColor) },
-    uMoonDir: { value: new THREE.Vector3(...LIGHT.nightMoonDir).normalize() },
+    uMoonDir: { value: new THREE.Vector3(...moonDir).normalize() },
     uMoon: { value: start.moon },
     uStars: { value: start.stars },
     uClouds: { value: start.clouds },

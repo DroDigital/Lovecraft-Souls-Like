@@ -28,7 +28,7 @@ export function createDialogue(g: Game): Dialogue {
       build(p) {
         el(p, 'div', name.toUpperCase(), `letter-spacing:3px;color:${BONE}`);
         el(p, 'div', title, 'opacity:.5;font-size:11px;margin-bottom:8px');
-        el(p, 'div', lines[i], 'font-size:13px;line-height:1.55;min-height:3.1em');
+        el(p, 'div', lines[i], 'font-size:16px;line-height:1.55;min-height:3.1em');
         const last = i >= lines.length - 1;
         const row = el(p, 'div', '', 'display:flex;justify-content:space-between;align-items:center;margin-top:6px');
         el(row, 'div', `${i + 1} / ${lines.length}`, 'opacity:.35;font-size:10px');
@@ -64,7 +64,7 @@ export function documentPage(name: string, back: () => void, label = 'Back'): Pa
     build(p) {
       el(p, 'div', name.toUpperCase(), `letter-spacing:3px;color:${BONE};margin-bottom:4px`);
       el(p, 'div', doc?.kind === 'tome' ? 'a tome' : 'a note', 'opacity:.45;font-size:11px;margin-bottom:14px');
-      for (const para of doc?.text ?? []) el(p, 'p', para, 'font-size:13px;line-height:1.6;margin:0 0 10px');
+      for (const para of doc?.text ?? []) el(p, 'p', para, 'font-size:15px;line-height:1.6;margin:0 0 10px');
       button(p, label, back);
     },
   };

@@ -6,7 +6,7 @@
  * Select the `onPadSelect` ones. A page may hear keys and read the pad itself (the map).
  */
 
-import { BONE } from './hudKit';
+import { BONE, SERIF } from './hudKit';
 
 export interface Page {
   build(panel: HTMLElement): void;
@@ -47,7 +47,7 @@ export const onPadSelect = (fn: () => void): void => void padSelect.push(fn);
 export const setMenuSound = (fn: () => void): void => void (sound = fn);
 
 const CSS = `
-[data-menu] button{display:block;width:100%;margin:3px 0;padding:5px 10px;text-align:left;font:12px monospace;letter-spacing:1px;color:${BONE};background:#141416;border:1px solid ${BONE}44;cursor:pointer}
+[data-menu] button{display:block;width:100%;margin:3px 0;padding:5px 10px;text-align:left;font:14px ${SERIF};letter-spacing:.5px;color:${BONE};background:#141416;border:1px solid ${BONE}44;cursor:pointer}
 [data-menu] button:disabled{opacity:.4;cursor:default}
 [data-menu] button:focus,[data-menu] button:hover:not(:disabled){outline:1px solid ${BONE}aa;background:#26262a!important}
 [data-menu] label{display:flex;gap:10px;align-items:center;margin:8px 0}
@@ -147,7 +147,7 @@ function startOnce(): void {
 export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw);max-height:86vh;overflow:auto;padding:18px;background:#0b0b0d;border:1px solid #d9d0b833'): Screen {
   startOnce();
   const root = document.createElement('div');
-  root.style.cssText = `position:fixed;inset:0;display:none;z-index:${z};background:${backdrop};font:12px/1.4 monospace;color:${BONE}`;
+  root.style.cssText = `position:fixed;inset:0;display:none;z-index:${z};background:${backdrop};font:14px/1.45 ${SERIF};color:${BONE}`;
   const panel = document.createElement('div');
   panel.style.cssText = `position:absolute;${panelCss}`;
   panel.dataset.menu = '';
