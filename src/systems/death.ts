@@ -77,7 +77,7 @@ function respawn(g: Game): void {
   const p = g.player;
   restore(g, p.id, p.checkpoint);
   resetFoes(g);
-  Object.assign(p, { buffer: createBuffer(), dodgeHeld: -1, sprinting: false });
+  Object.assign(p, { buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockRaised: false });
   setLock(g, null);
   Object.assign(g.camera, { yaw: p.checkpoint.yaw, prevYaw: p.checkpoint.yaw, pitch: CAMERA.pitch, prevPitch: CAMERA.pitch });
   g.events.emit('Respawned', { entity: p.id });

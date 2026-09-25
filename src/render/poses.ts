@@ -46,10 +46,11 @@ function rest(f: Figure): void {
 function roll(f: Figure, d: MoveDef, p: PoseInput): void {
   const [m0, m1] = d.motion!.window;
   const t = (p.frame - m0) / (m1 - m0); // 0..1 over the travel, beyond 1 while recovering
+  const end = (d.frames - m0) / (m1 - m0); // where the move ends, on the same scale
   const dive = bump(t / 0.3);
   const spin = ease((t - 0.1) / 0.72);
   const tuck = bump((t - 0.04) / 0.86);
-  const crouch = bump((t - 0.78) / 0.7);
+  const crouch = ease((t - 0.6) / 0.28) * (1 - ease((t - 0.92) / (end - 0.92))); // lands low as the tuck opens, stands just as the move ends
   f.body.rotation.set(0.55 * dive * (1 - spin) + Math.PI * 2 * spin, p.rollYaw, 0.1 * tuck, 'YXZ');
   f.body.position.y = f.hip * (1 - 0.52 * tuck - 0.12 * crouch);
   f.torso.rotation.x = 0.95 * tuck + 0.35 * crouch;

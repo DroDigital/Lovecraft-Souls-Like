@@ -83,7 +83,8 @@ export function createCombatFx(g: Game, fx: Particles): CombatFx {
       if (!a || !p) return;
       const roll = a.move === 'roll';
       if (roll && !rolling) dust(p, 8, 1.2); // the dive
-      if (roll && !landed && a.frame >= 18) {
+      const mo = a.moves.roll?.motion;
+      if (roll && !landed && mo && a.frame >= mo.window[0] + 0.8 * (mo.window[1] - mo.window[0])) { // as the tumble comes round
         dust(p, 10, 1.6); // coming up out of it
         landed = true;
       }
