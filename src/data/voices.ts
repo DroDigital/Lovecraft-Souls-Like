@@ -3,7 +3,9 @@
  * intervals while it is near and awake, and at once when it turns on the investigator: the flying
  * polyps' whistling, the shoggoth's "Tekeli-li!", the ghouls' meeping. An entry names its voice
  * (`EntityDef.voice`, or 'silent'); without one it speaks with its tier's. Drones are the held
- * beds under play: one per region, the arena, the title and a boss fight.
+ * beds under play: one per region, the arena, the title and a boss fight. Since playtest round 6 a
+ * region's drone sits a few dB under its recorded ambience (data/samples.ts): a dread beneath the
+ * wind and the sea, which the recordings now carry.
  */
 
 import type { EntityDef, Tier } from './schema';
@@ -73,6 +75,7 @@ export const VOICES = {
   whisper: { call: [noise('bandpass', 1900, 0.2, 0.72, { q: 9 }), noise('bandpass', 1200, 0.25, 0.72, { q: 9, at: 0.25 }), noise('bandpass', 2300, 0.4, 0.72, { q: 9, at: 0.55, to: 1600 })], every: [4, 9], range: 25 },
   bay: { call: [tone('sawtooth', 190, 1.3, 0.25, { to: 150, attack: 0.15, vibrato: [5, 30], filter: lp(900, 500) }), tone('sawtooth', 95, 1.3, 0.1, { to: 75, attack: 0.15, filter: lp(400) })], every: [5, 10], range: 70 },
   squawk: { call: [0, 0.2].map((at, k) => tone('square', 620 - 60 * k, 0.14, 0.24, { at, to: 480 - 40 * k, filter: bp(1200, undefined, 2) })), every: [5, 12], range: 18 },
+  hiss: { call: [noise('highpass', 2800, 1.6, 0.5, { attack: 0.35 }), noise('bandpass', 5200, 1.4, 0.3, { q: 2, attack: 0.4 })], every: [5, 11], range: 20 }, // Yig's children (playtest round 6)
 } satisfies Record<string, Voice>;
 
 export type VoiceId = keyof typeof VOICES;
@@ -87,9 +90,14 @@ export const TIER_VOICES: Record<Tier, VoiceId | null> = {
   ally: null,
 };
 
-export function voiceOf(d: Pick<EntityDef, 'voice' | 'tier'>): Voice | null {
+/** The id of an entry's voice (its own, or its tier's), or null when it keeps quiet. */
+export function voiceIdOf(d: Pick<EntityDef, 'voice' | 'tier'>): VoiceId | null {
   if (d.voice === 'silent') return null;
-  const id = d.voice ?? TIER_VOICES[d.tier];
+  return d.voice ?? TIER_VOICES[d.tier];
+}
+
+export function voiceOf(d: Pick<EntityDef, 'voice' | 'tier'>): Voice | null {
+  const id = voiceIdOf(d);
   return id ? VOICES[id] : null;
 }
 
@@ -108,20 +116,20 @@ const d = (hz: number, ratios: readonly number[], wave: Wave, cutoff: number, ga
 
 export const DRONES = {
   title: d(41.2, [1, 1.5, 2.01], 'sawtooth', 260, 0.07, 0.03, 400),
-  arena: d(49, [1, 1.498], 'sawtooth', 240, 0.04),
-  hub: d(49, [1, 1.5, 2], 'triangle', 380, 0.05, 0.02, 600), // wind over the quad
-  arkham: d(46.2, [1, 1.059, 1.5], 'sawtooth', 300, 0.045, 0.03, 500),
-  dunwich: d(43.7, [1, 1.335, 2], 'sawtooth', 280, 0.045, 0.035, 350),
-  innsmouth: d(41.2, [1, 1.19, 1.5], 'triangle', 320, 0.05, 0.08, 250), // the sea
-  providence: d(51.9, [1, 1.2, 1.414], 'sawtooth', 320, 0.04, 0.02, 700),
-  vermont: d(55, [1, 1.5, 3.02], 'triangle', 420, 0.04, 0.03, 900),
-  mountains: d(36.7, [1, 1.5, 2, 3], 'sine', 600, 0.07, 0.07, 1400), // polar wind
-  pnakotus: d(38.9, [1, 1.414, 2.83], 'triangle', 380, 0.05, 0.05, 1800), // desert wind
-  kn_yan: d(32.7, [1, 1.06, 2], 'sawtooth', 220, 0.05, 0.02, 200),
-  dreamlands: d(65.4, [1, 1.25, 1.5, 2], 'sine', 900, 0.05, 0.015, 1200),
-  rlyeh: d(30.9, [1, 1.5, 1.587], 'sawtooth', 200, 0.06, 0.07, 220),
-  yuggoth: d(44, [1, 1.03, 1.47, 2.08], 'square', 260, 0.035, 0.01, 3000),
-  beyond: d(27.5, [1, 2, 2.97, 4.1], 'sine', 1200, 0.08),
+  arena: d(49, [1, 1.498], 'sawtooth', 240, 0.025),
+  hub: d(49, [1, 1.5, 2], 'triangle', 380, 0.02, 0.008, 600), // under the wind over the quad
+  arkham: d(46.2, [1, 1.059, 1.5], 'sawtooth', 300, 0.028, 0.012, 500),
+  dunwich: d(43.7, [1, 1.335, 2], 'sawtooth', 280, 0.026, 0.012, 350),
+  innsmouth: d(41.2, [1, 1.19, 1.5], 'triangle', 320, 0.028, 0.02, 250), // under the sea
+  providence: d(51.9, [1, 1.2, 1.414], 'sawtooth', 320, 0.024, 0.008, 700),
+  vermont: d(55, [1, 1.5, 3.02], 'triangle', 420, 0.024, 0.01, 900),
+  mountains: d(36.7, [1, 1.5, 2, 3], 'sine', 600, 0.014, 0.01, 1400), // under the polar wind
+  pnakotus: d(38.9, [1, 1.414, 2.83], 'triangle', 380, 0.028, 0.015, 1800), // under the desert wind
+  kn_yan: d(32.7, [1, 1.06, 2], 'sawtooth', 220, 0.03, 0.008, 200),
+  dreamlands: d(65.4, [1, 1.25, 1.5, 2], 'sine', 900, 0.028, 0.006, 1200),
+  rlyeh: d(30.9, [1, 1.5, 1.587], 'sawtooth', 200, 0.03, 0.02, 220),
+  yuggoth: d(44, [1, 1.03, 1.47, 2.08], 'square', 260, 0.022, 0.005, 3000),
+  beyond: d(27.5, [1, 2, 2.97, 4.1], 'sine', 1200, 0.035),
   boss: d(36.7, [1, 1.06, 1.5], 'sawtooth', 180, 0.08), // under a boss fight
 } satisfies Record<string, Drone>;
 
