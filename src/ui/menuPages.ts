@@ -1,61 +1,125 @@
 /**
- * Pages the title screen and the pause menu share (Phase 6): settings (FX intensity cap, look
- * sensitivity, resolution scale, volume; each applies at once and is kept) and the controls.
+ * Pages the title screen and the pause menu share (Phase 6): the settings, each applied at once and
+ * kept, and the controls. Round 12: the settings gained brightness, UI scale, screen shake, invert
+ * look, music, effects and ambience volumes, and fullscreen; the keyboard's keys can be rebound on
+ * the Controls page (core/bindings.ts), and the buttons each prompt names follow the device in hand.
  */
 
+import { ACTIONS, DEFAULT_KEYS, keyLayout, keyName, rebind, type Action } from '../core/bindings';
 import { RENDER, SETTINGS } from '../data/tuning';
+import { desktop } from './desktop';
+import { glyph } from './glyphs';
 import { button, el, heading, slider, type Page } from './menuKit';
 import type { SettingId, Settings } from './settings';
 
+const pct = (v: number): string => `${Math.round(v * 100)}%`;
 const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = {
-  fxCap: ['FX intensity', (v) => `${Math.round(v * 100)}%`],
+  fxCap: ['FX intensity', pct],
   sensitivity: ['Sensitivity', (v) => `×${v.toFixed(2)}`],
+  invertY: ['Invert look', (v) => (v > 0.5 ? 'On' : 'Off')],
   resolution: ['Resolution', (v) => `${Math.round(RENDER.width * v)}×${Math.round(RENDER.height * v)}`],
-  volume: ['Volume', (v) => `${Math.round(v * 100)}%`],
+  brightness: ['Brightness', pct],
+  uiScale: ['Text & HUD', (v) => `×${v.toFixed(2)}`],
+  shake: ['Screen shake', pct],
+  volume: ['Volume', pct],
+  music: ['Music', pct],
+  sfx: ['Effects', pct],
+  ambience: ['Ambience', pct],
 };
+const GROUPS: readonly (readonly [string, readonly SettingId[]])[] = [
+  ['VIDEO', ['resolution', 'brightness', 'uiScale', 'fxCap', 'shake']],
+  ['CONTROLS', ['sensitivity', 'invertY']],
+  ['SOUND', ['volume', 'music', 'sfx', 'ambience']],
+];
+
+/** Fullscreen on or off: the desktop shell's window, or the browser's. */
+async function fullscreen(on: boolean): Promise<void> {
+  if (desktop) return desktop.setFullscreen(on);
+  if (on) await document.documentElement.requestFullscreen?.().catch(() => undefined);
+  else if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
+}
+const isFullscreen = async (): Promise<boolean> => (desktop ? desktop.isFullscreen() : !!document.fullscreenElement);
 
 /** Every change goes to `change` (which applies and keeps it); `back` leaves. */
 export function settingsPage(s: Settings, change: (id: SettingId, v: number) => void, back: () => void): Page {
-  return {
+  const page: Page = {
     back,
     build(panel) {
       el(panel, 'div', 'SETTINGS', 'font-size:18px;letter-spacing:4px');
-      el(panel, 'div', 'FX intensity caps every effect of a failing mind, for comfort.', 'opacity:.6;margin:4px 0 8px');
-      for (const id of Object.keys(SETTINGS) as SettingId[]) {
-        const [label, show] = LABELS[id];
-        slider(panel, label, SETTINGS[id], s[id], (v) => change(id, v), show);
+      el(panel, 'div', 'FX intensity caps every effect of a failing mind, for comfort.', 'opacity:.6;margin:4px 0 0');
+      for (const [name, ids] of GROUPS) {
+        heading(panel, name);
+        for (const id of ids) {
+          const [label, show] = LABELS[id];
+          slider(panel, label, SETTINGS[id], s[id], (v) => change(id, v), show);
+        }
+        if (name === 'VIDEO') {
+          const b = button(panel, 'Fullscreen', () => void isFullscreen().then((on) => fullscreen(!on)).then(() => setTimeout(label, 300)));
+          const label = (): void => void isFullscreen().then((on) => (b.textContent = `Fullscreen: ${on ? 'on' : 'off'}`));
+          label();
+        }
       }
       heading(panel, '');
-      button(panel, 'Back  (Esc)', back);
+      button(panel, `Back  (${glyph('back')})`, back);
     },
   };
+  return page;
 }
 
-/** Action, keyboard and mouse, pad (standard layout). */
-export const CONTROLS: readonly (readonly [string, string, string])[] = [
-  ['Move', 'WASD', 'left stick'],
-  ['Look', 'mouse (click to capture) · arrows', 'right stick'],
+const KEYED: Readonly<Record<Action, string>> = {
+  forward: 'Move forward',
+  back: 'Move back',
+  left: 'Move left',
+  right: 'Move right',
+  dodge: 'Dodge (hold: sprint)',
+  shoot: 'Revolver',
+  lock: 'Lock on',
+  heal: "West's Reagent (heal)",
+  item: 'Laudanum (sanity)',
+  interact: 'Rest, talk, act',
+  map: 'Map',
+};
+const PAD_OF: Readonly<Record<Action, string>> = {
+  forward: 'left stick', back: 'left stick', left: 'left stick', right: 'left stick',
+  dodge: 'B', shoot: 'X', lock: 'R3', heal: 'Y', item: 'D-pad ↓', interact: 'A', map: 'View',
+};
+/** What cannot be rebound: the mouse's buttons, looking, and the menus' own keys. */
+export const FIXED_CONTROLS: readonly (readonly [string, string, string])[] = [
   ['Light / heavy attack', 'LMB / Shift+LMB', 'RB / RT'],
   ['Block / parry', 'RMB / Shift+RMB', 'LB / LT'],
-  ['Dodge (hold: sprint)', 'Space', 'B'],
-  ['Revolver', 'F', 'X'],
-  ['Lock on / switch', 'Q or MMB / ← → or flick', 'R3 / flick right stick'],
-  ["West's Reagent (heal)", 'R', 'Y'],
-  ['Laudanum (sanity)', 'T', 'd-pad down'],
-  ['Rest, pass a gate, act', 'E', 'A'],
-  ['Map', 'M', 'Select'],
-  ['Pause', 'Esc', 'Start'],
+  ['Look', 'mouse · arrows', 'right stick'],
+  ['Switch target', '← → · flick the mouse', 'flick the right stick'],
+  ['Pause', 'Esc', 'Menu'],
 ];
 
-export function controlsPage(back: () => void): Page {
-  return {
-    back,
+/** The controls, the keyboard's rebindable: choose an action, then press its new key. `save` keeps the layout. */
+export function controlsPage(back: () => void, save: () => void = () => undefined): Page {
+  let waiting: Action | null = null;
+  const page: Page = {
+    back: () => ((waiting = null), back()),
+    keys(e) {
+      if (!waiting || e.repeat || e.code === 'Escape') return;
+      e.preventDefault();
+      if (rebind(keyLayout, waiting, e.code)) save();
+      waiting = null;
+      page.redraw?.();
+    },
     build(panel) {
-      el(panel, 'div', 'CONTROLS', 'font-size:18px;letter-spacing:4px;margin-bottom:8px');
-      const table = el(panel, 'div', '', 'display:grid;grid-template-columns:auto auto auto;gap:3px 14px');
-      for (const row of [['', 'KEYBOARD & MOUSE', 'PAD'], ...CONTROLS]) row.forEach((cell, i) => el(table, 'div', cell, i ? 'opacity:.75' : ''));
+      el(panel, 'div', 'CONTROLS', 'font-size:18px;letter-spacing:4px');
+      el(panel, 'div', 'Choose a key to rebind it, then press the new one.', 'opacity:.6;margin:4px 0 10px');
+      const table = el(panel, 'div', '', 'display:grid;grid-template-columns:1fr auto auto;gap:2px 12px;align-items:center');
+      for (const cell of ['', 'KEY', 'PAD']) el(table, 'div', cell, 'opacity:.55;letter-spacing:2px;font-size:11px');
+      for (const a of ACTIONS) {
+        el(table, 'div', KEYED[a]);
+        const b = button(table, waiting === a ? '…' : keyName(keyLayout[a]), () => ((waiting = a), page.redraw?.()));
+        b.style.cssText = 'margin:1px 0;padding:2px 8px;min-width:9ch;text-align:center';
+        el(table, 'div', PAD_OF[a], 'opacity:.75');
+      }
+      for (const [what, keys, pad] of FIXED_CONTROLS) for (const [i, cell] of [what, keys, pad].entries()) el(table, 'div', cell, i ? 'opacity:.75' : '');
       heading(panel, '');
-      button(panel, 'Back  (Esc)', back);
+      button(panel, 'Reset keys to defaults', () => (Object.assign(keyLayout, DEFAULT_KEYS), save(), page.redraw?.()));
+      button(panel, `Back  (${glyph('back')})`, page.back!);
     },
   };
+  return page;
 }

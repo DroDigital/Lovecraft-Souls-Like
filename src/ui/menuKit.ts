@@ -4,9 +4,14 @@
  * the page's buttons and sliders; Enter or Space (pad A) choose; left and right move a slider; Esc
  * (pad B) goes back. With no screen open, the pad's Start calls the `onPadStart` listeners and its
  * Select the `onPadSelect` ones. A page may hear keys and read the pad itself (the map).
+ * Round 12: coming back to a page finds the focus where it was left; a page is drawn again when
+ * the player picks up the other device, so it names that device's buttons; panels scale with the
+ * UI scale (uiScale.ts).
  */
 
+import { useDevice, onDeviceChange } from '../core/device';
 import { BONE, SERIF } from './hudKit';
+import { SCALED_LAYER } from './uiScale';
 
 export interface Page {
   build(panel: HTMLElement): void;
@@ -14,6 +19,7 @@ export interface Page {
   backKeys?: readonly string[]; // keys besides Esc that go back
   keys?: (e: KeyboardEvent) => void; // hears every key pressed while it is open (the map pans and zooms)
   pad?: (pad: Gamepad) => void; // reads the pad each frame while it is open
+  redraw?: () => void; // set by the screen that shows it: draws it again, keeping the focus
 }
 
 export interface Screen {
@@ -26,6 +32,7 @@ interface Entry {
   panel: HTMLElement;
   page: Page;
   since: number; // when the screen opened: a back key in its first moments is the one that opened it
+  redraw(): void; // draws its page again, keeping the focus
 }
 
 const GRACE_MS = 250;
@@ -54,7 +61,11 @@ const CSS = `
 [data-menu] label span:first-child{min-width:13ch}
 [data-menu] label span:last-child{min-width:6ch;text-align:right}
 [data-menu] input[type=range]{flex:1;accent-color:${BONE}}
-[data-menu] input:focus{outline:1px solid ${BONE}aa}`;
+[data-menu] input:focus{outline:1px solid ${BONE}aa}
+[data-menu]{scrollbar-width:thin;scrollbar-color:${BONE}55 transparent}
+[data-menu]::-webkit-scrollbar{width:8px}
+[data-menu]::-webkit-scrollbar-thumb{background:${BONE}44;border-radius:4px}
+[data-menu]::-webkit-scrollbar-track{background:transparent}`;
 
 const items = (panel: HTMLElement): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input')];
 
@@ -87,6 +98,7 @@ function nudge(by: 1 | -1): void {
 function onKey(e: KeyboardEvent): void {
   const top = stack.at(-1);
   if (!top) return;
+  useDevice('keys');
   e.stopImmediatePropagation();
   top.page.keys?.(e);
   if (e.code === 'Escape' || top.page.backKeys?.includes(e.code)) {
@@ -108,6 +120,7 @@ function pollPad(now: number): void {
   pad?.buttons.forEach((b, i) => (b.pressed || b.value > 0.5) && down.add(i));
   const [lx, ly] = [pad?.axes[0] ?? 0, pad?.axes[1] ?? 0];
   const edge = (i: number): boolean => down.has(i) && !prev.has(i);
+  if ([...down].some((i) => !prev.has(i)) || Math.abs(lx) > STICK || Math.abs(ly) > STICK) useDevice('pad');
   const top = stack.at(-1);
   if (top) {
     const dir = down.has(PAD.up) || ly < -STICK ? -1 : down.has(PAD.down) || ly > STICK ? 1 : 0;
@@ -140,47 +153,63 @@ function startOnce(): void {
   style.textContent = CSS;
   document.head.append(style);
   addEventListener('keydown', onKey, true);
+  addEventListener('pointerdown', () => useDevice('keys'), true);
+  onDeviceChange(() => stack.at(-1)?.redraw()); // name the new device's buttons
   requestAnimationFrame(pollPad);
 }
 
 /** A screen at stacking level `z`; `panelCss` places and styles its panel. */
-export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw);max-height:86vh;overflow:auto;padding:18px;background:#0b0b0d;border:1px solid #d9d0b833'): Screen {
+export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw);max-height:86vh;overflow:auto;padding:18px;background:#0b0b0d;border:1px solid #d9d0b833', scaled = true): Screen {
   startOnce();
   const root = document.createElement('div');
   root.style.cssText = `position:fixed;inset:0;display:none;z-index:${z};background:${backdrop};font:14px/1.45 ${SERIF};color:${BONE}`;
+  const layer = document.createElement('div'); // the panel's world, scaled with the UI (its vw and vh become shares of it)
+  layer.style.cssText = scaled ? SCALED_LAYER : 'position:absolute;inset:0';
   const panel = document.createElement('div');
-  panel.style.cssText = `position:absolute;${panelCss}`;
+  panel.style.cssText = `position:absolute;${scaled ? panelCss.replace(/(\d+)v[wh]/g, '$1%') : panelCss}`;
   panel.dataset.menu = '';
-  root.append(panel);
+  layer.append(panel);
+  root.append(layer);
   document.body.append(root);
   let entry: Entry | null = null;
+  const memory = new Map<Page, number>(); // where the focus was on each page left while the screen stays open
+  const focused = (): number => items(panel).indexOf(document.activeElement as HTMLElement);
   // A choice that rebuilds the page keeps the focus where it was.
   panel.addEventListener('click', (e) => {
     const i = items(panel).indexOf(e.target as HTMLElement);
     sound();
     queueMicrotask(() => entry && i >= 0 && !panel.contains(document.activeElement) && focusAt(panel, i));
   });
-  return {
+  const self: Screen = {
     get open() {
       return entry !== null;
     },
     show(page) {
+      const same = entry?.page === page;
+      const at = same ? focused() : (memory.get(page) ?? 0);
+      if (entry && !same) memory.set(entry.page, Math.max(0, focused()));
+      page.redraw = () => void (entry?.page === page && self.show(page));
       panel.replaceChildren();
       page.build(panel);
       root.style.display = 'block';
       if (entry) entry.page = page;
-      else stack.push((entry = { panel, page, since: performance.now() }));
+      else {
+        const redraw = (): void => void (entry && self.show(entry.page));
+        stack.push((entry = { panel, page, since: performance.now(), redraw }));
+      }
       document.exitPointerLock?.();
-      focusAt(panel, 0);
+      focusAt(panel, Math.max(0, at));
     },
     close() {
       if (!entry) return;
+      memory.clear();
       stack.splice(stack.indexOf(entry), 1);
       entry = null;
       root.style.display = 'none';
       (document.activeElement as HTMLElement | null)?.blur?.();
     },
   };
+  return self;
 }
 
 export function el<K extends keyof HTMLElementTagNameMap>(parent: HTMLElement, tag: K, text = '', style = ''): HTMLElementTagNameMap[K] {

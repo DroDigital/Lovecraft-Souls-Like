@@ -17,7 +17,7 @@ import { createWorldMaterial } from './worldMaterial';
 
 interface View {
   root: THREE.Group;
-  seal: THREE.Mesh | null; // stands in while the piece is hidden: plain wall where a hidden door will open
+  seal: THREE.Object3D | null; // stands in while the piece is hidden: plain wall where a hidden door will open, or a sealed door
   shown: boolean;
   since: number; // render seconds of the last change
 }
@@ -44,9 +44,14 @@ function build(p: HiddenPieceDef): THREE.Group {
 
 const WALL = scaleRgb(BASE.bone, 0.9);
 
-/** The plain wall a hidden door hides behind (a seal drawn as wall; an unseen chasm edge draws nothing). */
-function buildSeal(p: HiddenPieceDef): THREE.Mesh | null {
-  if (!p.seal || p.seal.look !== 'wall') return null;
+/**
+ * What stands while a piece is hidden: the plain wall a hidden door hides behind, or Kadath's sealed
+ * door, a slab banded with glowing glyphs (round 12: it must read as a door that will open); an
+ * unseen chasm edge draws nothing.
+ */
+function buildSeal(p: HiddenPieceDef): THREE.Object3D | null {
+  if (!p.seal || p.seal.look === 'none') return null;
+  if (p.seal.look === 'sealed') return build({ ...p, boxes: p.seal.boxes });
   const parts = p.seal.boxes.map(([dx, dz, hw, hd, y0, y1]) => tileUv(box(hw * 2, y1 - y0, hd * 2, p.x + dx, (y0 + y1) / 2, p.z + dz, WALL, 1), Math.max(hw, hd) * 2, y1 - y0));
   return new THREE.Mesh(mergeGeometries(parts), createWorldMaterial({ texture: 'stone', seed: 8, vertexColors: true }));
 }

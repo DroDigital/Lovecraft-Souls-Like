@@ -57,9 +57,19 @@ export const MUSIC = {
 export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
   sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
+  invertY: [0, 1, 1, 0], // 1: up looks down (round 12)
   resolution: [0.5, 2, 0.25, 1.5], // internal resolution, × RENDER's 400 × 225 (600 × 338 by default since playtest round 7, so the figures' detail shows)
-  volume: [0, 1, 0.05, 0.7],
+  brightness: [0.7, 1.6, 0.05, 1], // lifts the dark (a gamma, after the grade; round 12)
+  uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
+  shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
+  volume: [0, 1, 0.05, 0.7], // everything
+  music: [0, 1, 0.05, 1], // the title's theme and the boss scores (round 12)
+  sfx: [0, 1, 0.05, 1], // blows, steps, voices
+  ambience: [0, 1, 0.05, 1], // the drones and the recorded ambience
 } satisfies Record<string, readonly [number, number, number, number]>;
+
+/** The UI's scale (ui/uiScale.ts): 1 at a window this tall, and never below or above these. */
+export const UI = { baseHeight: 720, least: 1, most: 2.5 };
 
 /** Levels bought with Echoes at an Elder Sign (playtest round 4): what one level of each attribute adds, and the most levels. */
 export const LEVELS: Record<'vigour' | 'endurance' | 'might', { max: number; hp?: number; stamina?: number; damage?: number }> = {
@@ -101,12 +111,13 @@ export const SKY = {
 
 export type LightKind = 'lamp' | 'window' | 'fire' | 'torch' | 'sigil';
 
-interface LightDef {
+export interface LightDef {
   color: Vec3;
   strength: number; // of the light it casts...
   range: number; // ...out to here (metres)
   halo: number; // the glow about it: its radius (metres)...
   haloGain: number; // ...and brightness
+  haloColor?: Vec3; // the glow's own colour, when it is not the light's
   flicker: number; // share its light wavers by (flames)
 }
 
@@ -121,7 +132,9 @@ export const LIGHTS = {
     window: { color: [1, 0.76, 0.48], strength: 1.1, range: 6.5, halo: 0.9, haloGain: 0.38, flicker: 0 }, // a warm patch on the wall and ground before it
     fire: { color: [1, 0.66, 0.36], strength: 3, range: 13, halo: 1.8, haloGain: 0.75, flicker: 0.2 },
     torch: { color: [1, 0.72, 0.42], strength: 2, range: 8.5, halo: 0.85, haloGain: 0.7, flicker: 0.14 },
-    sigil: { color: [0.62, 0.26, 1], strength: 1.3, range: 9, halo: 1.3, haloGain: 0.3, flicker: 0 }, // a lit Elder Sign's glow (Cosmic Purple)
+    // A lit Elder Sign: a pale violet light, too grey to count as an anomaly hue, so madness's colour
+    // isolation never floods its ground (playtest round 12); its halo and carving keep Cosmic Purple.
+    sigil: { color: [0.8, 0.72, 1], strength: 1.1, range: 8, halo: 1.3, haloGain: 0.3, haloColor: [0.62, 0.26, 1], flicker: 0 },
   } satisfies Record<LightKind, LightDef>,
 };
 
@@ -205,4 +218,22 @@ export const AI = {
   fallBack: 0.6, // seconds a skirmisher falls back after its blow
   stuck: 0.5, // pushing this long without getting anywhere...
   detour: 0.7, // ...it steps aside this long to get round what blocks it
+};
+
+/** The investigator dithered away when they hide the foe they fight (playtest round 12, render/occlusion.ts). */
+export const OCCLUSION = {
+  near: 4, // metres: without a lock, the nearest foe hunting them this close is the one watched
+  radius: 0.5, // metres from their axis the line to the foe must pass to count as hidden
+  height: 1.9, // their body's height, hat and all
+  fade: 0.6, // share of their pixels dropped while they hide it
+  ease: 10, // 1/s: how fast they fade and return
+};
+
+/** The seals on Kadath's door (playtest round 12, systems/seals.ts). */
+export const SEALS = {
+  exempt: ['hub', 'dreamlands', 'beyond'] as readonly string[], // regions holding no seal
+  kadath: 4, // seals broken before the Great Ones' door opens (Keziah's, on the main line, is one)
+  warn: 6, // metres: this close to a sealed door, the investigator is told what it waits for...
+  again: 20, // ...at most every this many seconds
+  after: { yog_sothoth: 'umr_at_tawil', azathoth: 'yog_sothoth' } as Readonly<Record<string, string>>, // the Beyond's order: each waits for the one before to fall
 };

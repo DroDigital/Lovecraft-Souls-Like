@@ -20,6 +20,8 @@ import { workArt } from './mapArt';
 import type { MapPainter, MapView } from './mapPainter';
 import { BAR_WORDS, drawRing, litSigns, signAt } from './mapTravel';
 import { createScreen, el, menuOpen, onPadSelect, type Page } from './menuKit';
+import { keyLayout, keyName } from '../core/bindings';
+import { deviceInUse } from '../core/device';
 
 const ZOOM = [1, 10] as const;
 const PAN = 0.6; // screen widths a second, held
@@ -43,7 +45,7 @@ const LEGEND: readonly [string, string][] = [
 
 /** `go` makes a long jump under the veil (journeys.ts). */
 export function createMapScreen(g: Game, painter: MapPainter, resume: () => void, go: (words: string, jump: () => void) => void): MapScreen {
-  const screen = createScreen(7, '#050506', 'inset:0');
+  const screen = createScreen(7, '#050506', 'inset:0', false); // its own canvas, the screen's size
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;cursor:grab';
   const ctx = canvas.getContext('2d')!;
@@ -52,6 +54,7 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
   let zoom = 1;
   let title: HTMLDivElement | null = null;
   let prompt: HTMLDivElement | null = null;
+  let heading = ''; // the realm and how much of it is charted
   const held = new Set<string>();
   const padWas = new Set<number>();
   let lit: MapPlace[] = []; // the realm's lit signs, nearest first (the world stands still while the map is open)
@@ -98,7 +101,8 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
     chosen = p;
     const bar = p ? travelBar(g) : null;
     if (!prompt) return;
-    prompt.textContent = !p ? '' : bar ? `${p.name.toUpperCase()}  ·  ${BAR_WORDS[bar]}` : `TRAVEL TO ${p.name.toUpperCase()}  ·  CLICK AGAIN OR ENTER`;
+    const again = deviceInUse() === 'pad' ? 'PRESS A' : 'CLICK AGAIN OR ENTER';
+    prompt.textContent = !p ? '' : bar ? `${p.name.toUpperCase()}  ·  ${BAR_WORDS[bar]}` : `TRAVEL TO ${p.name.toUpperCase()}  ·  ${again}`;
     prompt.style.color = bar ? '#d80073' : BONE;
   };
   const journey = (): void => {
@@ -116,14 +120,18 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
   };
   const page: Page = {
     back: close,
-    backKeys: ['KeyM'],
+    get backKeys() {
+      return [keyLayout.map]; // as the player has bound it
+    },
     build(panel) {
       panel.append(canvas);
-      title = el(panel, 'div', '', `position:absolute;left:0;right:0;top:14px;text-align:center;letter-spacing:6px;font-size:14px;color:${BONE};text-shadow:0 0 4px #000`);
-      prompt = el(panel, 'div', '', 'position:absolute;left:0;right:0;top:40px;text-align:center;letter-spacing:4px;font-size:12px;text-shadow:0 0 6px #000,0 0 12px #6a0dad');
-      const legend = el(panel, 'div', '', 'position:absolute;left:16px;bottom:16px;font-size:11px;line-height:1.6;background:#050506cc;padding:6px 10px;border:1px solid #d9d0b822');
+      title = el(panel, 'div', heading, `position:absolute;left:0;right:0;top:14px;text-align:center;letter-spacing:6px;font-size:calc(14px * var(--ui, 1));color:${BONE};text-shadow:0 0 4px #000`);
+      prompt = el(panel, 'div', '', 'position:absolute;left:0;right:0;top:calc(40px * var(--ui, 1));text-align:center;letter-spacing:4px;font-size:calc(12px * var(--ui, 1));text-shadow:0 0 6px #000,0 0 12px #6a0dad');
+      const legend = el(panel, 'div', '', 'position:absolute;left:16px;bottom:16px;font-size:calc(11px * var(--ui, 1));line-height:1.6;background:#050506cc;padding:6px 10px;border:1px solid #d9d0b822');
       for (const [glyph, text] of LEGEND) el(legend, 'div', `${glyph}  ${text}`);
-      el(panel, 'div', 'wheel / + −  zoom     drag / WASD  pan     C  centre     click ★ / Tab  travel     M  close', 'position:absolute;right:16px;bottom:16px;font-size:10px;letter-spacing:1px;opacity:.6;white-space:pre');
+      choose(chosen); // the prompt again, drawn anew (for the device in hand)
+      const help = deviceInUse() === 'pad' ? 'LT / RT  zoom     left stick  pan     LB / RB  choose ★     A  centre or travel     B  close' : `wheel / + −  zoom     drag / WASD  pan     C  centre     click ★ / Tab  travel     ${keyName(keyLayout.map)}  close`;
+      el(panel, 'div', help, 'position:absolute;right:16px;bottom:16px;font-size:calc(10px * var(--ui, 1));letter-spacing:1px;opacity:.6;white-space:pre');
     },
     keys(e) {
       if (e.type !== 'keydown') return;
@@ -197,11 +205,12 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
     choose(null);
     const charted = rs.reduce((s, x) => s + exploredShare(g.overworld!.explored, x) * (x.area[2] * x.area[3]), 0) / rs.reduce((s, x) => s + x.area[2] * x.area[3], 0);
     const here = rs.find((x) => x.id === g.overworld!.region)?.name ?? '';
-    if (title) title.textContent = `${here.toUpperCase()}   ·   ${Math.round(charted * 100)}% CHARTED`;
+    heading = `${here.toUpperCase()}   ·   ${Math.round(charted * 100)}% CHARTED`;
+    if (title) title.textContent = heading;
     last = 0;
     requestAnimationFrame(frame);
   };
-  addEventListener('keydown', (e) => e.code === 'KeyM' && !e.repeat && show());
+  addEventListener('keydown', (e) => e.code === keyLayout.map && !e.repeat && show());
   onPadSelect(show);
   return {
     get open() {

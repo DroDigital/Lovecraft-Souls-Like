@@ -126,7 +126,7 @@ function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: s
   }
 }
 
-const glowOf = (v: Veil): 'purple' | 'magenta' => (v.minInsight !== undefined ? 'purple' : 'magenta');
+const glowOf = (v: Veil): 'purple' | 'magenta' => (v.minInsight !== undefined || v.minSeals !== undefined ? 'purple' : 'magenta');
 
 /** A hidden bridge: its deck while shown, and an unseen edge across the gap while hidden. */
 function bridgePiece(r: RoomLayout, name: string, p: number, veil: Veil): HiddenPieceDef {
@@ -150,7 +150,7 @@ function doorPiece(o: DoorLayout, name: string, veil: Veil): HiddenPieceDef {
   return {
     name, x: o.x, z: o.z, ...veil, glow: glowOf(veil),
     boxes: [box(-(D / 2 + 0.12), 0.12, T / 2 + 0.05, L, L + lintel), box(D / 2 + 0.12, 0.12, T / 2 + 0.05, L, L + lintel), box(0, D / 2 + 0.24, T / 2 + 0.05, L + lintel, L + lintel + 0.2)],
-    seal: { boxes: [box(0, D / 2, T / 2, L - 0.3, L + lintel)], look: 'wall' },
+    seal: { boxes: [box(0, D / 2, T / 2, L - 0.3, L + lintel)], look: veil.minSeals !== undefined ? 'sealed' : 'wall' },
   };
 }
 

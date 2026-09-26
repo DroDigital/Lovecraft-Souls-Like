@@ -10,6 +10,8 @@ import { DOCUMENTS } from '../data/documents';
 import type { Game } from '../systems/components';
 import { BONE } from './hudKit';
 import { button, createScreen, el, type Page } from './menuKit';
+import { keyLayout } from '../core/bindings';
+import { glyph } from './glyphs';
 
 export interface Dialogue {
   readonly open: boolean;
@@ -17,7 +19,7 @@ export interface Dialogue {
   readonly reading: boolean; // a page read: the world stands still
 }
 
-const ADVANCE = new Set(['KeyE']); // Enter and Space press the focused button already
+const advances = (code: string): boolean => code === keyLayout.interact; // Enter and Space press the focused button already
 
 export function createDialogue(g: Game): Dialogue {
   const talk = createScreen(8, 'transparent', 'left:50%;bottom:7%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px;background:#0b0b0de8;border:1px solid #d9d0b833');
@@ -27,7 +29,7 @@ export function createDialogue(g: Game): Dialogue {
     let i = 0;
     const page: Page = {
       back: () => talk.close(),
-      keys: (e) => void (ADVANCE.has(e.code) && !e.repeat && next()),
+      keys: (e) => void (advances(e.code) && !e.repeat && next()),
       build(p) {
         el(p, 'div', name.toUpperCase(), `letter-spacing:3px;color:${BONE}`);
         el(p, 'div', title, 'opacity:.5;font-size:11px;margin-bottom:8px');
@@ -35,7 +37,7 @@ export function createDialogue(g: Game): Dialogue {
         const last = i >= lines.length - 1;
         const row = el(p, 'div', '', 'display:flex;justify-content:space-between;align-items:center;margin-top:6px');
         el(row, 'div', `${i + 1} / ${lines.length}`, 'opacity:.35;font-size:10px');
-        button(row, last ? 'E · Leave' : 'E · Go on', next).style.cssText = 'width:auto;display:inline-block';
+        button(row, `${glyph('interact')} · ${last ? 'Leave' : 'Go on'}`, next).style.cssText = 'width:auto;display:inline-block';
       },
     };
     const next = (): void => {
@@ -52,7 +54,7 @@ export function createDialogue(g: Game): Dialogue {
   g.events.on('Read', ({ name }) => {
     const doc = DOCUMENTS[name];
     if (!doc) return;
-    read.show(documentPage(name, () => read.close(), 'E · Put it away'));
+    read.show(documentPage(name, () => read.close(), `${glyph('interact')} · Put it away`));
   });
 
   return {
@@ -73,7 +75,7 @@ export function documentPage(name: string, back: () => void, label = 'Back'): Pa
   const doc = DOCUMENTS[name];
   return {
     back,
-    keys: (e) => void (ADVANCE.has(e.code) && !e.repeat && back()),
+    keys: (e) => void (advances(e.code) && !e.repeat && back()),
     build(p) {
       el(p, 'div', name.toUpperCase(), `letter-spacing:3px;color:${BONE};margin-bottom:4px`);
       el(p, 'div', doc?.kind === 'tome' ? 'a tome' : 'a note', 'opacity:.45;font-size:11px;margin-bottom:14px');

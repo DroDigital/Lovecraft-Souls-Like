@@ -15,6 +15,7 @@ import { chunkKey, chunkOf, regionAt } from '../world/worldMap';
 import { setArena } from './bossFight';
 import type { Game } from './components';
 import { spawnCreature } from './creatures';
+import { bossAwake } from './sealCount';
 
 const RESCAN = 30; // frames between looks at spawn points when nothing has changed
 
@@ -51,6 +52,7 @@ export function populationSystem(g: Game): void {
       if (ow.alive.size >= WORLD.maxActive) return;
       if (ow.alive.has(s.id) || ow.killed.has(s.id) || ow.slain.has(s.id)) continue;
       if (getEntity(s.entity)?.bossScript?.called && !ow.called.has(s.entity)) continue; // not called yet: its arena waits empty
+      if (!bossAwake(g, s.entity)) continue; // the one before it still stands (the Beyond's order): its arena waits empty
       const e = spawnCreature(g, s.entity, s.at, s.variant);
       if (e === undefined) continue;
       const wound = ow.wounds.get(s.id);

@@ -20,13 +20,14 @@ describe('playtest round 7: the Elder Sign’s shrine', () => {
     }
   });
 
-  it('leaves room to rest: every sign can be reached, and its rest point is clear', () => {
+  it('leaves room to rest: every sign can be reached, its rest point is clear and within reach', () => {
     const g = createWorldGame();
     for (const s of worldLayout().signs) {
       const f = DIRS[s.face];
       const p = { x: s.x + f.x * 2, y: s.y, z: s.z + f.z * 2 }; // walking up to it
       resolveCapsule(g.world, p, 0.4, 1.8);
-      expect(Math.hypot(p.x - s.x, p.z - s.z), s.id).toBeLessThanOrEqual(WORLD.reach);
+      expect(Math.hypot(p.x - s.x, p.z - s.z), s.id).toBeLessThanOrEqual(WORLD.signReach);
+      expect(Math.hypot(s.rest.x - s.x, s.rest.z - s.z), s.id).toBeLessThanOrEqual(WORLD.signReach); // rest at once after travel or death (round 12)
       const r = { ...s.rest, y: s.y };
       resolveCapsule(g.world, r, 0.4, 1.8);
       expect(Math.hypot(r.x - s.rest.x, r.z - s.rest.z), s.id).toBe(0);

@@ -1,16 +1,20 @@
 /**
  * The pause menu (Phase 6): Esc, the pad's Start, or losing the captured mouse (switching away)
  * opens it whenever no other menu is open. The world stands still while it is open (main.ts). It
- * offers Resume, the Map, the Journal, Arms, Settings, Controls and a return to the title screen.
+ * offers Resume, the Map, the Journal, Arms, Settings, Controls and a return to the title screen, and in
+ * the desktop shell a way out to the desktop (playtest round 12).
  */
 
 import { button, createScreen, el, menuOpen, onPadStart, type Page } from './menuKit';
+import { saveNow } from './autosave';
+import { desktop } from './desktop';
 import { controlsPage, settingsPage } from './menuPages';
 import type { SettingId, Settings } from './settings';
 
 export interface PauseOptions {
   settings: Settings;
   change(id: SettingId, v: number): void;
+  saveKeys?: () => void; // keeps the keyboard's layout when rebound
   resume(): void; // after closing: recapture the mouse
   map?: () => void; // opens the map (not in the arena)
   journal?: (back: () => void, show: (p: Page) => void) => Page; // the journal's page (not in the arena)
@@ -37,8 +41,9 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
       if (o.journal) button(p, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))));
       if (o.arms) button(p, 'Arms', () => screen.show(o.arms!(() => screen.show(main), (pg) => screen.show(pg))));
       button(p, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
-      button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main))));
+      button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
       button(p, 'Quit to title', o.quit);
+      if (desktop) button(p, 'Quit to desktop', () => (saveNow(), void desktop!.quit())); // the shell only: a browser tab is closed by its own hand
     },
   };
   const pause = (): void => {

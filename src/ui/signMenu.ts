@@ -1,21 +1,24 @@
 /**
  * The Elder Sign's menu (spec §3D), opened by resting at one: spend Echoes on a level of Vigour,
- * Endurance or Might (playtest round 4) and insight on Resolve or a Draught; travel to any Elder Sign found, grouped by region; at the hub's Sleeper's Sign,
- * descend the Seventy Steps into the Dreamlands; and at the Court's, once Azathoth slumbers, choose
- * one of two endings (Phase 5). A menu screen (menuKit.ts: mouse, keys or pad; E or Esc leaves);
- * the investigator takes no input while it is open.
+ * Endurance or Might (playtest round 4) and insight on Resolve or a Draught; travel to any Elder Sign
+ * found, chosen by region and then by name (playtest round 12: one list grew past forty); at the hub's
+ * Sleeper's Sign, descend the Seventy Steps into the Dreamlands; and at the Court's, once Azathoth
+ * slumbers, choose one of two endings (Phase 5), first of all. A menu screen (menuKit.ts: mouse, keys
+ * or pad; E or Esc leaves); the investigator takes no input while it is open.
  */
 
 import { getRegion } from '../data/regions';
 import { LEVELS, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { ENDINGS } from '../data/endings';
-import { dream, signPlace, travel } from '../systems/checkpoints';
+import { descentOpen, dream, signPlace, travel } from '../systems/checkpoints';
 import { courtEndings, endGame } from '../systems/endings';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
 import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, nextLevelCost } from '../systems/levels';
 import { worldLayout, type SignPlace } from '../world/placements';
-import { button, createScreen, el, heading } from './menuKit';
+import { button, createScreen, el, heading, type Page } from './menuKit';
+import { keyLayout } from '../core/bindings';
+import { glyph } from './glyphs';
 
 /** What one more level of each gives, in words. */
 const GAINS: Record<LevelId | UpgradeId, string> = {
@@ -34,49 +37,88 @@ export interface SignMenu {
 export function createSignMenu(g: Game, go: (words: string, jump: () => void) => void): SignMenu {
   const screen = createScreen(3, '#050506cc');
   const close = (): void => screen.close();
+  const journey = (s: SignPlace): void => (close(), go(s.name.toUpperCase(), () => travel(g, s.id)));
+  /** The signs found, but the one rested at, by region in the world's order. */
+  const found = (): Map<string, SignPlace[]> => {
+    const ow = g.overworld!;
+    const regions = new Map<string, SignPlace[]>();
+    for (const s of worldLayout().signs) if (ow.discovered.has(s.id) && s.id !== ow.sign) regions.set(s.region, [...(regions.get(s.region) ?? []), s]);
+    return regions;
+  };
+  const regionName = (id: string): string => getRegion(id)?.name ?? id;
 
-  function page(panel: HTMLElement): void {
+  function build(panel: HTMLElement): void {
     const ow = g.overworld!;
     const here = signPlace(ow.sign);
     el(panel, 'div', (here?.name ?? 'Elder Sign').toUpperCase(), 'font-size:18px;letter-spacing:4px');
     el(panel, 'div', 'You rest. Your health, sanity, Laudanum and Reagent are restored, and the creatures you killed are back.', 'opacity:.6;margin-top:2px');
+    const endings = courtEndings(g, ow.sign); // the choice the whole dream led to comes first (round 12)
+    if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');
+    for (const id of endings) button(panel, ENDINGS[id].choice, () => void (close(), endGame(g, id)));
+    if (here?.dream) {
+      heading(panel, 'THE SLEEPER’S SIGN');
+      if (descentOpen(g)) button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
+      else el(panel, 'div', 'The stair will not open while Keziah Mason troubles the sleepers, in the Witch House in Arkham.', 'opacity:.6;margin:4px 0 8px');
+    }
     heading(panel, `LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  NEXT LEVEL ${nextLevelCost(g)}`);
     for (const id of LEVEL_IDS) {
-      button(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}`, () => {
-        buyLevel(g, id);
-        show();
-      }, canLevel(g, id));
+      button(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id));
     }
     heading(panel, `INSIGHT ${g.mind.insight}`);
     for (const id of Object.keys(UPGRADES) as UpgradeId[]) {
       const u = UPGRADES[id];
       const level = g.mind.upgrades[id];
-      button(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${u.cost} insight`, () => {
-        buyUpgrade(g, id);
-        show();
-      }, level < u.max && g.mind.insight >= u.cost);
+      button(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${u.cost} insight`, () => (buyUpgrade(g, id), main.redraw?.()), level < u.max && g.mind.insight >= u.cost);
     }
-    const regions = new Map<string, SignPlace[]>();
-    for (const s of worldLayout().signs) if (ow.discovered.has(s.id) && s.id !== ow.sign) regions.set(s.region, [...(regions.get(s.region) ?? []), s]);
-    heading(panel, regions.size ? 'TRAVEL' : 'TRAVEL · no other Elder Sign found yet');
-    for (const [region, signs] of regions) {
-      el(panel, 'div', getRegion(region)?.name ?? region, 'margin:6px 0 0;opacity:.55');
-      for (const s of signs) button(panel, s.name, () => (close(), go(s.name.toUpperCase(), () => travel(g, s.id))));
-    }
-    if (here?.dream) {
-      heading(panel, 'THE SLEEPER’S SIGN');
-      button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
-    }
-    const endings = courtEndings(g, ow.sign);
-    if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');
-    for (const id of endings) button(panel, ENDINGS[id].choice, () => void (close(), endGame(g, id)));
+    const regions = found();
+    const count = [...regions.values()].reduce((n, l) => n + l.length, 0);
+    heading(panel, 'TRAVEL');
+    button(panel, count ? `Travel to another Elder Sign  ·  ${count} found` : 'No other Elder Sign found yet', () => screen.show(travelPage), count > 0);
     heading(panel, '');
-    button(panel, 'Leave  (E)', close);
+    button(panel, `Leave  (${glyph('interact')})`, close);
   }
-  // E and Esc leave without reaching the game (E would rest again at once).
-  const show = (): void => screen.show({ build: page, back: close, backKeys: ['KeyE'] });
 
-  g.events.on('Rested', show);
+  // E and Esc leave without reaching the game (E would rest again at once).
+  const main: Page = {
+    build,
+    back: close,
+    get backKeys() {
+      return [keyLayout.interact];
+    },
+  };
+  /** The regions with signs found: one line each rather than every sign in one long list (round 12). */
+  const travelPage: Page = {
+    back: () => screen.show(main),
+    build(panel) {
+      el(panel, 'div', 'TRAVEL', 'font-size:18px;letter-spacing:4px');
+      el(panel, 'div', 'Choose a region, then the Elder Sign to wake beside.', 'opacity:.6;margin:2px 0 8px');
+      for (const [region, signs] of found()) {
+        if (signs.length === 1) button(panel, `${regionName(region)}  ·  ${signs[0].name}`, () => journey(signs[0]));
+        else button(panel, `${regionName(region)}  ·  ${signs.length} signs  ›`, () => screen.show(regionPage(region)));
+      }
+      heading(panel, '');
+      button(panel, `Back  (${glyph('back')})`, travelPage.back!);
+    },
+  };
+  const regionPages = new Map<string, Page>(); // one each, so coming back finds the focus where it was
+  const regionPage = (region: string): Page => {
+    let p = regionPages.get(region);
+    if (!p) {
+      const page: Page = {
+        back: () => screen.show(travelPage),
+        build(panel) {
+          el(panel, 'div', regionName(region).toUpperCase(), 'font-size:18px;letter-spacing:4px;margin-bottom:8px');
+          for (const s of found().get(region) ?? []) button(panel, s.name, () => journey(s));
+          heading(panel, '');
+          button(panel, `Back  (${glyph('back')})`, page.back!);
+        },
+      };
+      regionPages.set(region, (p = page));
+    }
+    return p;
+  };
+
+  g.events.on('Rested', () => screen.show(main));
   return {
     get open() {
       return screen.open;

@@ -20,5 +20,5 @@ export function equip(g: Game, id: string): boolean {
 export function takeUp(g: Game, id: string): void {
   if (!isWeapon(id) || g.player.arms.includes(id)) return;
   g.player.arms.push(id);
-  g.events.emit('Notice', { text: `${WEAPONS[id].name.toUpperCase()} · TAKE IT UP FROM THE MENU (ESC · ARMS)` });
+  g.events.emit('Notice', { text: `${WEAPONS[id].name.toUpperCase()} · TAKE IT UP FROM THE MENU ({pause} · ARMS)` }); // the HUD names the button
 }

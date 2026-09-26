@@ -6,8 +6,8 @@
 
 import * as THREE from 'three';
 import type { Entity } from '../core/ecs';
-import { wrapAngle, yawOf } from '../core/geom';
-import { FEEDBACK, SIM } from '../data/tuning';
+import { wrapAngle, yawOf, type V3 } from '../core/geom';
+import { FEEDBACK, OCCLUSION, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { MODEL_PREFIX } from '../systems/creatures';
@@ -17,9 +17,11 @@ import { FX_PREFIX } from './fightViews';
 import { SHRINE_MODEL } from './signViews';
 import { box } from './meshKit';
 import { BASE } from './palette';
+import { veilsFoe } from './occlusion';
 import { createPoseBlend, type PoseBlend } from './poseBlend';
 import { pose } from './poses';
 import { createWorldMaterial } from './worldMaterial';
+import { FEEL } from './feel';
 
 interface View {
   figure: Figure;
@@ -28,10 +30,12 @@ interface View {
   lastTime: number;
   hitAt: number; // sim seconds of the last landed blow
   blend: PoseBlend; // eases one pose into the next when the move or guard changes
+  ghost?: number; // the investigator: share dithered away while they hide the foe they fight (occlusion.ts)
 }
 
 export interface ActorViews {
-  update(alpha: number, time: number): void;
+  /** `eye`: the lens this frame, so the investigator can fade when they hide the foe they fight. */
+  update(alpha: number, time: number, eye?: V3): void;
   /** Where the glow light sits this frame (the Echo drop), or null. */
   readonly glow: THREE.Vector3 | null;
   /** Where the investigator's lantern flame is drawn this frame, or null while they are not. */
@@ -57,6 +61,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
   let tracerUntil = -1;
   const glowAt = new THREE.Vector3();
   let glow: THREE.Vector3 | null = null;
+  let eye: V3 | null = null;
   const flameAt = new THREE.Vector3();
   let flame: THREE.Vector3 | null = null;
 
@@ -104,8 +109,8 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     f.root.position.set(lerp(tr.prev.x, tr.pos.x), lerp(tr.prev.y, tr.pos.y), lerp(tr.prev.z, tr.pos.z));
     f.root.rotation.y = tr.prevYaw + wrapAngle(tr.yaw - tr.prevYaw) * alpha;
     if (a && a.hitstop > 0) {
-      f.root.position.x += (Math.random() - 0.5) * FEEDBACK.shakeMetres;
-      f.root.position.z += (Math.random() - 0.5) * FEEDBACK.shakeMetres;
+      f.root.position.x += (Math.random() - 0.5) * FEEDBACK.shakeMetres * FEEL.shake;
+      f.root.position.z += (Math.random() - 0.5) * FEEDBACK.shakeMetres * FEEL.shake;
     }
     const dt = Math.min(0.1, Math.max(0, time - v.lastTime));
     v.speed += (Math.hypot(tr.pos.x - tr.prev.x, tr.pos.z - tr.prev.z) * SIM.hz - v.speed) * Math.min(1, dt * FEEDBACK.strideEase);
@@ -127,6 +132,11 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);
     if (f.flame && id === g.player.id) flame = f.flame.getWorldPosition(flameAt); // posed: it tumbles with a roll
+    if (id === g.player.id) {
+      const want = eye && veilsFoe(g, eye) ? OCCLUSION.fade : 0;
+      v.ghost = (v.ghost ?? 0) + (want - (v.ghost ?? 0)) * Math.min(1, dt * OCCLUSION.ease);
+      for (const m of f.materials) m.uniforms.uGhost.value = v.ghost < 0.02 ? 0 : v.ghost;
+    }
   }
 
   return {
@@ -136,7 +146,8 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     get flame() {
       return flame;
     },
-    update(alpha, time) {
+    update(alpha, time, at) {
+      eye = at ?? null;
       sync();
       glow = null;
       flame = null;
