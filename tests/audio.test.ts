@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shaperCurve } from '../src/render/audio/engine';
-import { segueAt, sinkLevel } from '../src/render/audio/music';
+import { leapAt, sinkLevel } from '../src/render/audio/music';
 import { THEME } from '../src/data/tuning';
 import { REGIONS } from '../src/data/regions';
 import { ENTITIES, getEntity } from '../src/data/registry';
@@ -153,12 +153,12 @@ describe("the title's theme (render/audio/music.ts)", () => {
     expect(THEME.from).toBeGreaterThan(0);
   });
 
-  it('loops as a segue: the next pass begins under the old ending, its first hit landing in that ending’s last second (playtest round 8)', () => {
+  it('loops by a leap at a whisper: from where the ending has all but decayed back to a moment before the first hit (playtest round 9)', () => {
     const duration = 209.16; // the track's length
-    const next = segueAt(duration);
-    expect(next).toBeGreaterThan(duration - 5); // inside the ending's decay (its last 5 s)...
-    const hit = next + THEME.hit; // ...its first hit, in the old pass's time
-    expect(hit).toBeLessThan(duration - 0.5); // before the old pass falls silent...
-    expect(hit).toBeGreaterThan(duration - 1.5); // ...and only once it has all but faded
+    const from = leapAt(duration);
+    expect(duration - from).toBeGreaterThan(0.5); // before the ending falls silent (its last half second)...
+    expect(duration - from).toBeLessThan(1.6); // ...once it has all but decayed
+    expect(THEME.leap[1]).toBeLessThan(THEME.hit); // it lands in the lead-in...
+    expect(THEME.hit - THEME.leap[1]).toBeLessThan(1); // ...a moment before the first hit
   });
 });
