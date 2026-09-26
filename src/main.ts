@@ -10,11 +10,10 @@
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
-import { LIGHT, RENDER, SIM, THEME } from './data/tuning';
+import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createGameAudio } from './render/audio/gameAudio';
-import { playMenuMusic } from './render/audio/music';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
@@ -39,14 +38,15 @@ import { applyReality, lightReality } from './render/realityFx';
 import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
 import { createGame, createWorldGame, stepGame } from './systems/game';
 import { clearSave, loadSave } from './systems/save';
-import { startAutosave } from './ui/autosave';
+import { haltAutosave, saveNow, startAutosave } from './ui/autosave';
+import { showCrash } from './ui/crashScreen';
 import { startBestiary } from './ui/bestiary';
 import { HINTS, panelOptions, playerStats, spawnHint, worldStats } from './ui/debugHooks';
 import { createDebugPanel } from './ui/debugPanel';
-import { createEndingCard } from './ui/endingCard';
+import { createEndingCard, NEW_GAME_FLAG } from './ui/endingCard';
 import { createHud } from './ui/hud';
 import { startLookTest } from './ui/lookTest';
-import { makeAhead, nextFrame, spriteAtlas } from './ui/loading';
+import { nextFrame, spriteAtlas } from './ui/loading';
 import { createMapPainter } from './ui/mapPainter';
 import { createMapScreen } from './ui/mapScreen';
 import { createPauseMenu } from './ui/pauseMenu';
@@ -57,7 +57,7 @@ import { armsPage } from './ui/armsPage';
 import { createJourneys } from './ui/journeys';
 import { createShell, type Shell } from './ui/shell';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
-import { showTitle } from './ui/titleScreen';
+import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
 
 interface StartOptions {
@@ -75,8 +75,14 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   if (!veil.covered) veil.darken(); // the world is made out of sight
   const made = (share: number): Promise<void> => (veil.progress(share), nextFrame());
   const state: FxState = { sanity: 100, cap: settings.fxCap, anomalyProximity: 0, enabled: allEffectsOn() };
-  const pipeline = createPipeline(document.body);
+  let pipeline: ReturnType<typeof createPipeline>;
+  try {
+    pipeline = createPipeline(document.body);
+  } catch (e) {
+    return showCrash('webgl', e instanceof Error ? e.message : String(e)); // no WebGL 2: say so, rather than black
+  }
   const canvas = pipeline.renderer.domElement;
+  canvas.addEventListener('webglcontextlost', (e) => (e.preventDefault(), saveNow(), showCrash('lost')));
   const store = opts.arena ? null : shell.store;
   if (store && opts.fresh) clearSave(store);
   const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined });
@@ -101,7 +107,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const scene = world?.scene ?? createArenaScene();
   scene.add(lights.halos);
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game, journeys.go);
-  const ending = createEndingCard(game);
+  const ending = createEndingCard(game, store);
   const pause = createPauseMenu({
     settings,
     change: shell.change,
@@ -177,7 +183,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);
         journeys.update(world?.pending ?? 0);
-        views.update(alpha, time);
+        views.update(alpha, time, camera.position);
         placeLantern(game, alpha);
         lights.update(camera.position, time, views.flame);
         creatures.update(alpha, time, camera);
@@ -212,43 +218,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     },
     SIM.hz,
     SIM.maxFrameSeconds,
+    (e) => (console.error(e), haltAutosave(), showCrash('error', e instanceof Error ? e.message : String(e))), // a frame threw: stop, and say so
   );
-}
-
-/**
- * The title screen over black, until a choice starts the world. It opens out of the dark with its
- * theme: at once where the browser lets sound play on opening, else on the first key press or click,
- * which the veil asks for (browsers refuse sound until then); after THEME.wait by itself if the theme
- * has neither sounded nor been refused (a slow line: it joins when it can).
- */
-function title(opts: StartOptions, shell: Shell): void {
-  const music = (shell.music = playMenuMusic(shell.engine, shell.settings.volume));
-  makeAhead(); // the sprites are drawn while the title waits
-  shell.veil.darken();
-  let [opened, refused] = [false, false];
-  void music.refused.then(() => {
-    refused = true;
-    if (!opened) shell.veil.darken('press any key');
-  });
-  showTitle({
-    hasSave: !!(shell.store && loadSave(shell.store)),
-    settings: shell.settings,
-    change: shell.change,
-    byItself: new Promise((resolve) => {
-      void music.sounding.then(resolve);
-      setTimeout(() => refused || resolve(), THEME.wait * 1000);
-    }),
-    open() {
-      opened = true;
-      shell.veil.haunt(true); // the dark draws back, to haunt the edges in Cosmic Purple
-    },
-    start(fresh, close) {
-      void shell.veil.cover('', 1.1).then(() => {
-        close();
-        void startGame({ ...opts, fresh, intro: fresh }, shell);
-      });
-    },
-  });
 }
 
 const params = new URLSearchParams(location.search);
@@ -264,5 +235,9 @@ else {
     variant: variant === 'eldritch' || variant === 'boss' ? variant : undefined,
   };
   if (opts.arena || opts.fresh) void startGame(opts, createShell());
-  else title(opts, createShell());
+  else if (takeFlag(NEW_GAME_FLAG)) void startGame({ ...opts, fresh: true, intro: true }, createShell()); // begun anew from an ending
+  else {
+    const shell = createShell();
+    title(shell, (fresh) => void startGame({ ...opts, fresh, intro: fresh }, shell));
+  }
 }

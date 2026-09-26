@@ -101,12 +101,13 @@ export const SKY = {
 
 export type LightKind = 'lamp' | 'window' | 'fire' | 'torch' | 'sigil';
 
-interface LightDef {
+export interface LightDef {
   color: Vec3;
   strength: number; // of the light it casts...
   range: number; // ...out to here (metres)
   halo: number; // the glow about it: its radius (metres)...
   haloGain: number; // ...and brightness
+  haloColor?: Vec3; // the glow's own colour, when it is not the light's
   flicker: number; // share its light wavers by (flames)
 }
 
@@ -121,7 +122,9 @@ export const LIGHTS = {
     window: { color: [1, 0.76, 0.48], strength: 1.1, range: 6.5, halo: 0.9, haloGain: 0.38, flicker: 0 }, // a warm patch on the wall and ground before it
     fire: { color: [1, 0.66, 0.36], strength: 3, range: 13, halo: 1.8, haloGain: 0.75, flicker: 0.2 },
     torch: { color: [1, 0.72, 0.42], strength: 2, range: 8.5, halo: 0.85, haloGain: 0.7, flicker: 0.14 },
-    sigil: { color: [0.62, 0.26, 1], strength: 1.3, range: 9, halo: 1.3, haloGain: 0.3, flicker: 0 }, // a lit Elder Sign's glow (Cosmic Purple)
+    // A lit Elder Sign: a pale violet light, too grey to count as an anomaly hue, so madness's colour
+    // isolation never floods its ground (playtest round 12); its halo and carving keep Cosmic Purple.
+    sigil: { color: [0.8, 0.72, 1], strength: 1.1, range: 8, halo: 1.3, haloGain: 0.3, haloColor: [0.62, 0.26, 1], flicker: 0 },
   } satisfies Record<LightKind, LightDef>,
 };
 
@@ -205,4 +208,13 @@ export const AI = {
   fallBack: 0.6, // seconds a skirmisher falls back after its blow
   stuck: 0.5, // pushing this long without getting anywhere...
   detour: 0.7, // ...it steps aside this long to get round what blocks it
+};
+
+/** The investigator dithered away when they hide the foe they fight (playtest round 12, render/occlusion.ts). */
+export const OCCLUSION = {
+  near: 4, // metres: without a lock, the nearest foe hunting them this close is the one watched
+  radius: 0.5, // metres from their axis the line to the foe must pass to count as hidden
+  height: 1.9, // their body's height, hat and all
+  fade: 0.6, // share of their pixels dropped while they hide it
+  ease: 10, // 1/s: how fast they fade and return
 };

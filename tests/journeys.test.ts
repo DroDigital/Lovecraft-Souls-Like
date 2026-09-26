@@ -69,7 +69,7 @@ describe('journeys (ui/journeys.ts)', () => {
     const g = createWorldGame();
     const gate = worldLayout().gates[0];
     const twin = worldLayout().gates.find((x) => x.id === gate.to)!;
-    goTo(g, gate.arrive.x, gate.arrive.z);
+    goTo(g, (gate.x + gate.arrive.x) / 2, (gate.z + gate.arrive.z) / 2);
     const { veil, asked, covers } = fakeVeil();
     const j = createJourneys(g, veil);
     const frame = press('interact');

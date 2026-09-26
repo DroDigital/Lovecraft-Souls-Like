@@ -71,6 +71,7 @@ export const COLOUR = {
 export const DUNWICH = {
   powder: 3, // doses Armitage's sprayer holds
   reveal: 900, // frames the powder shows it
+  redust: 180, // frames of showing left before another dose is offered (none is wasted on a Horror already seen)
   reach: 14, // metres: the powder carries this far
   chantRange: 40, // the incantation works within this distance
 };

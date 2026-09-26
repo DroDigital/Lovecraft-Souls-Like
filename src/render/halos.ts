@@ -1,7 +1,8 @@
 /**
  * Soft additive halos (playtest round 5; shared since round 8): camera-facing discs, brightest at
  * their middle, drawn a little toward the eye so the surface a glow sits on does not cut it, and
- * fading less than the fog does, so lights glow through the dark as lights should. The world's
+ * fading less than the fog does, so lights glow through the dark as lights should, and fading out
+ * close to the lens. The world's
  * lamps wear them (worldLights.ts), and so do creatures' eyes (creatureViews.ts). One instanced batch
  * each: fill it with `put` between `begin` and `end` every frame.
  */
@@ -25,7 +26,10 @@ void main() {
   gl_Position = projectionMatrix * mv;
   vQ = position.xy * 2.0;
   float fog = clamp((d - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
-  vCol = aHaloColor * (1.0 - fog * uHaloFog);
+  // Close to the lens a halo would swell over the whole screen (the camera by an Elder Sign stands
+  // in its glow: round 12), so it fades out within a few of its radii.
+  float near = smoothstep(aHalo.w * 1.5, aHalo.w * 4.0, d);
+  vCol = aHaloColor * (1.0 - fog * uHaloFog) * near;
 }
 `;
 

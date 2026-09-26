@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { START_SIGN } from '../src/data/sites';
-import { LAUDANUM, SANITY, WORLD } from '../src/data/tuning';
+import { CAMERA, LAUDANUM, SANITY, WORLD } from '../src/data/tuning';
 import { dream, gatePlace, interactable, passGate, rest, signPlace, travel } from '../src/systems/checkpoints';
 import { isAbsent } from '../src/systems/components';
 import { createWorldGame, stepGame } from '../src/systems/game';
@@ -104,6 +104,13 @@ describe('Elder Signs', () => {
     expect(pos(g)).toMatchObject({ x: gatePlace('hub_antarctic')!.arrive.x, z: gatePlace('hub_antarctic')!.arrive.z });
   });
 
+  it('those coming through a gate stand clear of it: beyond the camera boom and out of reach', () => {
+    for (const gate of worldLayout().gates) {
+      const d = Math.hypot(gate.arrive.x - gate.x, gate.arrive.z - gate.z);
+      expect(d, gate.id).toBeGreaterThan(Math.max(WORLD.reach, CAMERA.distance) + 1);
+    }
+  });
+
   it('E rests at a sign within reach, or passes a gate within reach', () => {
     const g = createWorldGame();
     const sign = signPlace(START_SIGN)!;
@@ -115,6 +122,8 @@ describe('Elder Signs', () => {
     expect(rested).toHaveLength(1);
     const gate = gatePlace('hub_australia')!;
     goTo(g, gate.arrive.x, gate.arrive.z);
+    expect(interactable(g)).toBeNull(); // arriving, the gate is out of reach: a stray E does not send them back
+    goTo(g, (gate.x + gate.arrive.x) / 2, (gate.z + gate.arrive.z) / 2);
     expect(interactable(g)).toMatchObject({ kind: 'gate', id: 'hub_australia' });
     const moved = record(g, 'Travelled');
     stepGame(g, press('interact'));
