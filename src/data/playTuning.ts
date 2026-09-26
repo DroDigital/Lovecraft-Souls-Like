@@ -55,7 +55,7 @@ export const MUSIC = {
 export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
   sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
-  resolution: [0.5, 2, 0.25, 1], // internal resolution, × RENDER's 400 × 225
+  resolution: [0.5, 2, 0.25, 1.5], // internal resolution, × RENDER's 400 × 225 (600 × 338 by default since playtest round 7, so the figures' detail shows)
   volume: [0, 1, 0.05, 0.7],
 } satisfies Record<string, readonly [number, number, number, number]>;
 

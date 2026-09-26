@@ -1,7 +1,7 @@
 /**
- * Render pipeline (spec §2): the world renders into a low-res target (default 400×225, scaled by
- * the resolution setting), then the one post pass draws into a canvas of the same size, which CSS
- * upscales nearest-neighbour (`image-rendering: pixelated`) into a letterboxed 16:9 box.
+ * Render pipeline (spec §2): the world renders into a low-res target (400×225 scaled by the
+ * resolution setting: 600×338 by default), then the one post pass draws into a canvas of the same
+ * size, which CSS upscales nearest-neighbour (`image-rendering: pixelated`) into a letterboxed 16:9 box.
  */
 
 import * as THREE from 'three';
