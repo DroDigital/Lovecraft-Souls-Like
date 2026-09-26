@@ -2,7 +2,8 @@
  * HiddenLayer hook (spec §3A): eldritch geometry, bridges and doors — and a few creatures, like the
  * Being from Beyond — exist only for the enlightened: while insight ≥ minInsight and the sanity
  * band lies wholly at or below maxSanity (a band floor, so the band's hysteresis carries over).
- * It listens for band and insight changes. A hidden piece's colliders leave the world (and its seal,
+ * It listens for band and insight changes. Kadath's door waits instead on the waking world's seals
+ * (`minSeals`, seals.ts). A hidden piece's colliders leave the world (and its seal,
  * the wall a hidden door opens or the edge of the chasm a hidden bridge spans, stands); a hidden
  * creature is absent (`isAbsent`): it neither acts nor collides, and nothing can see or touch it.
  */
@@ -12,10 +13,15 @@ import type { HiddenPieceDef } from '../data/arena';
 import { pieceColliders } from '../world/arena';
 import type { Game, Layer, Mind } from './components';
 import { bandCeiling } from './sanity';
+import { sealsBroken } from './sealCount';
 
-/** Whether a hidden layer shows to a mind with this insight and band. */
-export function layerShown(m: Mind, l: Pick<Layer, 'minInsight' | 'maxSanity'>): boolean {
-  return (l.minInsight === undefined || m.insight >= l.minInsight) && (l.maxSanity === undefined || bandCeiling(m.band) <= l.maxSanity);
+/** Whether a hidden layer shows to a mind with this insight and band, with `seals` of the waking world broken. */
+export function layerShown(m: Mind, l: Pick<Layer, 'minInsight' | 'maxSanity' | 'minSeals'>, seals = 0): boolean {
+  return (
+    (l.minInsight === undefined || m.insight >= l.minInsight) &&
+    (l.maxSanity === undefined || bandCeiling(m.band) <= l.maxSanity) &&
+    (l.minSeals === undefined || seals >= l.minSeals)
+  );
 }
 
 /** A creature leaving the world forgets its fight: no move, no target. */
@@ -29,7 +35,7 @@ function quiet(g: Game, id: Entity): void {
 /** Shows or hides one layered entity to match the mind. */
 export function applyLayer(g: Game, id: Entity): void {
   const l = g.ecs.c.layer.get(id)!;
-  const shown = layerShown(g.mind, l);
+  const shown = layerShown(g.mind, l, l.minSeals === undefined ? 0 : sealsBroken(g));
   if (shown === l.shown) return;
   l.shown = shown;
   const piece = g.ecs.c.piece.get(id);
@@ -45,7 +51,7 @@ export function applyLayer(g: Game, id: Entity): void {
 }
 
 /** Puts an entity on a hidden layer, hiding it at once if the mind cannot see it. */
-export function addLayer(g: Game, id: Entity, hidden: { minInsight?: number; maxSanity?: number }): void {
+export function addLayer(g: Game, id: Entity, hidden: { minInsight?: number; maxSanity?: number; minSeals?: number }): void {
   g.ecs.c.layer.set(id, { ...hidden, shown: true });
   applyLayer(g, id);
 }
@@ -60,7 +66,7 @@ export function spawnPiece(g: Game, def: HiddenPieceDef): Entity {
   g.world.colliders.push(...colliders, ...seal);
   for (const c of seal) g.world.off.add(c); // a fresh layer counts as shown until addLayer settles it
   g.ecs.c.piece.set(e, { def, colliders, seal });
-  addLayer(g, e, { minInsight: def.minInsight, maxSanity: def.maxSanity });
+  addLayer(g, e, { minInsight: def.minInsight, maxSanity: def.maxSanity, minSeals: def.minSeals });
   return e;
 }
 

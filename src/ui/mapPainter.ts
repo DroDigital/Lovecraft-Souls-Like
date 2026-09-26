@@ -14,6 +14,8 @@ import { npcPlace } from '../systems/npcs';
 import { mapPlaces, type MapPlace } from '../world/mapData';
 import { regionAt, regionRect } from '../world/worldMap';
 import { artOf, type Art } from './mapArt';
+import { drawLabels, type MapLabel } from './mapLabels';
+import { uiScale } from './uiScale';
 
 export interface MapView {
   cx: number; // world point at the centre
@@ -135,7 +137,7 @@ export function createMapPainter(g: Game): MapPainter {
     ctx.stroke();
   };
 
-  function place(ctx: CanvasRenderingContext2D, p: MapPlace, x: number, y: number, labels: boolean): void {
+  function place(ctx: CanvasRenderingContext2D, p: MapPlace, x: number, y: number, names: MapLabel[] | null, k: number): void {
     const ow = g.overworld!;
     const slain = (id: string): boolean => ow.slain.has(`boss:${id}`);
     ctx.strokeStyle = '#000';
@@ -162,12 +164,7 @@ export function createMapPainter(g: Game): MapPainter {
       const met = p.bosses.filter((b) => g.mind.seen.has(b) || slain(b));
       if (met.length) eye(ctx, x + 9, y - 3, 4, met.every(slain) ? DIM : MAGENTA, met.every(slain));
     } else eye(ctx, x, y, 6, p.bosses.every(slain) ? DIM : MAGENTA, p.bosses.every(slain));
-    if (labels && p.kind === 'sign' && ow.discovered.has(p.id)) {
-      ctx.fillStyle = BONE;
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(p.name, x + 8, y + 3);
-    }
+    if (names && p.kind === 'sign' && ow.discovered.has(p.id)) names.push({ text: p.name, x, y, size: 10 * k, color: BONE, gap: 8 });
   }
 
   return {
@@ -188,11 +185,18 @@ export function createMapPainter(g: Game): MapPainter {
         if (img) ctx.drawImage(img, x0 - 0.5, y0 - 0.5, x1 - x0 + 1, y1 - y0 + 1); // half a pixel over, so no seam shows between regions
       }
       const inRealm = new Set(realm.map((r) => r.id));
+      const k = uiScale(); // the names grow with the UI (the marks keep their size)
+      const regionNames: MapLabel[] = [];
+      const names: MapLabel[] | null = labels ? [] : null; // the signs' first, then the people's
+      const people: MapLabel[] = [];
+      const marks: { x: number; y: number; r: number }[] = [];
       for (const p of mapPlaces()) {
         if (!inRealm.has(p.region)) continue;
         const [x, y] = [sx(p.x), sy(p.z)];
         if (x < -20 || y < -20 || x > view.w + 20 || y > view.h + 20) continue;
-        if (isExplored(ow.explored, p.x, p.z) || (p.kind === 'sign' && ow.discovered.has(p.id))) place(ctx, p, x, y, labels);
+        if (!isExplored(ow.explored, p.x, p.z) && !(p.kind === 'sign' && ow.discovered.has(p.id))) continue;
+        place(ctx, p, x, y, names, k);
+        marks.push({ x, y, r: 6 });
       }
       for (const n of NPCS) { // the people met in the dream: a figure where they stand, named once met
         const at = npcPlace(n);
@@ -209,12 +213,8 @@ export function createMapPainter(g: Game): MapPainter {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        if (labels && ow.met.has(n.id)) {
-          ctx.font = '10px monospace';
-          ctx.textAlign = 'left';
-          ctx.fillStyle = DIM;
-          ctx.fillText(n.name, x + 6, y + 12);
-        }
+        marks.push({ x, y, r: 5 });
+        if (labels && ow.met.has(n.id)) people.push({ text: n.name, x, y, size: 10 * k, color: DIM, gap: 7 });
       }
       for (const d of g.ecs.query('drop')) {
         const at = g.ecs.c.transform.get(d)!.pos;
@@ -227,15 +227,13 @@ export function createMapPainter(g: Game): MapPainter {
         ctx.lineTo(x - 3, y);
         ctx.fill();
       }
-      if (labels) {
-        ctx.font = '12px monospace';
-        ctx.textAlign = 'center';
+      if (names) {
         for (const r of realm) {
           if (!ow.explored.get(r.id)?.some((v) => v > 0)) continue;
           const rc = regionRect(r);
-          ctx.fillStyle = 'rgba(217,208,184,0.55)';
-          ctx.fillText(r.name.toUpperCase(), sx((rc.x0 + rc.x1) / 2), sy(rc.z1) + 16);
+          regionNames.push({ text: r.name.toUpperCase(), x: sx((rc.x0 + rc.x1) / 2), y: sy(rc.z1) + 6, size: 12 * k, color: 'rgba(217,208,184,0.55)', gap: 0, centred: true });
         }
+        drawLabels(ctx, [...regionNames, ...names, ...people], marks);
       }
       const tr = g.ecs.c.transform.get(g.player.id)!;
       const [px, py] = [sx(tr.pos.x), sy(tr.pos.z)];

@@ -31,6 +31,7 @@ uniform vec4 uHurt; // the investigator's recent wound: x strength, yz the scree
 uniform vec3 uAnomalyHues;
 uniform float uQuantize;
 uniform float uDither;
+uniform float uGamma; // 1 / the brightness setting: below 1 lifts the dark
 uniform vec3 uPalette[PALETTE_SIZE];
 
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
@@ -109,7 +110,7 @@ void main() {
 
   vec4 centre = texture(tScene, uv);
   if (centre.a < 0.5) {
-    gl_FragColor = vec4(centre.rgb, 1.0); // outside the palette: no grade, no quantising
+    gl_FragColor = vec4(pow(centre.rgb, vec3(uGamma)), 1.0); // outside the palette: no grade, no quantising
     return;
   }
   vec3 a = texture(tScene, uv + split).rgb;
@@ -120,7 +121,7 @@ void main() {
     b = isolate(b);
     e = isolate(e);
   }
-  vec3 col = hurt(vec3(a.r, b.g, e.b), uv);
+  vec3 col = pow(hurt(vec3(a.r, b.g, e.b), uv), vec3(uGamma));
   if (uQuantize > 0.5) col = quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }

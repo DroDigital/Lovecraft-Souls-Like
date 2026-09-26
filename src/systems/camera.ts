@@ -66,7 +66,7 @@ export function stepCamera(rig: CameraRig, inp: CameraInput, w: CollisionWorld, 
     const dz = inp.focus.z - inp.pivot.z;
     rig.yaw = wrapAngle(rig.yaw + wrapAngle(yawOf(dx, dz) - rig.yaw) * k);
     const want = CAMERA.lockPitch + Math.atan2(inp.pivot.y - inp.focus.y + CAMERA.lockLift, Math.max(1, Math.hypot(dx, dz)));
-    rig.pitch += (clamp(want, CAMERA.pitchMin, CAMERA.pitchMax) - rig.pitch) * k;
+    rig.pitch += (clamp(want, CAMERA.pitchMin, CAMERA.lockPitchMax) - rig.pitch) * k;
     rig.recenter = 0;
   } else if (rig.recenter > 0) {
     rig.recenter--;

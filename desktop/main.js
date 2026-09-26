@@ -7,7 +7,7 @@
  * opens the shell; `npm run desktop:dev` opens the running dev server (`npm run dev`) in it instead.
  */
 
-import { app, BrowserWindow, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { serveFrom } from './serve.js';
 
@@ -28,7 +28,13 @@ function open() {
     backgroundColor: '#000000',
     autoHideMenuBar: true,
     show: false,
-    webPreferences: { autoplayPolicy: 'no-user-gesture-required', contextIsolation: true, sandbox: true, nodeIntegration: false },
+    webPreferences: {
+      autoplayPolicy: 'no-user-gesture-required',
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      preload: fileURLToPath(new URL('./preload.cjs', import.meta.url)), // window.desktop: quit, fullscreen
+    },
   });
   win.once('ready-to-show', () => win.show());
   win.webContents.on('before-input-event', (event, input) => {
@@ -43,6 +49,10 @@ function open() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   void win.loadURL(URL_TO_OPEN);
 }
+
+ipcMain.handle('desktop:quit', () => app.quit());
+ipcMain.handle('desktop:fullscreen', (e, on) => BrowserWindow.fromWebContents(e.sender)?.setFullScreen(!!on));
+ipcMain.handle('desktop:is-fullscreen', (e) => !!BrowserWindow.fromWebContents(e.sender)?.isFullScreen());
 
 void app.whenReady().then(() => {
   protocol.handle('app', serveFrom(fileURLToPath(new URL('../dist/', import.meta.url))));

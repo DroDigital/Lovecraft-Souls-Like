@@ -7,6 +7,8 @@
  */
 
 import { GAME_NAME, TITLE_LINES } from '../data/intro';
+import { saveNow } from './autosave';
+import { desktop } from './desktop';
 import { button, createScreen, el, heading, type Page } from './menuKit';
 import { controlsPage, settingsPage } from './menuPages';
 import type { SettingId, Settings } from './settings';
@@ -15,6 +17,7 @@ export interface TitleOptions {
   hasSave: boolean;
   settings: Settings;
   change(id: SettingId, v: number): void;
+  saveKeys?: () => void; // keeps the keyboard's layout when rebound
   /** Resolves when the title may open without a key press or click (its theme sounds without one). */
   byItself: Promise<void>;
   /** The title opens: its first key press or click, or by itself. */
@@ -61,7 +64,8 @@ export function showTitle(o: TitleOptions): void {
       if (o.hasSave) button(menu, 'Continue', () => begin(false));
       button(menu, 'New game', () => (o.hasSave ? screen.show(confirm) : begin(true)));
       button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
-      button(menu, 'Controls', () => screen.show(controlsPage(() => screen.show(main))));
+      button(menu, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
+      if (desktop) button(menu, 'Quit', () => (saveNow(), void desktop!.quit())); // the desktop shell only (playtest round 12)
       el(p, 'div', 'arrows or pad to choose · Enter or A', 'opacity:.3;margin-top:26px');
     },
   };

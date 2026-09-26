@@ -149,7 +149,7 @@ function build(): WorldLayout {
   };
   const gate: GateFn = (region, x, z, y, id, name, to, face) => {
     const f = DIRS[face];
-    w.gates.push({ id, name, to, region, x, z, y, face, arrive: { x: x + f.x * 2.6, z: z + f.z * 2.6, yaw: yawOfDir(face) } });
+    w.gates.push({ id, name, to, region, x, z, y, face, arrive: { x: x + f.x * WORLD.gateArrive, z: z + f.z * WORLD.gateArrive, yaw: yawOfDir(face) } });
     const s = side(face);
     for (const k of [-1.9, 1.9]) collide({ kind: 'box', min: { x: x + s.x * k - 0.25, y: y - 0.3, z: z + s.z * k - 0.25 }, max: { x: x + s.x * k + 0.25, y: y + 3.8, z: z + s.z * k + 0.25 } });
   };

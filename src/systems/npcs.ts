@@ -7,9 +7,8 @@
  */
 
 import type { Entity } from '../core/ecs';
-import { distXZ, yawOf } from '../core/geom';
+import { turnToward, yawOf } from '../core/geom';
 import { NPCS, npcDef, type NpcDef, type Topic, type When } from '../data/npcs';
-import { WORLD } from '../data/tuning';
 import { worldLayout } from '../world/placements';
 import { DIRS } from '../world/worldMap';
 import type { Game } from './components';
@@ -19,6 +18,7 @@ import { QUESTS } from '../data/quests';
 export const NPC_PREFIX = 'npc:';
 const SIDE = 3.8; // metres beside the rising point (out of reach from it: talking is a step away)
 const AHEAD = 1; // ...and toward the sign
+const TURN = 4; // radians a second they turn to the one talking with them
 
 /** Where an NPC stands: beside their sign's rising point, facing it. */
 export function npcPlace(n: NpcDef): { x: number; z: number; yaw: number } | undefined {
@@ -44,18 +44,6 @@ export function spawnNpcs(g: Game): void {
   }
 }
 
-/** The nearest person within reach of a free investigator. */
-export function nearestNpc(g: Game): { id: string; name: string; d: number } | null {
-  if (g.ecs.c.actor.get(g.player.id)!.move !== null) return null;
-  const pp = g.ecs.c.transform.get(g.player.id)!.pos;
-  let best: { id: string; name: string; d: number } | null = null;
-  for (const [e, id] of g.ecs.c.npc) {
-    const d = distXZ(g.ecs.c.transform.get(e)!.pos, pp);
-    if (d <= WORLD.reach && (!best || d < best.d)) best = { id, name: npcDef(id)?.name ?? id, d };
-  }
-  return best;
-}
-
 function holds(g: Game, w: When): boolean {
   const s = stageOf(g, w.quest);
   const n = QUESTS[w.quest]?.stages.length ?? 0;
@@ -76,7 +64,20 @@ export function talk(g: Game, id: string): void {
   talked(g, id);
   if (topic.starts) startQuest(g, topic.starts);
   g.overworld?.met.add(id);
+  g.player.listening = npcEntity(g, id) ?? null; // turned to them, the camera framing them (round 12)
   g.events.emit('Talked', { npc: id, name: n.name, title: n.title, lines: topic.lines });
+}
+
+/** Each step: the one talked with turns to the investigator, the others back toward where they rise (round 12). */
+export function npcSystem(g: Game, dt: number): void {
+  const me = g.ecs.c.transform.get(g.player.id)!.pos;
+  for (const [e, id] of g.ecs.c.npc) {
+    const tr = g.ecs.c.transform.get(e)!;
+    const n = npcDef(id);
+    const want = e === g.player.listening ? yawOf(me.x - tr.pos.x, me.z - tr.pos.z) : n && npcPlace(n)?.yaw;
+    tr.prevYaw = tr.yaw;
+    if (want !== undefined) tr.yaw = turnToward(tr.yaw, want, TURN * dt);
+  }
 }
 
 /** The entity standing for an NPC. */

@@ -7,26 +7,27 @@
 import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
+import { fill } from './glyphs';
 import { BONE, el, setStyle, setText } from './hudKit';
 
 const KEY = 'lovecraft-souls-like/hints';
 const SHOW_MS = 9000;
 
 const HINTS = {
-  move: 'WASD to move, the mouse to look (click to capture it). Space dodges; hold it to run.',
-  lead: 'The ◇ on the minimap marks where the story leads. The Journal (Esc) says what to do there.',
-  fight: 'Left mouse strikes (Shift for a heavy blow). Right mouse blocks, and calls off a swing that has not landed; Shift + right mouse parries. Q locks on.',
-  hurt: "R injects West's Reagent and closes wounds. Its doses come back when you rest.",
-  mind: 'T takes a swallow of Laudanum and steadies the mind.',
-  sign: 'Rest at an Elder Sign with E. You rise at the last one you rested at, and the creatures you killed come back.',
+  move: 'Move with {move} and look with {look}. {dodge} dodges; hold it to run.',
+  lead: 'The ◇ on the minimap marks where the story leads. The Journal ({pause}) says what to do there.',
+  fight: '{light} strikes ({heavy}: a heavy blow). {block} blocks, and calls off a swing that has not landed; {parry} parries. {lock} locks on.',
+  hurt: "{heal} injects West's Reagent and closes wounds. Its doses come back when you rest.",
+  mind: '{item} takes a swallow of Laudanum and steadies the mind.',
+  sign: 'Rest at an Elder Sign with {interact}. You rise at the last one you rested at, and the creatures you killed come back.',
   echoes: 'You dropped your Echoes where you fell. Reach the spot again to take them back.',
   level: 'You carry Echoes enough for a level (▲). Rest at an Elder Sign to grow stronger, before you fall and drop them.',
-  map: 'M opens the map. Ground you have seen stays drawn on it.',
-  quest: 'The pause menu (Esc) has a Journal with what you have been asked to do.',
+  map: '{map} opens the map. Ground you have seen stays drawn on it.',
+  quest: 'The pause menu ({pause}) has a Journal with what you have been asked to do.',
   boss: 'Watch the ground: a boss shows where its blows will land. Roll through rings and beams.',
   insight: 'Insight buys strength when you rest at an Elder Sign.',
-  grab: 'A crimson flare means a grab: no guard stops it. Roll away (Space).',
-  phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum (T) or rest steadies it.',
+  grab: 'A crimson flare means a grab: no guard stops it. Roll away ({dodge}).',
+  phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum ({item}) or rest steadies it.',
 } as const;
 type HintId = keyof typeof HINTS;
 
@@ -85,7 +86,7 @@ export function createHints(g: Game, root: HTMLElement): Hints {
       } catch {
         // No storage: the hints show again next time.
       }
-      setText(box, HINTS[next]);
+      setText(box, fill(HINTS[next])); // the buttons of the device in hand
       setStyle(box, 'opacity', '1');
       until = now + SHOW_MS;
     },

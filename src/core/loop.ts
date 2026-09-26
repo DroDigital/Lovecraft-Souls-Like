@@ -26,8 +26,11 @@ export interface LoopHooks {
   render(alpha: number): void;
 }
 
-/** Drives the hooks from requestAnimationFrame. Returns a stop function. */
-export function startLoop(hooks: LoopHooks, hz: number, maxFrameSeconds: number): () => void {
+/**
+ * Drives the hooks from requestAnimationFrame. Returns a stop function. A frame that throws stops
+ * the loop and is handed to `failed` (the crash screen), rather than freezing on its last frame.
+ */
+export function startLoop(hooks: LoopHooks, hz: number, maxFrameSeconds: number, failed?: (e: unknown) => void): () => void {
   const clock = createFixedStep(hz, maxFrameSeconds);
   const dt = 1 / hz;
   let last = performance.now();
@@ -35,8 +38,14 @@ export function startLoop(hooks: LoopHooks, hz: number, maxFrameSeconds: number)
   const frame = (now: number): void => {
     const { steps, alpha } = clock.advance((now - last) / 1000);
     last = now;
-    for (let i = 0; i < steps; i++) hooks.step(dt);
-    hooks.render(alpha);
+    try {
+      for (let i = 0; i < steps; i++) hooks.step(dt);
+      hooks.render(alpha);
+    } catch (e) {
+      if (!failed) throw e;
+      failed(e);
+      return;
+    }
     raf = requestAnimationFrame(frame);
   };
   raf = requestAnimationFrame(frame);

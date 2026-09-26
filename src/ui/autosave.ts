@@ -17,15 +17,29 @@ export function browserStore(): SaveStore | null {
   }
 }
 
+let flush: (() => void) | null = null;
+let halted = false;
+
+/** Stops saving for good: a frame threw (main.ts), and what it left behind may not be sound. */
+export function haltAutosave(): void {
+  halted = true;
+}
+
+/** Saves at once, if a game is being autosaved (before quitting to the desktop, before a crash screen). */
+export function saveNow(): void {
+  flush?.();
+}
+
 export function startAutosave(g: Game, store: SaveStore): void {
   const save = (): void => {
-    if (g.ecs.c.dead.has(g.player.id)) return; // mid-death: the respawn saves
+    if (halted || g.ecs.c.dead.has(g.player.id)) return; // broken, or mid-death: the respawn saves
     try {
       saveGame(g, store);
     } catch {
       // Storage refused: play on unsaved.
     }
   };
+  flush = save;
   g.events.on('Rested', save);
   g.events.on('Travelled', save);
   g.events.on('Respawned', save);

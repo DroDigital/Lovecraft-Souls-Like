@@ -9,7 +9,8 @@ export type Goal =
   | { kind: 'talk'; npc: string } // speak with them
   | { kind: 'give'; npc: string; item: 'laudanum' } // speak with them holding it: they take one
   | { kind: 'slay'; boss: string } // a boss slain for good (its roster id)
-  | { kind: 'reach'; sign: string }; // an Elder Sign found
+  | { kind: 'reach'; sign: string } // an Elder Sign found
+  | { kind: 'seals'; count: number }; // this many of the waking world's seals broken (systems/seals.ts)
 
 export interface QuestStage {
   goal: Goal;
@@ -20,10 +21,13 @@ export interface QuestDef {
   title: string;
   main?: boolean; // the main line
   after?: string; // begins only once this one is done
+  auto?: boolean; // begins by itself once `after` is done (no one need ask it)
   stages: readonly QuestStage[];
   done: string; // the journal's line once it is done
   reward: { echoes?: number; insight?: number; vial?: boolean };
 }
+
+import { SEALS } from './tuning';
 
 export const QUESTS: Readonly<Record<string, QuestDef>> = {
   sleepers: {
@@ -45,6 +49,7 @@ export const QUESTS: Readonly<Record<string, QuestDef>> = {
     title: 'The Stair',
     main: true,
     after: 'witch_house',
+    auto: true, // the stair opens as Keziah falls (round 12)
     stages: [{ goal: { kind: 'talk', npc: 'kuranes' }, note: "Rest at the Sleeper's Sign on the university grounds and go down the stair. Find a dreamer called Kuranes." }],
     done: 'Kuranes told me what the key opens.',
     reward: { echoes: 500 },
@@ -52,7 +57,10 @@ export const QUESTS: Readonly<Record<string, QuestDef>> = {
   kadath: {
     title: 'The Gate',
     main: true,
-    stages: [{ goal: { kind: 'reach', sign: 'beyond_threshold' }, note: 'The Silver Key opens the last gate, beyond Kadath. Cross the dream lands and find it.' }],
+    stages: [
+      { goal: { kind: 'seals', count: SEALS.kadath }, note: "Kadath's door is sealed by the great horrors of the waking world. Kuranes says four must fall before it opens; Keziah Mason was one." },
+      { goal: { kind: 'reach', sign: 'beyond_threshold' }, note: "Kadath's door stands open. The Silver Key opens the last gate, beyond Kadath. Cross the dream lands and find it." },
+    ],
     done: 'I have reached the Threshold. What happens now is my choice.',
     reward: { insight: 2 },
   },

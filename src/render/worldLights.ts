@@ -8,7 +8,7 @@
  */
 
 import * as THREE from 'three';
-import { LIGHTS, type LightKind } from '../data/tuning';
+import { LIGHTS, type LightDef, type LightKind } from '../data/tuning';
 import { createHalos } from './halos';
 import { LAMP_SLOTS } from './shaders/world';
 import { worldUniforms } from './worldMaterial';
@@ -76,8 +76,8 @@ export function createWorldLights(): WorldLights {
       batch.begin();
       if (lantern) batch.put(lantern.x, lantern.y, lantern.z, LIGHTS.lantern.halo, LIGHTS.lantern.color, LIGHTS.lantern.haloGain * waver({ x: 0, y: 0, z: 0, kind: 'torch' }, 0.05, time));
       for (const { s } of near) {
-        const k = LIGHTS.kinds[s.kind];
-        if (!batch.put(s.x, s.y, s.z, k.halo, k.color, k.haloGain * waver(s, k.flicker, time))) break;
+        const k: LightDef = LIGHTS.kinds[s.kind];
+        if (!batch.put(s.x, s.y, s.z, k.halo, k.haloColor ?? k.color, k.haloGain * waver(s, k.flicker, time))) break;
       }
       batch.end();
     },

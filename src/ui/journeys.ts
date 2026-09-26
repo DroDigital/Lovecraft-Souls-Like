@@ -11,7 +11,7 @@
 
 import { emptyInput, type InputFrame } from '../core/input';
 import { WORLD } from '../data/tuning';
-import { gatePlace, interactable, passGate, signPlace } from '../systems/checkpoints';
+import { gateBarred, gatePlace, interactable, passGate, signPlace } from '../systems/checkpoints';
 import type { Game } from '../systems/components';
 import { regionAt } from '../world/worldMap';
 import type { Veil } from './veil';
@@ -84,7 +84,8 @@ export function createJourneys(g: Game, veil: Veil, ready?: () => Promise<void>)
       const t = frame.pressed.interact && phase === 'idle' ? interactable(g) : null;
       if (t?.kind === 'gate') {
         frame.pressed.interact = false;
-        self.go((gatePlace(gatePlace(t.id)?.to ?? '')?.name ?? '').toUpperCase(), () => passGate(g, t.id));
+        if (gateBarred(g)) passGate(g, t.id); // refused: it says why, and no veil falls
+        else self.go((gatePlace(gatePlace(t.id)?.to ?? '')?.name ?? '').toUpperCase(), () => passGate(g, t.id));
       }
       return frame;
     },

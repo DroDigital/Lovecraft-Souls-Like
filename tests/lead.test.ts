@@ -29,7 +29,9 @@ describe('where the story leads (systems/lead.ts)', () => {
   });
 
   it('places every goal of the main line, and falls silent once it is done', () => {
-    for (const q of Object.values(QUESTS).filter((x) => x.main)) for (const s of q.stages) expect(goalPlace(s.goal), `${q.title}: ${s.note}`).not.toBeNull();
+    for (const q of Object.values(QUESTS).filter((x) => x.main)) {
+      for (const s of q.stages) if (s.goal.kind !== 'seals') expect(goalPlace(s.goal), `${q.title}: ${s.note}`).not.toBeNull(); // the seals: sealLead
+    }
     const g = createWorldGame();
     for (const [id, q] of Object.entries(QUESTS)) g.overworld!.quests.set(id, q.stages.length);
     expect(mainLead(g)).toBeNull();

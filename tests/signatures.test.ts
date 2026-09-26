@@ -64,8 +64,11 @@ describe('signature mechanics (spec §3E)', () => {
     for (let i = 1; i < DUNWICH.powder; i++) {
       steps(g, 40);
       steps(g, 1, press('interact'));
+      steps(g, 40);
+      steps(g, 1, press('interact')); // pressed again while it shows: no dose is wasted (round 12)
+      expect(shown).toHaveLength(i + 1);
+      steps(g, DUNWICH.reveal - DUNWICH.redust);
     }
-    steps(g, 40);
     expect(shown).toHaveLength(DUNWICH.powder);
     expect(fightAction(g)).toBeNull(); // the sprayer is empty
   });
