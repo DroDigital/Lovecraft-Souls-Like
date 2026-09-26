@@ -19,6 +19,7 @@ import { colliderBounds, type Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
 import { landHeight } from './land';
+import { shrineColliders } from './shrine';
 import { chunkKey, chunkOf, DIRS, OPPOSITE, toWorld, yawOfDir, type Rect } from './worldMap';
 
 export interface SignPlace {
@@ -144,8 +145,7 @@ function build(): WorldLayout {
     const s = side(face);
     const rest = { ...(at ?? { x: x + f.x * 4.6 + s.x * 1.2, z: z + f.z * 4.6 + s.z * 1.2 }), yaw: yawOfDir(face) };
     w.signs.push({ id, name, region, x, z, y, face, dream, rest });
-    const [hx, hz] = f.x === 0 ? [0.6, 0.15] : [0.15, 0.6];
-    collide({ kind: 'box', min: { x: x - hx, y: y - 0.3, z: z - hz }, max: { x: x + hx, y: y + 2.1, z: z + hz } });
+    for (const c of shrineColliders(x, y, z, yawOfDir(face))) collide(c); // its shrine (shrine.ts)
   };
   const gate: GateFn = (region, x, z, y, id, name, to, face) => {
     const f = DIRS[face];

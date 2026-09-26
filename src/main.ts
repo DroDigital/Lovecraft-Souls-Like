@@ -21,6 +21,7 @@ import { playSound } from './render/audio/synth';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
+import { createSignViews } from './render/signViews';
 import { createSky, inDungeon } from './render/sky';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
@@ -128,6 +129,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
   const combatFx = createCombatFx(game, particles);
+  const signs = createSignViews(scene, game, particles, lights);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
   const sky = createSky();
@@ -194,10 +196,10 @@ function startGame(opts: StartOptions, shell: Shell): void {
         hidden.update(time);
         fights.update(alpha, time);
         combatFx.update();
+        signs.update(time, camera.position);
         bossFx.update(alpha, time, camera);
         shadows.update(alpha);
         particles.update(time, camera);
-
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
         applyReality(fx, game.reality);
@@ -216,8 +218,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
         if (now - statsAt >= 500) {
           const fps = Math.round((frames * 1000) / (now - statsAt));
           panel.setStats(`${fps} fps · ${pipeline.renderer.info.render.calls} draws\n${playerStats(game)}${world ? worldStats(game, world) : ''}`);
-          frames = 0;
-          statsAt = now;
+          [frames, statsAt] = [0, now];
         }
       },
     },

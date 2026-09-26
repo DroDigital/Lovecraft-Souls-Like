@@ -1,10 +1,10 @@
 /**
  * Procedural low-poly figures (spec §3B: tweened primitives, no skeletal assets): the investigator,
  * the placeholder Deep One, the training dummy, an Echo drop, a tome on its lectern, a note on its
- * crate, the world's Elder Signs and gates, and the people met in the dream (npcFigures.ts). Each is a
- * small joint hierarchy that poses.ts drives: shoulders, elbows and wrists; hips and knees. Arms and
- * legs hang along -y from their pivots; forward is +z, the figure's right is -x. Phase 2 replaces the
- * enemies with generated sprites.
+ * crate, the world's gates (its Elder Signs are signViews.ts's), and the people met in the dream
+ * (npcFigures.ts). Each is a small joint hierarchy that poses.ts drives: shoulders, elbows and wrists;
+ * hips and knees. Arms and legs hang along -y from their pivots; forward is +z, the figure's right is
+ * -x. Phase 2 replaces the enemies with generated sprites.
  */
 
 import * as THREE from 'three';
@@ -15,7 +15,7 @@ import type { TextureKind } from './textures';
 import { axeGeometry, razorGeometry } from './armsMeshes';
 import { investigator } from './investigator';
 import { npcFigure } from './npcFigures';
-import { elderSignGeometry, gateGeometry } from './signMeshes';
+import { gateGeometry } from './signMeshes';
 import { createWorldMaterial } from './worldMaterial';
 
 export type Rig = 'humanoid' | 'dummy' | 'echo' | 'prop';
@@ -186,15 +186,6 @@ function vial(): Figure {
   return f;
 }
 
-/** An Elder Sign (spec §3D): the carved slab, its glyph glowing faintly so it reads in the dark. */
-function elderSign(): Figure {
-  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
-  const { slab, glyph } = elderSignGeometry();
-  part(f, f.body, slab, 'stone');
-  part(f, f.body, glyph, 'stone', 0.9);
-  return f;
-}
-
 /** A gate to another realm: a stone frame banded with glowing glyphs, a dim purple veil between its jambs. */
 function gate(): Figure {
   const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
@@ -235,7 +226,7 @@ function armRack(geo: () => THREE.BufferGeometry): Figure {
 }
 
 const BUILDERS: Record<string, () => Figure> = {
-  player: investigator, deepOne, dummy, echo, tome, vial, elderSign, gate, note, cache,
+  player: investigator, deepOne, dummy, echo, tome, vial, gate, note, cache,
   'arm:axe': () => armRack(axeGeometry),
   'arm:razor': () => armRack(razorGeometry),
 };
