@@ -119,19 +119,31 @@ export function travelBar(g: Game): 'boss' | 'foes' | 'fallen' | null {
   return g.ecs.c.health.get(g.player.id)!.hp <= 0 ? 'fallen' : null;
 }
 
-/** From the Sleeper's Sign, down the seventy steps of light slumber into the Dreamlands. */
+/** Whether the stair into the Dreamlands opens: only once Keziah Mason is gone from the Witch House (round 12). */
+export const descentOpen = (g: Game): boolean => !!g.overworld?.slain.has('boss:keziah_mason');
+
+/** From the Sleeper's Sign, down the seventy steps of light slumber into the Dreamlands (once it opens). */
 export function dream(g: Game): boolean {
   const at = worldLayout().dream;
-  if (!g.overworld || !at || !signPlace(g.overworld.sign)?.dream) return false;
+  if (!g.overworld || !at || !signPlace(g.overworld.sign)?.dream || !descentOpen(g)) return false;
   teleport(g, at);
   g.events.emit('Travelled', { via: 'dream', to: 'slumber', name: 'Stairs of Slumber' });
   return true;
 }
 
-/** Passes a gate to its twin. */
+/** Whether a gate is barred now: none opens while a boss fight holds the investigator (round 12: the Ultimate Gate stands in Kadath's hall). */
+export function gateBarred(g: Game): boolean {
+  return engagedFights(g).length > 0;
+}
+
+/** Passes a gate to its twin (refused, and told why, while a boss fight is on). */
 export function passGate(g: Game, id: string): boolean {
   const twin = gatePlace(gatePlace(id)?.to ?? '');
   if (!g.overworld || !twin) return false;
+  if (gateBarred(g)) {
+    g.events.emit('Notice', { text: 'THE GATE WILL NOT OPEN WHILE A HORROR HOLDS YOU' });
+    return false;
+  }
   teleport(g, twin.arrive);
   g.events.emit('Travelled', { via: 'gate', to: twin.id, name: twin.name });
   return true;

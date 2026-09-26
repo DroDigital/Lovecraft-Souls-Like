@@ -218,3 +218,12 @@ export const OCCLUSION = {
   fade: 0.6, // share of their pixels dropped while they hide it
   ease: 10, // 1/s: how fast they fade and return
 };
+
+/** The seals on Kadath's door (playtest round 12, systems/seals.ts). */
+export const SEALS = {
+  exempt: ['hub', 'dreamlands', 'beyond'] as readonly string[], // regions holding no seal
+  kadath: 4, // seals broken before the Great Ones' door opens (Keziah's, on the main line, is one)
+  warn: 6, // metres: this close to a sealed door, the investigator is told what it waits for...
+  again: 20, // ...at most every this many seconds
+  after: { yog_sothoth: 'umr_at_tawil', azathoth: 'yog_sothoth' } as Readonly<Record<string, string>>, // the Beyond's order: each waits for the one before to fall
+};

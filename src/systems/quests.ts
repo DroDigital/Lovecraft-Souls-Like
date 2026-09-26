@@ -1,14 +1,16 @@
 /**
  * Quests (playtest round 1): each quest's stage, kept in the overworld and saved. A quest begins
- * when someone asks it of the investigator (npcs.ts); its stage's goal is checked as it can be met —
- * a talk or a gift when the investigator speaks with someone, a boss slain or an Elder Sign found
- * every half second — and the last stage's pays its reward. Pure: no Three.js.
+ * when someone asks it of the investigator (npcs.ts), or by itself once the one before it is done
+ * (`auto`, round 12); its stage's goal is checked as it can be met — a talk or a gift when the
+ * investigator speaks with someone, a boss slain, an Elder Sign found or the waking world's seals
+ * broken every half second — and the last stage's pays its reward. Pure: no Three.js.
  */
 
 import { QUESTS, type Goal } from '../data/quests';
 import type { Game } from './components';
 import { changeInsight } from './insight';
 import { addVial } from './reagent';
+import { sealsBroken } from './sealCount';
 
 export const UNSTARTED = -1;
 
@@ -62,11 +64,17 @@ export function talked(g: Game, npc: string): void {
   }
 }
 
-/** Every half second: bosses slain and Elder Signs found close the stages waiting on them. */
+/** Whether a goal met by the world's state (not by a word with someone) is met now. */
+function met(g: Game, goal: Goal): boolean {
+  const ow = g.overworld!;
+  if (goal.kind === 'slay') return ow.slain.has(`boss:${goal.boss}`);
+  if (goal.kind === 'reach') return ow.discovered.has(goal.sign);
+  return goal.kind === 'seals' && sealsBroken(g) >= goal.count;
+}
+
+/** Every half second: quests that begin by themselves begin, and bosses slain, Elder Signs found and seals broken close the stages waiting on them. */
 export function questSystem(g: Game): void {
-  const ow = g.overworld;
-  if (!ow || g.frame % 30 !== 0) return;
-  for (const [id, goal] of [...openGoals(g)]) {
-    if ((goal.kind === 'slay' && ow.slain.has(`boss:${goal.boss}`)) || (goal.kind === 'reach' && ow.discovered.has(goal.sign))) advance(g, id);
-  }
+  if (!g.overworld || g.frame % 30 !== 0) return;
+  for (const [id, goal] of [...openGoals(g)]) if (met(g, goal)) advance(g, id);
+  for (const [id, q] of Object.entries(QUESTS)) if (q.auto && stageOf(g, id) === UNSTARTED) startQuest(g, id); // (startQuest waits on `after`)
 }

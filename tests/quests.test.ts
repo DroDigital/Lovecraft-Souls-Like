@@ -3,12 +3,13 @@ import { DOCUMENTS } from '../src/data/documents';
 import { NPCS } from '../src/data/npcs';
 import { QUESTS } from '../src/data/quests';
 import { getEntity } from '../src/data/registry';
-import { WORLD } from '../src/data/tuning';
+import { SEALS, WORLD } from '../src/data/tuning';
 import type { Game } from '../src/systems/components';
 import { createWorldGame } from '../src/systems/game';
 import { npcEntity, npcPlace, talk } from '../src/systems/npcs';
 import { isDone, stageOf, UNSTARTED } from '../src/systems/quests';
 import { parseSave, snapshot } from '../src/systems/save';
+import { SEAL_REGIONS } from '../src/systems/sealCount';
 import { resolveCapsule } from '../src/world/colliders';
 import { worldLayout } from '../src/world/placements';
 import { createWorldCollision } from '../src/world/worldCollision';
@@ -68,12 +69,17 @@ describe('the people met in the dream', () => {
     ow.slain.add('boss:keziah_mason');
     run(g, 31);
     expect(isDone(g, 'witch_house')).toBe(true);
-    say(g, 'gilman');
-    expect(stageOf(g, 'descent')).toBe(0);
+    expect(stageOf(g, 'descent')).toBe(0); // the stair opens as she falls: no one need ask (round 12)
+    expect(say(g, 'gilman').join(' ')).toContain('Kuranes');
     say(g, 'kuranes');
     expect(isDone(g, 'descent')).toBe(true);
-    expect(stageOf(g, 'kadath')).toBe(0);
+    expect(stageOf(g, 'kadath')).toBe(0); // first, Kadath's seals
     ow.discovered.add('beyond_threshold');
+    run(g, 31);
+    expect(stageOf(g, 'kadath')).toBe(0); // the Threshold means nothing while the door is sealed
+    for (const r of SEAL_REGIONS.filter((x) => x.id !== 'arkham').slice(0, SEALS.kadath - 1)) ow.slain.add(`boss:${r.bosses[0]}`);
+    run(g, 31);
+    expect(stageOf(g, 'kadath')).toBe(1);
     run(g, 31);
     expect(isDone(g, 'kadath')).toBe(true);
     expect(changes.filter((c) => c.done).map((c) => c.id)).toEqual(['sleepers', 'witch_house', 'descent', 'kadath']);

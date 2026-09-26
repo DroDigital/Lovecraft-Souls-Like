@@ -80,6 +80,8 @@ describe('Elder Signs', () => {
     const sleeper = signPlace('hub_dream')!;
     goTo(g, sleeper.rest.x, sleeper.rest.z);
     rest(g, 'hub_dream');
+    expect(dream(g)).toBe(false); // not while Keziah Mason troubles the sleepers (round 12)
+    g.overworld!.slain.add('boss:keziah_mason');
     expect(dream(g)).toBe(true);
     const threshold = worldLayout().dream!;
     expect(pos(g)).toMatchObject({ x: threshold.x, z: threshold.z });

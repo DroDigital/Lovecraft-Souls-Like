@@ -42,6 +42,7 @@ import { spawnNpcs } from './npcs';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
 import { questSystem } from './quests';
+import { refreshSeals, registerSeals, sealSystem } from './seals';
 import { createReality, realitySystem, registerReality } from './reality';
 import { reagentSystem, registerReagent } from './reagent';
 import { registerHastur } from './signatures/hastur';
@@ -97,10 +98,12 @@ export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; sa
   registerOverworld(g);
   registerHastur(g);
   registerNyarlathotep(g);
+  registerSeals(g);
   if (save) g.overworld.read = new Set(save.read); // unread tomes only
   furnishWorld(g);
   spawnNpcs(g);
   if (save) applySave(g, save);
+  refreshSeals(g); // bosses slain in the save break their seals
   populationSystem(g);
   cameraSystem(g, 0, 0, 0);
   return g;
@@ -157,6 +160,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   insightSystem(g);
   explorationSystem(g);
   questSystem(g);
+  sealSystem(g);
   hallucinationSystem(g);
   deathSystem(g);
   populationSystem(g);

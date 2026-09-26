@@ -14,6 +14,7 @@ export type Dir = 'n' | 'e' | 's' | 'w';
 export interface Veil {
   minInsight?: number;
   maxSanity?: number; // a band floor
+  minSeals?: number; // the waking world's seals broken (systems/seals.ts): a door sealed until then (round 12)
 }
 
 export interface RoomDef {
@@ -44,6 +45,7 @@ export interface DungeonDef {
 }
 
 import { LAIRS } from './lairs';
+import { SEALS } from './tuning';
 
 type Extras = Omit<RoomDef, 'id' | 'kind' | 'from' | 'dir'>;
 const room = (id: string, kind: RoomKind, from: string | undefined, dir: Dir, x: Extras = {}): RoomDef => ({ id, kind, from, dir, ...x });
@@ -184,6 +186,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       stair('kadath_climb', 'zin_span', 'e', 6),
       room('kadath', 'hall', 'kadath_climb', 'e', {
         wide: true, boss: ['great_ones', 'nyarlathotep'], gate: { id: 'dream_ultimate', name: 'The Ultimate Gate', to: 'beyond_gate' },
+        hidden: { minSeals: SEALS.kadath }, // the Great Ones' door: sealed until the waking world's horrors fall (round 12)
       }),
     ],
   },

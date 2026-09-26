@@ -9,7 +9,7 @@
 import { getRegion } from '../data/regions';
 import { LEVELS, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { ENDINGS } from '../data/endings';
-import { dream, signPlace, travel } from '../systems/checkpoints';
+import { descentOpen, dream, signPlace, travel } from '../systems/checkpoints';
 import { courtEndings, endGame } from '../systems/endings';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
@@ -65,7 +65,8 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void) =>
     }
     if (here?.dream) {
       heading(panel, 'THE SLEEPER’S SIGN');
-      button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
+      if (descentOpen(g)) button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
+      else el(panel, 'div', 'The stair will not open while Keziah Mason troubles the sleepers, in the Witch House in Arkham.', 'opacity:.6;margin:4px 0 8px');
     }
     const endings = courtEndings(g, ow.sign);
     if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');
