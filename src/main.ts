@@ -58,6 +58,7 @@ import { armsPage } from './ui/armsPage';
 import { createJourneys } from './ui/journeys';
 import { createShell, type Shell } from './ui/shell';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
+import { createSkyline } from './render/skyline';
 import { createShopMenu } from './ui/shopMenu';
 import { takeCarry } from './systems/records';
 import { takeFlag, title } from './ui/titleFlow';
@@ -136,6 +137,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   scene.add(sky.mesh);
+  const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
@@ -187,7 +189,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
           resize();
         }
         placeCamera(camera, game, alpha);
-        sky.update(camera, time, game.overworld?.region ?? null, !!world && inDungeon(camera.position.x, camera.position.z));
+        const enclosed = !!world && inDungeon(camera.position.x, camera.position.z);
+        sky.update(camera, time, game.overworld?.region ?? null, enclosed);
+        skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);
