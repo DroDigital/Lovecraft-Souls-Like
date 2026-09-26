@@ -1,8 +1,9 @@
 /**
  * Houses (spec §2, low-poly): a stone footing, walls in the town's material (clapboard, brick, weathered
  * planks or stone), a roof (Arkham's gambrels, steep gables of brick, the sagging low roofs of hill
- * hovels, the flat parapets of older stone towns), chimneys, framed windows (a few faintly lit), a
- * door with its step, and on some a porch. In the house's own frame: front toward +z, feet at y = 0.
+ * hovels, the flat parapets of older stone towns), chimneys, framed windows with mullions and sills
+ * and, on clapboard, shutters (a few faintly lit), a door with its step, and on some a porch. In the
+ * house's own frame: front toward +z, feet at y = 0.
  */
 
 import * as THREE from 'three';
@@ -67,7 +68,16 @@ interface Lit {
   at: [number, number, number];
 }
 
-function windows(w: number, d: number, top: number, rng: Rng, lit: number): { frames: THREE.BufferGeometry[]; panes: THREE.BufferGeometry[]; glows: Lit[] } {
+/** A window's frame, its cross of mullions and its sill, and shutters if it has them; `turn` a quarter turn for a side wall. */
+function frame(x: number, y: number, z: number, out: number, turn: boolean, shutters: boolean): THREE.BufferGeometry[] {
+  const at = (w: number, h: number, d: number, dx: number, dy: number, dz: number, c: Rgb): THREE.BufferGeometry =>
+    turn ? box(d, h, w, x + dz * out, y + dy, z + dx, c) : box(w, h, d, x + dx, y + dy, z + dz * out, c);
+  const parts = [at(0.95, 1.3, 0.05, 0, 0, 0, TRIM), at(0.05, 1.05, 0.1, 0, 0, 0.01, TRIM), at(0.7, 0.05, 0.1, 0, 0.08, 0.01, TRIM), at(1.1, 0.08, 0.18, 0, -0.68, 0.07, TRIM)];
+  if (shutters) for (const s of [-1, 1]) parts.push(at(0.42, 1.25, 0.04, s * 0.72, 0, 0.02, DOOR));
+  return parts;
+}
+
+function windows(w: number, d: number, top: number, rng: Rng, lit: number, shutters: boolean): { frames: THREE.BufferGeometry[]; panes: THREE.BufferGeometry[]; glows: Lit[] } {
   const frames: THREE.BufferGeometry[] = [];
   const panes: THREE.BufferGeometry[] = [];
   const glows: Lit[] = [];
@@ -78,13 +88,13 @@ function windows(w: number, d: number, top: number, rng: Rng, lit: number): { fr
       for (let x = -w + 1.3; x <= w - 1.2; x += 2.3) {
         if (side > 0 && f === floors[0] && Math.abs(x) < 1.1) continue; // the door
         const z = side * (d + 0.03);
-        frames.push(box(0.95, 1.3, 0.05, x, y, z, TRIM));
+        frames.push(...frame(x, y, z, side, false, shutters));
         const on = rng() < lit; // one draw: a lit window glows in the lamplight's colour
         if (on) glows.push({ geo: box(0.7, 1.05, 0.08, x, y, z, LIT), at: [x, y, side * (d + 0.55)] });
         else panes.push(box(0.7, 1.05, 0.08, x, y, z, PANE));
       }
       const x = side * (w + 0.03);
-      frames.push(box(0.05, 1.3, 0.95, x, y, 0, TRIM));
+      frames.push(...frame(x, y, 0, side, true, shutters));
       const on = rng() < lit;
       if (on) glows.push({ geo: box(0.08, 1.05, 0.7, x, y, 0, LIT), at: [side * (w + 0.55), y, 0] });
       else panes.push(box(0.08, 1.05, 0.7, x, y, 0, PANE));
@@ -124,7 +134,7 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
   const stacks = style === 'brick' ? [-1, 1] : style === 'stone' ? [] : [rng() < 0.5 ? -1 : 1];
   for (const s of stacks) chimneys.push(tileUv(box(0.8, rh + 1.6, 0.8, s * wx * 0.7, top + (rh + 1.6) / 2 - 0.3, -wd * 0.2, scaleRgb(BASE.bone, 1.2)), 0.8, rh + 1.6));
 
-  const { frames, panes, glows } = windows(wx, wd, h, rng, 0.3);
+  const { frames, panes, glows } = windows(wx, wd, h, rng, 0.3, style === 'clapboard' && rng() < 0.6);
   const door = [box(1.1, 2.1, 0.1, 0, 0.4 + 1.05, wd + 0.05, DOOR), box(1.3, 0.12, 0.12, 0, 0.4 + 2.15, wd + 0.06, TRIM)];
   const step = box(1.8, 0.3, 0.8, 0, 0.15, wd + 0.5, scaleRgb(c, 0.75));
   if (style === 'clapboard' && rng() < 0.45) {

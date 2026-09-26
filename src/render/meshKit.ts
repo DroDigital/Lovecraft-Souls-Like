@@ -35,3 +35,21 @@ export const round = (top: number, bottom: number, h: number, y: number, c: Rgb,
 /** A rounded lump (a head, a hand, a toe): a low sphere of radius `r` scaled by `sx`, `sy`, `sz`, at (x, y, z). */
 export const lump = (r: number, sx: number, sy: number, sz: number, x: number, y: number, z: number, c: Rgb): THREE.BufferGeometry =>
   tint(new THREE.SphereGeometry(r, 8, 6).scale(sx, sy, sz).translate(x, y, z), c);
+
+/**
+ * Darkens a geometry's vertex colours toward the ground it stands on (y 0 in its own frame): whole
+ * from `reach` metres up, `low` of itself at the foot, as light baked into the vertices of the
+ * PS1's worlds (playtest round 7).
+ */
+export function groundShade(geo: THREE.BufferGeometry, low = 0.55, reach = 1.6): THREE.BufferGeometry {
+  const pos = geo.getAttribute('position');
+  const col = geo.getAttribute('color');
+  if (!col) return geo;
+  for (let i = 0; i < pos.count; i++) {
+    const t = Math.min(1, Math.max(0, pos.getY(i) / reach));
+    const k = low + (1 - low) * t * t * (3 - 2 * t);
+    col.setXYZ(i, col.getX(i) * k, col.getY(i) * k, col.getZ(i) * k);
+  }
+  col.needsUpdate = true;
+  return geo;
+}

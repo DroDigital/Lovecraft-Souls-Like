@@ -119,7 +119,7 @@ export const LIGHTS = {
     window: { color: [1, 0.76, 0.48], strength: 1.1, range: 6.5, halo: 0.9, haloGain: 0.38, flicker: 0 }, // a warm patch on the wall and ground before it
     fire: { color: [1, 0.66, 0.36], strength: 3, range: 13, halo: 1.8, haloGain: 0.75, flicker: 0.2 },
     torch: { color: [1, 0.72, 0.42], strength: 2, range: 8.5, halo: 0.85, haloGain: 0.7, flicker: 0.14 },
-    sigil: { color: [0.62, 0.26, 1], strength: 1.8, range: 9, halo: 1.6, haloGain: 0.4, flicker: 0 }, // a lit Elder Sign's glow (Cosmic Purple)
+    sigil: { color: [0.62, 0.26, 1], strength: 1.3, range: 9, halo: 1.3, haloGain: 0.3, flicker: 0 }, // a lit Elder Sign's glow (Cosmic Purple)
   } satisfies Record<LightKind, LightDef>,
 };
 

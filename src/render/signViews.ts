@@ -195,7 +195,7 @@ export function createSignViews(scene: THREE.Scene, g: Game, particles: Particle
   /** The lit signs light the world about them, a little before their carved face. */
   function light(): void {
     const spots = [...views.values()].filter((v) => v.lit > 0).map(({ root: { position: p, rotation: r } }) => ({
-      x: p.x + Math.sin(r.y) * 0.7, y: p.y + GLYPH_MID, z: p.z + Math.cos(r.y) * 0.7, kind: 'sigil' as const,
+      x: p.x + Math.sin(r.y) * 1.4, y: p.y + GLYPH_MID - 0.3, z: p.z + Math.cos(r.y) * 1.4, kind: 'sigil' as const,
     }));
     if (spots.length) lights.add(LIGHT_KEY, spots);
     else lights.remove(LIGHT_KEY);
