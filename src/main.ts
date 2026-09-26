@@ -199,7 +199,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);
         journeys.update(world?.pending ?? 0);
-        views.update(alpha, time, camera.position);
+        views.update(alpha, time);
         placeLantern(game, alpha);
         lights.update(camera.position, time, views.flame);
         creatures.update(alpha, time, camera);

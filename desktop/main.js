@@ -40,7 +40,7 @@ function lastWindow() {
     const ok = [w.x, w.y, w.width, w.height].every(Number.isFinite) && screen.getAllDisplays().some(({ workArea: a }) => w.x < a.x + a.width && w.x + w.width > a.x && w.y < a.y + a.height && w.y + w.height > a.y);
     return { bounds: ok ? { x: w.x, y: w.y, width: w.width, height: w.height } : null, fullscreen: !!w.fullscreen, maximized: !!w.maximized };
   } catch {
-    return { bounds: null, fullscreen: false, maximized: false };
+    return { bounds: null, fullscreen: true, maximized: true }; // the first run fills the screen (round 13)
   }
 }
 

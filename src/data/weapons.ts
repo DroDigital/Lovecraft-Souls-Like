@@ -93,8 +93,8 @@ export const WEAPONS = {
     moves: {
       light1: chop([60, -80], 'light2', 'overhead', 34, 15),
       light2: chop([-70, 70], 'light1', 'backhand', 38, 16),
-      heavy1: fell([110, -70], 'heavy2', 'overhead', 74, 32),
-      heavy2: fell([-110, 70], 'heavy1', 'spin', 66, 30),
+      heavy1: fell([110, -70], 'heavy2', 'cleave', 74, 32),
+      heavy2: fell([100, -100], 'heavy1', 'wheel', 66, 30), // a flat forehand (round 13; the arc sets the sweep's way)
     },
   },
   razor: {
@@ -117,7 +117,7 @@ export const WEAPONS = {
       },
       heavy1: {
         frames: 40,
-        anim: 'thrust',
+        anim: 'lunge',
         stamina: 18,
         cancel: 28,
         release: 30,
@@ -128,7 +128,7 @@ export const WEAPONS = {
       },
       heavy2: {
         frames: 42,
-        anim: 'spin',
+        anim: 'whirl',
         stamina: 20,
         cancel: 30,
         release: 32,
@@ -146,8 +146,8 @@ export const WEAPONS = {
       light1: hew([80, -80], 'light2', 'slash', 25, 11),
       light2: hew([-80, 80], 'light3', 'backhand', 25, 11),
       light3: hew([10, -10], 'light1', 'overhead', 34, 15),
-      heavy1: fell([150, -150], 'heavy2', 'spin', 48, 26),
-      heavy2: fell([0, 0], 'heavy1', 'overhead', 58, 28),
+      heavy1: fell([150, -150], 'heavy2', 'whirl', 48, 26),
+      heavy2: fell([0, 0], 'heavy1', 'cleave', 58, 28),
     },
   },
   rapier: {
@@ -157,7 +157,7 @@ export const WEAPONS = {
       light1: pierce('light2', 'thrust', 22, 9),
       light2: pierce('light1', 'thrust', 24, 10),
       heavy1: {
-        ...pierce('light1', 'thrust', 46, 22),
+        ...pierce('light1', 'lunge', 46, 22),
         frames: 48,
         stamina: 22,
         combo: { light: 'light1', heavy: 'heavy1' },

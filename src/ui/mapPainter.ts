@@ -25,6 +25,14 @@ export interface MapView {
   h: number;
 }
 
+/**
+ * Where a world point falls on a view (pixels). The world is drawn as the investigator sees it
+ * (playtest round 13: the map was its mirror, so the minimap turned against the camera): facing
+ * north (+z), +x lies on the left, so +x is drawn to the left.
+ */
+export const screenX = (view: MapView, x: number): number => (view.cx - x) * view.scale + view.w / 2;
+export const screenY = (view: MapView, z: number): number => (view.cz - z) * view.scale + view.h / 2;
+
 export interface MapPainter {
   paint(ctx: CanvasRenderingContext2D, view: MapView, realm: readonly RegionDef[], labels: boolean): void;
 }
@@ -174,15 +182,20 @@ export function createMapPainter(g: Game): MapPainter {
       ctx.fillStyle = fog;
       ctx.fillRect(0, 0, view.w, view.h);
       if (!ow) return;
-      const sx = (x: number): number => (x - view.cx) * view.scale + view.w / 2;
-      const sy = (z: number): number => (view.cz - z) * view.scale + view.h / 2;
+      const sx = (x: number): number => screenX(view, x);
+      const sy = (z: number): number => screenY(view, z);
       ctx.imageSmoothingEnabled = view.scale < 1;
       for (const r of realm) {
         const rc = regionRect(r);
-        const [x0, y0, x1, y1] = [sx(rc.x0), sy(rc.z1), sx(rc.x1), sy(rc.z0)];
+        const [x0, y0, x1, y1] = [sx(rc.x1), sy(rc.z1), sx(rc.x0), sy(rc.z0)];
         if (x1 < 0 || y1 < 0 || x0 > view.w || y0 > view.h) continue;
         const img = veiled(r);
-        if (img) ctx.drawImage(img, x0 - 0.5, y0 - 0.5, x1 - x0 + 1, y1 - y0 + 1); // half a pixel over, so no seam shows between regions
+        if (!img) continue;
+        ctx.save(); // the art is drawn west to east; the map shows it mirrored, as the world is seen
+        ctx.translate(x1, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, -0.5, y0 - 0.5, x1 - x0 + 1, y1 - y0 + 1); // half a pixel over, so no seam shows between regions
+        ctx.restore();
       }
       const inRealm = new Set(realm.map((r) => r.id));
       const k = uiScale(); // the names grow with the UI (the marks keep their size)
@@ -239,7 +252,7 @@ export function createMapPainter(g: Game): MapPainter {
       const [px, py] = [sx(tr.pos.x), sy(tr.pos.z)];
       ctx.save();
       ctx.translate(px, py);
-      ctx.rotate(tr.yaw); // yaw 0 faces north (up); east is a quarter turn clockwise
+      ctx.rotate(-tr.yaw); // yaw 0 faces north (up); +x, a quarter turn of yaw, is on the left
       ctx.beginPath();
       ctx.moveTo(0, -7);
       ctx.lineTo(5, 5);

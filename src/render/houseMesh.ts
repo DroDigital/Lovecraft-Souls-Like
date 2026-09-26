@@ -62,10 +62,11 @@ function roof(profile: readonly (readonly [number, number])[], w: number, over: 
   return { roof: r, gables: g };
 }
 
-/** A lit window's glass, and where its light spills from: half a metre out from the wall. */
+/** A lit window's glass, where its light spills from (half a metre out from the wall), and the glass's middle, where its glow sits. */
 interface Lit {
   geo: THREE.BufferGeometry;
   at: [number, number, number];
+  glass: [number, number, number];
 }
 
 /** A window's frame, its cross of mullions and its sill, and shutters if it has them; `turn` a quarter turn for a side wall. */
@@ -90,13 +91,13 @@ function windows(w: number, d: number, top: number, rng: Rng, lit: number, shutt
         const z = side * (d + 0.03);
         frames.push(...frame(x, y, z, side, false, shutters));
         const on = rng() < lit; // one draw: a lit window glows in the lamplight's colour
-        if (on) glows.push({ geo: box(0.7, 1.05, 0.08, x, y, z, LIT), at: [x, y, side * (d + 0.55)] });
+        if (on) glows.push({ geo: box(0.7, 1.05, 0.08, x, y, z, LIT), at: [x, y, side * (d + 0.55)], glass: [x, y, z] });
         else panes.push(box(0.7, 1.05, 0.08, x, y, z, PANE));
       }
       const x = side * (w + 0.03);
       frames.push(...frame(x, y, 0, side, true, shutters));
       const on = rng() < lit;
-      if (on) glows.push({ geo: box(0.08, 1.05, 0.7, x, y, 0, LIT), at: [side * (w + 0.55), y, 0] });
+      if (on) glows.push({ geo: box(0.08, 1.05, 0.7, x, y, 0, LIT), at: [side * (w + 0.55), y, 0], glass: [x, y, 0] });
       else panes.push(box(0.08, 1.05, 0.7, x, y, 0, PANE));
     }
   }
@@ -148,6 +149,6 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
     { mat: 'wood', geo: tileUv(mergeGeometries([...frames, ...panes, ...door]), 1, 1) },
   ];
   if (chimneys.length) pieces.push({ mat: 'brick', geo: mergeGeometries(chimneys) });
-  for (const g of glows) pieces.push({ mat: 'glow', geo: g.geo, light: 'window', at: g.at });
+  for (const g of glows) pieces.push({ mat: 'glow', geo: g.geo, light: 'window', at: g.at, glass: g.glass });
   return pieces;
 }

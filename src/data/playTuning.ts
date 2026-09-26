@@ -59,7 +59,7 @@ export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
   sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
   invertY: [0, 1, 1, 0], // 1: up looks down (round 12)
-  resolution: [0.5, 2, 0.25, 1.5], // internal resolution, × RENDER's 400 × 225 (600 × 338 by default since playtest round 7, so the figures' detail shows)
+  resolution: [0.5, 2, 0.25, 2], // internal resolution, × RENDER's 400 × 225 (the most, 800 × 450, by default since playtest round 13)
   brightness: [0.7, 1.6, 0.05, 1], // lifts the dark (a gamma, after the grade; round 12)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
@@ -139,6 +139,7 @@ export const LIGHTS = {
   reach: 42, // metres: the farthest a light is chosen to light the world about it
   haloReach: 75, // metres: the farthest a halo is drawn
   haloFog: 0.55, // halos pierce the fog: they fade by only this share of it
+  paneHalo: 0.55, // metres: a lit window's glow, on its glass (round 13; the window kind's halo was a ball before the wall)
   lantern: { color: [1, 0.82, 0.58] as Vec3, halo: 0.34, haloGain: 0.6 }, // the investigator's own, which lights by its own rules (lantern.ts)
   kinds: {
     lamp: { color: [1, 0.8, 0.52], strength: 2.6, range: 11, halo: 1.4, haloGain: 0.8, flicker: 0.03 }, // a pool about six metres across under a lamp three and a half up, and the walls about it
@@ -231,15 +232,6 @@ export const AI = {
   fallBack: 0.6, // seconds a skirmisher falls back after its blow
   stuck: 0.5, // pushing this long without getting anywhere...
   detour: 0.7, // ...it steps aside this long to get round what blocks it
-};
-
-/** The investigator dithered away when they hide the foe they fight (playtest round 12, render/occlusion.ts). */
-export const OCCLUSION = {
-  near: 4, // metres: without a lock, the nearest foe hunting them this close is the one watched
-  radius: 0.5, // metres from their axis the line to the foe must pass to count as hidden
-  height: 1.9, // their body's height, hat and all
-  fade: 0.6, // share of their pixels dropped while they hide it
-  ease: 10, // 1/s: how fast they fade and return
 };
 
 /** The seals on Kadath's door (playtest round 12, systems/seals.ts). */

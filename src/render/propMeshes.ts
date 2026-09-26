@@ -52,8 +52,8 @@ export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshe
       groups.get(piece.mat)?.push(geo) ?? groups.set(piece.mat, [geo]);
       if (!piece.light) continue;
       if (piece.at) {
-        const [x, y, z] = piece.at; // turned as the piece was (rotateY), then placed
-        lights.push({ x: p.x + x * cs + z * s, y: p.y - 0.15 + y, z: p.z - x * s + z * cs, kind: piece.light });
+        const place = ([x, y, z]: readonly [number, number, number]): { x: number; y: number; z: number } => ({ x: p.x + x * cs + z * s, y: p.y - 0.15 + y, z: p.z - x * s + z * cs }); // turned as the piece was (rotateY), then placed
+        lights.push({ ...place(piece.at), kind: piece.light, glass: piece.glass && place(piece.glass) });
       } else {
         geo.computeBoundingBox();
         const m = geo.boundingBox!.getCenter(new THREE.Vector3());

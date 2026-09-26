@@ -18,6 +18,18 @@ export interface LightSpot {
   y: number;
   z: number;
   kind: LightKind;
+  /** A lit window's pane (playtest round 13: its glow hung half a metre before the window, where the light is cast from): the glow sits on the glass, and fades as the window is seen edge on. */
+  glass?: { x: number; y: number; z: number };
+}
+
+/** How much of a window's glow shows from `eye`: all of it square on, nothing edge on or from behind. */
+export function glassFacing(s: LightSpot, eye: { x: number; y: number; z: number }): number {
+  const g = s.glass;
+  if (!g) return 1;
+  const [nx, nz] = [s.x - g.x, s.z - g.z];
+  const [ex, ey, ez] = [eye.x - g.x, eye.y - g.y, eye.z - g.z];
+  const cos = (nx * ex + nz * ez) / Math.max(1e-6, Math.hypot(nx, nz) * Math.hypot(ex, ey, ez));
+  return Math.min(1, Math.max(0, (cos - 0.1) / 0.6));
 }
 
 export interface WorldLights {
@@ -77,6 +89,11 @@ export function createWorldLights(): WorldLights {
       if (lantern) batch.put(lantern.x, lantern.y, lantern.z, LIGHTS.lantern.halo, LIGHTS.lantern.color, LIGHTS.lantern.haloGain * waver({ x: 0, y: 0, z: 0, kind: 'torch' }, 0.05, time));
       for (const { s } of near) {
         const k: LightDef = LIGHTS.kinds[s.kind];
+        if (s.glass) {
+          const face = glassFacing(s, eye);
+          if (face > 0 && !batch.put(s.glass.x, s.glass.y, s.glass.z, LIGHTS.paneHalo, k.haloColor ?? k.color, k.haloGain * face)) break;
+          continue;
+        }
         if (!batch.put(s.x, s.y, s.z, k.halo, k.haloColor ?? k.color, k.haloGain * waver(s, k.flicker, time))) break;
       }
       batch.end();

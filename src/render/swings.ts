@@ -7,6 +7,7 @@
 
 import type { MoveDef } from '../data/moves';
 import type { Figure } from './figures';
+import { heavySwing } from './heavySwings';
 
 const DEG = Math.PI / 180;
 const UP = Math.PI / 2; // arm straight ahead
@@ -99,6 +100,7 @@ function spin(f: Figure, p: Phase): void {
 
 /** Poses the figure for an attack move at a (fractional) frame. */
 export function swing(f: Figure, d: MoveDef, frame: number): void {
+  if (d.anim === 'cleave' || d.anim === 'wheel' || d.anim === 'lunge' || d.anim === 'whirl') return heavySwing(f, d, d.anim, frame);
   const p = phase(d, frame);
   const [a0, a1] = d.hit!.arc;
   switch (d.anim) {

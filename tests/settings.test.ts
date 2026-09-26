@@ -14,7 +14,7 @@ function memoryStore() {
 describe('settings', () => {
   it('defaults to the tuning defaults: full FX, sensitivity 1, 400 × 225, every level full', () => {
     expect(defaultSettings()).toEqual({
-      fxCap: 1, sensitivity: 1, invertY: 0, resolution: 1.5, brightness: 1, uiScale: 1, shake: 1,
+      fxCap: 1, sensitivity: 1, invertY: 0, resolution: 2, brightness: 1, uiScale: 1, shake: 1,
       volume: SETTINGS.volume[3], music: 1, sfx: 1, ambience: 1,
     });
   });
@@ -47,5 +47,12 @@ describe('settings', () => {
     expect(() => storeSettings(refusing, s)).not.toThrow();
     expect(loadSettings(refusing)).toEqual(defaultSettings());
     expect(loadSettings(null)).toEqual(defaultSettings());
+  });
+
+  it('an older entry starts at the most resolution again; a chosen one is kept after', () => {
+    expect(parseSettings('{"resolution":1}').resolution).toBe(SETTINGS.resolution[1]);
+    const store = memoryStore();
+    storeSettings(store, { ...defaultSettings(), resolution: 1 });
+    expect(loadSettings(store).resolution).toBe(1);
   });
 });
