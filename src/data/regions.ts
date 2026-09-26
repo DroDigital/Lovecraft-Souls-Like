@@ -10,6 +10,7 @@ import type { Vec3 } from './tuning';
 /** Every prop the world stands up; biomes scatter the first six, region plans place the rest (world/features.ts). */
 export const PROP_KINDS = [
   'tree', 'rock', 'pillar', 'monolith', 'grave', 'ruin', 'pine', 'cross', 'obelisk', 'house', 'wall', 'fence', 'lamp', 'log', 'firepit', 'bush', 'stump', 'altar',
+  'spire', 'tower', 'cone', 'pyramid', 'block', 'globe', // the realms' landmarks (round 12; render/landmarkShapes.ts)
 ] as const;
 export type PropKind = (typeof PROP_KINDS)[number];
 

@@ -18,6 +18,7 @@ import { DIRS, rectDistance, regionRect } from './worldMap';
 
 const SAFE = 30; // metres of peace around every Elder Sign and gate
 const PATROL = 95; // metres of road between patrols
+const MARGIN = 0.8; // metres a foe keeps from a prop's collider
 
 /** A weighted pick from a spawn table. */
 function pick(table: Readonly<Record<string, number>>, roll: number): string | undefined {
@@ -39,17 +40,18 @@ export function planSpawns(region: RegionDef, features: readonly Feature[], road
     const c = propCollider(p);
     if (!c) continue;
     const b = colliderBounds(c);
-    for (let x = Math.floor(b.x0 / 8); x <= Math.floor(b.x1 / 8); x++) for (let z = Math.floor(b.z0 / 8); z <= Math.floor(b.z1 / 8); z++) {
+    const m = MARGIN; // filed under every cell the margin reaches too: a foe just over a cell's edge from a rock was missed (round 12)
+    for (let x = Math.floor((b.x0 - m) / 8); x <= Math.floor((b.x1 + m) / 8); x++) for (let z = Math.floor((b.z0 - m) / 8); z <= Math.floor((b.z1 + m) / 8); z++) {
       const k = x * 65536 + z;
       grid.get(k)?.push(c) ?? grid.set(k, [c]);
     }
   }
   const solid = (x: number, z: number): boolean =>
     (grid.get(cell(x, z)) ?? []).some((c) => {
-      if (c.kind === 'cylinder') return Math.hypot(x - c.x, z - c.z) < c.radius + 0.8;
+      if (c.kind === 'cylinder') return Math.hypot(x - c.x, z - c.z) < c.radius + MARGIN;
       if (c.kind === 'obox') {
         const l = toBoxFrame(c, x, z);
-        return Math.abs(l.x) < c.hx + 0.8 && Math.abs(l.z) < c.hz + 0.8;
+        return Math.abs(l.x) < c.hx + MARGIN && Math.abs(l.z) < c.hz + MARGIN;
       }
       return false;
     });
@@ -76,10 +78,10 @@ export function planSpawns(region: RegionDef, features: readonly Feature[], road
   };
 
   for (const f of features) {
-    const chance = { camp: 1, ruin: 0.55, grove: 0.45, circle: 0.5, graveyard: 0.6, outcrop: 0.25 }[f.kind];
+    const chance = { camp: 1, ruin: 0.55, grove: 0.45, circle: 0.5, graveyard: 0.6, outcrop: 0.25, landmark: 0.4 }[f.kind];
     if (rng() >= chance) continue;
     const n = f.kind === 'camp' ? 3 + Math.floor(rng() * 3) : 2 + Math.floor(rng() * 2);
-    group(f.x, f.z, n, f.kind === 'camp' ? 3 : 1.5, Math.max(3.5, f.r * 0.7));
+    group(f.x, f.z, n, f.kind === 'camp' ? 3 : f.kind === 'landmark' ? 9 : 1.5, Math.max(f.kind === 'landmark' ? 12 : 3.5, f.r * 0.7)); // clear of a landmark's bulk
   }
   for (const d of w.dungeons) {
     if (d.layout.region !== region.id || d.layout.def.sealed) continue;

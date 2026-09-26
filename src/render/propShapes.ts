@@ -11,6 +11,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRng, type Rng } from '../core/rng';
 import type { LightKind } from '../data/tuning';
 import type { Prop } from '../world/props';
+import { landmarkPieces } from './landmarkShapes';
 import { box, tileUv, tint } from './meshKit';
 import { BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 
@@ -254,5 +255,12 @@ export function propPieces(p: Prop, c: Rgb): Piece[] {
       return altar(p, rng, c);
     case 'house':
       return [];
+    case 'spire':
+    case 'tower':
+    case 'cone':
+    case 'pyramid':
+    case 'block':
+    case 'globe':
+      return landmarkPieces(p, rng, c);
   }
 }

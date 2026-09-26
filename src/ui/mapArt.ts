@@ -120,6 +120,7 @@ const PROP_INK: Partial<Record<Prop['kind'], string>> = {
   tree: '#3a4232', pine: '#2c3528', bush: '#46503a', stump: '#5a5446', rock: '#77736a', log: '#5a4a3a',
   grave: '#a39d8e', cross: '#a39d8e', obelisk: '#b0aa9c', monolith: '#6c5f7a', pillar: '#8c877c', altar: '#8a6d60',
   ruin: '#6e665a', wall: '#57524a', fence: '#6a5c48', lamp: '#d9c890', firepit: '#b0603a',
+  spire: '#4c5a54', tower: '#2c2a30', cone: '#a8a6a0', pyramid: '#6a7088', block: '#4a4846', globe: '#6a3a8a',
 };
 
 function overlay(a: Job): void {
@@ -161,7 +162,7 @@ function overlay(a: Job): void {
 
 /** A prop as the surveyor marks it: buildings and walls to scale, everything else as a dot. */
 function prop(ctx: CanvasRenderingContext2D, p: Prop, x: number, y: number): void {
-  if (p.kind === 'house' || p.kind === 'wall' || p.kind === 'fence' || p.kind === 'ruin' || p.kind === 'monolith' || p.kind === 'altar') {
+  if (p.kind === 'house' || p.kind === 'wall' || p.kind === 'fence' || p.kind === 'ruin' || p.kind === 'monolith' || p.kind === 'altar' || p.kind === 'pyramid' || p.kind === 'block') {
     const [c, s] = [Math.cos(p.yaw), Math.sin(p.yaw)];
     const [ax, az, bx, bz] = [p.w * c, -p.w * s, p.d * s, p.d * c]; // its own x and z axes, scaled (world metres)
     ctx.fillStyle = p.kind === 'house' ? '#3b2c26' : PROP_INK[p.kind]!;
@@ -177,7 +178,7 @@ function prop(ctx: CanvasRenderingContext2D, p: Prop, x: number, y: number): voi
   }
   const ink = PROP_INK[p.kind];
   if (!ink) return;
-  const r = p.kind === 'tree' ? 1.6 : p.kind === 'pine' ? 1.3 : p.kind === 'rock' ? Math.max(0.6, p.w / ART_PX) : 0.6;
+  const r = p.kind === 'tree' ? 1.6 : p.kind === 'pine' ? 1.3 : p.kind === 'rock' || p.kind === 'spire' || p.kind === 'tower' || p.kind === 'cone' || p.kind === 'globe' ? Math.max(0.6, p.w / ART_PX) : 0.6;
   ctx.fillStyle = ink;
   ctx.fillRect(x - r, y - r, r * 2, r * 2);
 }
