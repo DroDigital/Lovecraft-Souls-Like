@@ -5,7 +5,7 @@
  * given to one action is taken from any other that had it, which gets the first one's old key.
  */
 
-export const ACTIONS = ['forward', 'back', 'left', 'right', 'dodge', 'shoot', 'lock', 'heal', 'item', 'interact', 'map'] as const;
+export const ACTIONS = ['forward', 'back', 'left', 'right', 'dodge', 'shoot', 'lock', 'heal', 'item', 'throw', 'interact', 'map'] as const;
 export type Action = (typeof ACTIONS)[number];
 export type KeyLayout = Record<Action, string>;
 
@@ -19,6 +19,7 @@ export const DEFAULT_KEYS: Readonly<KeyLayout> = {
   lock: 'KeyQ',
   heal: 'KeyR',
   item: 'KeyT',
+  throw: 'KeyG', // a flask of lamp oil (round 12)
   interact: 'KeyE',
   map: 'KeyM',
 };

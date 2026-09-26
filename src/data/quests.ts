@@ -24,10 +24,11 @@ export interface QuestDef {
   auto?: boolean; // begins by itself once `after` is done (no one need ask it)
   stages: readonly QuestStage[];
   done: string; // the journal's line once it is done
-  reward: { echoes?: number; insight?: number; vial?: boolean };
+  reward: { echoes?: number; insight?: number; vial?: boolean; stones?: number; weapon?: WeaponId }; // star-stones and a weapon: round 12
 }
 
 import { SEALS } from './tuning';
+import type { WeaponId } from './weapons';
 
 export const QUESTS: Readonly<Record<string, QuestDef>> = {
   sleepers: {
@@ -93,5 +94,42 @@ export const QUESTS: Readonly<Record<string, QuestDef>> = {
     stages: [{ goal: { kind: 'slay', boss: 'shoggoth' }, note: "One of the Elder Things' servants still lives in their city past the ridge. Professor Dyer warns me not to let it get between me and the way out." }],
     done: 'The servant in the Elder city is dead. Dyer gave me his drawings of the murals.',
     reward: { insight: 2 },
+  },
+  // The far realms' favours (round 12: npcsFar.ts).
+  archives: {
+    title: 'In His Own Hand',
+    stages: [
+      { goal: { kind: 'reach', sign: 'pnakotus_archives' }, note: "Nathaniel Peaslee says an account in his own hand lies in the Archives of the Great Race, under the desert. Find the Archive Reading Hall." },
+      { goal: { kind: 'slay', boss: 'flying_polyp' }, note: 'The polyps the Great Race walled in below the archives are loose. Nathaniel asks me to put down the swarm that leads them, in the vault below.' },
+    ],
+    done: 'The whistling below the archives has stopped. Nathaniel Peaslee remembers a little more of what he was.',
+    reward: { stones: 1, insight: 2 },
+  },
+  zamacona: {
+    title: "The Toad of N'kai",
+    stages: [{ goal: { kind: 'slay', boss: 'tsathoggua' }, note: "Zamacona says Tsathoggua sleeps in black N'kai, below Tsath, and while it sleeps nothing in K'n-yan can leave. The way is past the temple stair." }],
+    done: "Tsathoggua is still. Zamacona gave me his espada; he says he cannot lift it here.",
+    reward: { weapon: 'rapier', echoes: 2000 },
+  },
+  alert: {
+    title: 'Where Johansen Stood',
+    stages: [{ goal: { kind: 'slay', boss: 'cthulhu' }, note: "Johansen says the Alert still lies at R'lyeh's edge. When the thing comes out of the great door, take her helm and put her bows into it." }],
+    done: "The Alert struck it, as she did once before, and R'lyeh went down again. Johansen gave me the stones that came up with the island.",
+    reward: { stones: 2, insight: 1 },
+  },
+  cylinders: {
+    title: 'The Cylinders',
+    stages: [
+      { goal: { kind: 'reach', sign: 'yuggoth_cities' }, note: "Akeley says the Outer Ones keep brains in metal cylinders in their Fungoid Cities, his among them. Find the cities, east of the landing." },
+      { goal: { kind: 'slay', boss: 'rhan_tegoth' }, note: 'The Outer Ones feed Rhan-Tegoth in the hall of cylinders. Akeley says none will open while it lives.' },
+    ],
+    done: "Rhan-Tegoth is dead in the hall of cylinders, and they are opening. Akeley gave me a vial and the Outer Ones' stones.",
+    reward: { vial: true, stones: 1 },
+  },
+  silver_key: {
+    title: 'The Gate and the Key',
+    stages: [{ goal: { kind: 'slay', boss: 'yog_sothoth' }, note: "Randolph Carter says Yog-Sothoth is the gate and the key and the guardian, and while it holds, the tall man's way stays open. It waits past 'Umr at-Tawil." }],
+    done: 'Yog-Sothoth is put down. Carter says what is left is the Court, and a choice.',
+    reward: { stones: 2, insight: 3 },
   },
 };

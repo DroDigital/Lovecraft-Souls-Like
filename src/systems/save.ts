@@ -1,25 +1,28 @@
 /**
  * Save and load (spec §3D): the investigator's progress as localStorage JSON — where they stand,
  * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
- * health, levels, arms, the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
+ * health, levels, arms (and the star-stones set into them), the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
  * quests and the people met, and the wounds of foes still standing. Parsing checks every
- * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
+ * field, so a damaged or foreign save is ignored. Three slots (round 12), one in use. Pure: the storage
+ * is handed in.
  */
 
 import type { Place } from '../data/arena';
 import { ENDING_IDS } from '../data/endings';
 import { QUESTS } from '../data/quests';
+import { WARES } from '../data/wares';
 import { START_SIGN } from '../data/sites';
-import { LEVELS, REAGENT, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { LEVELS, NEW_GAME_PLUS, OIL, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
 import { packExplored, unpackExplored } from './exploration';
 import { woundsNow } from './overworld';
+import type { Tally } from './tally';
 import { changeInsight } from './insight';
 import { applyLevels, laudanumMax, LEVEL_IDS } from './levels';
-import { equip } from './arms';
-import { isWeapon, type WeaponId } from '../data/weapons';
+import { equip, stonesOfSlain } from './arms';
+import { isWeapon, WEAPON_IDS, type WeaponId } from '../data/weapons';
 import { setSanity } from './sanity';
 import { spawnDrop } from './spawn';
 
@@ -42,16 +45,22 @@ export interface SaveData {
   levels?: Record<LevelId, number>; // bought with Echoes (playtest round 4)
   arms?: string[]; // the weapons owned...
   weapon?: string; // ...and the one in hand
+  stones?: number; // star-stones carried (round 12; an older save is paid for the bosses it slew)...
+  reinforced?: Record<string, number>; // ...and each weapon's reinforcement
   seen: string[];
   laudanum: number;
   reagent?: number; // West's Reagent: doses left and the most it holds
   reagentMax?: number;
+  oil?: number; // flasks of lamp oil (round 12)
+  cycle?: number; // the journey through the dream (NG+; round 12)
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   ending?: string; // the ending chosen
   explored?: Record<string, string>; // the ground seen, as base64 bits by region (exploration.ts)
   quests?: Record<string, number>; // each quest begun: its stage (quests.ts)
   met?: string[]; // the people talked with
+  sold?: Record<string, number>; // wares bought, by ware (round 12)
+  tally?: Record<string, number>; // the run's numbers (round 12)
   wounds?: Record<string, number>; // wounded foes by spawn id: their health fractions (a reload does not heal them)
 }
 
@@ -85,16 +94,22 @@ export function snapshot(g: Game): SaveData {
     levels: { ...g.player.levels },
     arms: [...g.player.arms],
     weapon: g.player.weapon,
+    stones: g.player.stones,
+    reinforced: { ...g.player.reinforced },
     seen: [...g.mind.seen],
     laudanum: g.player.laudanum,
     reagent: g.player.reagent,
     reagentMax: g.player.reagentMax,
+    oil: g.player.oil,
+    cycle: g.player.cycle,
     named: ow.named,
     called: [...ow.called],
     ...(ow.ending && { ending: ow.ending }),
     explored: packExplored(ow.explored),
     quests: Object.fromEntries(ow.quests),
     met: [...ow.met],
+    sold: Object.fromEntries(ow.sold),
+    tally: { ...ow.tally },
     wounds: Object.fromEntries(woundsNow(g)),
   };
 }
@@ -122,7 +137,9 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.explored !== undefined && (typeof o.explored !== 'object' || o.explored === null)) return null;
   if (o.quests !== undefined && (typeof o.quests !== 'object' || o.quests === null || !Object.values(o.quests).every(isNum))) return null;
   if (o.met !== undefined && !isStrings(o.met)) return null;
+  if ((o.sold !== undefined && !isCounts(o.sold)) || (o.tally !== undefined && !isCounts(o.tally))) return null;
   if ((o.arms !== undefined && !isStrings(o.arms)) || (o.weapon !== undefined && typeof o.weapon !== 'string')) return null;
+  if ((o.cycle !== undefined && !isNum(o.cycle)) || (o.oil !== undefined && !isNum(o.oil)) || (o.stones !== undefined && !isNum(o.stones)) || (o.reinforced !== undefined && !isCounts(o.reinforced))) return null;
   if (o.wounds !== undefined && (typeof o.wounds !== 'object' || o.wounds === null || !Object.values(o.wounds).every(isNum))) return null;
   return o as unknown as SaveData;
 }
@@ -145,6 +162,8 @@ export function applySave(g: Game, s: SaveData): void {
   ow.explored = unpackExplored(s.explored);
   ow.quests = new Map(Object.entries(s.quests ?? {}).filter(([id]) => QUESTS[id]).map(([id, n]) => [id, clampInt(n, -1, QUESTS[id].stages.length)]));
   ow.met = new Set(s.met ?? []);
+  for (const k of Object.keys(ow.tally) as (keyof Tally)[]) ow.tally[k] = Math.max(0, Math.round(s.tally?.[k] ?? 0));
+  ow.sold = new Map(Object.entries(s.sold ?? {}).filter(([id]) => id in WARES).map(([id, n]) => [id, clampInt(n, 0, 99)]));
   ow.wounds = new Map(Object.entries(s.wounds ?? {}).map(([id, f]) => [id, Math.min(1, Math.max(0.01, f))]));
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
   for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k] ?? 0, 0, UPGRADES[k].max);
@@ -153,6 +172,8 @@ export function applySave(g: Game, s: SaveData): void {
   applyLevels(g);
   g.player.arms = ['cane', ...new Set((s.arms ?? []).filter((id): id is WeaponId => isWeapon(id) && id !== 'cane'))];
   if (!equip(g, s.weapon ?? 'cane')) equip(g, 'cane');
+  g.player.stones = clampInt(s.stones ?? stonesOfSlain(s.slain), 0, 999);
+  for (const id of WEAPON_IDS) g.player.reinforced[id] = clampInt(s.reinforced?.[id] ?? 0, 0, REINFORCE.max);
   const h = c.health.get(g.player.id)!;
   h.hp = Math.min(h.max, Math.max(1, s.hp));
   const st = c.stamina.get(g.player.id)!;
@@ -164,10 +185,37 @@ export function applySave(g: Game, s: SaveData): void {
   g.player.laudanum = clampInt(s.laudanum, 0, laudanumMax(g));
   g.player.reagentMax = clampInt(s.reagentMax ?? REAGENT.doses, REAGENT.doses, REAGENT.maxDoses);
   g.player.reagent = clampInt(s.reagent ?? g.player.reagentMax, 0, g.player.reagentMax);
+  g.player.oil = clampInt(s.oil ?? 0, 0, OIL.carry);
+  g.player.cycle = clampInt(s.cycle ?? 0, 0, NEW_GAME_PLUS.most); // before the world fills: its foes are this journey's
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);
 }
 
-export const saveGame = (g: Game, store: SaveStore): void => store.setItem(SAVE_KEY, JSON.stringify(snapshot(g)));
-export const loadSave = (store: SaveStore): SaveData | null => parseSave(store.getItem(SAVE_KEY));
-export const clearSave = (store: SaveStore): void => store.removeItem(SAVE_KEY);
+/** Save slots (round 12): three, the first under the old key so a save from before slots is its. */
+export const SLOTS = 3;
+export const SLOT_KEY = 'lovecraft-souls-like/slot';
+export const slotKey = (slot: number): string => (slot <= 1 ? SAVE_KEY : `${SAVE_KEY}-${slot}`);
+let active = 1;
+
+/** The slot saved to and loaded from. */
+export const activeSlot = (): number => active;
+
+/** Makes `slot` the one in use, and remembers it beside the saves. */
+export function useSlot(store: SaveStore | null, slot: number): void {
+  active = clampInt(slot, 1, SLOTS);
+  try {
+    store?.setItem(SLOT_KEY, String(active));
+  } catch {
+    // Storage refused: the slot holds for this session.
+  }
+}
+
+/** Takes up the slot last used (the first when none was). */
+export function recallSlot(store: SaveStore | null): number {
+  const n = Number(store?.getItem(SLOT_KEY));
+  return (active = Number.isFinite(n) ? clampInt(n, 1, SLOTS) : 1);
+}
+
+export const saveGame = (g: Game, store: SaveStore, slot = active): void => store.setItem(slotKey(slot), JSON.stringify(snapshot(g)));
+export const loadSave = (store: SaveStore, slot = active): SaveData | null => parseSave(store.getItem(slotKey(slot)));
+export const clearSave = (store: SaveStore, slot = active): void => store.removeItem(slotKey(slot));

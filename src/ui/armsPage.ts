@@ -1,12 +1,13 @@
 /**
  * Arms (playtest round 4), from the pause menu: the weapons the investigator owns, how each
  * handles, and which is in hand; choosing one takes it up (systems/arms.ts). A line says how many
- * more lie somewhere in the dream. Round 12: each shows its numbers, its blows with Might counted.
+ * more lie somewhere in the dream. Round 12: each shows its numbers, its blows with Might and its
+ * reinforcement counted, and how far it is reinforced.
  */
 
 import { SIM } from '../data/tuning';
 import { WEAPON_IDS, WEAPONS, type WeaponDef } from '../data/weapons';
-import { equip } from '../systems/arms';
+import { edgeAt, equip } from '../systems/arms';
 import type { Game } from '../systems/components';
 import { might } from '../systems/levels';
 import { button, el, heading, type Page } from './menuKit';
@@ -27,12 +28,13 @@ export function armsPage(g: Game, back: () => void, show: (p: Page) => void): Pa
       el(p, 'div', 'ARMS', 'font-size:18px;letter-spacing:6px;margin-bottom:10px');
       for (const id of g.player.arms) {
         const w = WEAPONS[id];
-        button(p, `${w.name}${id === g.player.weapon ? '  ·  in hand' : ''}`, () => {
+        const level = g.player.reinforced[id];
+        button(p, `${w.name}${level ? ` +${level}` : ''}${id === g.player.weapon ? '  ·  in hand' : ''}`, () => {
           equip(g, id);
           show(page);
         });
         el(p, 'div', w.note, 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 2px 10px');
-        el(p, 'div', weaponStats(w, might(g, g.player.id)), 'opacity:.75;font:11px/1.4 monospace;margin:0 0 10px 10px');
+        el(p, 'div', weaponStats(w, might(g, g.player.id) * edgeAt(level)), 'opacity:.75;font:11px/1.4 monospace;margin:0 0 10px 10px');
       }
       const unfound = WEAPON_IDS.length - g.player.arms.length;
       if (unfound > 0) el(p, 'div', `${unfound === 1 ? 'One more lies' : `${unfound} more lie`} somewhere in the dream.`, 'opacity:.4;font-style:italic;margin-top:6px');

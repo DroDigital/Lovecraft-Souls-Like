@@ -104,6 +104,7 @@ export const PLAYER = {
   turnRate: 12,
   dodgeTapFrames: 14, // dodge button: released sooner = roll/backstep, held longer = sprint
   pickupRadius: 1.2, // touching an Echo drop recovers it
+  staggerRespite: 90, // frames from a stagger in which no blow staggers them again: the stagger's 34, then time to roll away (round 12)
 };
 
 export const STAMINA = {
@@ -119,7 +120,8 @@ export const COMBAT = {
   evadeAfter: 3, // frames after a blow lands (or a shot leaves) from which a dodge may cut the rest short (before its cancel frame)
   assist: { range: 3.6, arcDeg: 70 }, // without a lock, a blow or a shot turns to the nearest foe this close and this far off its line
   guardArcDeg: 180, // block and parry stop hits from anywhere in front (was 120: blows from the flank went through; playtest round 7)
-  riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe
+  riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe (and on a backstab)
+  backstab: { arcDeg: 100, height: 2.9 }, // a blow from within this rear arc of a foe no taller than this lands as a riposte (round 12)
   poiseReset: 120, // frames without poise damage before poise refills
   dummyReset: 180, // frames without damage before the immortal training dummy heals
   muzzleHeight: 1.35,
@@ -136,7 +138,10 @@ export const SANITY = {
   auraFar: 12, // ...fading to nothing here
   sightRange: 30, // metres: first sight needs a creature this close, in line of sight...
   sightCone: 50, // ...and within this many degrees of the camera's forward
-  firstSight: { lesser: 0, greater: 6, named: 10, great_old_one: 18, outer_god: 25, ally: 0 }, // sanity lost on first sight, by tier
+  firstSight: { lesser: 0, greater: 6, named: 10, great_old_one: 18, outer_god: 25, ally: 0 }, // sanity lost on first sight, by tier...
+  muffled: 0.35, // share of a roar's toll that carries through a wall (round 12: whole, from 12 m)
+  together: 240, // ...but of those first seen within this many frames of each other, only the greatest (round 12)
+  volley: 75, // frames in which landed blows take the mind once: the greatest of them (a barrage's bolts, a swarm's bites; round 12)
   dealt: [1, 1.1, 1.2, 1.35], // damage multipliers by band: a failing mind hits harder...
   taken: [1, 1.1, 1.25, 1.5], // ...and is hit harder
 };

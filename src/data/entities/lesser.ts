@@ -11,14 +11,14 @@ export const LESSER = tier('lesser', [
     eldritchVariant: { sprite: { eyes: 4, glow: 'green' } },
   },
   {
-    id: 'innsmouth_hybrid', name: 'Innsmouth Hybrid', source: 'The Shadow over Innsmouth', regions: ['innsmouth'], canonLooks: true, voice: 'croak',
+    id: 'innsmouth_hybrid', name: 'Innsmouth Hybrid', source: 'The Shadow over Innsmouth', regions: ['innsmouth', 'rlyeh'], canonLooks: true, voice: 'croak',
     sprite: { silhouette: 'humanoid', palette: 'sea', scale: 2.1, eyes: 2 },
     behavior: { archetype: 'skirmisher', attacks: ['sweep', 'grab'] },
     stats: st(120, 24, 12, 3.6, 0.1, 1), drops: { echoes: 60 }, insightOnSight: 0,
     eldritchVariant: { sprite: { silhouette: 'hunched' }, stats: { damage: 15 } },
   },
   {
-    id: 'dagon_priest', name: 'Esoteric Order of Dagon Priest', source: 'The Shadow over Innsmouth', regions: ['innsmouth'], canonLooks: true,
+    id: 'dagon_priest', name: 'Esoteric Order of Dagon Priest', source: 'The Shadow over Innsmouth', regions: ['innsmouth', 'rlyeh'], canonLooks: true,
     sprite: { silhouette: 'robed', palette: 'sea', scale: 2.3, eyes: 2 },
     behavior: { archetype: 'caster', attacks: ['projectile', 'summon', 'roar'], summons: ['deep_one'] },
     stats: st(150, 20, 16, 2.8, 0.4, 3), drops: { echoes: 180 }, insightOnSight: 0,
@@ -31,7 +31,7 @@ export const LESSER = tier('lesser', [
     stats: st(110, 20, 12, 3.4, 0.1, 1), drops: { echoes: 50 }, insightOnSight: 0,
   },
   {
-    id: 'ghoul', name: 'Ghoul', source: "Pickman's Model", regions: ['providence', 'dreamlands'], canonLooks: true, voice: 'meep',
+    id: 'ghoul', name: 'Ghoul', source: "Pickman's Model", regions: ['providence', 'dreamlands', 'arkham'], canonLooks: true, voice: 'meep',
     sprite: { silhouette: 'hunched', palette: 'mold', scale: 2.2, eyes: 2 },
     behavior: { archetype: 'pack_hunter', attacks: ['bite', 'sweep', 'lunge'] },
     stats: st(160, 30, 16, 3.8, 0.3, 2), drops: { echoes: 120 }, insightOnSight: 0,
@@ -68,7 +68,7 @@ export const LESSER = tier('lesser', [
     stats: st(130, 24, 14, 3.8, 0.3, 2), drops: { echoes: 90 }, insightOnSight: 0,
   },
   {
-    id: 'cat_from_saturn', name: 'Cat from Saturn', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: false, voice: 'meow',
+    id: 'cat_from_saturn', name: 'Cat from Saturn', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands', 'beyond'], canonLooks: false, voice: 'meow',
     sprite: { silhouette: 'quadruped', palette: 'charcoal', scale: 1.2, eyes: 2, glow: 'purple' },
     behavior: { archetype: 'pack_hunter', attacks: ['bite', 'lunge'] },
     stats: st(80, 14, 10, 5, 0.3, 2), drops: { echoes: 60 }, insightOnSight: 0,
@@ -111,13 +111,13 @@ export const LESSER = tier('lesser', [
     stats: st(280, 70, 20, 3.8, 0.5, 3), drops: { echoes: 180 }, insightOnSight: 0,
   },
   {
-    id: 'reanimated_corpse', name: 'Reanimated Corpse', source: 'Herbert West—Reanimator', regions: ['arkham'], canonLooks: true,
+    id: 'reanimated_corpse', name: 'Reanimated Corpse', source: 'Herbert West—Reanimator', regions: ['arkham', 'hub'], canonLooks: true,
     sprite: { silhouette: 'humanoid', palette: 'flesh', scale: 2.1, eyes: 2 },
     behavior: { archetype: 'brute', attacks: ['grab', 'sweep'] },
     stats: st(150, 30, 14, 3, 0.3, 2), weak: ['fire'], drops: { echoes: 70 }, insightOnSight: 0,
   },
   {
-    id: 'martense_degenerate', name: 'Martense Degenerate', source: 'The Lurking Fear', regions: ['vermont'], canonLooks: true,
+    id: 'martense_degenerate', name: 'Martense Degenerate', source: 'The Lurking Fear', regions: ['vermont', 'dunwich'], canonLooks: true,
     sprite: { silhouette: 'hunched', palette: 'charcoal', scale: 1.7, eyes: 2 },
     behavior: { archetype: 'pack_hunter', attacks: ['bite', 'sweep'] },
     stats: st(110, 20, 13, 4.4, 0.3, 2), drops: { echoes: 70 }, insightOnSight: 0,
@@ -129,7 +129,7 @@ export const LESSER = tier('lesser', [
     stats: st(90, 16, 11, 3.8, 0.3, 2), drops: { echoes: 50 }, insightOnSight: 0,
   },
   {
-    id: 'rat_swarm', name: 'Rat Swarm', source: 'The Rats in the Walls', regions: ['hub', 'arkham'], canonLooks: true, voice: 'scurry',
+    id: 'rat_swarm', name: 'Rat Swarm', source: 'The Rats in the Walls', regions: ['hub', 'arkham', 'dunwich', 'vermont'], canonLooks: true, voice: 'scurry',
     sprite: { silhouette: 'swarm', palette: 'charcoal', scale: 1.4, eyes: 2 },
     behavior: { archetype: 'swarm', attacks: ['bite'] },
     stats: st(60, 5, 6, 4.5, 0.4, 1), weak: ['fire'], drops: { echoes: 30 }, insightOnSight: 0,
@@ -141,7 +141,7 @@ export const LESSER = tier('lesser', [
     stats: st(120, 20, 12, 5, 0.5, 3), drops: { echoes: 90 }, insightOnSight: 0,
   },
   {
-    id: 'moon_bog_wraith', name: 'Moon-Bog Wraith', source: 'The Moon-Bog', regions: ['arkham'], canonLooks: true,
+    id: 'moon_bog_wraith', name: 'Moon-Bog Wraith', source: 'The Moon-Bog', regions: ['arkham', 'vermont'], canonLooks: true,
     sprite: { silhouette: 'spectre', palette: 'pallid', scale: 2.2, eyes: 0, glow: 'green' },
     behavior: { archetype: 'mind_thief', attacks: ['roar', 'grab'] },
     stats: st(90, 10, 10, 3.2, 0.8, 5), resist: ['slash', 'blunt'], weak: ['light'], drops: { echoes: 80 }, insightOnSight: 0,

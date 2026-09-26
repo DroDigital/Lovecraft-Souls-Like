@@ -13,7 +13,7 @@ import { isAbsent, isConcealed, isUnseen, type Game, type GameEvents } from './c
 import { aimPoint, playerEye, viewAngle } from './lockOn';
 import { takeUp } from './arms';
 import { addVial } from './reagent';
-import { loseSanity } from './sanity';
+import { loseSanity, tollOnce } from './sanity';
 
 const DEG = Math.PI / 180;
 
@@ -50,7 +50,7 @@ export function insightSystem(g: Game): void {
     if (g.mind.seen.has(d.id) || !inSight(g, id)) continue;
     g.mind.seen.add(d.id);
     const name = combatant.get(id)?.name ?? d.id;
-    const sanity = SANITY.firstSight[d.tier];
+    const sanity = tollOnce(g.mind.beheld, g.frame, SANITY.firstSight[d.tier], SANITY.together); // horrors beheld together: the greatest counts
     loseSanity(g, sanity);
     changeInsight(g, d.insight, 'sight', name);
     g.events.emit('FirstSight', { entity: id, name, sanity, insight: d.insight });

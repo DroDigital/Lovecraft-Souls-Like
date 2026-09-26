@@ -59,7 +59,7 @@ export const ATTACKS: Readonly<Record<AttackId, AttackDef>> = {
   dive: { kind: 'area', windup: 30, active: 10, recovery: 40, power: 1.6, poise: 2, range: [3, 9], reach: 1, radius: 1, height: 0.4, arc: [0, 0], lunge: 6 },
   teleport: { kind: 'special', windup: 20, active: 1, recovery: 20, power: 0, poise: 0, range: [6, 30], effect: 'teleport' },
   summon: { kind: 'special', windup: 40, active: 1, recovery: 30, power: 0, poise: 0, range: [4, 30], effect: 'summon' },
-  roar: { kind: 'special', windup: 24, active: 12, recovery: 30, power: 0, poise: 0, range: [0, 12], sanity: 1.5 },
+  roar: { kind: 'special', windup: 24, active: 12, recovery: 30, power: 0, poise: 0, range: [0, 12], sanity: 1 }, // was 1.5: a Moon-Bog Wraith's took 7.5 (round 12)
   gaze: { kind: 'special', windup: 30, active: 20, recovery: 30, power: 0, poise: 0, range: [0, 20], sanity: 0.5, effect: 'gaze' },
   darkness: { kind: 'special', windup: 36, active: 1, recovery: 30, power: 0, poise: 0, range: [4, 30], effect: 'darkness' },
   // The dodging game: marked ground, rings and beams to roll through, patterns to weave between, chains to read.

@@ -58,6 +58,10 @@ import { armsPage } from './ui/armsPage';
 import { createJourneys } from './ui/journeys';
 import { createShell, type Shell } from './ui/shell';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
+import { createSkyline } from './render/skyline';
+import { achievementsPage, watchAchievements } from './ui/achievements';
+import { createShopMenu } from './ui/shopMenu';
+import { takeCarry } from './systems/records';
 import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
 
@@ -86,7 +90,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   canvas.addEventListener('webglcontextlost', (e) => (e.preventDefault(), saveNow(), showCrash('lost')));
   const store = opts.arena ? null : shell.store;
   if (store && opts.fresh) clearSave(store);
-  const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined });
+  const carry = store && opts.fresh ? takeCarry(store) : null; // a new journey, begun from an ending (NG+)
+  const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined, carry: carry ?? undefined });
   const capture = (): void => {
     try {
       const r: unknown = canvas.requestPointerLock();
@@ -117,9 +122,11 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
     arms: (back, show) => armsPage(game, back, show),
+    achievements: opts.arena ? undefined : (back) => achievementsPage(store, back),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
   });
   if (store) startAutosave(game, store);
+  if (!opts.arena) watchAchievements(game, store);
   const views = createActorViews(scene, game);
   const creatures = createCreatureViews(scene, game, await spriteAtlas((p) => veil.progress(0.1 + 0.4 * p)));
   const hidden = createHiddenViews(scene, game);
@@ -133,10 +140,12 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   scene.add(sky.mesh);
+  const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const dialogue = createDialogue(game);
+  const shop = createShopMenu(game);
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter);
   const map = createMapScreen(game, painter, capture, journeys.go);
@@ -167,7 +176,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;
-        stepGame(game, menu?.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
+        stepGame(game, menu?.open || shop.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
       },
       render(blend) {
         const still = pause.open || map.open || dialogue.reading || !!intro?.open || journeys.still;
@@ -183,7 +192,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
           resize();
         }
         placeCamera(camera, game, alpha);
-        sky.update(camera, time, game.overworld?.region ?? null, !!world && inDungeon(camera.position.x, camera.position.z));
+        const enclosed = !!world && inDungeon(camera.position.x, camera.position.z);
+        sky.update(camera, time, game.overworld?.region ?? null, enclosed);
+        skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);

@@ -3,12 +3,14 @@
  * their plinths, cornices, pilasters, sconces and rubble; blocks, pillars with bases and capitals,
  * and well rims; slab floors and steps; wooden bridge decks; dark pits and chasms seen from
  * inside), and an arena's ring of standing stones (and the well at its heart). Built a few parts at
- * a time (a sliced job).
+ * a time (a sliced job). Round 12: each dungeon's kit (data/kits.ts) chooses its walls' and floors'
+ * textures and tone, its trim (masonry, timber beams and posts, or none) and how many flames it holds.
  */
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { V3 } from '../core/geom';
+import { kitOf, type DungeonKit, type KitTexture } from '../data/kits';
 import { getRegion } from '../data/regions';
 import { DUNGEON } from '../data/tuning';
 import type { Part } from '../world/dungeonParts';
@@ -22,22 +24,29 @@ const STONE: Rgb = [0.9, 0.9, 0.88];
 const WOOD: Rgb = [0.75, 0.7, 0.62];
 const PER_STEP = 12;
 
-type Kind = 'stone' | 'slab' | 'wood' | 'glow';
+type Kind = 'wall' | 'floor' | 'wood' | 'glow'; // a kit gives the first two their textures
 type Built = { kind: Kind; geo: THREE.BufferGeometry; light?: LightSpot }; // a flame is a light too (worldLights.ts)
 const FLAME: Rgb = [1, 0.78, 0.5];
 const IRON: Rgb = [0.3, 0.29, 0.3];
-const materials = new Map<Kind, THREE.ShaderMaterial>();
-const material = (k: Kind): THREE.ShaderMaterial => {
-  let m = materials.get(k);
+const DARK_WOOD: Rgb = [0.42, 0.36, 0.3];
+const materials = new Map<string, THREE.ShaderMaterial>();
+const material = (texture: KitTexture | 'glow'): THREE.ShaderMaterial => {
+  let m = materials.get(texture);
   if (!m) {
-    const o = k === 'glow' ? { texture: 'cloth' as const, emissive: 1 } : { texture: k, vary: 0.7, ...(k === 'wood' && { uvScale: [0.5, 0.5] as const }) };
-    materials.set(k, (m = createWorldMaterial({ seed: 8, vertexColors: true, ...o })));
+    const o = texture === 'glow' ? { texture: 'cloth' as const, emissive: 1 } : { texture, vary: 0.7, ...(texture === 'wood' && { uvScale: [0.5, 0.5] as const }) };
+    materials.set(texture, (m = createWorldMaterial({ seed: 8, vertexColors: true, ...o })));
   }
   return m;
 };
+/** The texture of each kind in this kit. */
+const textureOf = (k: Kind, kit: DungeonKit): KitTexture | 'glow' => (k === 'wall' ? kit.wall : k === 'floor' ? kit.floor : k);
 
-/** A wall's masonry: a plinth and a cornice along it, pilasters every few metres, now and then an iron sconce with its flame, and rubble at its foot. */
-function wallDetail(min: V3, max: V3, c: Rgb): Built[] {
+/**
+ * A wall's trim: a plinth and a cornice along it and pilasters every few metres (masonry), or a
+ * skirting, a beam and posts of dark wood (timber), or none; on some of them an iron sconce with its
+ * flame (the kit's share); and rubble at its foot.
+ */
+function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
   const [w, h, d] = [max.x - min.x, max.y - min.y, max.z - min.z];
   if (h < 2 || Math.max(w, d) < 2) return [];
   const alongX = w >= d;
@@ -48,14 +57,19 @@ function wallDetail(min: V3, max: V3, c: Rgb): Built[] {
     const [x, z] = at(tt, a);
     return tileUv(box(alongX ? l : t, hh, alongX ? t : l, x, y, z, scaleRgb(c, tone)), l, hh);
   };
-  const stone = [slab(len, thick + 0.16, 0.45, min.y + 0.22, 0, 0, 0.8), slab(len, thick + 0.12, 0.22, max.y - 0.11, 0, 0, 0.85)];
+  const stone: THREE.BufferGeometry[] = [];
+  const wood: THREE.BufferGeometry[] = [];
+  const trim = kit.trim === 'timber' ? wood : stone;
+  const tc = kit.trim === 'timber' ? DARK_WOOD : c;
+  const trimSlab = (l: number, t: number, hh: number, y: number, tt: number, tone: number): THREE.BufferGeometry => tint(slab(l, t, hh, y, tt), scaleRgb(tc, tone));
+  if (kit.trim !== 'none') trim.push(trimSlab(len, thick + 0.16, 0.45, min.y + 0.22, 0, 0.8), trimSlab(len, thick + 0.12, 0.22, max.y - 0.11, 0, 0.85));
   const glow: Built[] = [];
   const n = Math.floor(len / 4);
   const seed = Math.abs(Math.round(cx * 7 + cz * 13));
-  for (let k = 1; k < n; k++) {
+  for (let k = 1; k < n && kit.trim !== 'none'; k++) {
     const t = -len / 2 + (k * len) / n;
-    stone.push(slab(0.5, thick + 0.3, h - 0.3, min.y + (h - 0.3) / 2, t, 0, 0.92));
-    if ((k + seed) % 3 !== 0) continue;
+    trim.push(trimSlab(kit.trim === 'timber' ? 0.3 : 0.5, thick + 0.3, h - 0.3, min.y + (h - 0.3) / 2, t, 0.92));
+    if (((k * 7919 + seed * 104729) % 1000) / 1000 >= kit.flames) continue;
     for (const side of [-1, 1]) { // a sconce on either face
       const a = side * (thick / 2 + 0.28);
       const [x, z] = at(t, a);
@@ -70,8 +84,8 @@ function wallDetail(min: V3, max: V3, c: Rgb): Built[] {
     const [x, z] = at(t, side * (thick / 2 + 0.35 + r));
     stone.push(tint(new THREE.IcosahedronGeometry(r, 0).scale(1, 0.6, 1).translate(x, min.y + r * 0.4, z), scaleRgb(c, 0.75)));
   }
-  for (const g of stone) if (!g.index) g.setIndex([...Array(g.getAttribute('position').count).keys()]);
-  return [{ kind: 'stone', geo: mergeGeometries(stone) }, ...glow];
+  for (const g of [...stone, ...wood]) if (!g.index) g.setIndex([...Array(g.getAttribute('position').count).keys()]);
+  return [...(stone.length ? [{ kind: 'wall' as const, geo: mergeGeometries(stone) }] : []), ...(wood.length ? [{ kind: 'wood' as const, geo: mergeGeometries(wood) }] : []), ...glow];
 }
 
 /** An open-topped box seen from inside: a pit's four walls and its floor, in shadow. */
@@ -96,53 +110,54 @@ function well(x: number, z: number, radius: number, top: number, c: Rgb): THREE.
   return [rim, lip, shaft];
 }
 
-function partGeometry(p: Part, c: Rgb): Built[] {
+function partGeometry(p: Part, c: Rgb, kit: DungeonKit): Built[] {
   if (p.shape === 'cyl') {
-    if (p.look === 'rim') return well(p.x, p.z, p.radius, p.y1, c).map((geo) => ({ kind: 'stone', geo }));
+    if (p.look === 'rim') return well(p.x, p.z, p.radius, p.y1, c).map((geo) => ({ kind: 'wall', geo }));
     const h = p.y1 - p.y0;
     const shaft = tint(tileUv(new THREE.CylinderGeometry(p.radius * 0.88, p.radius, h, 7, Math.ceil(h)).translate(p.x, p.y0 + h / 2, p.z), Math.PI * 2 * p.radius, h), c);
     const base = tint(new THREE.CylinderGeometry(p.radius * 1.3, p.radius * 1.4, 0.4, 8).translate(p.x, p.y0 + 0.2, p.z), scaleRgb(c, 0.85));
     const capital = tint(new THREE.CylinderGeometry(p.radius * 1.35, p.radius * 1.05, 0.35, 8).translate(p.x, p.y1 - 0.17, p.z), scaleRgb(c, 0.9));
-    return [{ kind: 'stone', geo: mergeGeometries([shaft, base, capital]) }];
+    return [{ kind: 'wall', geo: mergeGeometries([shaft, base, capital]) }];
   }
   const [w, h, d] = [p.max.x - p.min.x, p.max.y - p.min.y, p.max.z - p.min.z];
   const [x, y, z] = [(p.min.x + p.max.x) / 2, (p.min.y + p.max.y) / 2, (p.min.z + p.max.z) / 2];
   switch (p.look) {
     case 'chasm':
-      return [{ kind: 'stone', geo: pit(p.min, p.max, c) }];
+      return [{ kind: 'wall', geo: pit(p.min, p.max, c) }];
     case 'floor':
     case 'step':
-      return [{ kind: 'slab', geo: tileUv(box(w, h, d, x, y, z, scaleRgb(c, 0.9), 1), w, d) }];
+      return [{ kind: 'floor', geo: tileUv(box(w, h, d, x, y, z, scaleRgb(c, 0.9), 1), w, d) }];
     case 'deck':
       return [{ kind: 'wood', geo: box(w, h, d, x, y, z, WOOD, 1) }];
     case 'none':
       return [];
     case 'wall':
-      return [{ kind: 'stone', geo: tileUv(box(w, h, d, x, y, z, c, 1), Math.max(w, d), h) }, ...wallDetail(p.min, p.max, c)];
+      return [{ kind: 'wall', geo: tileUv(box(w, h, d, x, y, z, c, 1), Math.max(w, d), h) }, ...wallDetail(p.min, p.max, c, kit)];
     default:
-      return [{ kind: 'stone', geo: tileUv(box(w, h, d, x, y, z, c, 1), Math.max(w, d), h) }];
+      return [{ kind: 'wall', geo: tileUv(box(w, h, d, x, y, z, c, 1), Math.max(w, d), h) }];
   }
 }
 
 /** Merges geometry by material into meshes. */
-function meshes(groups: Map<Kind, THREE.BufferGeometry[]>): THREE.Mesh[] {
-  return [...groups].filter(([, g]) => g.length).map(([k, g]) => new THREE.Mesh(mergeGeometries(g), material(k)));
+function meshes(groups: Map<Kind, THREE.BufferGeometry[]>, kit: DungeonKit): THREE.Mesh[] {
+  return [...groups].filter(([, g]) => g.length).map(([k, g]) => new THREE.Mesh(mergeGeometries(g), material(textureOf(k, kit))));
 }
 
 /** Builds a legacy dungeon; `done` receives its meshes and its sconces' flames as lights. */
 export function* dungeonJob(d: Dungeon, done: (meshes: THREE.Mesh[], lights: LightSpot[]) => void): Generator<void, void> {
-  const tone = getRegion(d.layout.region)?.biome.tint ?? STONE;
-  const c = mixRgb(STONE, tone, 0.35);
-  const groups = new Map<Kind, THREE.BufferGeometry[]>([['stone', []], ['slab', []], ['wood', []], ['glow', []]]);
+  const kit = kitOf(d.layout.def.id);
+  const tone = kit.tone ?? getRegion(d.layout.region)?.biome.tint ?? STONE;
+  const c = mixRgb(STONE, tone, kit.mix);
+  const groups = new Map<Kind, THREE.BufferGeometry[]>([['wall', []], ['floor', []], ['wood', []], ['glow', []]]);
   const lights: LightSpot[] = [];
   for (let k = 0; k < d.parts.length; k++) {
-    for (const { kind, geo, light } of partGeometry(d.parts[k], c)) {
+    for (const { kind, geo, light } of partGeometry(d.parts[k], c, kit)) {
       groups.get(kind)!.push(geo);
       if (light) lights.push(light);
     }
     if (k % PER_STEP === PER_STEP - 1) yield;
   }
-  done(meshes(groups), lights);
+  done(meshes(groups, kit), lights);
 }
 
 /** Builds an arena's ring of standing stones (and its well); `done` receives the mesh. */

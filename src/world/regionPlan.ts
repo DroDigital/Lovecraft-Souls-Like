@@ -37,7 +37,7 @@ export interface RegionPlan {
 }
 
 const CELL = 4; // metres per occupancy cell
-const DEFAULT: RegionLayout = { road: 'mud', width: 3.5, towns: [], groves: 0, graveyards: 0, circles: 0, ruins: 0, outcrops: 0, camps: 0, walls: false };
+const DEFAULT: RegionLayout = { road: 'mud', width: 3.5, towns: [], groves: 0, graveyards: 0, circles: 0, ruins: 0, outcrops: 0, camps: 0, walls: false, landmarks: 0 };
 
 /** Which cells of the region are taken: sites, roads, houses and features. */
 function occupancy(rect: Rect) {
@@ -177,7 +177,7 @@ function nearestRoad(roads: readonly Road[], x: number, z: number): XZ | null {
 function placeFeatures(layout: RegionLayout, rect: Rect, rng: Rng, roads: readonly Road[], occ: ReturnType<typeof occupancy>, props: Prop[]): Feature[] {
   const out: Feature[] = [];
   const counts: Record<(typeof FEATURE_KINDS)[number], number> = {
-    grove: layout.groves, graveyard: layout.graveyards, circle: layout.circles, ruin: layout.ruins, outcrop: layout.outcrops, camp: layout.camps,
+    grove: layout.groves, graveyard: layout.graveyards, circle: layout.circles, ruin: layout.ruins, outcrop: layout.outcrops, camp: layout.camps, landmark: layout.landmarks,
   };
   for (const kind of FEATURE_KINDS) {
     for (let k = 0; k < counts[kind]; k++) {
@@ -188,7 +188,7 @@ function placeFeatures(layout: RegionLayout, rect: Rect, rng: Rng, roads: readon
         if (!occ.disk(x, z, r + 3, false)) continue;
         const road = nearestRoad(roads, x, z);
         const f: Feature = { kind, x, z, r, yaw: road ? Math.atan2(road.x - x, road.z - z) : rng() * 6.28, seed: (rng() * 1e9) >>> 0 };
-        props.push(...featureProps(f, { pines: !!layout.pines, free: occ.free }));
+        props.push(...featureProps(f, { pines: !!layout.pines, free: occ.free, landmark: layout.landmark }));
         occ.disk(x, z, r + 2, true);
         out.push(f);
         break;

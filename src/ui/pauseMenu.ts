@@ -5,6 +5,7 @@
  * the desktop shell a way out to the desktop (playtest round 12).
  */
 
+import { creditsPage } from './credits';
 import { button, createScreen, el, menuOpen, onPadStart, type Page } from './menuKit';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
@@ -19,6 +20,7 @@ export interface PauseOptions {
   map?: () => void; // opens the map (not in the arena)
   journal?: (back: () => void, show: (p: Page) => void) => Page; // the journal's page (not in the arena)
   arms?: (back: () => void, show: (p: Page) => void) => Page; // the weapons owned
+  achievements?: (back: () => void) => Page; // the achievements, earned or not (round 12)
   quit(): void;
 }
 
@@ -40,8 +42,10 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
       if (o.map) button(p, 'Map', () => [screen.close(), o.map!()]);
       if (o.journal) button(p, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))));
       if (o.arms) button(p, 'Arms', () => screen.show(o.arms!(() => screen.show(main), (pg) => screen.show(pg))));
+      if (o.achievements) button(p, 'Achievements', () => screen.show(o.achievements!(() => screen.show(main))));
       button(p, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
       button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
+      button(p, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
       button(p, 'Quit to title', o.quit);
       if (desktop) button(p, 'Quit to desktop', () => (saveNow(), void desktop!.quit())); // the shell only: a browser tab is closed by its own hand
     },

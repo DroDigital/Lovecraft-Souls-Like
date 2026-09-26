@@ -14,7 +14,7 @@ export function spawnPool(g: Game, owner: Entity, faction: Combatant['faction'],
   const e = g.ecs.spawn();
   const pos = { x: at.x, y: g.world.ground(at.x, at.z), z: at.z };
   g.ecs.c.transform.set(e, { pos, prev: { ...pos }, yaw: 0, prevYaw: 0 });
-  g.ecs.c.hazard.set(e, { owner, faction, radius: pool.radius, damage: pool.damage, tick: pool.tick, life: pool.life, next: 0 });
+  g.ecs.c.hazard.set(e, { owner, faction, radius: pool.radius, damage: pool.damage, tick: pool.tick, life: pool.life, next: 0, ...(pool.fire && { fire: true }) });
   g.ecs.c.model.set(e, 'fx:pool');
   return e;
 }

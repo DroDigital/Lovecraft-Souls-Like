@@ -1,12 +1,14 @@
 /**
  * The main menu (Phase 6): the name and its lines over black, the veil's purple haunting the edges
- * (playtest round 8), then Continue (when a save exists), New game (which asks before forgetting a
- * save), Settings and Controls. It opens on the first key press or click (what lets a browser play
- * the title's theme), or by itself when the theme sounds without one (main.ts). Its choice starts the
- * open world; the title stays until the veil has covered it.
+ * (playtest round 8), then Continue (when the slot in use holds a save), New game (in a slot chosen,
+ * asking before one is overwritten), Load (round 12: three slots), Settings, Controls and Credits.
+ * It opens on the first key press or click (what lets a browser play the title's theme), or by
+ * itself when the theme sounds without one (main.ts). Its choice starts the open world; the title
+ * stays until the veil has covered it.
  */
 
 import { GAME_NAME, TITLE_LINES } from '../data/intro';
+import { creditsPage } from './credits';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
 import { button, createScreen, el, heading, type Page } from './menuKit';
@@ -14,7 +16,9 @@ import { controlsPage, settingsPage } from './menuPages';
 import type { SettingId, Settings } from './settings';
 
 export interface TitleOptions {
-  hasSave: boolean;
+  slots(): (string | null)[]; // each slot's line, null when empty (titleSlots.ts)
+  active: number; // the slot in use
+  useSlot(slot: number): void;
   settings: Settings;
   change(id: SettingId, v: number): void;
   saveKeys?: () => void; // keeps the keyboard's layout when rebound
@@ -61,23 +65,42 @@ export function showTitle(o: TitleOptions): void {
     build(p) {
       titleBlock(p);
       const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
-      if (o.hasSave) button(menu, 'Continue', () => begin(false));
-      button(menu, 'New game', () => (o.hasSave ? screen.show(confirm) : begin(true)));
+      const lines = o.slots();
+      if (lines[o.active - 1]) button(menu, 'Continue', () => begin(false));
+      button(menu, 'New game', () => screen.show(slotPage('new')));
+      if (lines.some(Boolean)) button(menu, 'Load', () => screen.show(slotPage('load')));
       button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
       button(menu, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
+      button(menu, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
       if (desktop) button(menu, 'Quit', () => (saveNow(), void desktop!.quit())); // the desktop shell only (playtest round 12)
       el(p, 'div', 'arrows or pad to choose · Enter or A', 'opacity:.3;margin-top:26px');
     },
   };
-  const confirm: Page = {
+  const into = (slot: number, fresh: boolean): void => (o.useSlot(slot), begin(fresh));
+  /** The slots: to load one, or to begin a new game in one (a full one is asked about first). */
+  const slotPage = (to: 'new' | 'load'): Page => ({
     back: () => screen.show(main),
     build(p) {
-      heading(p, 'BEGIN ANEW?');
-      el(p, 'div', 'This deletes your saved game.', 'opacity:.6;margin-bottom:14px');
-      const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
-      button(menu, 'No, go back', () => screen.show(main));
-      button(menu, 'Yes, begin anew', () => begin(true));
+      heading(p, to === 'new' ? 'NEW GAME · CHOOSE A SLOT' : 'LOAD');
+      const menu = el(p, 'div', '', 'width:360px;margin:0 auto;text-align:left');
+      o.slots().forEach((line, k) => {
+        const slot = k + 1;
+        const label = `Slot ${slot}  ·  ${line ?? 'empty'}`;
+        if (to === 'load') button(menu, label, () => into(slot, false), !!line);
+        else button(menu, label, () => (line ? screen.show(confirm(slot)) : into(slot, true)));
+      });
+      button(menu, 'Back', () => screen.show(main));
     },
-  };
+  });
+  const confirm = (slot: number): Page => ({
+    back: () => screen.show(slotPage('new')),
+    build(p) {
+      heading(p, 'BEGIN ANEW?');
+      el(p, 'div', `This deletes the dream in slot ${slot}. The endings you have reached are remembered.`, 'opacity:.6;margin-bottom:14px');
+      const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
+      button(menu, 'No, go back', () => screen.show(slotPage('new')));
+      button(menu, 'Yes, begin anew', () => into(slot, true));
+    },
+  });
   screen.show(gate);
 }

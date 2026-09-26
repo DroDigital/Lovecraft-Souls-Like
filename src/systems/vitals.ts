@@ -10,6 +10,9 @@ export function vitalsSystem(g: Game, dt: number): void {
     const sprint = id === g.player.id && g.player.sprinting;
     tickStamina(s, sprint ? 'sprint' : actor.get(id)?.guard ? 'guard' : 'idle', dt);
   }
-  for (const po of poise.values()) if (++po.calm >= COMBAT.poiseReset) po.value = po.max;
+  for (const po of poise.values()) {
+    if (++po.calm >= COMBAT.poiseReset) po.value = po.max;
+    if (po.grace) po.grace--;
+  }
   for (const h of health.values()) if (h.immortal && ++h.calm >= COMBAT.dummyReset) h.hp = h.max;
 }

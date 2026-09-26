@@ -13,10 +13,11 @@ import type { WeaponId } from '../data/weapons';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
 import type { Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
-import type { Explored } from './exploration';
 import type { Band, GameEvents } from './gameEvents';
+import type { Overworld } from './overworldTypes';
 
 export type { ArenaCircle, Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
+export type { Overworld } from './overworldTypes';
 export { BANDS, type Band, type GameEvents, type HitOutcome } from './gameEvents';
 import type { InputBuffer } from './inputBuffer';
 import type { LockState } from './lockOn';
@@ -57,6 +58,8 @@ export interface Poise {
   value: number;
   max: number;
   calm: number; // frames since the last poise damage
+  grace?: number; // frames left in which it cannot break again...
+  respite?: number; // ...and the grace each break gives (the investigator's, round 12: blow on blow held them staggered to death)
 }
 
 export interface Stamina {
@@ -231,10 +234,14 @@ export interface Pilot {
   levels: Record<LevelId, number>; // bought with Echoes at an Elder Sign (levels.ts)
   arms: WeaponId[]; // the weapons they own (arms.ts)...
   weapon: WeaponId; // ...and the one in hand
+  stones: number; // star-stones carried, left by bosses slain (arms.ts; round 12)...
+  reinforced: Record<WeaponId, number>; // ...and how many levels each weapon has had set into it
   checkpoint: Place; // the last Elder Sign
   laudanum: number; // doses left
   reagent: number; // West's Reagent: doses left...
   reagentMax: number; // ...and the most it holds (Silver Vials add to it)
+  oil: number; // flasks of lamp oil to throw (round 12; bought from Dr. Morgan)
+  cycle: number; // the journey through the dream, 0 the first (NG+, cycles.ts; round 12)
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
   listening: Entity | null; // the person talked with: they face them and the camera frames them until they move or look away (round 12)
@@ -248,27 +255,14 @@ export interface Mind {
   seen: Set<string>; // roster ids already beheld: first sight counts once
   upgrades: Record<UpgradeId, number>; // levels bought with insight
   phantomIn: number; // frames until the next hallucination may appear
+  struck: Toll; // the last landed blow's toll on the mind (sanity.ts)...
+  beheld: Toll; // ...and the last first sight's (insight.ts)
 }
 
-/** Open-world state (spec §3D); absent in the arena. */
-export interface Overworld {
-  sign: string; // the Elder Sign last rested at: the respawn point
-  discovered: Set<string>; // Elder Signs found: fast-travel destinations
-  slain: Set<string>; // spawn ids of bosses and optional bosses, gone for good
-  killed: Set<string>; // spawn ids of foes killed since the last rest or death
-  wounds: Map<string, number>; // spawn id → health fraction of a wounded foe let go: it comes back so, until a rest or death
-  read: Set<string>; // tomes read
-  named: number; // times Hastur's name has appeared (signatures/hastur.ts)
-  called: Set<string>; // bosses called into the world: until then their spawn stays empty
-  ending: string | null; // the ending chosen, once one has been (endings.ts)
-  alive: Map<string, Entity>; // spawn id → the creature standing for it
-  region: string | null; // where the investigator is
-  chunk: number; // the investigator's chunk key
-  dirty: boolean; // spawn points need another look
-  explored: Explored; // the ground seen, for the map (exploration.ts)
-  lookedFrom: number; // the cell the investigator last looked around from
-  quests: Map<string, number>; // each quest begun: its open stage, or its stage count once done (quests.ts)
-  met: Set<string>; // the people talked with (npcs.ts)
+/** A toll on the mind taken once within a spell (round 12): when the spell began, and the most it has taken. */
+export interface Toll {
+  at: number; // the frame
+  amount: number;
 }
 
 export interface Game {

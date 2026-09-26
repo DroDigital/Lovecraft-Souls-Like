@@ -10,10 +10,10 @@ const memory = (): SaveStore & { data: Map<string, string> } => {
 describe('records that outlive a save (round 12)', () => {
   it('remember each ending reached once, and every dream finished', () => {
     const store = memory();
-    expect(loadRecords(store)).toEqual({ endings: [], finished: 0 });
+    expect(loadRecords(store)).toEqual({ endings: [], finished: 0, achievements: [] });
     noteEnding(store, 'seal');
     noteEnding(store, 'herald');
-    expect(noteEnding(store, 'seal')).toEqual({ endings: ['seal', 'herald'], finished: 3 });
+    expect(noteEnding(store, 'seal')).toEqual({ endings: ['seal', 'herald'], finished: 3, achievements: [] });
     store.removeItem('lovecraft-souls-like/save'); // beginning anew forgets the save, not the records
     expect(loadRecords(store).endings).toEqual(['seal', 'herald']);
   });
@@ -21,9 +21,9 @@ describe('records that outlive a save (round 12)', () => {
   it('shrug off a damaged record', () => {
     const store = memory();
     store.setItem(RECORDS_KEY, '{"endings":["seal","nonsense",3],"finished":-4}');
-    expect(loadRecords(store)).toEqual({ endings: ['seal'], finished: 1 });
+    expect(loadRecords(store)).toEqual({ endings: ['seal'], finished: 1, achievements: [] });
     store.setItem(RECORDS_KEY, 'not json');
-    expect(loadRecords(store)).toEqual({ endings: [], finished: 0 });
-    expect(loadRecords(null)).toEqual({ endings: [], finished: 0 });
+    expect(loadRecords(store)).toEqual({ endings: [], finished: 0, achievements: [] });
+    expect(loadRecords(null)).toEqual({ endings: [], finished: 0, achievements: [] });
   });
 });

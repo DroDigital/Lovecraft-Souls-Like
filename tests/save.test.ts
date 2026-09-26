@@ -31,6 +31,8 @@ function played() {
   setSanity(g, 35);
   g.mind.seen.add('deep_one');
   g.player.laudanum = 1;
+  g.player.stones = 3;
+  g.player.reinforced.cane = 2;
   return g;
 }
 

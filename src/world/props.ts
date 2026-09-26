@@ -1,7 +1,8 @@
 /**
  * Props (spec §3D): what stands on open ground. Scattered ones (dead trees, rocks, pillars,
  * monoliths, graves, ruined walls) and those region plans place in order (pines, crosses, obelisks,
- * houses, field walls, fences, street lamps, fallen logs, fire pits, bushes, stumps, altars): their
+ * houses, field walls, fences, street lamps, fallen logs, fire pits, bushes, stumps, altars, and the
+ * realms' landmarks: spires, towers, cones, pyramids, blocks and hanging globes): their
  * sizes and colliders. `w` × `d` are half extents (round props use `w` as their radius), `h` the
  * height. Pure: no Three.js.
  */
@@ -25,8 +26,8 @@ export interface Prop {
   style?: HouseStyle; // houses: how they are built
 }
 
-const ROUND = new Set<PropKind>(['tree', 'pine', 'rock', 'pillar', 'lamp', 'obelisk', 'cross', 'stump']);
-const OPEN = new Set<PropKind>(['bush', 'firepit']); // no collider: walked through or over
+const ROUND = new Set<PropKind>(['tree', 'pine', 'rock', 'pillar', 'lamp', 'obelisk', 'cross', 'stump', 'spire', 'tower', 'cone']);
+const OPEN = new Set<PropKind>(['bush', 'firepit', 'globe']); // no collider: walked through or over (or under: a globe hangs in the air)
 
 type Size = readonly [w: number, d: number, h: number];
 
@@ -55,6 +56,15 @@ export function makeProp(kind: PropKind, x: number, z: number, rng: Rng, yaw?: n
     bush: () => [r(0.6, 1.2), 0, r(0.6, 1.1)],
     stump: () => [r(0.3, 0.5), 0, r(0.4, 0.8)],
     altar: () => [1.2, 0.7, 1],
+    spire: () => [r(2.2, 3.4), 0, r(16, 28)],
+    tower: () => [r(3, 4.6), 0, r(22, 36)],
+    cone: () => [r(3, 4.2), 0, r(12, 20)],
+    pyramid: () => {
+      const s = r(6, 9);
+      return [s, s, r(8, 12)];
+    },
+    block: () => [r(3, 5), r(2.5, 4), r(4, 7)],
+    globe: () => [r(1.4, 2.8), 0, r(6, 11)], // w its radius, h how high it hangs
   };
   const [w, d, h] = size ?? sizes[kind]();
   const turn = yaw ?? (ROUND.has(kind) ? r(0, Math.PI * 2) : rng() < 0.5 ? 0 : Math.PI / 2);

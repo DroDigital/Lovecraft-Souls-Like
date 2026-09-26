@@ -19,9 +19,9 @@ import { targetOf } from './specials';
 
 const DEG = Math.PI / 180;
 
-/** Where a volley is aimed: the target's chest, or straight ahead. */
+/** Where a volley is aimed: the target's chest (the investigator's is the foe locked on), or straight ahead. */
 function aimAt(g: Game, id: Entity): V3 | null {
-  const t = targetOf(g, id);
+  const t = id === g.player.id ? (g.lock.target ?? id) : targetOf(g, id);
   if (t === id) return null;
   const p = g.ecs.c.transform.get(t)?.pos;
   return p ? { x: p.x, y: p.y + (g.ecs.c.body.get(t)?.aimHeight ?? 1.2), z: p.z } : null;

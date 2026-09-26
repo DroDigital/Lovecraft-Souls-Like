@@ -3,7 +3,7 @@
  * bottom of the screen, and the text of a tome or note as it is picked up, on a page of its own.
  * The world goes on while someone talks, the investigator standing to listen, and a blow landing on
  * them ends the talk (playtest round 7); it stands still while a page is read (main.ts). E, Enter or
- * Space (pad A) goes on; Esc (pad B) closes.
+ * Space (pad A) goes on; Esc (pad B) closes. A merchant's last line goes on to their wares (shopMenu.ts).
  */
 
 import { DOCUMENTS } from '../data/documents';
@@ -25,7 +25,7 @@ export function createDialogue(g: Game): Dialogue {
   const talk = createScreen(8, 'transparent', 'left:50%;bottom:7%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px;background:#0b0b0de8;border:1px solid #d9d0b833');
   const read = createScreen(8, '#050506cc', 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);max-height:84vh;overflow:auto;padding:22px 26px;background:#0e0d0c;border:1px solid #d9d0b833');
 
-  g.events.on('Talked', ({ name, title, lines }) => {
+  g.events.on('Talked', ({ name, title, lines, shop }) => {
     let i = 0;
     const page: Page = {
       back: () => talk.close(),
@@ -37,12 +37,13 @@ export function createDialogue(g: Game): Dialogue {
         const last = i >= lines.length - 1;
         const row = el(p, 'div', '', 'display:flex;justify-content:space-between;align-items:center;margin-top:6px');
         el(row, 'div', `${i + 1} / ${lines.length}`, 'opacity:.35;font-size:10px');
-        button(row, `${glyph('interact')} · ${last ? 'Leave' : 'Go on'}`, next).style.cssText = 'width:auto;display:inline-block';
+        button(row, `${glyph('interact')} · ${last ? (shop ? 'Trade' : 'Leave') : 'Go on'}`, next).style.cssText = 'width:auto;display:inline-block';
       },
     };
     const next = (): void => {
-      if (++i >= lines.length) talk.close();
-      else talk.show(page);
+      if (++i < lines.length) return talk.show(page);
+      talk.close();
+      if (shop) g.events.emit('Trade', { shop, name }); // a merchant's wares follow (round 12)
     };
     talk.show(page);
   });

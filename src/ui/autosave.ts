@@ -4,17 +4,32 @@
  * hidden. Where the browser refuses storage (a private window, a full quota) the game plays on unsaved.
  */
 
+import { desktop } from './desktop';
 import { WORLD } from '../data/tuning';
 import type { Game } from '../systems/components';
 import { saveGame, type SaveStore } from '../systems/save';
 
 /** The page's localStorage, or null where it is unavailable. */
 export function browserStore(): SaveStore | null {
+  let local: Storage | null = null;
   try {
-    return window.localStorage ?? null;
+    local = window.localStorage ?? null;
   } catch {
-    return null;
+    // No browser storage (a private window, or refused).
   }
+  const files = desktop?.store;
+  if (!files) return local;
+  return { // the desktop shell keeps them as files (round 12); what the browser's storage held before is taken over on first reading
+    getItem(key) {
+      const got = files.get(key);
+      if (got !== null || !local) return got;
+      const old = local.getItem(key);
+      if (old !== null) files.set(key, old);
+      return old;
+    },
+    setItem: (key, value) => void files.set(key, value),
+    removeItem: (key) => void (files.remove(key), local?.removeItem(key)),
+  };
 }
 
 let flush: (() => void) | null = null;

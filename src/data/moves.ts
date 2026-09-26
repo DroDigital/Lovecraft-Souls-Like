@@ -34,6 +34,7 @@ export interface PoolDef {
   life: number; // frames
   tick: number; // frames between hurts
   damage: number; // per tick
+  fire?: boolean; // burning oil, not a horror's spill: drawn as flame (round 12)
 }
 
 /** A volley (spec §3E): real bolts that fly (or arc, lobbed) and can be dodged, blocked or outrun. */
@@ -103,7 +104,7 @@ export interface SanityDef {
   window: Window; // the frames it works on the mind
   amount: number; // sanity taken over the whole window
   range: number; // metres
-  sight: boolean; // needs line of sight (a gaze); else it carries past walls (a roar)
+  sight: boolean; // needs line of sight (a gaze); else it carries past walls, muffled (a roar)
 }
 
 export interface MoveDef {
@@ -215,6 +216,14 @@ export const PLAYER_MOVES = {
   },
   drink: { frames: 60, cancel: 48, release: 44, item: 34, use: 'laudanum', walk: 0.4 }, // walking on slowly as they drink (playtest round 7)
   inject: { frames: 64, cancel: 50, release: 46, item: 36, use: 'reagent', walk: 0.4 },
+  throw: { // a flask of lamp oil, lobbed at the foe locked on (else ahead) to burst and burn where it lands (round 12)
+    frames: 40,
+    stamina: 12,
+    cancel: 30,
+    release: 32,
+    track: { window: [0, 12], rate: 10 },
+    volley: { frame: 16, count: 1, spread: 0, speed: 12, radius: 0.25, range: 24, damage: 16, poise: 12, lob: true, pool: { radius: 1.9, life: 300, tick: 20, damage: 9, fire: true } },
+  },
   scatter: { frames: 30, cancel: 22 }, // a boss fight's E actions (spec §3E): the Powder of Ibn Ghazi...
   kindle: { frames: 40, cancel: 30 }, // ...relighting a lamp...
   chant: { frames: 180 }, // ...and the incantation, which works only if it is chanted to its end

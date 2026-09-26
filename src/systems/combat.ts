@@ -1,10 +1,12 @@
 /**
  * Melee combat (spec §3B): each active frame a hitbox sphere sweeps its slice of the attack arc
  * (a capsule) against the hurt capsules of hostile bodies. Resolution order: i-frames, parry,
- * block / guard break, damage (riposte bonus), interrupt, poise / stagger; then hitstop (2–4
+ * block / guard break, damage (riposte bonus, and a backstab's), interrupt, poise / stagger (none again within a
+ * staggered investigator's respite); then hitstop (2–4
  * frames on attacker and victim) and events. A blow comes down to a body too short for it. The sanity band scales the investigator's blows both
  * ways; a hallucination's blows carry no damage (their sanity cost is hallucinations.ts); a boss's
- * ward (its hooks and signature) scales what it takes. Grabs pass a guard; wind shoves.
+ * ward (its hooks and signature) scales what it takes, and the investigator's reinforced weapon what they
+ * deal (arms.ts). Grabs pass a guard; wind shoves.
  */
 
 import type { Entity } from '../core/ecs';
@@ -13,6 +15,8 @@ import type { HitDef } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
 import { isAbsent, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
+import { edge } from './arms';
+import { foeDamage } from './cycles';
 import { might } from './levels';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
@@ -28,6 +32,7 @@ export interface Blow {
   interrupts: boolean; // breaks a foe's wind-up (the revolver)
   unblockable?: boolean; // a grab, or a pool: no guard stops it
   lingering?: boolean; // a pool's or the void's tick: it hurts, but it is no blow on the mind
+  critical?: boolean; // struck into an unguarded back: it lands as a riposte does (round 12)
 }
 
 export interface Defender {
@@ -51,7 +56,7 @@ export function resolveHit(d: Defender, blow: Blow, frontal: boolean): { outcome
     startMove(d.actor, 'guardBreak');
     return { outcome: 'guardBreak', damage: 0 };
   }
-  const riposte = d.actor.move === 'parried';
+  const riposte = d.actor.move === 'parried' || !!blow.critical;
   const damage = blow.damage * (riposte ? COMBAT.riposte : 1);
   d.health.hp = Math.max(d.health.immortal ? 1 : d.health.floor ?? 0, d.health.hp - damage);
   d.health.calm = 0;
@@ -67,10 +72,12 @@ export function resolveHit(d: Defender, blow: Blow, frontal: boolean): { outcome
     startMove(d.actor, 'parried');
     return { outcome: 'interrupted', damage };
   }
-  d.poise.value -= blow.poise;
   d.poise.calm = 0;
+  if ((d.poise.grace ?? 0) > 0) return { outcome: 'hit', damage }; // just staggered: it hurts, but it does not hold them down
+  d.poise.value -= blow.poise;
   if (d.poise.value > 0) return { outcome: 'hit', damage };
   d.poise.value = d.poise.max;
+  d.poise.grace = d.poise.respite;
   startMove(d.actor, 'stagger');
   return { outcome: 'stagger', damage };
 }
@@ -79,6 +86,21 @@ export function resolveHit(d: Defender, blow: Blow, frontal: boolean): { outcome
 export function isFrontal(pos: V3, yaw: number, from: V3): boolean {
   const off = wrapAngle(yawOf(from.x - pos.x, from.z - pos.z) - yaw);
   return Math.abs(off) <= (COMBAT.guardArcDeg * Math.PI) / 360;
+}
+
+/**
+ * A backstab (round 12: parry and riposte were the only criticals): the investigator's blow into the
+ * back of a foe no bigger than a man and a half, not a boss, not already reeling. Such a blow lands
+ * as a riposte does.
+ */
+export function backstab(g: Game, attacker: Entity, target: Entity): boolean {
+  const c = g.ecs.c;
+  if (attacker !== g.player.id || c.fight.has(target) || (c.body.get(target)?.height ?? 99) > COMBAT.backstab.height) return false;
+  const move = c.actor.get(target)?.move;
+  if (move === 'stagger' || move === 'death' || move === 'parried') return false;
+  const [at, from] = [c.transform.get(target)!, c.transform.get(attacker)!.pos];
+  const off = Math.abs(wrapAngle(yawOf(from.x - at.pos.x, from.z - at.pos.z) - at.yaw));
+  return off >= Math.PI - (COMBAT.backstab.arcDeg * Math.PI) / 360;
 }
 
 /** Hitbox centre at progress `p` (0..1) through the active window. */
@@ -113,7 +135,7 @@ export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow, fr
   const defender = { actor: ta, health: h, poise: poise.get(target)!, stamina: stamina.get(target) };
   const felt = g.ecs.c.phantom.has(attacker)
     ? { ...blow, damage: 0, poise: 0, guard: 0 }
-    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * might(g, attacker) * (h.ward ?? 1)) };
+    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * might(g, attacker) * foeDamage(g, attacker) * (h.ward ?? 1)) };
   const { outcome, damage } = resolveHit(defender, felt, frontal);
   if (outcome === 'parried' && aa) startMove(aa, 'parried');
   if (outcome !== 'dodged' && blow.hitstop > 0) {
@@ -161,7 +183,8 @@ export function meleeSystem(g: Game): void {
       const { gap2, radius } = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
       if (gap2 > (hit.radius + radius) ** 2) continue;
       a.hits.add(t);
-      const outcome = strike(g, id, t, { ...hit, parryable: !hit.unblockable, interrupts: false });
+      const crit = backstab(g, id, t);
+      const outcome = strike(g, id, t, { ...hit, damage: hit.damage * edge(g, id), parryable: !hit.unblockable, interrupts: false, ...(crit && { critical: true }) });
       if (hit.push && outcome !== 'dodged' && outcome !== 'parried') shove(g, t, tr.pos, hit.push);
       if (a.move === 'parried') break; // recoiled off a parry
     }

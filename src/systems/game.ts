@@ -37,6 +37,10 @@ import { insightSystem, spawnTome } from './insight';
 import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
+import { registerArms, unreinforced } from './arms';
+import { applyCarry, type Carry } from './cycles';
+import { registerTally, tallySystem } from './tally';
+import { registerRoomWords, roomWordsSystem } from './roomWords';
 import { registerPerception } from './perception';
 import { playerControl } from './playerControl';
 import { npcSystem, spawnNpcs } from './npcs';
@@ -72,7 +76,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, steady: 0, mended: 0, listening: null },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, oil: 0, cycle: 0, steady: 0, mended: 0, listening: null },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -93,10 +97,13 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
 }
 
 /** The open world (spec §3D): a new investigator wakes at the Miskatonic Quad; a save puts them back where they were. */
-export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; save?: SaveData } = {}): Game {
+export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: number; save?: SaveData; carry?: Carry } = {}): Game {
   const g = baseGame(createWorldCollision(), signPlace(START_SIGN)!.rest, seed);
   g.overworld = createOverworld(START_SIGN);
   registerOverworld(g);
+  registerArms(g);
+  registerTally(g);
+  registerRoomWords(g);
   registerHastur(g);
   registerNyarlathotep(g);
   registerSeals(g);
@@ -104,6 +111,7 @@ export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; sa
   furnishWorld(g);
   spawnNpcs(g);
   if (save) applySave(g, save);
+  else if (carry) applyCarry(g, carry); // a new journey (NG+): before the world fills, so its foes are that journey's
   refreshSeals(g); // bosses slain in the save break their seals
   populationSystem(g);
   cameraSystem(g, 0, 0, 0);
@@ -169,6 +177,8 @@ export function stepGame(g: Game, input: InputFrame): void {
   insightSystem(g);
   explorationSystem(g);
   questSystem(g);
+  tallySystem(g);
+  roomWordsSystem(g);
   sealSystem(g);
   hallucinationSystem(g);
   deathSystem(g);

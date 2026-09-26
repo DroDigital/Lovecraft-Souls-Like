@@ -48,6 +48,7 @@ export function spawnCombatant(g: Spawner, def: CombatantDef, at: Place, faction
 export function spawnPlayer(g: Spawner, at: Place): Entity {
   const e = spawnCombatant(g, PLAYER_DEF, at, 'player');
   g.ecs.c.stamina.set(e, { value: PLAYER.stamina, max: PLAYER.stamina, delay: 0 });
+  g.ecs.c.poise.get(e)!.respite = PLAYER.staggerRespite;
   return e;
 }
 

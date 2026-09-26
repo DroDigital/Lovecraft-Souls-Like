@@ -11,6 +11,7 @@
 
 import type { Entity } from '../core/ecs';
 import { applyChange, clearProps, removeProp } from './arenaChanges';
+import { holdInVeil } from './bossArena';
 import type { ArenaCircle, Fight, Game } from './components';
 import { defOf } from './creatures';
 import { phaseAt, phaseBrain } from './fightPhase';
@@ -52,7 +53,7 @@ function enterPhase(g: Game, e: Entity, f: Fight, i: number): void {
 }
 
 function engage(g: Game, e: Entity, f: Fight): void {
-  Object.assign(f, { engaged: true, frames: 0, sig: {} });
+  Object.assign(f, { engaged: true, frames: 0, sig: {}, veiled: false });
   g.events.emit('BossEngaged', { entity: e, name: g.ecs.c.combatant.get(e)?.name ?? f.id });
   SIGNATURES[f.id]?.engage?.(g, e, f);
   enterPhase(g, e, f, 0);
@@ -70,7 +71,7 @@ function clearArena(g: Game, f: Fight): void {
 export function resetFight(g: Game, e: Entity, f: Fight): void {
   if (f.engaged) SIGNATURES[f.id]?.reset?.(g, e, f);
   clearArena(g, f);
-  Object.assign(f, { engaged: false, frames: 0, phase: 0, sig: {} });
+  Object.assign(f, { engaged: false, frames: 0, phase: 0, sig: {}, veiled: false });
   refreshBrain(g, e, f);
   const h = g.ecs.c.health.get(e);
   if (h) h.ward = undefined;
@@ -80,6 +81,7 @@ function endFight(g: Game, e: Entity, f: Fight): void {
   SIGNATURES[f.id]?.end?.(g, e, f);
   clearArena(g, f);
   f.engaged = false;
+  f.veiled = false; // the fog lifts
 }
 
 /** Summons and props whose summoner or boss is gone go too; dead summons are cleared away. */
@@ -109,6 +111,7 @@ export function fightSystem(g: Game): void {
     const at = phaseAt(f.script, h.hp / h.max);
     for (let i = f.phase + 1; i <= at; i++) enterPhase(g, e, f, i);
     SIGNATURES[f.id]?.step?.(g, e, f);
+    if (f.engaged && c.actor.get(g.player.id)?.move !== 'death') holdInVeil(g, f);
   }
 }
 

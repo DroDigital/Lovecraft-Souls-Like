@@ -128,7 +128,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setStyle(chip, 'width', `${chipPct.toFixed(1)}%`);
       setStyle(stamina, 'width', percent(s.value, s.max));
       mind.update(now0);
-      setText(reagent, `REAGENT ×${g.player.reagent}`);
+      setText(reagent, `REAGENT ×${g.player.reagent}${g.player.oil > 0 ? `   OIL ×${g.player.oil}` : ''}`); // flasks once any are carried (round 12)
       setText(insight, `INSIGHT ${g.mind.insight}`);
       const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
       setText(echoes, `ECHOES ${g.player.echoes}${ready ? '  ▲' : ''}`);

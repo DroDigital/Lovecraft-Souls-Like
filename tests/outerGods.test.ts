@@ -130,6 +130,20 @@ describe('the outer gods (spec §3E)', () => {
     expect(titles.map((t) => t.text)).toEqual(['THE PIPING FADES · AZATHOTH SLUMBERS']);
   });
 
+  it('standing silent through the whole song, nothing of Azathoth finds the investigator (round 12: 29 blows did)', () => {
+    const b = bossGame('azathoth', undefined, 40);
+    const { g } = b;
+    const notices = record(g, 'Notice');
+    const foes = (): number => [...g.ecs.c.combatant].filter(([e, c]) => c.faction === 'enemy' && !g.ecs.c.phantom.has(e)).length; // a mind at its edge conjures phantoms
+    const before = foes();
+    engage(b); // and not calmed: it pipes, darkens and strikes as it will
+    const blows = record(g, 'Hit');
+    steps(g, AZATHOTH.survive + 10);
+    expect(blows.filter((e) => e.target === g.player.id && e.damage > 0)).toEqual([]);
+    expect(foes()).toBe(before); // no court summoned about it
+    expect(notices.map((n) => n.text).some((t) => t.startsWith('IT IS BLIND'))).toBe(true);
+  });
+
   it("Azathoth's health bar is the song, draining as the piping goes on", () => {
     const b = bossGame('azathoth', undefined, 40);
     engage(b);

@@ -73,8 +73,13 @@ describe('the dungeon kit', () => {
     expect(d.def.sealed).toBe(true);
     expect(d.doors.some((o) => o.b === null)).toBe(false);
     expect(room(d, 'cavern').level - d.base).toBe(-8);
-    expect(room(d, 'deeper').level - room(d, 'cavern').level).toBe(-20);
+    expect(room(d, 'deeper').level - room(d, 'cavern').level).toBe(-30); // six flights since round 12 (four before)
+    expect(d.rooms.filter((r) => r.def.words).map((r) => r.def.id)).toEqual(['light_1', 'cavern', 'deep_1', 'deep_3', 'deep_5', 'deep_6', 'deeper']);
+    expect(d.rooms.filter((r) => r.def.spawns?.length).length).toBeGreaterThanOrEqual(5); // no longer an empty walk
     expect(roomAt(d, worldLayout().dream!.x, worldLayout().dream!.z)?.def.id).toBe('threshold');
+    const on = room(d, 'light_1');
+    const dream = worldLayout().dream!;
+    expect(Math.cos(dream.yaw) * (on.z - dream.z) + Math.sin(dream.yaw) * (on.x - dream.x)).toBeGreaterThan(0); // the dreamer faces the stair, not the wall behind
   });
 
   it('hidden bridges and doors become hidden-layer pieces with seals', () => {

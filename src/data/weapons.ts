@@ -1,7 +1,8 @@
 /**
  * Arms (playtest round 4): the investigator's melee weapons, each a light and a heavy chain over
  * the shared swings (render/swings.ts). The sword-cane they carry from the start; the others lie in
- * the dream's houses (dungeons.ts, lairs.ts), and are taken up from the pause menu. Data only.
+ * the dream's houses (dungeons.ts, lairs.ts), and are taken up from the pause menu; round 12 adds
+ * Obed Marsh's cutlass (found in Y'ha-nthlei) and Zamacona's espada (his thanks, in K'n-yan). Data only.
  */
 
 import { PLAYER_MOVES, type MoveDef, type MoveSet, type SwingAnim } from './moves';
@@ -50,6 +51,32 @@ const cut = (arc: Arc, light: string, anim: SwingAnim, damage: number): MoveDef 
   track: { window: [0, 5], rate: 10 },
   motion: { window: [1, 7], distance: 0.35, dir: 'facing' },
   hit: { window: [6, 9], damage, poise: 7, guard: 10, hitstop: 1, reach: 1.05, radius: 0.4, height: 1.2, arc },
+});
+
+/** An espada's thrust: long and straight, and back at once; nothing at the sides. */
+const pierce = (light: string, anim: SwingAnim, damage: number, windup: number): MoveDef => ({
+  frames: windup + 19,
+  anim,
+  stamina: 13,
+  cancel: windup + 8,
+  release: windup + 10,
+  combo: { light, heavy: 'heavy1' },
+  track: { window: [0, windup - 2], rate: 9 },
+  motion: { window: [windup - 6, windup + 1], distance: 0.6, dir: 'facing' },
+  hit: { window: [windup, windup + 3], damage, poise: 10, guard: 14, hitstop: 2, reach: 1.75, radius: 0.32, height: 1.2, arc: [0, 0] },
+});
+
+/** A cutlass's cut: wide, and a little slower than the cane's. */
+const hew = (arc: Arc, light: string, anim: SwingAnim, damage: number, windup: number): MoveDef => ({
+  frames: windup + 18,
+  anim,
+  stamina: 15,
+  cancel: windup + 10,
+  release: windup + 12,
+  combo: { light, heavy: 'heavy1' },
+  track: { window: [0, windup - 3], rate: 8 },
+  motion: { window: [windup - 6, windup + 1], distance: 0.45, dir: 'facing' },
+  hit: { window: [windup, windup + 4], damage, poise: 14, guard: 18, hitstop: 2, reach: 1.25, radius: 0.5, height: 1.15, arc },
 });
 
 const pick = (ids: readonly string[]): MoveSet => Object.fromEntries(ids.map((id) => [id, (PLAYER_MOVES as MoveSet)[id]]));
@@ -109,6 +136,33 @@ export const WEAPONS = {
         track: { window: [0, 10], rate: 6 },
         motion: { window: [8, 16], distance: 0.5, dir: 'facing' },
         hit: { window: [14, 19], damage: 32, poise: 18, guard: 22, hitstop: 3, reach: 1.2, radius: 0.5, height: 1.1, arc: [-120, 120] },
+      },
+    },
+  },
+  cutlass: {
+    name: "Obed Marsh's Cutlass",
+    note: 'Off the Sumatra Queen, rusted at the basket. Wide cuts that find more than one foe.',
+    moves: {
+      light1: hew([80, -80], 'light2', 'slash', 25, 11),
+      light2: hew([-80, 80], 'light3', 'backhand', 25, 11),
+      light3: hew([10, -10], 'light1', 'overhead', 34, 15),
+      heavy1: fell([150, -150], 'heavy2', 'spin', 48, 26),
+      heavy2: fell([0, 0], 'heavy1', 'overhead', 58, 28),
+    },
+  },
+  rapier: {
+    name: "Zamacona's Espada",
+    note: 'A Spanish sword of 1541, from the depths of K\'n-yan. It reaches past a foe\'s guard; mind its narrow line.',
+    moves: {
+      light1: pierce('light2', 'thrust', 22, 9),
+      light2: pierce('light1', 'thrust', 24, 10),
+      heavy1: {
+        ...pierce('light1', 'thrust', 46, 22),
+        frames: 48,
+        stamina: 22,
+        combo: { light: 'light1', heavy: 'heavy1' },
+        motion: { window: [14, 24], distance: 2.8, dir: 'facing' }, // the lunge
+        hit: { window: [22, 26], damage: 46, poise: 22, guard: 26, hitstop: 3, reach: 1.8, radius: 0.34, height: 1.2, arc: [0, 0] },
       },
     },
   },

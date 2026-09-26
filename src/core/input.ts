@@ -13,7 +13,7 @@ import { INPUT, SIM } from '../data/tuning';
 import { keyLayout, type Action } from './bindings';
 import { useDevice } from './device';
 
-export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock', 'item', 'heal', 'interact'] as const;
+export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock', 'item', 'heal', 'throw', 'interact'] as const;
 export type Button = (typeof BUTTONS)[number];
 export type Buttons = Record<Button, boolean>;
 
@@ -38,6 +38,7 @@ export const noButtons = (): Buttons => ({
   lock: false,
   item: false,
   heal: false,
+  throw: false,
   interact: false,
 });
 
@@ -46,10 +47,10 @@ export function emptyInput(): InputFrame {
 }
 
 /** The buttons the keyboard presses, by the action whose key presses them. */
-const KEYED: readonly (readonly [Action, Button])[] = [['dodge', 'dodge'], ['shoot', 'shoot'], ['lock', 'lock'], ['heal', 'heal'], ['item', 'item'], ['interact', 'interact']];
+const KEYED: readonly (readonly [Action, Button])[] = [['dodge', 'dodge'], ['shoot', 'shoot'], ['lock', 'lock'], ['heal', 'heal'], ['item', 'item'], ['throw', 'throw'], ['interact', 'interact']];
 const keyButton = (code: string): Button | undefined => KEYED.find(([a]) => keyLayout[a] === code)?.[1];
-/** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, Y Reagent, d-pad down Laudanum, R3 lock-on, A interact. */
-const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, lock: 11, heal: 3, item: 13, interact: 0 };
+/** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, Y Reagent, d-pad down Laudanum, d-pad up a flask of oil, R3 lock-on, A interact. */
+const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, lock: 11, heal: 3, item: 13, throw: 12, interact: 0 };
 
 interface PadState {
   lx: number;

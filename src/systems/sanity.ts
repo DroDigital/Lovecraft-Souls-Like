@@ -1,6 +1,6 @@
 /**
  * Sanity (spec §3A): 0–100 in four bands with 3-point hysteresis. Auras drain it by distance,
- * landed blows and roar/gaze moves take chunks (first sight is in insight.ts), respawning at the
+ * landed blows (once a volley) and roar/gaze moves take chunks (first sight is in insight.ts), respawning at the
  * Elder Sign and Laudanum restore it, and the band scales the damage the investigator deals and
  * takes. A band change is announced as `SanityBandChanged`, which the world hooks listen to, and a
  * sudden loss as `SanityLost`, which the HUD and the audio answer. Pure.
@@ -11,7 +11,7 @@ import { distXZ } from '../core/geom';
 import { LAUDANUM, SANITY, SIM, UPGRADES } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
-import { BANDS, isAbsent, type Band, type Game, type Mind } from './components';
+import { BANDS, isAbsent, type Band, type Game, type Mind, type Toll } from './components';
 import { laudanumMax } from './levels';
 import { aimPoint, playerEye } from './lockOn';
 
@@ -37,7 +37,7 @@ export function nextBand(current: Band, sanity: number): Band {
 }
 
 export function createMind(): Mind {
-  return { sanity: SANITY.max, band: 'lucid', insight: 0, seen: new Set(), upgrades: { resolve: 0, draught: 0 }, phantomIn: 0 };
+  return { sanity: SANITY.max, band: 'lucid', insight: 0, seen: new Set(), upgrades: { resolve: 0, draught: 0 }, phantomIn: 0, struck: { at: -Infinity, amount: 0 }, beheld: { at: -Infinity, amount: 0 } };
 }
 
 /** Sets sanity (clamped to 0–100) and moves the band, announcing a change. */
@@ -87,8 +87,9 @@ function drain(g: Game, dt: number): number {
     const s = moveDef(a)?.sanity;
     if (!s || a.frozen || !inWindow(s.window, a.frame) || isAbsent(g, id) || combatant.get(id)?.faction !== 'enemy') continue;
     if (distXZ(transform.get(id)!.pos, pp) > s.range) continue;
-    if (s.sight && !hasLineOfSight(g.world, aimPoint(g, id)!, playerEye(g))) continue;
-    loss += s.amount / (s.window[1] - s.window[0]);
+    const seen = hasLineOfSight(g.world, aimPoint(g, id)!, playerEye(g));
+    if (s.sight && !seen) continue;
+    loss += (s.amount / (s.window[1] - s.window[0])) * (seen ? 1 : SANITY.muffled); // a roar past a wall is muffled (round 12)
   }
   return loss;
 }
@@ -108,10 +109,26 @@ export function sanitySystem(g: Game, dt: number): void {
   g.player.steady = Math.round(LAUDANUM.steady * SIM.hz);
 }
 
-/** Subscribes the event-driven rules: landed blows take the attacker's sanityDamage; respawning restores sanity and Laudanum. */
+/**
+ * What a toll of `cost` takes at `frame` when tolls within `spell` frames of the first count once
+ * (round 12: a barrage's every bolt, or two horrors beheld together, took the mind whole): the whole
+ * cost when the spell is over, else only what it exceeds the greatest taken in it.
+ */
+export function tollOnce(t: Toll, frame: number, cost: number, spell: number): number {
+  if (frame - t.at >= spell) {
+    [t.at, t.amount] = [frame, cost];
+    return cost;
+  }
+  const more = Math.max(0, cost - t.amount);
+  t.amount += more;
+  return more;
+}
+
+/** Subscribes the event-driven rules: landed blows take the attacker's sanityDamage, once a volley; respawning restores sanity and Laudanum. */
 export function registerSanity(g: Game): void {
   g.events.on('Hit', ({ attacker, target, damage, lingering }) => {
-    if (target === g.player.id && damage > 0 && !lingering) loseSanity(g, g.ecs.c.dread.get(attacker)?.blow ?? 0);
+    const blow = g.ecs.c.dread.get(attacker)?.blow ?? 0;
+    if (target === g.player.id && damage > 0 && !lingering && blow > 0) loseSanity(g, tollOnce(g.mind.struck, g.frame, blow, SANITY.volley));
   });
   g.events.on('Respawned', () => {
     g.player.laudanum = laudanumMax(g);

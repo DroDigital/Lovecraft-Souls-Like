@@ -10,7 +10,7 @@ import { createRng, type Rng } from '../core/rng';
 import type { PropKind } from '../data/regions';
 import { makeProp, type Prop } from './props';
 
-export const FEATURE_KINDS = ['grove', 'graveyard', 'circle', 'ruin', 'outcrop', 'camp'] as const;
+export const FEATURE_KINDS = ['grove', 'graveyard', 'circle', 'ruin', 'outcrop', 'camp', 'landmark'] as const;
 export type FeatureKind = (typeof FEATURE_KINDS)[number];
 
 export interface Feature {
@@ -30,11 +30,13 @@ export const FEATURE_RADIUS: Readonly<Record<FeatureKind, readonly [number, numb
   ruin: [7, 9],
   outcrop: [7, 11],
   camp: [6, 7],
+  landmark: [12, 18],
 };
 
 export interface FeatureContext {
   pines: boolean; // conifers rather than dead hardwood
   free: (x: number, z: number) => boolean; // open ground: no road, site or other feature
+  landmark?: PropKind; // the region's landmark (round 12)
 }
 
 /** A point of the feature's own frame: +z is its front, +x its left. */
@@ -144,6 +146,14 @@ function camp(f: Feature, rng: Rng): Prop[] {
   return out;
 }
 
+/** A realm's landmark (round 12): one great one at the heart, and two or three lesser about it. */
+function landmark(f: Feature, rng: Rng, ctx: FeatureContext): Prop[] {
+  if (!ctx.landmark) return [];
+  const kind = ctx.landmark;
+  const out = [makeProp(kind, f.x, f.z, rng)];
+  return [...out, ...scatter(f, rng, 2 + Math.floor(rng() * 2), 9, { ...ctx, free: (x, z) => ctx.free(x, z) && Math.hypot(x - f.x, z - f.z) > 8 }, () => kind).map((p) => ({ ...p, w: p.w * 0.6, d: p.d * 0.6, h: p.h * 0.55 }))];
+}
+
 /** The feature's props. */
 export function featureProps(f: Feature, ctx: FeatureContext): Prop[] {
   const rng = createRng(f.seed);
@@ -160,5 +170,7 @@ export function featureProps(f: Feature, ctx: FeatureContext): Prop[] {
       return scatter(f, rng, 5 + Math.floor(rng() * 5), 2.2, ctx, () => 'rock').map((p) => ({ ...p, w: p.w * 1.4, h: p.h * 1.5 }));
     case 'camp':
       return camp(f, rng);
+    case 'landmark':
+      return landmark(f, rng, ctx);
   }
 }
