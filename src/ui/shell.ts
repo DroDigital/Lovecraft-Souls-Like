@@ -13,6 +13,7 @@ import type { Music } from '../render/audio/music';
 import { playSound } from '../render/audio/synth';
 import type { SaveStore } from '../systems/save';
 import { browserStore } from './autosave';
+import { recallSlot } from '../systems/save';
 import { setMenuSound } from './menuKit';
 import { clampSetting, loadSettings, storeSettings, type SettingId, type Settings } from './settings';
 import { applyUiScale } from './uiScale';
@@ -32,6 +33,7 @@ export interface Shell {
 /** Settings, the audio engine, the drones and the veil. */
 export function createShell(): Shell {
   const store = browserStore();
+  recallSlot(store); // the save slot last used (round 12)
   const settings = loadSettings(store);
   const levels = (): { music: number; sfx: number; ambience: number } => ({ music: settings.music, sfx: settings.sfx, ambience: settings.ambience });
   const engine = createAudioEngine(settings.volume, levels());

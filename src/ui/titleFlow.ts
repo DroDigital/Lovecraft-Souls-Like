@@ -8,7 +8,8 @@
 
 import { THEME } from '../data/tuning';
 import { playMenuMusic } from '../render/audio/music';
-import { loadSave } from '../systems/save';
+import { activeSlot, useSlot } from '../systems/save';
+import { slotLines } from './titleSlots';
 import { makeAhead } from './loading';
 import type { Shell } from './shell';
 import { showTitle } from './titleScreen';
@@ -24,7 +25,9 @@ export function title(shell: Shell, start: (fresh: boolean) => void): void {
     if (!opened) shell.veil.darken('press any key');
   });
   showTitle({
-    hasSave: !!(shell.store && loadSave(shell.store)),
+    slots: () => slotLines(shell.store),
+    active: activeSlot(),
+    useSlot: (slot) => useSlot(shell.store, slot),
     settings: shell.settings,
     change: shell.change,
     saveKeys: shell.saveKeys,

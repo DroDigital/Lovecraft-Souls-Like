@@ -1,7 +1,9 @@
 {
   "name": "lovecraft-souls-like",
+  "productName": "Seventy Steps",
+  "description": "A Lovecraftian open-world soulslike in retro 3D.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.12.0",
   "type": "module",
   "main": "desktop/main.js",
   "scripts": {
@@ -10,7 +12,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "desktop": "npm run build && electron .",
-    "desktop:dev": "electron . --dev"
+    "desktop:dev": "electron . --dev",
+    "icon": "node desktop/makeIcon.js"
   },
   "dependencies": {
     "three": "^0.186.0"

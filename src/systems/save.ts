@@ -3,7 +3,8 @@
  * the Elder Sign they rest at and those found, bosses slain or called, tomes read, the ending chosen, Echoes carried and dropped,
  * health, levels, arms (and the star-stones set into them), the mind (sanity, insight, upgrades, horrors beheld), Laudanum, the ground seen, the
  * quests and the people met, and the wounds of foes still standing. Parsing checks every
- * field, so a damaged or foreign save is ignored. Pure: the storage is handed in.
+ * field, so a damaged or foreign save is ignored. Three slots (round 12), one in use. Pure: the storage
+ * is handed in.
  */
 
 import type { Place } from '../data/arena';
@@ -190,6 +191,31 @@ export function applySave(g: Game, s: SaveData): void {
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);
 }
 
-export const saveGame = (g: Game, store: SaveStore): void => store.setItem(SAVE_KEY, JSON.stringify(snapshot(g)));
-export const loadSave = (store: SaveStore): SaveData | null => parseSave(store.getItem(SAVE_KEY));
-export const clearSave = (store: SaveStore): void => store.removeItem(SAVE_KEY);
+/** Save slots (round 12): three, the first under the old key so a save from before slots is its. */
+export const SLOTS = 3;
+export const SLOT_KEY = 'lovecraft-souls-like/slot';
+export const slotKey = (slot: number): string => (slot <= 1 ? SAVE_KEY : `${SAVE_KEY}-${slot}`);
+let active = 1;
+
+/** The slot saved to and loaded from. */
+export const activeSlot = (): number => active;
+
+/** Makes `slot` the one in use, and remembers it beside the saves. */
+export function useSlot(store: SaveStore | null, slot: number): void {
+  active = clampInt(slot, 1, SLOTS);
+  try {
+    store?.setItem(SLOT_KEY, String(active));
+  } catch {
+    // Storage refused: the slot holds for this session.
+  }
+}
+
+/** Takes up the slot last used (the first when none was). */
+export function recallSlot(store: SaveStore | null): number {
+  const n = Number(store?.getItem(SLOT_KEY));
+  return (active = Number.isFinite(n) ? clampInt(n, 1, SLOTS) : 1);
+}
+
+export const saveGame = (g: Game, store: SaveStore, slot = active): void => store.setItem(slotKey(slot), JSON.stringify(snapshot(g)));
+export const loadSave = (store: SaveStore, slot = active): SaveData | null => parseSave(store.getItem(slotKey(slot)));
+export const clearSave = (store: SaveStore, slot = active): void => store.removeItem(slotKey(slot));

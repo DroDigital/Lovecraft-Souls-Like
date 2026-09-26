@@ -11,6 +11,9 @@ import type { Game } from './components';
 
 export const LEVEL_IDS = Object.keys(LEVELS) as LevelId[];
 
+/** Levels bought in a record of them (a save's). */
+export const levelsOf = (levels: Partial<Record<LevelId, number>> | undefined): number => LEVEL_IDS.reduce((n, id) => n + (levels?.[id] ?? 0), 0);
+
 /** Levels bought so far (the investigator's level is one more). */
 export const levelsBought = (g: Pick<Game, 'player'>): number => LEVEL_IDS.reduce((n, id) => n + g.player.levels[id], 0);
 

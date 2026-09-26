@@ -59,6 +59,7 @@ import { createJourneys } from './ui/journeys';
 import { createShell, type Shell } from './ui/shell';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
 import { createSkyline } from './render/skyline';
+import { achievementsPage, watchAchievements } from './ui/achievements';
 import { createShopMenu } from './ui/shopMenu';
 import { takeCarry } from './systems/records';
 import { takeFlag, title } from './ui/titleFlow';
@@ -121,9 +122,11 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
     arms: (back, show) => armsPage(game, back, show),
+    achievements: opts.arena ? undefined : (back) => achievementsPage(store, back),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
   });
   if (store) startAutosave(game, store);
+  if (!opts.arena) watchAchievements(game, store);
   const views = createActorViews(scene, game);
   const creatures = createCreatureViews(scene, game, await spriteAtlas((p) => veil.progress(0.1 + 0.4 * p)));
   const hidden = createHiddenViews(scene, game);
