@@ -1,4 +1,4 @@
-/** Small geometry helpers shared by scenes and figures: UV tiling, vertex tints, positioned boxes, rounded limbs and lumps. */
+/** Small geometry helpers shared by scenes and figures: UV tiling, vertex tints, positioned boxes, light baked toward the ground. */
 
 import * as THREE from 'three';
 import type { Rgb } from './palette';
@@ -24,17 +24,6 @@ export function box(w: number, h: number, d: number, x: number, y: number, z: nu
   const n = (size: number): number => (cell > 0 ? Math.max(1, Math.ceil(size / cell)) : 1);
   return tint(new THREE.BoxGeometry(w, h, d, n(w), n(h), n(d)).translate(x, y, z), c);
 }
-
-/**
- * A tapered, smooth-sided prism about the y axis (a limb, a torso, a hat's crown): `top` and `bottom`
- * radii, `h` tall, centred at `y`, squashed front to back by `sz`; `open` leaves its ends off (a collar).
- */
-export const round = (top: number, bottom: number, h: number, y: number, c: Rgb, sz = 1, sides = 8, open = false): THREE.BufferGeometry =>
-  tint(new THREE.CylinderGeometry(top, bottom, h, sides, 1, open).scale(1, 1, sz).translate(0, y, 0), c);
-
-/** A rounded lump (a head, a hand, a toe): a low sphere of radius `r` scaled by `sx`, `sy`, `sz`, at (x, y, z). */
-export const lump = (r: number, sx: number, sy: number, sz: number, x: number, y: number, z: number, c: Rgb): THREE.BufferGeometry =>
-  tint(new THREE.SphereGeometry(r, 8, 6).scale(sx, sy, sz).translate(x, y, z), c);
 
 /**
  * Darkens a geometry's vertex colours toward the ground it stands on (y 0 in its own frame): whole

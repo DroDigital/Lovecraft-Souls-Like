@@ -36,6 +36,7 @@ import { insightSystem, spawnTome } from './insight';
 import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
+import { registerPerception } from './perception';
 import { playerControl } from './playerControl';
 import { spawnNpcs } from './npcs';
 import { populationSystem } from './population';
@@ -85,6 +86,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
   registerFights(g);
   registerReality(g);
   registerReagent(g);
+  registerPerception(g);
   return g;
 }
 

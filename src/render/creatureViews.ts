@@ -1,6 +1,8 @@
 /**
  * Draws roster creatures (models `creature:<id>[#variant]`): sprites as one instanced billboard
- * batch over the atlas, colossi as animated assemblies. The sprite state and frame come from the
+ * batch over the atlas, colossi as animated assemblies. A sprite's eyes (and glowing marks) wear a
+ * faint halo that glows out of the dark when near enough (playtest round 8; the atlas knows where
+ * they are in each frame). The sprite state and frame come from the
  * creature's current move; ambushers and burrowers stay unseen while hidden, invisible stalkers
  * show only while they strike, the unseen (the Dunwich Horror) only while revealed, and a creature
  * on a hidden layer only while the layer shows. A creature whose recipe lies `outside` the palette
@@ -12,13 +14,14 @@ import * as THREE from 'three';
 import type { Entity } from '../core/ecs';
 import { wrapAngle } from '../core/geom';
 import type { Variant } from '../data/registry';
-import { FEEDBACK, SIM } from '../data/tuning';
+import { FEEDBACK, LIGHT, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
 import { isAbsent, isUnseen, type Game } from '../systems/components';
 import { MODEL_PREFIX, resolveCreature } from '../systems/creatures';
 import { strikeFrame } from '../systems/realityTricks';
 import { buildAssembly, type Assembly } from './assemblies';
 import { beyond, ECHOES, WRONGNESS } from './eldritch';
+import { createHalos } from './halos';
 import { SPRITE_FRAG, SPRITE_VERT } from './shaders/sprite';
 import { CELL, spriteKey, type SpriteAtlas, type SpriteState } from './sprites/atlas';
 import { worldUniforms } from './worldMaterial';
@@ -96,6 +99,23 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
   const batch = new THREE.InstancedMesh(geo, material, CAPACITY);
   batch.frustumCulled = false;
   scene.add(batch);
+  const glows = createHalos(CAPACITY, 0.55);
+  scene.add(glows.mesh);
+  const flat = new THREE.Vector3(); // the camera's right, level
+  /** A faint glow about the eyes of a sprite drawn at (x, y, z), `size` metres, in atlas cell `cell`. */
+  const eyes = (cell: number, x: number, y: number, z: number, size: number, flip: boolean, look: Look, eye: THREE.Vector3): void => {
+    const k = cell * 4;
+    if (!atlas.eyes[k + 3]) return;
+    const [ex, ey] = [atlas.eyes[k] / CELL, atlas.eyes[k + 1] / CELL];
+    const along = (flip ? 0.5 - ex : ex - 0.5) * size;
+    const [px, py, pz] = [x + flat.x * along, y + (1 - ey) * size, z + flat.z * along];
+    const [lo, hi] = LIGHT.eyes;
+    const d = Math.hypot(px - eye.x, py - eye.y, pz - eye.z);
+    const near = 1 - THREE.MathUtils.smoothstep(d, lo, hi);
+    const gain = LIGHT.eyeGlow.gain * near * look.opacity * (1 - look.sink);
+    const rgb = atlas.eyeColors.subarray(cell * 3, cell * 3 + 3);
+    if (gain > 0.01) glows.put(px, py, pz, LIGHT.eyeGlow.radius + (atlas.eyes[k + 2] / CELL) * size, rgb, gain);
+  };
 
   const assemblies = new Map<Entity, Assembly & { model: string; echoes: Assembly[] }>();
   const drop = (asm: Assembly & { echoes: Assembly[] }): void => void scene.remove(asm.root, ...asm.echoes.map((e) => e.root));
@@ -112,6 +132,8 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
     update(alpha, time, camera) {
       camera.updateMatrixWorld();
       right.setFromMatrixColumn(camera.matrixWorld, 0);
+      flat.set(right.x, 0, right.z).normalize();
+      glows.begin();
       let n = 0;
       seen.clear();
       for (const [id, model] of g.ecs.c.model) {
@@ -163,6 +185,7 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
         weird.setX(n, Math.max(WRONGNESS[def.tier], g.ecs.c.phantom.has(id) ? 0.45 : 0)); // a hallucination slips and glitches: it is not quite there
         const size = def.sprite.scale;
         batch.setMatrixAt(n++, m4.compose(at.set(x, y - look.sink * size * 0.3, z), q, scale.set(size, size, 1)));
+        eyes(cell, x, y - look.sink * size * 0.3, z, size, !facingRight, look, camera.position);
       }
       for (const [id, asm] of assemblies) {
         if (seen.has(id)) continue;
@@ -170,6 +193,7 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
         assemblies.delete(id);
       }
       batch.count = n;
+      glows.end();
       batch.instanceMatrix.needsUpdate = true;
       cells.needsUpdate = true;
       info.needsUpdate = true;

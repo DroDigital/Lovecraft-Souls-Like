@@ -2,12 +2,15 @@
  * The title's theme: "Subterranean Pulse", looped. It sounds the moment the browser allows: at once
  * where sound may play on opening, else on the first key press or click (until then browsers refuse
  * sound, whatever the page does), which the title's opening asks for (main.ts). It is buffered while
- * it waits and begins where the track first swells rather than in its near-silent lead-in. Played
- * through the audio engine (under the volume setting, beside the sanity FX), its fades run on the
- * audio clock, smooth however long the world takes to build. Spawning in, it sinks away: its level
- * falls evenly in loudness (an exponential fade, not a linear one that holds and then drops) under a
- * closing low-pass, while the world's ambience rises beneath it. Without WebAudio the element plays
- * by itself and fades by its volume.
+ * it waits and begins where the track first swells rather than in its near-silent lead-in. It loops
+ * as a segue (playtest round 8): two passes take turns, the next beginning from its very start
+ * THEME.segue seconds before the one playing ends, so its rising lead-in swells under the old
+ * ending's natural decay and its first hit lands as that fades out — no cut, no gap. Played through
+ * the audio engine (under the volume setting, beside the sanity FX), its fades run on the audio
+ * clock, smooth however long the world takes to build. Spawning in, it sinks away: its level falls
+ * evenly in loudness (an exponential fade, not a linear one that holds and then drops) under a
+ * closing low-pass, while the world's ambience rises beneath it. Without WebAudio the elements play
+ * by themselves and fade by their volume.
  */
 
 import { THEME } from '../../data/tuning';
@@ -29,14 +32,22 @@ const GESTURES = ['pointerdown', 'keydown', 'touchend'] as const; // what lets a
 /** The theme's level `t` seconds into a sink of `seconds`, from 1: even in loudness, about −43 dB at the end. */
 export const sinkLevel = (t: number, seconds: number): number => (t >= seconds ? 0 : Math.exp((-5 * t) / seconds));
 
+/** When, in a pass `duration` seconds long, the next pass begins from its start. */
+export const segueAt = (duration: number): number => duration - THEME.segue;
+
 export function playMenuMusic(engine: AudioEngine, volume: number): Music {
   let level = volume;
   let state: 'waiting' | 'playing' | 'sinking' = 'waiting';
   let route: { ctx: AudioContext; gain: GainNode; tone: BiquadFilterNode } | null = null;
-  const audio = new Audio(MENU_MUSIC);
-  audio.preload = 'auto'; // buffered while the title waits, so the first key or click sounds at once
-  audio.loop = true;
-  audio.volume = 0; // silent until it sounds, then it rises
+  const pass = (): HTMLAudioElement => {
+    const a = new Audio(MENU_MUSIC);
+    a.preload = 'auto'; // buffered while the title waits, so the first key or click sounds at once
+    a.volume = 0; // silent until it sounds, then it rises
+    return a;
+  };
+  const passes = [pass(), pass()]; // they take turns, each segueing into the other
+  let cur = 0;
+  const audio = passes[0];
   audio.currentTime = THEME.from;
   audio.addEventListener('loadedmetadata', () => {
     if (state === 'waiting') audio.currentTime = THEME.from; // in case the start set before loading was not kept
@@ -50,21 +61,21 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     const [ctx, out] = [engine.ctx, engine.music];
     if (route || !ctx || !out) return;
     try {
-      const src = ctx.createMediaElementSource(audio);
       const tone = ctx.createBiquadFilter();
       tone.type = 'lowpass';
       tone.frequency.value = Math.min(20000, ctx.sampleRate / 2);
       const gain = ctx.createGain();
       gain.gain.value = 0;
-      src.connect(tone).connect(gain).connect(out);
+      for (const a of passes) ctx.createMediaElementSource(a).connect(tone);
+      tone.connect(gain).connect(out);
       route = { ctx, gain, tone };
     } catch {
-      // It plays by itself, as without WebAudio.
+      // They play by themselves, as without WebAudio.
     }
   };
   const rise = (): void => {
     if (route) {
-      audio.volume = 1; // the graph sets the level (browsers differ on whether the element's volume reaches it)
+      for (const a of passes) a.volume = 1; // the graph sets the level (browsers differ on whether the element's volume reaches it)
       const { ctx, gain } = route;
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(1, ctx.currentTime + THEME.fadeIn);
@@ -79,6 +90,16 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     };
     step();
   };
+  /** The next pass, from its very start, as the one playing nears its end. */
+  const segue = setInterval(() => {
+    const a = passes[cur];
+    if (state !== 'playing' || !(a.duration > 0) || a.currentTime < segueAt(a.duration)) return;
+    cur = 1 - cur;
+    const next = passes[cur];
+    next.currentTime = 0;
+    next.volume = route ? 1 : level;
+    void next.play().catch(() => undefined);
+  }, 100);
   const off = (): void => {
     for (const type of GESTURES) removeEventListener(type, gesture, true);
   };
@@ -101,13 +122,17 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
   }
   for (const type of GESTURES) addEventListener(type, gesture, true);
   tryPlay();
+  const stop = (): void => {
+    clearInterval(segue);
+    for (const a of passes) a.pause();
+  };
 
   return {
     sounding,
     refused,
     setVolume(v) {
       level = v;
-      if (state === 'playing' && !route) audio.volume = v; // through the graph, the master carries the setting
+      if (state === 'playing' && !route) for (const a of passes) a.volume = v; // through the graph, the master carries the setting
     },
     fadeOut(seconds = THEME.sink) {
       const was = state;
@@ -115,7 +140,7 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
       state = 'sinking';
       off();
       if (was === 'waiting') {
-        audio.pause();
+        stop();
         return;
       }
       if (route) {
@@ -127,15 +152,16 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
         }
         gain.gain.setTargetAtTime(0, now, seconds / 5);
         tone.frequency.exponentialRampToValueAtTime(THEME.sinkTo, now + seconds);
-        setTimeout(() => (audio.pause(), gain.disconnect()), seconds * 1000 + 100);
+        setTimeout(() => (stop(), gain.disconnect()), seconds * 1000 + 100);
         return;
       }
-      const [start, from] = [performance.now(), audio.volume];
+      const start = performance.now();
+      const from = passes.map((a) => a.volume);
       const step = (): void => {
         const t = (performance.now() - start) / 1000;
-        audio.volume = from * sinkLevel(t, seconds);
+        passes.forEach((a, i) => (a.volume = from[i] * sinkLevel(t, seconds)));
         if (t < seconds) requestAnimationFrame(step);
-        else audio.pause();
+        else stop();
       };
       step();
     },

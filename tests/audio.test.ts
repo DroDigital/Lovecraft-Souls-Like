@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { shaperCurve } from '../src/render/audio/engine';
-import { sinkLevel } from '../src/render/audio/music';
+import { segueAt, sinkLevel } from '../src/render/audio/music';
 import { THEME } from '../src/data/tuning';
 import { REGIONS } from '../src/data/regions';
 import { ENTITIES, getEntity } from '../src/data/registry';
@@ -151,5 +151,14 @@ describe("the title's theme (render/audio/music.ts)", () => {
     expect(quarters[0]).toBeLessThan(-10); // ...where a linear fade loses 2.5 dB in its first
     expect(db(s * 0.999)).toBeLessThan(-40); // all but silent before it stops
     expect(THEME.from).toBeGreaterThan(0);
+  });
+
+  it('loops as a segue: the next pass begins under the old ending, its first hit landing in that ending’s last second (playtest round 8)', () => {
+    const duration = 209.16; // the track's length
+    const next = segueAt(duration);
+    expect(next).toBeGreaterThan(duration - 5); // inside the ending's decay (its last 5 s)...
+    const hit = next + THEME.hit; // ...its first hit, in the old pass's time
+    expect(hit).toBeLessThan(duration - 0.5); // before the old pass falls silent...
+    expect(hit).toBeGreaterThan(duration - 1.5); // ...and only once it has all but faded
   });
 });
