@@ -69,8 +69,11 @@ export const DUNGEONS: readonly DungeonDef[] = [
     id: 'witch_house', name: 'The Witch House', region: 'arkham', rooms: [
       room('hallway', 'corridor', undefined, 'e'),
       room('parlour', 'hall', 'hallway', 'w', { spawns: ['rat_swarm', 'rat_swarm'], weapon: 'razor' }),
+      stair('cellar', 'hallway', 's', -4, { spawns: ['rat_swarm'] }), // round 12: the house was six rooms; the rats come up from below
+      room('vault', 'hall', 'cellar', 's', { spawns: ['rat_swarm', 'rat_swarm', 'reanimated_corpse'], words: 'THE CELLAR' }),
       room('stair', 'stair', 'parlour', 'n', { rise: 4, spawns: ['reanimated_corpse'] }),
       room('landing', 'corridor', 'stair', 'n', { sign: { id: 'arkham_witch', name: 'Witch House Stair' } }),
+      room('lodgers', 'corridor', 'landing', 'e', { spawns: ['reanimated_corpse', 'rat_swarm'] }), // the lodgers' rooms, empty of lodgers
       room('closet', 'hall', 'landing', 'w', { hidden: { minInsight: 1 }, tome: { name: "Keziah's Formulae", insight: 1 } }),
       room('garret', 'hall', 'landing', 'n', { boss: ['keziah_mason', 'brown_jenkin'] }),
     ],
