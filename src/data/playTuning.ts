@@ -41,6 +41,8 @@ export const THEME = {
   sink: 7, // spawning in, it sinks away over this long: an equal-power fade...
   sinkTo: 280, // ...under a low-pass closing to this (Hz), as the world's ambience rises beneath it (AUDIO.fade)
   wait: 4, // the title opens by itself after this long if the theme has neither sounded nor been refused (a slow line)
+  segue: 4.75, // looping, the next pass begins from its start this long before the one playing ends: its lead-in swells under the old ending's decay (the last 5 s)...
+  hit: 3.85, // ...and its first hit, this far in, lands as that decay fades out
 };
 
 /** Boss music (playtest round 4, render/audio/bossMusic.ts; the scores are data/music.ts). Times in seconds. */
