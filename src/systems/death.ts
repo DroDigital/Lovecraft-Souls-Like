@@ -68,7 +68,7 @@ export function resetFoes(g: Game): void {
   for (const [id, home] of g.ecs.c.home) {
     restore(g, id, home);
     const br = g.ecs.c.brain.get(id);
-    if (br) Object.assign(br, { state: 'idle', target: null, lost: 0, cooldown: 0 });
+    if (br) Object.assign(br, { state: 'idle', target: null, lost: 0, cooldown: 0, aware: 0, last: null, searching: 0, fallBack: 0, detour: 0, stuck: 0 });
   }
 }
 

@@ -2,7 +2,7 @@
 
 import type { Ecs, Entity } from '../core/ecs';
 import type { EventBus } from '../core/events';
-import type { V3 } from '../core/geom';
+import type { V3, XZ } from '../core/geom';
 import type { Rng } from '../core/rng';
 import type { HiddenPieceDef, Place } from '../data/arena';
 import type { MoveSet } from '../data/moves';
@@ -85,7 +85,7 @@ export interface Combatant {
 }
 
 /** Archetype state machine (systems/brain.ts). `hidden`: lying in ambush or burrowed, unseen and untouchable. */
-export type BrainState = 'idle' | 'hidden' | 'engage' | 'return' | 'follow';
+export type BrainState = 'idle' | 'hidden' | 'alert' | 'engage' | 'search' | 'return' | 'follow';
 
 export interface Brain {
   def: BrainDef;
@@ -96,6 +96,15 @@ export interface Brain {
   cooldown: number; // frames before the next attack
   speed: number;
   evadeIn?: number; // frames before it may try to slip another blow
+  // How it hunts (playtest round 8: perception.ts, tactics.ts).
+  aware?: number; // 0..1: how sure it is that a foe is about (alert below 1, hunting at 1)
+  last?: XZ | null; // where it last saw or heard its quarry
+  searching?: number; // frames it has left to look about there
+  token?: boolean; // one of the few closing in on the investigator at once (the rest wait their turn)
+  lookIn?: number; // frames before an idle creature next looks about or strays
+  stuck?: number; // frames it has pushed without getting anywhere
+  detour?: number; // frames it steps aside round what blocks it (the sign: which way)
+  fallBack?: number; // frames it gives ground after its blow
 }
 
 export interface Drop {

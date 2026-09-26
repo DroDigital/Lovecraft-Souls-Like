@@ -182,3 +182,27 @@ export const EXPLORE = {
   every: 8, // frames between looks around
   minimap: 110, // metres from the centre to the minimap's edge
 };
+
+/** How creatures sense and hunt (playtest round 8, systems/perception.ts, brain.ts, tactics.ts). Metres and seconds. */
+export const AI = {
+  sure: 12, // what a creature sees in its sight cone this close it knows at once...
+  notice: 1.1, // ...beyond, a glimpse takes this long to be sure of (longer the farther, at the edge of its sight about twice)
+  side: 6, // beside or behind it, it glimpses only what is this close, slowly
+  forget: 6, // an unconfirmed stir fades over this long
+  noise: { walk: 5, sprint: 14, roll: 10, blow: 12, shot: 34 }, // how far the investigator's sounds carry...
+  muffle: 0.5, // ...a wall between halving them
+  call: 16, // a creature that takes up the hunt rouses its kind this far off (those within half come at once)
+  track: 1.6, // hunting, it keeps its quarry in sight this far beyond its sight's reach (× its `aggro`)
+  lose: 1.5, // out of sight and hearing this long, a hunter goes to look where it last knew its quarry...
+  search: 7, // ...and looks about there this long before it goes home
+  stalk: 0.55, // share of its pace a stirred creature closes in at
+  wander: 2.5, // an idle creature strays this far from its post as it looks about...
+  lookEvery: [3, 7] as const, // ...every so often
+  tokens: 2, // hunters closing in to strike the investigator at once; the rest keep off, circling, waiting their turn
+  wait: 4.5, // how far the waiting ones keep (at least this far beyond their reach)
+  space: 1.1, // hunters keep this far apart (beyond their bodies)
+  punish: 0.5, // a hunter strikes into an opening (a swallow, a blow's recovery, a stagger) once this share of its cooldown has passed
+  fallBack: 0.6, // seconds a skirmisher falls back after its blow
+  stuck: 0.5, // pushing this long without getting anywhere...
+  detour: 0.7, // ...it steps aside this long to get round what blocks it
+};

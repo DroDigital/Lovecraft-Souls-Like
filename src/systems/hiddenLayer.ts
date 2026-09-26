@@ -23,7 +23,7 @@ function quiet(g: Game, id: Entity): void {
   const a = g.ecs.c.actor.get(id);
   if (a) Object.assign(a, { move: null, frame: 0, hitstop: 0, frozen: false, guard: false });
   const br = g.ecs.c.brain.get(id);
-  if (br) Object.assign(br, { state: 'idle', target: null, lost: 0 });
+  if (br) Object.assign(br, { state: 'idle', target: null, lost: 0, aware: 0, last: null });
 }
 
 /** Shows or hides one layered entity to match the mind. */
