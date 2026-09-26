@@ -7,6 +7,7 @@
  */
 
 import { GAME_NAME, TITLE_LINES } from '../data/intro';
+import { creditsPage } from './credits';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
 import { button, createScreen, el, heading, type Page } from './menuKit';
@@ -65,6 +66,7 @@ export function showTitle(o: TitleOptions): void {
       button(menu, 'New game', () => (o.hasSave ? screen.show(confirm) : begin(true)));
       button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
       button(menu, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
+      button(menu, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
       if (desktop) button(menu, 'Quit', () => (saveNow(), void desktop!.quit())); // the desktop shell only (playtest round 12)
       el(p, 'div', 'arrows or pad to choose · Enter or A', 'opacity:.3;margin-top:26px');
     },

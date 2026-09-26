@@ -5,6 +5,7 @@
  * the desktop shell a way out to the desktop (playtest round 12).
  */
 
+import { creditsPage } from './credits';
 import { button, createScreen, el, menuOpen, onPadStart, type Page } from './menuKit';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
@@ -42,6 +43,7 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
       if (o.arms) button(p, 'Arms', () => screen.show(o.arms!(() => screen.show(main), (pg) => screen.show(pg))));
       button(p, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
       button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
+      button(p, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
       button(p, 'Quit to title', o.quit);
       if (desktop) button(p, 'Quit to desktop', () => (saveNow(), void desktop!.quit())); // the shell only: a browser tab is closed by its own hand
     },

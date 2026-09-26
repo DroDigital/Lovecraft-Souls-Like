@@ -15,6 +15,7 @@ import type { CameraRig } from './camera';
 import type { Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
 import type { Explored } from './exploration';
 import type { Band, GameEvents } from './gameEvents';
+import type { Tally } from './tally';
 
 export type { ArenaCircle, Bolt, Fight, Hazard, Mark, Prop, Reality, Wave } from './fightTypes';
 export { BANDS, type Band, type GameEvents, type HitOutcome } from './gameEvents';
@@ -284,6 +285,7 @@ export interface Overworld {
   quests: Map<string, number>; // each quest begun: its open stage, or its stage count once done (quests.ts)
   met: Set<string>; // the people talked with (npcs.ts)
   sold: Map<string, number>; // wares bought from merchants, by ware (trade.ts; round 12)
+  tally: Tally; // the run's numbers (tally.ts; round 12)
 }
 
 export interface Game {
