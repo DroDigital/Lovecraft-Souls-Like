@@ -58,6 +58,7 @@ import { armsPage } from './ui/armsPage';
 import { createJourneys } from './ui/journeys';
 import { createShell, type Shell } from './ui/shell';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
+import { createShopMenu } from './ui/shopMenu';
 import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
 
@@ -137,6 +138,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
   const dialogue = createDialogue(game);
+  const shop = createShopMenu(game);
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter);
   const map = createMapScreen(game, painter, capture, journeys.go);
@@ -167,7 +169,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;
-        stepGame(game, menu?.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
+        stepGame(game, menu?.open || shop.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
       },
       render(blend) {
         const still = pause.open || map.open || dialogue.reading || !!intro?.open || journeys.still;

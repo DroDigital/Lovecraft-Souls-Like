@@ -73,7 +73,7 @@ export function talk(g: Game, id: string): void {
   if (topic.starts) startQuest(g, topic.starts);
   g.overworld?.met.add(id);
   g.player.listening = npcEntity(g, id) ?? null; // turned to them, the camera framing them (round 12)
-  g.events.emit('Talked', { npc: id, name: n.name, title: n.title, lines: topic.lines });
+  g.events.emit('Talked', { npc: id, name: n.name, title: n.title, lines: topic.lines, ...(n.shop && { shop: n.shop }) });
 }
 
 /** Each step: the one talked with turns to the investigator, the others back toward where they rise (round 12). */

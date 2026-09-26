@@ -16,7 +16,7 @@ import { possessed } from './realityTricks';
 import { switchLock, toggleLock } from './lockOn';
 import { canAfford } from './stamina';
 
-const BUFFERED = ['light', 'heavy', 'parry', 'shoot', 'item', 'heal'] as const;
+const BUFFERED = ['light', 'heavy', 'parry', 'shoot', 'item', 'heal', 'throw'] as const;
 
 export function playerControl(g: Game, real: InputFrame): void {
   const input = g.reality.stolen > 0 ? possessed(g, real) : real;

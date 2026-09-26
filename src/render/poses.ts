@@ -100,6 +100,14 @@ function inject(f: Figure, d: MoveDef, frame: number): void {
   f.torso.rotation.x = 0.12 * t * clamp01((frame - at + 4) / 6); // it stings
 }
 
+/** A flask of lamp oil, lobbed with the off-hand (round 12): up and back, over as it leaves, then down. */
+function lob(f: Figure, d: MoveDef, frame: number): void {
+  const at = d.volley!.frame;
+  const x = frame < at ? -2.8 * ease(frame / at) : frame < at + 6 ? -2.8 + 1.6 * ease((frame - at) / 6) : -1.2 * (1 - ease((frame - at - 6) / Math.max(1, d.frames - at - 10)));
+  f.armL.rotation.set(x, 0, 0.25, 'YXZ');
+  f.torso.rotation.y = frame < at ? 0.25 * ease(frame / at) : 0.25 * (1 - ease((frame - at) / 8));
+}
+
 /** Off-hand revolver: raise, fire (muzzle flash and kick), lower. */
 function aim(f: Figure, d: MoveDef, frame: number): void {
   const s = d.shot!;
@@ -169,6 +177,7 @@ export function pose(f: Figure, p: PoseInput): void {
   else if (d.motion?.dir === 'back') backstep(f, p.frame / d.frames);
   else if (d.parry) parry(f, d, p.frame);
   else if (d.shot) aim(f, d, p.frame);
+  else if (d.volley) lob(f, d, p.frame);
   else if (d.item !== undefined) {
     stride(f, p.speed, p.stride, p.time, false); // walking on beneath it
     (d.use === 'reagent' ? inject : drink)(f, d, p.frame);

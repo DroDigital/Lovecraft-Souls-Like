@@ -61,6 +61,7 @@ export interface Hazard {
   tick: number;
   life: number; // frames left
   next: number; // frames to the next tick
+  fire?: boolean; // burning oil (round 12)
 }
 
 /** A marked spot on the ground (the eruption): it bursts once its delay runs out. */

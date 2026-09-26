@@ -33,6 +33,7 @@ export interface NpcDef {
   side: 1 | -1; // which side of it
   look: NpcLook;
   topics: readonly Topic[];
+  shop?: string; // a merchant: their wares (data/wares.ts) follow the talk (round 12)
   creature?: string; // a roster ally who speaks for them: no figure of their own (round 12, Nasht & Kaman-Thah)
 }
 
@@ -76,6 +77,17 @@ const NEAR_NPCS: readonly NpcDef[] = [
         "There's a way down from here, into deeper dreams. Peaslee knows the sign. Go down the stair and ask for Kuranes. He's been dreaming longer than any of us. If anyone knows what a silver key opens, he does.",
       ] },
       { lines: ['I keep counting the corners on this street. There are more of them than there should be.'] },
+    ],
+  },
+  {
+    id: 'morgan', name: 'Dr. Francis Morgan', title: 'Professor of Medicine and Comparative Anatomy', sign: 'hub_quad', side: -1, shop: 'morgan',
+    look: { coat: 'grey', hat: 'bowler', hair: 'dark', glasses: true },
+    topics: [
+      { when: [at('dunwich', 'done')], lines: ["Armitage will want to hear the Horror's gone. I carried the sprayer that night, you know. The powder worked then too.", 'Here, see what I have. It all costs something, even here.'] },
+      { lines: [
+        "Morgan. Medicine, and comparative anatomy. I was at Dunwich with Armitage and Rice, before all this. I've been making myself useful.",
+        "Lamp oil in medicine bottles, mostly. Thrown, they burn. And a few odd things from the Exhibition Hall's drawers. I'll trade for those Echoes of yours; don't ask me what I do with them.",
+      ] },
     ],
   },
   {

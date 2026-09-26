@@ -61,7 +61,8 @@ export interface GameEvents {
   Marked: { at: V3; by: Entity }; // ground marked to erupt (at the first spot)
   Swept: { by: Entity }; // a sweeping beam begins its sweep
   Explored: { region: string }; // more of a region seen (exploration.ts)
-  Talked: { npc: string; name: string; title: string; lines: readonly string[] }; // someone spoke (npcs.ts)
+  Talked: { npc: string; name: string; title: string; lines: readonly string[]; shop?: string }; // someone spoke (npcs.ts); a merchant offers their wares after
+  Trade: { shop: string; name: string }; // a merchant's wares are shown (ui/shopMenu.ts; round 12)
   QuestChanged: { id: string; title: string; stage: number; done: boolean }; // a quest begun, moved on or done (quests.ts)
   Read: { name: string }; // a tome or a note picked up (documents.ts has its text)
 }

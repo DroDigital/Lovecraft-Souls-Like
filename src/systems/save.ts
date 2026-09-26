@@ -9,8 +9,9 @@
 import type { Place } from '../data/arena';
 import { ENDING_IDS } from '../data/endings';
 import { QUESTS } from '../data/quests';
+import { WARES } from '../data/wares';
 import { START_SIGN } from '../data/sites';
-import { LEVELS, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { LEVELS, OIL, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
@@ -48,12 +49,14 @@ export interface SaveData {
   laudanum: number;
   reagent?: number; // West's Reagent: doses left and the most it holds
   reagentMax?: number;
+  oil?: number; // flasks of lamp oil (round 12)
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   ending?: string; // the ending chosen
   explored?: Record<string, string>; // the ground seen, as base64 bits by region (exploration.ts)
   quests?: Record<string, number>; // each quest begun: its stage (quests.ts)
   met?: string[]; // the people talked with
+  sold?: Record<string, number>; // wares bought, by ware (round 12)
   wounds?: Record<string, number>; // wounded foes by spawn id: their health fractions (a reload does not heal them)
 }
 
@@ -93,12 +96,14 @@ export function snapshot(g: Game): SaveData {
     laudanum: g.player.laudanum,
     reagent: g.player.reagent,
     reagentMax: g.player.reagentMax,
+    oil: g.player.oil,
     named: ow.named,
     called: [...ow.called],
     ...(ow.ending && { ending: ow.ending }),
     explored: packExplored(ow.explored),
     quests: Object.fromEntries(ow.quests),
     met: [...ow.met],
+    sold: Object.fromEntries(ow.sold),
     wounds: Object.fromEntries(woundsNow(g)),
   };
 }
@@ -126,8 +131,9 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.explored !== undefined && (typeof o.explored !== 'object' || o.explored === null)) return null;
   if (o.quests !== undefined && (typeof o.quests !== 'object' || o.quests === null || !Object.values(o.quests).every(isNum))) return null;
   if (o.met !== undefined && !isStrings(o.met)) return null;
+  if (o.sold !== undefined && !isCounts(o.sold)) return null;
   if ((o.arms !== undefined && !isStrings(o.arms)) || (o.weapon !== undefined && typeof o.weapon !== 'string')) return null;
-  if ((o.stones !== undefined && !isNum(o.stones)) || (o.reinforced !== undefined && !isCounts(o.reinforced))) return null;
+  if ((o.oil !== undefined && !isNum(o.oil)) || (o.stones !== undefined && !isNum(o.stones)) || (o.reinforced !== undefined && !isCounts(o.reinforced))) return null;
   if (o.wounds !== undefined && (typeof o.wounds !== 'object' || o.wounds === null || !Object.values(o.wounds).every(isNum))) return null;
   return o as unknown as SaveData;
 }
@@ -150,6 +156,7 @@ export function applySave(g: Game, s: SaveData): void {
   ow.explored = unpackExplored(s.explored);
   ow.quests = new Map(Object.entries(s.quests ?? {}).filter(([id]) => QUESTS[id]).map(([id, n]) => [id, clampInt(n, -1, QUESTS[id].stages.length)]));
   ow.met = new Set(s.met ?? []);
+  ow.sold = new Map(Object.entries(s.sold ?? {}).filter(([id]) => id in WARES).map(([id, n]) => [id, clampInt(n, 0, 99)]));
   ow.wounds = new Map(Object.entries(s.wounds ?? {}).map(([id, f]) => [id, Math.min(1, Math.max(0.01, f))]));
   for (const [id, t] of c.tome) if (ow.read.has(t.name)) g.ecs.despawn(id);
   for (const k of UPGRADE_IDS) m.upgrades[k] = clampInt(s.upgrades[k] ?? 0, 0, UPGRADES[k].max);
@@ -171,6 +178,7 @@ export function applySave(g: Game, s: SaveData): void {
   g.player.laudanum = clampInt(s.laudanum, 0, laudanumMax(g));
   g.player.reagentMax = clampInt(s.reagentMax ?? REAGENT.doses, REAGENT.doses, REAGENT.maxDoses);
   g.player.reagent = clampInt(s.reagent ?? g.player.reagentMax, 0, g.player.reagentMax);
+  g.player.oil = clampInt(s.oil ?? 0, 0, OIL.carry);
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);
 }

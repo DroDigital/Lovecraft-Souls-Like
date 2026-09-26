@@ -239,6 +239,7 @@ export interface Pilot {
   laudanum: number; // doses left
   reagent: number; // West's Reagent: doses left...
   reagentMax: number; // ...and the most it holds (Silver Vials add to it)
+  oil: number; // flasks of lamp oil to throw (round 12; bought from Dr. Morgan)
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
   listening: Entity | null; // the person talked with: they face them and the camera frames them until they move or look away (round 12)
@@ -281,6 +282,7 @@ export interface Overworld {
   lookedFrom: number; // the cell the investigator last looked around from
   quests: Map<string, number>; // each quest begun: its open stage, or its stage count once done (quests.ts)
   met: Set<string>; // the people talked with (npcs.ts)
+  sold: Map<string, number>; // wares bought from merchants, by ware (trade.ts; round 12)
 }
 
 export interface Game {

@@ -137,6 +137,10 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
     if (g.player.reagent <= 0) return;
     g.player.reagent--; // likewise the Reagent, as the needle comes up
   }
+  if (action === 'throw') {
+    if (g.player.oil <= 0) return;
+    g.player.oil--; // and a flask of oil (round 12)
+  }
   if (st && def.stamina) spend(st, def.stamina);
   startMove(a, move);
   g.player.blockRaised = false; // a blow struck from behind a raised guard plays out

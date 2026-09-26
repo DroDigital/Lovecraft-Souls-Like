@@ -30,7 +30,11 @@ export interface FightViews {
 const flat = (radius: number, segments = 24): THREE.BufferGeometry =>
   new THREE.RingGeometry(0.05, radius, segments, Math.max(1, Math.ceil(radius / 1.5))).rotateX(-Math.PI / 2);
 
-function pool(radius: number): THREE.Mesh {
+function pool(radius: number, fire = false): THREE.Mesh {
+  if (fire) { // burning lamp oil (round 12): bright, and it crawls
+    const geo = tint(flat(radius), mixRgb(BASE.rust, BASE.bone, 0.5));
+    return new THREE.Mesh(geo, createWorldMaterial({ texture: 'cloth', uvScale: [radius * 2, radius * 2], uvScroll: [0.4, 0.7], emissive: 0.9, vertexColors: true }));
+  }
   const geo = tint(flat(radius), scaleRgb(mixRgb(BASE.rust, BASE.seaGrey, 0.5), 0.9));
   return new THREE.Mesh(geo, createWorldMaterial({ texture: 'flesh', uvScale: [radius, radius], uvScroll: [0.05, 0.03], emissive: 0.35, vertexColors: true }));
 }
@@ -129,7 +133,7 @@ export function createFightViews(scene: THREE.Scene, g: Game): FightViews {
     for (const [id, h] of c.hazard) {
       if (views.has(id)) continue;
       const p = c.transform.get(id)!.pos;
-      const mesh = pool(h.radius);
+      const mesh = pool(h.radius, h.fire);
       mesh.position.set(p.x, p.y + 0.05, p.z);
       scene.add(mesh);
       views.set(id, mesh);
