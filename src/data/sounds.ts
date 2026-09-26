@@ -98,6 +98,8 @@ export const STINGERS = {
   swept: [tone('sawtooth', 110, 1.2, 0.18, { to: 220, filter: lp(900, 2400) }), noise('highpass', 3000, 1, 0.12, { attack: 0.2 }), tone('sine', 55, 1.2, 0.3)],
   page: [noise('bandpass', 2200, 0.18, 0.2, { q: 1.5 }), noise('bandpass', 3000, 0.15, 0.15, { at: 0.12, q: 1.5 })],
   quest: [tone('triangle', 392, 1.4, 0.1, { attack: 0.05 }), tone('triangle', 587.3, 1.4, 0.08, { at: 0.15 })],
+  danger: [tone('sawtooth', 740, 0.28, 0.14, { to: 1480, filter: { type: 'bandpass', hz: 1800, q: 3 } }), tone('sawtooth', 784, 0.28, 0.1, { to: 1568, filter: { type: 'bandpass', hz: 2200, q: 3 } }), noise('bandpass', 3200, 0.12, 0.3, { q: 5 })], // a grab winds up: no guard will stop it (playtest round 7)
+  vanish: [noise('bandpass', 1400, 0.9, 0.35, { to: 5200, q: 2, attack: 0.02 }), tone('sine', 1760, 0.8, 0.05, { to: 2640, attack: 0.05 }), tone('sine', 110, 0.5, 0.25, { to: 55 })], // a hallucination struck: it was never there
 } satisfies Record<string, Sound>;
 
 export type StingerId = keyof typeof STINGERS;

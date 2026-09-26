@@ -55,7 +55,7 @@ export const MUSIC = {
 export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
   sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
-  resolution: [0.5, 2, 0.25, 1], // internal resolution, × RENDER's 400 × 225
+  resolution: [0.5, 2, 0.25, 1.5], // internal resolution, × RENDER's 400 × 225 (600 × 338 by default since playtest round 7, so the figures' detail shows)
   volume: [0, 1, 0.05, 0.7],
 } satisfies Record<string, readonly [number, number, number, number]>;
 
@@ -97,7 +97,7 @@ export const SKY = {
   close: 0.6, // seconds for a dungeon's walls to close it off
 };
 
-export type LightKind = 'lamp' | 'window' | 'fire' | 'torch';
+export type LightKind = 'lamp' | 'window' | 'fire' | 'torch' | 'sigil';
 
 interface LightDef {
   color: Vec3;
@@ -119,7 +119,20 @@ export const LIGHTS = {
     window: { color: [1, 0.76, 0.48], strength: 1.1, range: 6.5, halo: 0.9, haloGain: 0.38, flicker: 0 }, // a warm patch on the wall and ground before it
     fire: { color: [1, 0.66, 0.36], strength: 3, range: 13, halo: 1.8, haloGain: 0.75, flicker: 0.2 },
     torch: { color: [1, 0.72, 0.42], strength: 2, range: 8.5, halo: 0.85, haloGain: 0.7, flicker: 0.14 },
+    sigil: { color: [0.62, 0.26, 1], strength: 1.3, range: 9, halo: 1.3, haloGain: 0.3, flicker: 0 }, // a lit Elder Sign's glow (Cosmic Purple)
   } satisfies Record<LightKind, LightDef>,
+};
+
+/** The Elder Signs' shrines (playtest round 7, render/signViews.ts). */
+export const SIGIL = {
+  wake: 1.2, // seconds a sign found takes to come to its glow
+  breatheHz: 0.3, // its glow breathes this often
+  turn: 0.06, // radians a second its ring of runes turns
+  motes: 5, // motes rising a second about a lit sign...
+  moteReach: 40, // ...within this many metres of the eye
+  flare: 1.8, // seconds a flare (a sign found; resting, softer) takes to die away
+  wave: [1.5, 8] as const, // its ring of light: seconds to run out, and how far (metres)
+  burst: 40, // motes a sign found throws up (resting, half as many)
 };
 
 /** Echo caches (playtest round 4): what the casket at a dungeon's dead end holds. */
@@ -134,6 +147,7 @@ export const REAGENT = {
   doses: 4, // at the start; each Silver Vial found adds one
   maxDoses: 14, // the start's four and the ten vials hidden in the lesser dungeons
   heal: 0.45, // share of full health restored
+  mend: 8, // seconds after a shot in which lingering hurts (pools, the void) do no harm (playtest round 7)
 };
 
 /** How a blow taken reads without making the investigator blink: a red edge from the blow's side, a shake, a health bar that drains behind. */

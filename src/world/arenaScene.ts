@@ -59,14 +59,14 @@ function walls(): THREE.Mesh {
   return new THREE.Mesh(mergeGeometries(parts), createWorldMaterial({ texture: 'stone', seed: 3, vertexColors: true }));
 }
 
-/** The checkpoint: a standing slab carved with Lovecraft's branch-like Elder Sign, which glows faintly. */
+/** The checkpoint: a standing stone carved with Lovecraft's branch-like Elder Sign, which glows faintly. */
 function elderSign(): THREE.Mesh[] {
   const { x, z } = ARENA.elderSign;
   const { slab, glyph } = elderSignGeometry(-1); // carved on the side facing the arena
   slab.translate(x, 0, z);
   glyph.translate(x, 0, z);
   return [
-    new THREE.Mesh(slab, createWorldMaterial({ texture: 'stone', seed: 4, vertexColors: true })),
-    new THREE.Mesh(glyph, createWorldMaterial({ texture: 'stone', seed: 4, emissive: 0.9, vertexColors: true })),
+    new THREE.Mesh(slab, createWorldMaterial({ texture: 'rock', seed: 4, vertexColors: true })),
+    new THREE.Mesh(glyph, createWorldMaterial({ texture: 'rock', seed: 4, emissive: 0.9, vertexColors: true })),
   ];
 }

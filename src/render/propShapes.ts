@@ -160,10 +160,23 @@ function fence(p: Prop, rng: Rng): Piece[] {
   return [{ mat: 'wood', geo: tileUv(mergeGeometries(parts), 1, 1) }];
 }
 
+/** A Victorian street lamp: a fluted base, a tapering post with a collar, a ladder bar, and a four-sided lantern under a pyramid cap and finial. */
 function lamp(p: Prop): Piece[] {
-  const post = mergeGeometries([cyl(0.09, 0.06, p.h, 6, IRON), box(0.26, 0.2, 0.26, 0, 0.1, 0, IRON), box(0.4, 0.06, 0.4, 0, p.h + 0.46, 0, IRON), box(0.06, 0.06, 0.06, 0, p.h + 0.52, 0, IRON)]);
-  const glass = box(0.28, 0.4, 0.28, 0, p.h + 0.22, 0, FLAME);
-  return [{ mat: 'wood', geo: tileUv(post, 1, 1) }, { mat: 'glow', geo: glass, light: 'lamp' }];
+  const quad = (top: number, bottom: number, h: number, y: number, c: Rgb): THREE.BufferGeometry =>
+    tint(new THREE.CylinderGeometry(top, bottom, h, 4).rotateY(Math.PI / 4).translate(0, y, 0), c);
+  const post = mergeGeometries([
+    cyl(0.16, 0.11, 0.5, 8, IRON), // the base
+    cyl(0.07, 0.05, p.h, 6, IRON),
+    cyl(0.09, 0.09, 0.08, 6, IRON).translate(0, p.h * 0.6, 0), // a collar
+    box(0.6, 0.04, 0.04, 0, p.h - 0.35, 0, IRON), // the lamplighter's ladder bar
+    quad(0.2, 0.13, 0.05, p.h + 0.02, IRON), // the lantern's seat...
+    quad(0.33, 0.2, 0.16, p.h + 0.55, IRON), // ...its cap...
+    tint(new THREE.ConeGeometry(0.24, 0.24, 4).rotateY(Math.PI / 4).translate(0, p.h + 0.75, 0), IRON),
+    tint(new THREE.SphereGeometry(0.05, 6, 4).translate(0, p.h + 0.9, 0), IRON), // ...and finial
+    ...[0, 1, 2, 3].map((i) => box(0.025, 0.46, 0.025, Math.sin(i * 1.57 + 0.78) * 0.2, p.h + 0.26, Math.cos(i * 1.57 + 0.78) * 0.2, IRON)), // its frame
+  ]);
+  const glass = quad(0.21, 0.15, 0.44, p.h + 0.25, FLAME);
+  return [{ mat: 'wood', geo: tileUv(post, 1, 1) }, { mat: 'glow', geo: tileUv(glass, 1, 1), light: 'lamp' }];
 }
 
 function log(p: Prop, rng: Rng): Piece[] {

@@ -1,7 +1,9 @@
 /**
- * The minimap (playtest round 1): top right, round, north up and centred on the investigator,
- * showing the ground they have seen within EXPLORE.minimap metres and what is marked on it, and
- * where the story leads (on the rim when it lies beyond). It also drives the map art's slow drawing, a little each frame. Absent in the arena.
+ * The minimap (playtest round 1): top right, round and centred on the investigator, showing the
+ * ground they have seen within EXPLORE.minimap metres and what is marked on it, and where the story
+ * leads (on the rim when it lies beyond). It turns with the camera, what lies ahead of it up (playtest
+ * round 7), an N on the rim marking north. It also drives the map art's slow drawing, a little each
+ * frame. Absent in the arena.
  */
 
 import { EXPLORE } from '../data/tuning';
@@ -27,7 +29,7 @@ export function createMinimap(g: Game, root: HTMLElement, painter: MapPainter): 
   [canvas.width, canvas.height] = [SIZE, SIZE];
   canvas.style.cssText = `width:100%;height:100%;border-radius:50%;border:1px solid ${BONE}66;box-shadow:0 0 0 2px #000c;opacity:.92`;
   frame.append(canvas);
-  el(`position:absolute;left:0;right:0;top:-2px;text-align:center;font-size:10px;text-shadow:0 0 3px #000`, 'N', frame);
+  const north = el(`position:absolute;left:50%;top:0;transform:translate(-50%,-50%);font-size:10px;text-shadow:0 0 3px #000,0 0 3px #000`, 'N', frame);
   el(`position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;letter-spacing:2px;opacity:.55`, 'M  MAP', frame);
   const ctx = canvas.getContext('2d')!;
   let tick = 0;
@@ -41,8 +43,18 @@ export function createMinimap(g: Game, root: HTMLElement, painter: MapPainter): 
       const region = g.overworld.region ?? regionAt(p.x, p.z)?.id;
       if (!region) return;
       const view = { cx: p.x, cz: p.z, scale: SIZE / 2 / EXPLORE.minimap, w: SIZE, h: SIZE };
+      const yaw = g.camera.yaw; // yaw 0 looks north; east is a quarter turn clockwise
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      ctx.save();
+      ctx.translate(SIZE / 2, SIZE / 2);
+      ctx.rotate(-yaw); // what the camera looks at, up (the round face hides the square's turned corners)
+      ctx.translate(-SIZE / 2, -SIZE / 2);
       painter.paint(ctx, view, realmOf(region), false);
       drawLead(ctx, view, mainLead(g)?.at ?? null, realmOf(region), true);
+      ctx.restore();
+      const r = SIZE / 2 - 1;
+      north.style.left = `${SIZE / 2 - Math.sin(yaw) * r}px`;
+      north.style.top = `${SIZE / 2 - Math.cos(yaw) * r}px`;
     },
   };
 }

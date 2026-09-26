@@ -1,7 +1,9 @@
 /**
  * Pure FX model (no Three.js): sanity, accessibility cap and debug toggles in,
  * per-effect parameters out. Every effect intensifies as sanity falls (spec §2, Phase 0), and so
- * does the audio's detune and distortion (the FX controller's audio half, spec §3A).
+ * does the audio's detune and distortion (the FX controller's audio half, spec §3A), but for the
+ * low resolution and its vertex snap, which hold (playtest round 7: madness warps, it does not
+ * coarsen the pixels).
  */
 
 import { FX, RENDER, type Ramp } from '../data/tuning';
@@ -30,7 +32,6 @@ export interface FxState {
 export interface FxParams {
   stress: number;
   lowRes: boolean;
-  pixelCrush: number;
   snapPixels: number;
   affine: number;
   fogNear: number;
@@ -52,9 +53,9 @@ export interface FxParams {
   distortion: number; // 0..1
 }
 
-/** The FxParams fields each effect drives (the ones the sanity slider moves). */
+/** The FxParams fields each effect drives (the sanity slider moves all but the STEADY ones'). */
 export const EFFECT_PARAMS: Record<EffectId, readonly (keyof FxParams)[]> = {
-  pixelate: ['pixelCrush'],
+  pixelate: ['lowRes'],
   snap: ['snapPixels'],
   affine: ['affine'],
   fog: ['fogNear', 'fogFar'],
@@ -64,6 +65,9 @@ export const EFFECT_PARAMS: Record<EffectId, readonly (keyof FxParams)[]> = {
   displace: ['displace'],
   lens: ['fovBreatheDeg', 'skew'],
 };
+
+/** The effects that hold at every sanity. */
+export const STEADY: readonly EffectId[] = ['pixelate', 'snap'];
 
 const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
 const at = (r: Ramp, t: number): number => r[0] + (r[1] - r[0]) * t;
@@ -84,8 +88,7 @@ export function computeFx(s: FxState): FxParams {
   return {
     stress: t,
     lowRes: on.pixelate,
-    pixelCrush: on.pixelate ? at(FX.pixelCrush, t) : 0,
-    snapPixels: on.snap ? at(FX.snapPixels, t) : 0,
+    snapPixels: on.snap ? FX.snapPixels : 0,
     affine: on.affine ? at(FX.affine, t) : 0,
     fogNear: at(FX.fogNear, t),
     fogFar: at(FX.fogFar, t),

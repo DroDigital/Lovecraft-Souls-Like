@@ -21,6 +21,7 @@ import { playSound } from './render/audio/synth';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
+import { createSignViews } from './render/signViews';
 import { createSky, inDungeon } from './render/sky';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
@@ -128,6 +129,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
   const combatFx = createCombatFx(game, particles);
+  const signs = createSignViews(scene, game, particles, lights);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
   const sky = createSky();
@@ -144,7 +146,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
   if (!intro) journeys.arrive(reveal);
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter);
-  const map = createMapScreen(game, painter, capture);
+  const map = createMapScreen(game, painter, capture, journeys.go);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(creature, variant) : [])], panelOptions(game, settings, shell.change)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
@@ -166,13 +168,13 @@ function startGame(opts: StartOptions, shell: Shell): void {
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
-        const through = pause.open || map.open || dialogue.open || intro?.open ? null : journeys.before(frame);
+        const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;
-        stepGame(game, menu?.open || ending.open ? emptyInput() : through);
+        stepGame(game, menu?.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
       },
       render(blend) {
-        const still = pause.open || map.open || dialogue.open || !!intro?.open || journeys.still;
+        const still = pause.open || map.open || dialogue.reading || !!intro?.open || journeys.still;
         const alpha = still ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
@@ -194,10 +196,10 @@ function startGame(opts: StartOptions, shell: Shell): void {
         hidden.update(time);
         fights.update(alpha, time);
         combatFx.update();
+        signs.update(time, camera.position);
         bossFx.update(alpha, time, camera);
         shadows.update(alpha);
         particles.update(time, camera);
-
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
         applyReality(fx, game.reality);
@@ -216,8 +218,7 @@ function startGame(opts: StartOptions, shell: Shell): void {
         if (now - statsAt >= 500) {
           const fps = Math.round((frames * 1000) / (now - statsAt));
           panel.setStats(`${fps} fps · ${pipeline.renderer.info.render.calls} draws\n${playerStats(game)}${world ? worldStats(game, world) : ''}`);
-          frames = 0;
-          statsAt = now;
+          [frames, statsAt] = [0, now];
         }
       },
     },

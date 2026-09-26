@@ -169,7 +169,10 @@ export function pose(f: Figure, p: PoseInput): void {
   else if (d.motion?.dir === 'back') backstep(f, p.frame / d.frames);
   else if (d.parry) parry(f, d, p.frame);
   else if (d.shot) aim(f, d, p.frame);
-  else if (d.item !== undefined) (d.use === 'reagent' ? inject : drink)(f, d, p.frame);
+  else if (d.item !== undefined) {
+    stride(f, p.speed, p.stride, p.time, false); // walking on beneath it
+    (d.use === 'reagent' ? inject : drink)(f, d, p.frame);
+  }
   f.body.rotation.x -= 0.18 * p.flinch;
   f.head.rotation.x -= 0.25 * p.flinch;
   settle(f, p.ground);

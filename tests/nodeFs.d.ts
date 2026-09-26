@@ -4,4 +4,5 @@ declare module 'node:fs' {
   export function readdirSync(path: string): string[];
   export function readFileSync(path: string, encoding: 'utf8'): string;
   export function statSync(path: string): { size: number };
+  export function appendFileSync(path: string, data: string): void;
 }

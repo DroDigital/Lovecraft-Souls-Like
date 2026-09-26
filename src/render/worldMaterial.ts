@@ -36,6 +36,7 @@ export const worldUniforms = {
   uLamps: { value: Array.from({ length: LAMP_SLOTS }, () => new THREE.Vector4()) }, // the world's nearest lights (worldLights.ts)
   uLampColors: { value: Array.from({ length: LAMP_SLOTS }, () => new THREE.Vector3()) },
   uCharacterLight: { value: LIGHT.character },
+  uRimColor: { value: v3(LIGHT.rim) },
   uLanternSelf: { value: LANTERN.self },
   uSelfMax: { value: LANTERN.selfMax },
   uEyeRange: { value: new THREE.Vector2(...LIGHT.eyes) },

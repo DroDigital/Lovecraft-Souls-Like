@@ -10,7 +10,7 @@
 import { MIND_HUD, SANITY } from '../data/tuning';
 import type { Band, Game } from '../systems/components';
 import { atOrBelow, bandIndex } from '../systems/sanity';
-import { bar, BONE, el, setStyle, setText } from './hudKit';
+import { bar, BONE, el, setStyle, setText, STEADY } from './hudKit';
 
 const MAGENTA = '#d80073';
 const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: MAGENTA };
@@ -59,13 +59,13 @@ export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) 
       setStyle(chip, 'width', `${chipPct.toFixed(1)}%`);
       setStyle(chip, 'background', m.band === 'unmoored' ? `${BONE}cc` : `${MAGENTA}cc`);
       const jolt = Math.max(0, 1 - (now - joltAt) / (MIND_HUD.joltSeconds * 1000));
-      if (jolt > 0 || jolted) {
-        frame.style.transform = jolt > 0 ? `translateX(${Math.round(Math.sin(now / 11) * 3 * jolt)}px)` : '';
-        frame.style.borderColor = jolt > 0 ? MAGENTA : `${BONE}55`;
-        frame.style.boxShadow = jolt > 0 ? `0 0 ${Math.round(8 * jolt)}px ${MAGENTA}` : '';
-        jolted = jolt > 0;
-      }
-      setText(band, `${m.band.toUpperCase()} ${Math.ceil(m.sanity)}`);
+      const steady = g.player.steady > 0; // a swallow holding the mind: it glows calm
+      if (jolt > 0 || jolted) frame.style.transform = jolt > 0 ? `translateX(${Math.round(Math.sin(now / 11) * 3 * jolt)}px)` : '';
+      jolted = jolt > 0;
+      const glow = jolt > 0 ? MAGENTA : steady ? STEADY : null;
+      const [border, shadow] = [glow ?? `${BONE}55`, glow ? `0 0 ${jolt > 0 ? Math.round(8 * jolt) : 6}px ${glow}` : ''];
+      if (frame.dataset.glow !== border + shadow) [frame.style.borderColor, frame.style.boxShadow, frame.dataset.glow] = [border, shadow, border + shadow];
+      setText(band, `${m.band.toUpperCase()} ${Math.ceil(m.sanity)}${steady ? '  ·  STEADY' : ''}`);
       const call = callsForLaudanum(g);
       setText(laudanum, `${call ? 'T · ' : ''}LAUDANUM ×${g.player.laudanum}`);
       setStyle(laudanum, 'color', call ? '#ff5aa8' : BONE);

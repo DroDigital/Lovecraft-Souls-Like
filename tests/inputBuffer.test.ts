@@ -8,8 +8,8 @@ import { ageBuffer, BUFFER_FRAMES, bufferPress, createBuffer, takeBuffered } fro
 import { press, scriptedGame, steps } from './helpers';
 
 describe('input buffer (pure)', () => {
-  it('holds one action for 150 ms (9 frames at 60 Hz)', () => {
-    expect(BUFFER_FRAMES).toBe(9);
+  it('holds one action for 250 ms (15 frames at 60 Hz; 150 ms until playtest round 7)', () => {
+    expect(BUFFER_FRAMES).toBe(15);
     const b = createBuffer();
     bufferPress(b, 'light');
     for (let i = 0; i < BUFFER_FRAMES; i++) ageBuffer(b);

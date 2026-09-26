@@ -24,7 +24,11 @@ export const PHANTOM_POOL: readonly string[] = ENTITIES.filter(
   (d) => d.tier === 'lesser' && d.sprite && !d.hidden && HUNTERS.has(d.behavior.archetype) && d.stats.damage > 0,
 ).map((d) => d.id);
 
-export const vanish = (g: Game, id: Entity): void => g.ecs.despawn(id);
+export function vanish(g: Game, id: Entity, struck = false): void {
+  const at = g.ecs.c.transform.get(id)?.pos;
+  if (at) g.events.emit('Vanished', { entity: id, at: { ...at }, struck });
+  g.ecs.despawn(id);
+}
 
 /** One apparition, somewhere behind the camera, already hunting the investigator. */
 export function conjure(g: Game): Entity | undefined {
@@ -66,7 +70,7 @@ export function registerHallucinations(g: Game): void {
   });
   g.events.on('Hit', ({ attacker, target, outcome }) => {
     const { phantom } = g.ecs.c;
-    if (phantom.has(target) && outcome !== 'dodged') vanish(g, target);
-    else if (phantom.has(attacker) && target === g.player.id && LANDED.has(outcome)) loseSanity(g, HALLUCINATIONS.sanity);
+    if (phantom.has(target) && outcome !== 'dodged') vanish(g, target, true);
+    else if (phantom.has(attacker) && target === g.player.id && LANDED.has(outcome) && g.player.steady <= 0) loseSanity(g, HALLUCINATIONS.sanity);
   });
 }

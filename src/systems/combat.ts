@@ -2,7 +2,7 @@
  * Melee combat (spec §3B): each active frame a hitbox sphere sweeps its slice of the attack arc
  * (a capsule) against the hurt capsules of hostile bodies. Resolution order: i-frames, parry,
  * block / guard break, damage (riposte bonus), interrupt, poise / stagger; then hitstop (2–4
- * frames on attacker and victim) and events. The sanity band scales the investigator's blows both
+ * frames on attacker and victim) and events. A blow comes down to a body too short for it. The sanity band scales the investigator's blows both
  * ways; a hallucination's blows carry no damage (their sanity cost is hallucinations.ts); a boss's
  * ward (its hooks and signature) scales what it takes. Grabs pass a guard; wind shoves.
  */
@@ -12,10 +12,11 @@ import { segSegDist2, wrapAngle, yawOf, type V3 } from '../core/geom';
 import type { HitDef } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
-import { isAbsent, isConcealed, type Actor, type Combatant, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
+import { isAbsent, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
 import { might } from './levels';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
+import { targetsOf } from './targets';
 
 /** What a blow carries into resolution; melee hits and revolver shots both fit. */
 export interface Blow {
@@ -86,19 +87,7 @@ export function hitCentre(pos: V3, yaw: number, hit: HitDef, p: number): V3 {
   return { x: pos.x + Math.sin(a) * hit.reach, y: pos.y + hit.height, z: pos.z + Math.cos(a) * hit.reach };
 }
 
-/** Who a blow from `faction` can touch: living, present, unconcealed combatants of the other side with a body. Hallucinations and the investigator touch only each other. */
-export function hostiles(g: Game, faction: Combatant['faction'] | undefined, conjured: boolean, byPlayer: boolean): Entity[] {
-  const { combatant, health, body, phantom } = g.ecs.c;
-  const out: Entity[] = [];
-  for (const [t, c] of combatant) {
-    if (c.faction === faction || isAbsent(g, t) || !body.has(t) || isConcealed(g, t)) continue;
-    if (phantom.has(t) ? !byPlayer : conjured && t !== g.player.id) continue;
-    if ((health.get(t)?.hp ?? 0) > 0) out.push(t);
-  }
-  return out;
-}
-
-export const targetsOf = (g: Game, id: Entity): Entity[] => hostiles(g, g.ecs.c.combatant.get(id)?.faction, g.ecs.c.phantom.has(id), id === g.player.id);
+export { hostiles, targetsOf } from './targets';
 
 /** Distance² from a segment to a body's hurt capsule, and the capsule radius. */
 export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3): { gap2: number; radius: number } {
@@ -114,6 +103,7 @@ export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3): { gap2: numb
  * where it comes from, for the guard arc (a bolt or a pool; else the attacker, who may be gone).
  */
 export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow, from?: V3): HitOutcome {
+  if (blow.lingering && target === g.player.id && g.player.mended > 0) return 'dodged'; // the Reagent holds: a pool's or the void's tick does nothing
   const { actor, health, poise, stamina, transform } = g.ecs.c;
   const aa = actor.get(attacker);
   const ta = actor.get(target)!;
@@ -146,6 +136,16 @@ export function shove(g: Game, target: Entity, from: V3, metres: number): void {
   g.ecs.c.shove.set(target, { x: (dx / d) * (metres / SHOVE_FRAMES), z: (dz / d) * (metres / SHOVE_FRAMES), frames: SHOVE_FRAMES });
 }
 
+/**
+ * A blow swung over a short body comes down to it (playtest round 7: a cane's slash at chest height
+ * passed over the Zoogs, the Cat from Saturn and Brown Jenkin): the sweep drops to just under the
+ * target's top, never below the attacker's knee.
+ */
+export function aimAt(g: Game, target: Entity, feet: number, s: V3): V3 {
+  const top = g.ecs.c.transform.get(target)!.pos.y + g.ecs.c.body.get(target)!.height - 0.1;
+  return s.y > top ? { ...s, y: Math.max(feet + 0.25, top) } : s;
+}
+
 export function meleeSystem(g: Game): void {
   const { actor, transform } = g.ecs.c;
   for (const [id, a] of actor) {
@@ -158,7 +158,7 @@ export function meleeSystem(g: Game): void {
     const s1 = hitCentre(tr.pos, tr.yaw, hit, (k + 1) / n);
     for (const t of targetsOf(g, id)) {
       if (a.hits.has(t)) continue;
-      const { gap2, radius } = capsuleGap2(g, t, s0, s1);
+      const { gap2, radius } = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
       if (gap2 > (hit.radius + radius) ** 2) continue;
       a.hits.add(t);
       const outcome = strike(g, id, t, { ...hit, parryable: !hit.unblockable, interrupts: false });

@@ -82,7 +82,7 @@ describe('what reports a light', () => {
     finish(propJob([lamp, pit, home], REGIONS[0], (_, l) => (spots = l)));
     const where = (s: LightSpot): number[] => [s.x, s.y, s.z].map((v) => Math.round(v * 1000) / 1000);
     expect(spots[0].kind).toBe('lamp');
-    expect(where(spots[0])).toEqual([10, 5.27, -5]); // the glass, 0.22 m above the post's 3.2 on ground sunk 0.15
+    expect(where(spots[0])).toEqual([10, 5.3, -5]); // the glass, 0.25 m above the post's 3.2 on ground sunk 0.15
     expect(spots[1].kind).toBe('fire');
     expect(where(spots[1])).toEqual([-4, 1.45, 3]);
     const windows = spots.slice(2);

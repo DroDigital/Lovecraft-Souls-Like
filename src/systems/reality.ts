@@ -89,7 +89,7 @@ const platforms: HookStep = (g, fights) => {
   if (e === undefined || !f || g.frame % REALITY.voidTick !== 0 || g.ecs.c.actor.get(g.player.id)!.move === 'death') return;
   if (platformsShown(g) && platformsOf(f).some((p) => distXZ(p, pp) <= REALITY.platformRadius)) return;
   const blow = { damage: REALITY.voidDamage, poise: 0, guard: 0, hitstop: 0, parryable: false, interrupts: false, unblockable: true, lingering: true };
-  if (strike(g, e, g.player.id, blow, { x: f.arena.x, y: pp.y, z: f.arena.z }) !== 'dodged') loseSanity(g, REALITY.voidSanity);
+  if (strike(g, e, g.player.id, blow, { x: f.arena.x, y: pp.y, z: f.arena.z }) !== 'dodged' && g.player.steady <= 0) loseSanity(g, REALITY.voidSanity);
 };
 
 const petrify: HookStep = (g, fights) => {

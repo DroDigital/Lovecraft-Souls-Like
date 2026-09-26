@@ -22,8 +22,7 @@ export const RENDER = {
 
 export const FX = {
   capDefault: 1, // accessibility cap on stress, 0..1 (the settings menu's default)
-  pixelCrush: [0, 1] as Ramp, // extra low-res pixel size
-  snapPixels: [1, 4] as Ramp, // PS1 vertex snap grid, in low-res pixels
+  snapPixels: 1, // PS1 vertex snap grid, in low-res pixels (madness no longer coarsens it, nor the pixels: playtest round 7)
   affine: [1.25, 10] as Ramp, // texels the PS1 affine mapping may stray from the true one: a shiver when calm, walls swim when mad
   fogNear: [4, 2] as Ramp, // metres
   fogFar: [80, 42] as Ramp,
@@ -67,6 +66,7 @@ export const LIGHT = {
   echoGlowRange: 6, // a dropped Echo's faint light
   echoGlowIntensity: 0.6,
   character: 0.65, // share of the lantern (and, for sprites, the moon) characters take, without N·L: their values hold as they turn
+  rim: [0.3, 0.34, 0.38] as Vec3, // characters' cold edge light (playtest round 7): dark figures read against the dark
   eyes: [6, 13] as const, // metres over which self-lit eyes and markings sink into the dark: no spotting a creature from afar
 };
 
@@ -114,9 +114,11 @@ export const STAMINA = {
 };
 
 export const COMBAT = {
-  bufferMs: 150, // input buffer window: one queued action
+  bufferMs: 250, // input buffer window: one queued action (was 150: a press early in a swing was gone before it could cut in; playtest round 7)
   comboGrace: 8, // frames after an attack ends in which the next press still continues its chain
-  guardArcDeg: 120, // block and parry only stop hits from inside this frontal arc
+  evadeAfter: 3, // frames after a blow lands (or a shot leaves) from which a dodge may cut the rest short (before its cancel frame)
+  assist: { range: 3.6, arcDeg: 70 }, // without a lock, a blow or a shot turns to the nearest foe this close and this far off its line
+  guardArcDeg: 180, // block and parry stop hits from anywhere in front (was 120: blows from the flank went through; playtest round 7)
   riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe
   poiseReset: 120, // frames without poise damage before poise refills
   dummyReset: 180, // frames without damage before the immortal training dummy heals
@@ -143,6 +145,7 @@ export const SANITY = {
 export const LAUDANUM = {
   doses: 3,
   sanity: 30, // restored per dose
+  steady: 10, // seconds after a swallow in which auras, roars, gazes and the void take no sanity (playtest round 7)
 };
 
 /** Insight upgrades (spec §3A): insight per level, the most levels, and what each level adds. The body's strength is bought with Echoes (LEVELS). */

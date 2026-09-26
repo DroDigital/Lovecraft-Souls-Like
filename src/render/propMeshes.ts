@@ -2,7 +2,9 @@
  * Chunk props as low-poly primitives (spec §2): every prop's pieces (propShapes.ts, houseMesh.ts)
  * turned and placed, then merged per chunk into one mesh per material (stone, wood, needles and
  * leaves, clapboard, brick, shingles, and the self-lit glow of lamps, fires and lit windows), tinted
- * toward the region's ground; the lamps, fires and windows are reported as lights (worldLights.ts). Built a few props at a time (a sliced job).
+ * toward the region's ground and darkened toward it (light baked into the vertices, playtest round
+ * 7); the lamps, fires and windows are reported as lights (worldLights.ts). Built a few props at a
+ * time (a sliced job).
  */
 
 import * as THREE from 'three';
@@ -10,6 +12,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { RegionDef } from '../data/regions';
 import type { Prop } from '../world/props';
 import { housePieces } from './houseMesh';
+import { groundShade } from './meshKit';
 import { mixRgb, type Rgb } from './palette';
 import { propPieces, type PropMat } from './propShapes';
 import type { LightSpot } from './worldLights';
@@ -44,6 +47,7 @@ export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshe
   for (const p of props) {
     const [s, cs] = [Math.sin(p.yaw), Math.cos(p.yaw)];
     for (const piece of p.kind === 'house' ? housePieces(p, c) : propPieces(p, c)) {
+      if (piece.mat !== 'glow') groundShade(piece.geo, p.kind === 'house' ? 0.62 : 0.55, p.kind === 'house' ? 2.2 : 1.6); // darker toward the ground
       const geo = piece.geo.rotateY(p.yaw).translate(p.x, p.y - 0.15, p.z);
       groups.get(piece.mat)?.push(geo) ?? groups.set(piece.mat, [geo]);
       if (!piece.light) continue;

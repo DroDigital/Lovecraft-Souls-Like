@@ -23,6 +23,7 @@ export interface GameEvents {
   Hit: { attacker: Entity; target: Entity; outcome: HitOutcome; damage: number; lingering?: boolean }; // lingering: a pool's or the void's tick
   Shot: { shooter: Entity; from: V3; to: V3; target: Entity | null };
   Died: { entity: Entity; killer: Entity | null; at: V3 };
+  Vanished: { entity: Entity; at: V3; struck: boolean }; // a hallucination gone: struck, or faded
   Respawned: { entity: Entity };
   Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost' | 'spent'; amount: number; total: number };
   LevelUp: { attribute: LevelId; level: number; total: number }; // a level bought with Echoes: the attribute's level and the investigator's

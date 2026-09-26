@@ -1,7 +1,8 @@
 /**
  * Player input (spec §3B): buttons into the one-slot input buffer, the dodge button's tap/hold
  * split (a short press rolls, or backsteps with no direction; holding sprints), guard, lock-on
- * commands, and camera-relative locomotion intent (strafing while locked on). While the Great Race
+ * commands, and camera-relative locomotion intent (strafing while locked on, or while guarding: the
+ * guard faces the camera's way). While the Great Race
  * holds the investigator's body (spec §3E control_swap), the thief's input replaces all but the look.
  */
 
@@ -56,5 +57,6 @@ export function playerControl(g: Game, real: InputFrame): void {
   const me = transform.get(p.id)!.pos;
   const target = g.lock.target === null ? undefined : transform.get(g.lock.target)?.pos;
   if (target && !p.sprinting) m.face = yawOf(target.x - me.x, target.z - me.z);
+  else if (p.blockHeld && a.move === null) m.face = g.camera.yaw; // the guard faces where they look, backing away or not (playtest round 7)
   else m.face = mag > 0.1 ? yawOf(wx, wz) : null;
 }

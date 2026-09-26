@@ -3,6 +3,9 @@
 export const BONE = '#d9d0b8';
 export const RUST = '#74493a';
 export const SEA = '#5d6c70';
+/** A potion's hold on the bars (playtest round 7): Laudanum steadying the mind, the Reagent mending the body. */
+export const STEADY = '#a58cff';
+export const MENDED = '#8cffa0';
 /** A period book face for the title, menus and what is read (system fonts: no font files); the HUD keeps monospace. */
 export const SERIF = "'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif";
 /** A telegram's or typescript's face. */
