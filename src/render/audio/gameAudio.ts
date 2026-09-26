@@ -13,14 +13,14 @@ import type * as THREE from 'three';
 import type { Entity } from '../../core/ecs';
 import type { V3 } from '../../core/geom';
 import { getEntity } from '../../data/registry';
-import { AMBIENCE, DUNGEON_AMBIENCE, SAMPLE_SETS, STINGER_SAMPLES, VOICE_ALERTS, VOICE_SAMPLES, type SampleSetId } from '../../data/samples';
+import { AMBIENCE, DUNGEON_AMBIENCE, SAMPLE_SETS, STINGER_SAMPLES, VOICE_ALERTS, VOICE_SAMPLES, type Ambience, type SampleSetId } from '../../data/samples';
 import { STINGERS } from '../../data/sounds';
 import { AUDIO } from '../../data/tuning';
 import { voiceIdOf, VOICES, type Voice, type VoiceId } from '../../data/voices';
 import { engagedFights } from '../../systems/bossFight';
 import { isAbsent, isConcealed, type Game, type GameEvents } from '../../systems/components';
-import { chunkOf } from '../../world/worldMap';
-import { worldLayout } from '../../world/placements';
+import { kitOfRoom } from '../../world/dungeonKit';
+import { dungeonRoomAt } from '../../world/terrain';
 import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
@@ -130,9 +130,12 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     for (const id of callers.keys()) if (!c.dread.has(id)) callers.delete(id);
   }
 
-  /** Inside a legacy dungeon: its stone and water, whatever the region outside. */
-  const underground = (p: V3): boolean =>
-    worldLayout().chunk(chunkOf(p.x), chunkOf(p.z)).dungeons.some(({ rect: r }) => p.x >= r.x0 && p.x <= r.x1 && p.z >= r.z0 && p.z <= r.z1);
+  /** Inside a legacy dungeon: what its room sounds like (its kit), else null (outside, or ruins under the sky). */
+  const inside = (p: V3): Ambience | null => {
+    const d = dungeonRoomAt(p.x, p.z);
+    const sound = d ? kitOfRoom(d.layout, d.room).sound : 'open';
+    return sound === 'open' ? null : DUNGEON_AMBIENCE[sound];
+  };
 
   return {
     update(fx, seconds, camera, paused) {
@@ -147,7 +150,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       const [fight] = engagedFights(g);
       drones.set(region, !!fight);
       const at = g.ecs.c.transform.get(g.player.id)?.pos;
-      ambience.set(g.overworld && at && underground(at) ? DUNGEON_AMBIENCE : (AMBIENCE[region ?? ''] ?? null));
+      ambience.set((g.overworld && at && inside(at)) || (AMBIENCE[region ?? ''] ?? null));
       ambience.update(seconds);
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
       drones.update(fx, seconds);

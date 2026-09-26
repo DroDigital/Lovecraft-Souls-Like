@@ -35,6 +35,7 @@ export interface RoomDef {
   vial?: string; // a Silver Vial lies here (its unique name): one more dose of West's Reagent
   weapon?: string; // a weapon lies here (data/weapons.ts)
   words?: string; // said as the investigator first comes in (round 12: the Seventy Steps were nine unmarked rooms)
+  kit?: KitId; // its own look, not its dungeon's (round 13: the Mi-Go's tunnels under Akeley's farm were floored with boards)
 }
 
 export interface DungeonDef {
@@ -45,6 +46,7 @@ export interface DungeonDef {
   rooms: readonly RoomDef[];
 }
 
+import type { KitId } from './kits';
 import { LAIRS } from './lairs';
 import { SEALS } from './tuning';
 

@@ -16,7 +16,7 @@ import { chunkOf } from '../src/world/worldMap';
 
 const AUDIO = 'public/audio';
 const files = (dir: string): string[] => readdirSync(`${AUDIO}/${dir}`).map((f) => `${dir}/${f.replace(/\.mp3$/, '')}`);
-const beds = [...Object.values(AMBIENCE), DUNGEON_AMBIENCE].flatMap((a) => a.beds.map(([f]) => `amb/${f}`));
+const beds = [...Object.values(AMBIENCE), ...Object.values(DUNGEON_AMBIENCE)].flatMap((a) => a.beds.map(([f]) => `amb/${f}`));
 
 describe('the recorded sounds (data/samples.ts, public/audio)', () => {
   it('every file a set or a bed names is there, and every file there is named', () => {
@@ -40,7 +40,7 @@ describe('the recorded sounds (data/samples.ts, public/audio)', () => {
 
   it('every region, the arena and a dungeon have their ambience; every set is sane', () => {
     for (const id of [...REGIONS.map((r) => r.id), 'arena']) expect(AMBIENCE[id]?.beds.length, id).toBeGreaterThan(0);
-    for (const a of [...Object.values(AMBIENCE), DUNGEON_AMBIENCE]) {
+    for (const a of [...Object.values(AMBIENCE), ...Object.values(DUNGEON_AMBIENCE)]) {
       for (const [, gain] of a.beds) expect(gain > 0 && gain <= 1).toBe(true);
       for (const s of a.spots) expect(SAMPLE_SETS[s.set] && s.every[0] > 5 && s.every[0] <= s.every[1]).toBeTruthy();
     }

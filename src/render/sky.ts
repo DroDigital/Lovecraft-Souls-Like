@@ -7,8 +7,6 @@
 
 import * as THREE from 'three';
 import { FX, LIGHT, RENDER, SKY, type SkyDef } from '../data/tuning';
-import { worldLayout } from '../world/placements';
-import { chunkOf } from '../world/worldMap';
 import { SKY_FRAG, SKY_VERT } from './shaders/sky';
 
 export interface Sky {
@@ -18,13 +16,6 @@ export interface Sky {
 }
 
 const skyOf = (region: string | null): SkyDef => ({ ...SKY.base, ...(region ? SKY.regions[region] : undefined) });
-
-/** Whether (x, z) lies within a dungeon's walls. */
-export function inDungeon(x: number, z: number): boolean {
-  return worldLayout()
-    .chunk(chunkOf(x), chunkOf(z))
-    .dungeons.some(({ rect: r }) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1);
-}
 
 export function createSky(): Sky {
   const start = skyOf(null);

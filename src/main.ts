@@ -18,7 +18,7 @@ import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
-import { createSky, inDungeon } from './render/sky';
+import { createSky } from './render/sky';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
@@ -64,6 +64,7 @@ import { createShopMenu } from './ui/shopMenu';
 import { takeCarry } from './systems/records';
 import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
+import { roofedAt } from './world/terrain';
 
 interface StartOptions {
   debug: boolean; // exposes the game (and the world scene) on `window` for console poking and scripted checks
@@ -192,7 +193,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
           resize();
         }
         placeCamera(camera, game, alpha);
-        const enclosed = !!world && inDungeon(camera.position.x, camera.position.z);
+        const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);

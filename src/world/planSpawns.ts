@@ -15,6 +15,7 @@ import { worldLayout, type SpawnPoint } from './placements';
 import { propCollider, type Prop } from './props';
 import type { Road } from './roads';
 import { DIRS, rectDistance, regionRect } from './worldMap';
+import { MOUND_BAND } from './dungeonParts';
 
 const SAFE = 30; // metres of peace around every Elder Sign and gate
 const PATROL = 95; // metres of road between patrols
@@ -58,7 +59,7 @@ export function planSpawns(region: RegionDef, features: readonly Feature[], road
   const clear = (x: number, z: number): boolean =>
     x > rect.x0 + 6 && x < rect.x1 - 6 && z > rect.z0 + 6 && z < rect.z1 - 6 &&
     safe.every((p) => Math.hypot(p.x - x, p.z - z) >= SAFE) &&
-    w.pads.every((p) => (p.kind === 'circle' ? Math.hypot(x - p.x, z - p.z) > p.radius + 1 : rectDistance(p.rect, x, z) > 2)) &&
+    w.pads.every((p) => (p.kind === 'circle' ? Math.hypot(x - p.x, z - p.z) > p.radius + 1 : rectDistance(p.rect, x, z) > 2 + MOUND_BAND + 1)) && // clear of a mound heaped over a dungeon (round 13)
     !solid(x, z);
 
   const out: SpawnPoint[] = [];
