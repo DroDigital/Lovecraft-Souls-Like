@@ -1,7 +1,8 @@
 /**
  * A boss keeps to its arena (spec §3E): it wakes as the investigator steps into the ring, never
  * loses them while they stay within reach of it and never gives the fight up while they do, and it
- * keeps inside the ring itself; so a fight is lost only by leaving it or dying. Quick foes (and
+ * keeps inside the ring itself. Round 12: once the investigator is inside an engaged ring the fog
+ * closes behind them (a soulslike's fog gate), and they cannot leave until the boss falls or they do. Quick foes (and
  * the sorcerers among the bosses) may slip a blow as it winds up: a short step aside with a
  * moment's i-frames that never carries a boss out of its ring. Pure: no Three.js.
  */
@@ -34,6 +35,17 @@ export function holdInside(a: ArenaCircle, pos: XZ, m: Mover, speed: number): vo
   const out = m.vx * nx + m.vz * nz;
   if (out > 0) [m.vx, m.vz] = [m.vx - out * nx, m.vz - out * nz];
   if (d > a.radius - BOSS.rim * 0.5) [m.vx, m.vz] = [m.vx - nx * speed * 0.5, m.vz - nz * speed * 0.5];
+}
+
+/** The fog at an engaged ring (round 12): it closes once the investigator is inside, and then holds them within it. */
+export function holdInVeil(g: Game, f: { arena: ArenaCircle; veiled?: boolean }): void {
+  const tr = g.ecs.c.transform.get(g.player.id)!;
+  const r = f.arena.radius - (g.ecs.c.body.get(g.player.id)?.radius ?? 0.4);
+  const [dx, dz] = [tr.pos.x - f.arena.x, tr.pos.z - f.arena.z];
+  const d = Math.hypot(dx, dz);
+  if (!f.veiled) f.veiled = d <= r;
+  if (!f.veiled || d <= r) return;
+  [tr.pos.x, tr.pos.z] = [f.arena.x + (dx / d) * r, f.arena.z + (dz / d) * r];
 }
 
 /** Whether `id`'s blow is still winding up. */

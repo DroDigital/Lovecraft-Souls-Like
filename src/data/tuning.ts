@@ -120,7 +120,8 @@ export const COMBAT = {
   evadeAfter: 3, // frames after a blow lands (or a shot leaves) from which a dodge may cut the rest short (before its cancel frame)
   assist: { range: 3.6, arcDeg: 70 }, // without a lock, a blow or a shot turns to the nearest foe this close and this far off its line
   guardArcDeg: 180, // block and parry stop hits from anywhere in front (was 120: blows from the flank went through; playtest round 7)
-  riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe
+  riposte: 2.5, // damage multiplier on the next hit against a parried or interrupted foe (and on a backstab)
+  backstab: { arcDeg: 100, height: 2.9 }, // a blow from within this rear arc of a foe no taller than this lands as a riposte (round 12)
   poiseReset: 120, // frames without poise damage before poise refills
   dummyReset: 180, // frames without damage before the immortal training dummy heals
   muzzleHeight: 1.35,

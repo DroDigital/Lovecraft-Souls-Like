@@ -19,6 +19,7 @@ export interface Fight {
   script: BossScript;
   phase: number; // index into script.phases
   engaged: boolean;
+  veiled?: boolean; // the fog has closed about the ring behind the investigator (round 12): no leaving until one of them falls
   arena: ArenaCircle;
   frames: number; // since it was engaged
   minions: Entity[]; // its summons and decoys

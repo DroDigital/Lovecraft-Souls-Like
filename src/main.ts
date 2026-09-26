@@ -59,6 +59,7 @@ import { createJourneys } from './ui/journeys';
 import { createShell, type Shell } from './ui/shell';
 import { createSignMenu, type SignMenu } from './ui/signMenu';
 import { createShopMenu } from './ui/shopMenu';
+import { takeCarry } from './systems/records';
 import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
 
@@ -87,7 +88,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   canvas.addEventListener('webglcontextlost', (e) => (e.preventDefault(), saveNow(), showCrash('lost')));
   const store = opts.arena ? null : shell.store;
   if (store && opts.fresh) clearSave(store);
-  const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined });
+  const carry = store && opts.fresh ? takeCarry(store) : null; // a new journey, begun from an ending (NG+)
+  const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined, carry: carry ?? undefined });
   const capture = (): void => {
     try {
       const r: unknown = canvas.requestPointerLock();

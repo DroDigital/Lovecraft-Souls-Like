@@ -3,12 +3,14 @@
  * words fill the screen, and the ending is remembered beyond the save (records.ts). The investigator
  * may walk on in the world after it, or begin anew: asked first, then a new game with its opening,
  * as the title's New game (playtest round 12; it was the `?fresh` test route, which skipped the
- * opening and wiped the save again on any reload).
+ * opening and wiped the save again on any reload). Round 12: or begin a new journey carrying the
+ * investigator's strength into it (NG+, systems/cycles.ts).
  */
 
 import { ENDINGS, type EndingId } from '../data/endings';
 import type { Game } from '../systems/components';
-import { noteEnding } from '../systems/records';
+import { noteEnding, storeCarry } from '../systems/records';
+import { carryOf } from '../systems/cycles';
 import type { SaveStore } from '../systems/save';
 import { BONE, el, SERIF } from './hudKit';
 import { button, createScreen, heading } from './menuKit';
@@ -55,9 +57,11 @@ export function createEndingCard(g: Game, store: SaveStore | null): EndingCard {
       build(page: HTMLElement) {
         heading(page, 'BEGIN ANEW?');
         el('opacity:.6;margin-bottom:14px', 'This dream is forgotten and a new one begins. The endings you have reached are remembered.', page);
+        el('opacity:.5;font-size:13px;margin-bottom:10px', 'You may carry your strength into it: your levels, arms and their stones, the mind\'s upgrades, vials and Echoes. Its horrors will be hardier for it.', page);
         const buttons = el('', '', page);
         button(buttons, 'No, go back', () => screen.show(card)).style.cssText = BUTTON;
-        button(buttons, 'Yes, begin anew', beginAnew).style.cssText = BUTTON;
+        button(buttons, 'Begin anew', beginAnew).style.cssText = BUTTON;
+        button(buttons, `Begin journey ${g.player.cycle + 2}, carrying your strength`, () => (storeCarry(store, carryOf(g)), beginAnew())).style.cssText = BUTTON;
       },
     };
     screen.show(card);

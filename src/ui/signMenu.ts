@@ -63,7 +63,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void) =>
       if (descentOpen(g)) button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
       else el(panel, 'div', 'The stair will not open while Keziah Mason troubles the sleepers, in the Witch House in Arkham.', 'opacity:.6;margin:4px 0 8px');
     }
-    heading(panel, `LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  NEXT LEVEL ${nextLevelCost(g)}`);
+    heading(panel, `${g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : ''}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  NEXT LEVEL ${nextLevelCost(g)}`);
     for (const id of LEVEL_IDS) {
       button(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id));
     }

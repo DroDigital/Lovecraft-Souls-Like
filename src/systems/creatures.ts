@@ -20,6 +20,7 @@ import { newFight } from './fightTypes';
 import { addLayer } from './hiddenLayer';
 import { atOrBelow } from './sanity';
 import { spawnCombatant } from './spawn';
+import { foeBounty, foeHealth } from './cycles';
 
 /** Body height and capsule radius as fractions of the sprite's scale. */
 const BODY: Record<Silhouette, readonly [height: number, radius: number]> = {
@@ -126,7 +127,10 @@ export function spawnCreature(g: Game, id: string, at: Place, variant?: Variant)
   const v = swaps && atOrBelow(g.mind, 'fractured') ? 'eldritch' : variant;
   const def = resolveCreature(id, v);
   if (!def) return undefined;
-  const e = spawnCombatant(g, toCombatant(def, v), at, def.tier === 'ally' ? 'player' : 'enemy');
+  const cd = toCombatant(def, v);
+  const foe = def.tier !== 'ally';
+  if (foe && g.player.cycle > 0) Object.assign(cd, { hp: Math.round(cd.hp * foeHealth(g)), bounty: Math.round(cd.bounty * foeBounty(g)) }); // a later journey's (cycles.ts)
+  const e = spawnCombatant(g, cd, at, foe ? 'enemy' : 'player');
   g.ecs.c.dread.set(e, dreadOf(def));
   if (swaps) g.ecs.c.swap.set(e, { id, eldritch: v === 'eldritch' });
   if (def.hidden) addLayer(g, e, def.hidden);
@@ -145,7 +149,8 @@ export function morph(g: Game, e: Entity, id: string, variant: Variant | undefin
   Object.assign(c.combatant.get(e)!, { name: cd.name, bounty: c.phantom.has(e) ? 0 : cd.bounty });
   Object.assign(c.body.get(e)!, { radius: cd.radius, height: cd.height, aimHeight: cd.aimHeight });
   const h = c.health.get(e)!;
-  [h.hp, h.max] = [(h.hp / h.max) * cd.hp, cd.hp];
+  const hp = def.tier === 'ally' ? cd.hp : Math.round(cd.hp * foeHealth(g));
+  [h.hp, h.max] = [(h.hp / h.max) * hp, hp];
   const po = c.poise.get(e)!;
   [po.value, po.max] = [(po.value / po.max) * cd.poise, cd.poise];
   c.actor.get(e)!.moves = cd.moves; // a move the new form lacks simply ends

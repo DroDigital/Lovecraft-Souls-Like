@@ -3,6 +3,8 @@ import { distXZ } from '../src/core/geom';
 import { BOSS } from '../src/data/tuning';
 import { startMove } from '../src/systems/actions';
 import { setArena } from '../src/systems/bossFight';
+import { strike } from '../src/systems/combat';
+import { deathblow } from './worldHelpers';
 import { bossGame, engage, type BossGame } from './bossHelpers';
 import { place, steps } from './helpers';
 
@@ -62,8 +64,8 @@ describe('a boss keeps to its arena (spec §3E)', () => {
     expect(b.fight.engaged).toBe(true);
   });
 
-  it('gives up only once the investigator has left its ring and stayed away', () => {
-    const b = ringed('the_outsider', 6, 3);
+  it('woken from outside its ring, it gives up only once the investigator has gone and stayed away', () => {
+    const b = ringed('the_outsider', 6, 9); // outside the ring, within its margin
     engage(b);
     hold(b);
     place(b.g, b.g.player.id, b.ring.x, b.ring.z + b.ring.radius + BOSS.margin + 4, Math.PI);
@@ -72,6 +74,23 @@ describe('a boss keeps to its arena (spec §3E)', () => {
     steps(b.g, 60);
     expect(b.fight.engaged).toBe(false);
     expect(b.g.ecs.c.brain.get(b.boss)!.state).not.toBe('engage');
+  });
+
+  it('once the investigator is inside an engaged ring, the fog holds them there until the boss falls (round 12)', () => {
+    const b = ringed('the_outsider', 6, 3);
+    engage(b);
+    hold(b);
+    const me = b.g.ecs.c.transform.get(b.g.player.id)!;
+    place(b.g, b.g.player.id, b.ring.x, b.ring.z + b.ring.radius + 3, Math.PI);
+    steps(b.g, 2);
+    expect(b.fight.veiled).toBe(true);
+    expect(distXZ(me.pos, b.ring)).toBeLessThanOrEqual(b.ring.radius);
+    strike(b.g, b.g.player.id, b.boss, deathblow);
+    steps(b.g, 2);
+    expect(b.fight.veiled).toBe(false);
+    place(b.g, b.g.player.id, b.ring.x, b.ring.z + b.ring.radius + 3, Math.PI);
+    steps(b.g, 2);
+    expect(distXZ(me.pos, b.ring)).toBeGreaterThan(b.ring.radius + 2); // the fog has lifted
   });
 
   it('a quick foe may slip a blow as it winds up, stepping aside inside its ring', () => {

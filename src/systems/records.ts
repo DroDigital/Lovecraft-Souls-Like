@@ -1,10 +1,14 @@
 /**
  * What outlives a save (playtest round 12): the endings reached and the dreams finished, kept beside
- * the settings rather than in the save, so beginning anew never forgets them. Pure: no Three.js.
+ * the settings rather than in the save, so beginning anew never forgets them; and, between an
+ * ending and the new journey it begins, the strength carried into it (cycles.ts). Pure: no Three.js.
  */
 
 import { ENDING_IDS, type EndingId } from '../data/endings';
 import type { SaveStore } from './save';
+import { parseCarry, type Carry } from './cycles';
+
+export const CARRY_KEY = 'lovecraft-souls-like/carry';
 
 export const RECORDS_KEY = 'lovecraft-souls-like/records';
 
@@ -38,4 +42,24 @@ export function noteEnding(store: SaveStore | null, id: EndingId): Records {
     // Storage refused: the ending is still shown, only not remembered.
   }
   return r;
+}
+
+/** Keeps the strength to carry into the next journey, for the reload that begins it. */
+export function storeCarry(store: SaveStore | null, carry: Carry): void {
+  try {
+    store?.setItem(CARRY_KEY, JSON.stringify(carry));
+  } catch {
+    // Storage refused: the new dream begins as a first journey.
+  }
+}
+
+/** The strength carried into this new journey, taken once (null when none waits). */
+export function takeCarry(store: SaveStore | null): Carry | null {
+  try {
+    const raw = store?.getItem(CARRY_KEY) ?? null;
+    store?.removeItem(CARRY_KEY);
+    return raw ? parseCarry(JSON.parse(raw)) : null;
+  } catch {
+    return null;
+  }
 }

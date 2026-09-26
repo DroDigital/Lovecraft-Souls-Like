@@ -11,7 +11,7 @@ import { ENDING_IDS } from '../data/endings';
 import { QUESTS } from '../data/quests';
 import { WARES } from '../data/wares';
 import { START_SIGN } from '../data/sites';
-import { LEVELS, OIL, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { LEVELS, NEW_GAME_PLUS, OIL, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
@@ -50,6 +50,7 @@ export interface SaveData {
   reagent?: number; // West's Reagent: doses left and the most it holds
   reagentMax?: number;
   oil?: number; // flasks of lamp oil (round 12)
+  cycle?: number; // the journey through the dream (NG+; round 12)
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   ending?: string; // the ending chosen
@@ -97,6 +98,7 @@ export function snapshot(g: Game): SaveData {
     reagent: g.player.reagent,
     reagentMax: g.player.reagentMax,
     oil: g.player.oil,
+    cycle: g.player.cycle,
     named: ow.named,
     called: [...ow.called],
     ...(ow.ending && { ending: ow.ending }),
@@ -133,7 +135,7 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.met !== undefined && !isStrings(o.met)) return null;
   if (o.sold !== undefined && !isCounts(o.sold)) return null;
   if ((o.arms !== undefined && !isStrings(o.arms)) || (o.weapon !== undefined && typeof o.weapon !== 'string')) return null;
-  if ((o.oil !== undefined && !isNum(o.oil)) || (o.stones !== undefined && !isNum(o.stones)) || (o.reinforced !== undefined && !isCounts(o.reinforced))) return null;
+  if ((o.cycle !== undefined && !isNum(o.cycle)) || (o.oil !== undefined && !isNum(o.oil)) || (o.stones !== undefined && !isNum(o.stones)) || (o.reinforced !== undefined && !isCounts(o.reinforced))) return null;
   if (o.wounds !== undefined && (typeof o.wounds !== 'object' || o.wounds === null || !Object.values(o.wounds).every(isNum))) return null;
   return o as unknown as SaveData;
 }
@@ -179,6 +181,7 @@ export function applySave(g: Game, s: SaveData): void {
   g.player.reagentMax = clampInt(s.reagentMax ?? REAGENT.doses, REAGENT.doses, REAGENT.maxDoses);
   g.player.reagent = clampInt(s.reagent ?? g.player.reagentMax, 0, g.player.reagentMax);
   g.player.oil = clampInt(s.oil ?? 0, 0, OIL.carry);
+  g.player.cycle = clampInt(s.cycle ?? 0, 0, NEW_GAME_PLUS.most); // before the world fills: its foes are this journey's
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);
 }
