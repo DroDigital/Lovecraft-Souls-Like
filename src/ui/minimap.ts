@@ -11,7 +11,8 @@ import type { Game } from '../systems/components';
 import { mainLead } from '../systems/lead';
 import { realmOf } from '../world/mapData';
 import { regionAt } from '../world/worldMap';
-import { BONE, el } from './hudKit';
+import { glyph } from './glyphs';
+import { BONE, el, setText } from './hudKit';
 import { drawLead } from './leadMark';
 import { workArt } from './mapArt';
 import type { MapPainter } from './mapPainter';
@@ -30,12 +31,13 @@ export function createMinimap(g: Game, root: HTMLElement, painter: MapPainter): 
   canvas.style.cssText = `width:100%;height:100%;border-radius:50%;border:1px solid ${BONE}66;box-shadow:0 0 0 2px #000c;opacity:.92`;
   frame.append(canvas);
   const north = el(`position:absolute;left:50%;top:0;transform:translate(-50%,-50%);font-size:10px;text-shadow:0 0 3px #000,0 0 3px #000`, 'N', frame);
-  el(`position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;letter-spacing:2px;opacity:.55`, 'M  MAP', frame);
+  const label = el(`position:absolute;left:0;right:0;bottom:-16px;text-align:center;font-size:9px;letter-spacing:2px;opacity:.55`, '', frame);
   const ctx = canvas.getContext('2d')!;
   let tick = 0;
   if (!g.overworld) frame.style.display = 'none';
   return {
     update() {
+      setText(label, `${glyph('map').toUpperCase()}  MAP`); // the device in hand's button
       if (!g.overworld) return;
       workArt(ART_MS);
       if (tick++ % 2) return; // thirty times a second is plenty

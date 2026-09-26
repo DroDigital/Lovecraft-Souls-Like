@@ -7,6 +7,7 @@
 import { createEcs } from '../core/ecs';
 import { createEventBus } from '../core/events';
 import type { InputFrame } from '../core/input';
+import { yawOf, type V3 } from '../core/geom';
 import { createRng } from '../core/rng';
 import { ARENA } from '../data/arena';
 import { getEntity, type Variant } from '../data/registry';
@@ -38,7 +39,7 @@ import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
 import { registerPerception } from './perception';
 import { playerControl } from './playerControl';
-import { spawnNpcs } from './npcs';
+import { npcSystem, spawnNpcs } from './npcs';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
 import { questSystem } from './quests';
@@ -71,7 +72,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, steady: 0, mended: 0 },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, steady: 0, mended: 0, listening: null },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -123,15 +124,22 @@ export function createGame({ seed = ARENA.seed, creature, variant }: GameOptions
   return g;
 }
 
+/** Where the camera looks while someone talks: at them, turned a little left so they stand clear of the investigator. */
+function talkFocus(pivot: V3, at: V3 | null): V3 | null {
+  if (!at) return null;
+  const [len, yaw] = [Math.hypot(at.x - pivot.x, at.z - pivot.z), yawOf(at.x - pivot.x, at.z - pivot.z) + CAMERA.talkTurn];
+  return { x: pivot.x + Math.sin(yaw) * len, y: at.y, z: pivot.z + Math.cos(yaw) * len };
+}
+
 function cameraSystem(g: Game, lookX: number, lookY: number, dt: number): void {
   const tr = g.ecs.c.transform.get(g.player.id)!;
   const pivot = { x: tr.pos.x, y: tr.pos.y + CAMERA.pivotHeight, z: tr.pos.z };
-  const focus = g.lock.target === null ? null : aimPoint(g, g.lock.target);
+  const focus = g.lock.target !== null ? aimPoint(g, g.lock.target) : g.player.listening !== null ? talkFocus(pivot, aimPoint(g, g.player.listening)) : null;
   stepCamera(g.camera, { lookX, lookY, pivot, focus, behind: tr.yaw }, g.world, dt);
 }
 
 /**
- * One fixed 60 Hz step. The order matters: intent → a boss fight's E, then signs and gates → moves →
+ * One fixed 60 Hz step. The order matters: intent → a boss fight's E, then signs, gates and talk → moves →
  * AI → motion → hits, shots, special effects, bolts and pools → recovery → sanity → boss fights and
  * their reality hooks → lock → camera → sight → hallucinations → death → population.
  */
@@ -141,6 +149,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   playerControl(g, input);
   const spent = g.reality.stolen <= 0 && fightActionSystem(g, input);
   checkpointSystem(g, spent ? { ...input, pressed: { ...input.pressed, interact: false } } : input);
+  npcSystem(g, dt);
   actionSystem(g);
   brainSystem(g);
   movementSystem(g, dt);

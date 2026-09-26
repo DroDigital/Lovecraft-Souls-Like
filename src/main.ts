@@ -36,6 +36,7 @@ import { createPipeline } from './render/pipeline';
 import { updatePostUniforms } from './render/postPass';
 import { applyReality, lightReality } from './render/realityFx';
 import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
+import { FEEL } from './render/feel';
 import { createGame, createWorldGame, stepGame } from './systems/game';
 import { clearSave, loadSave } from './systems/save';
 import { haltAutosave, saveNow, startAutosave } from './ui/autosave';
@@ -111,6 +112,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const pause = createPauseMenu({
     settings,
     change: shell.change,
+    saveKeys: shell.saveKeys,
     resume: capture,
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
@@ -172,6 +174,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const alpha = still ? 1 : blend;
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
+        input.invertY = settings.invertY > 0.5;
+        FEEL.shake = settings.shake;
+        pipeline.post.uniforms.uGamma.value = 1 / settings.brightness;
         state.cap = settings.fxCap;
         if (lowRes !== state.enabled.pixelate || scale !== settings.resolution) {
           [lowRes, scale] = [state.enabled.pixelate, settings.resolution];

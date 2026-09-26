@@ -26,6 +26,7 @@ function createUniforms(source: THREE.Texture, palette: Float32Array) {
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
     uQuantize: { value: 0 },
     uDither: { value: 0 },
+    uGamma: { value: 1 }, // 1 / the brightness setting (round 12)
     uPalette: { value: palette },
   };
 }

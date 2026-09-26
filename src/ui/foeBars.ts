@@ -11,6 +11,7 @@ import { FOE_BARS } from '../data/tuning';
 import { isAbsent, isConcealed, isUnseen, type Game } from '../systems/components';
 import { hasLineOfSight } from '../world/colliders';
 import { BONE, el, percent, RUST, setStyle, setText } from './hudKit';
+import { uiScale } from './uiScale';
 
 export interface FoeBars {
   update(camera: Camera, canvas: HTMLCanvasElement): void;
@@ -69,8 +70,9 @@ export function createFoeBars(g: Game, parent: HTMLElement): FoeBars {
         const h = c.health.get(id)!;
         setText(s.name, c.combatant.get(id)!.name);
         setStyle(s.fill, 'width', percent(h.hp, h.max));
-        setStyle(s.root, 'left', `${Math.round(r.left + ((v.x + 1) / 2) * r.width)}px`);
-        setStyle(s.root, 'top', `${Math.round(r.top + ((1 - v.y) / 2) * r.height) - 16}px`);
+        const k = uiScale(); // screen pixels, in the HUD's scaled layer
+        setStyle(s.root, 'left', `${Math.round((r.left + ((v.x + 1) / 2) * r.width) / k)}px`);
+        setStyle(s.root, 'top', `${Math.round((r.top + ((1 - v.y) / 2) * r.height) / k) - 16}px`);
         setStyle(s.root, 'display', 'block');
       }
       for (; n < slots.length; n++) setStyle(slots[n].root, 'display', 'none');

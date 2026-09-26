@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { HURT } from '../data/tuning';
 import type { Game } from '../systems/components';
 import type { PostPass } from './postPass';
+import { FEEL } from './feel';
 
 export interface HurtFx {
   /** Sets the post pass's wound and jolts the camera; `time` is render seconds. */
@@ -42,7 +43,7 @@ export function createHurtFx(g: Game): HurtFx {
       const k = strength * fade * fade;
       post.uniforms.uHurt.value.set(k, dir.x, dir.y, 0);
       if (k > 0.01) {
-        const j = HURT.shake * k;
+        const j = HURT.shake * k * FEEL.shake;
         camera.position.x += (Math.random() - 0.5) * j;
         camera.position.y += (Math.random() - 0.5) * j;
         camera.position.z += (Math.random() - 0.5) * j;

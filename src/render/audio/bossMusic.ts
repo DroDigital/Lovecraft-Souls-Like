@@ -136,7 +136,7 @@ export function createBossMusic(e: AudioEngine): BossMusic {
   };
   return {
     update(fight) {
-      const { ctx, bed } = e;
+      const { ctx, score: bed } = e; // the scores' own bus (round 12: under the music setting)
       if (!ctx || !bed) return;
       if (now && (!fight || fight.id !== now.id)) {
         stop(ctx, now);

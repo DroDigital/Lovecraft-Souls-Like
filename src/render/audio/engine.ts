@@ -2,7 +2,9 @@
  * The audio engine (Phase 6): one WebAudio graph. One-shot sounds and drones mix into a shared bus
  * that the sanity FX drives through a saturating waveshaper (the FX controller's audio half, spec §3A), then a
  * compressor and the volume setting. The title's theme joins after the compressor, under the volume
- * setting only (music.ts). WebAudio starts on the first click or key press, as browsers require (or
+ * setting only (music.ts). The boss scores have a bus of their own beside the drones' (round 12), so
+ * the music, effects and ambience settings each set one bus: music the theme's and the scores',
+ * effects the one-shots', ambience the drones'. WebAudio starts on the first click or key press, as browsers require (or
  * sooner, `start`, where the browser already lets sound play); until then (or without WebAudio)
  * everything stays silent and nothing fails.
  */
@@ -10,11 +12,14 @@
 export interface AudioEngine {
   readonly ctx: AudioContext | null;
   readonly sfx: AudioNode | null; // one-shots in
-  readonly bed: AudioNode | null; // drones in
+  readonly bed: AudioNode | null; // drones and ambience in
+  readonly score: AudioNode | null; // the boss scores in (sanity FX, like the bed)
   readonly music: AudioNode | null; // the title's theme in: the volume setting only, no sanity FX
   detune: number; // cents new one-shots start at: the sanity FX's sag and drift
   playing: number; // one-shots sounding now (synth.ts counts them against AUDIO.polyphony)
   setVolume(v: number): void;
+  /** The music, effects and ambience settings (0..1), each its bus's level. */
+  setLevels(l: Levels): void;
   /** The sanity waveshaper: 0 clean, 1 heavily driven. */
   setDistortion(amount: number): void;
   /** Runs `fn` once WebAudio has started (at once if it has). */
@@ -38,19 +43,27 @@ export function shaperCurve(amount: number): Float32Array<ArrayBuffer> {
   return curve;
 }
 
+export interface Levels {
+  music: number;
+  sfx: number;
+  ambience: number;
+}
+
 interface Graph {
   ctx: AudioContext;
   sfx: GainNode;
   bed: GainNode;
+  score: GainNode;
   music: GainNode;
   shaper: WaveShaperNode;
   master: GainNode;
 }
 
-function build(volume: number): Graph {
+function build(volume: number, levels: Levels): Graph {
   const ctx = new AudioContext();
   const sfx = ctx.createGain();
   const bed = ctx.createGain();
+  const score = ctx.createGain();
   const shaper = ctx.createWaveShaper();
   shaper.curve = shaperCurve(0);
   const limiter = ctx.createDynamicsCompressor();
@@ -61,12 +74,20 @@ function build(volume: number): Graph {
   const music = ctx.createGain();
   sfx.connect(shaper);
   bed.connect(shaper);
+  score.connect(shaper);
   shaper.connect(limiter).connect(master).connect(ctx.destination);
   music.connect(master);
-  return { ctx, sfx, bed, music, shaper, master };
+  const graph = { ctx, sfx, bed, score, music, shaper, master };
+  setBusLevels(graph, levels);
+  return graph;
 }
 
-export function createAudioEngine(volume: number): AudioEngine {
+function setBusLevels(g: Graph, l: Levels): void {
+  const at = g.ctx.currentTime;
+  for (const [node, v] of [[g.music, l.music], [g.score, l.music], [g.sfx, l.sfx], [g.bed, l.ambience]] as const) node.gain.setTargetAtTime(v, at, 0.05);
+}
+
+export function createAudioEngine(volume: number, levels: Levels = { music: 1, sfx: 1, ambience: 1 }): AudioEngine {
   let graph: Graph | null = null;
   let amount = 0;
   const waiting: ((ctx: AudioContext) => void)[] = [];
@@ -76,7 +97,7 @@ export function createAudioEngine(volume: number): AudioEngine {
       return;
     }
     try {
-      graph = build(volume);
+      graph = build(volume, levels);
     } catch {
       return; // No WebAudio: the game stays silent.
     }
@@ -94,6 +115,9 @@ export function createAudioEngine(volume: number): AudioEngine {
     get bed() {
       return graph?.bed ?? null;
     },
+    get score() {
+      return graph?.score ?? null;
+    },
     get music() {
       return graph?.music ?? null;
     },
@@ -102,6 +126,10 @@ export function createAudioEngine(volume: number): AudioEngine {
     setVolume(v) {
       volume = v;
       graph?.master.gain.setTargetAtTime(v, graph.ctx.currentTime, 0.05);
+    },
+    setLevels(l) {
+      levels = { ...l };
+      if (graph) setBusLevels(graph, levels);
     },
     setDistortion(a) {
       if (!graph || Math.abs(a - amount) <= 0.02) return;

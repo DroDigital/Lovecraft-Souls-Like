@@ -15,12 +15,14 @@ import { fightAction } from '../systems/fightActions';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
+import { fill, glyph } from './glyphs';
 import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
 import { createHints } from './hints';
 import { createMindHud } from './mindHud';
 import { createMinimap } from './minimap';
+import { SCALED_LAYER, uiScale } from './uiScale';
 
 const NOTICE_MS = 1100;
 const TITLE_MS = 2600;
@@ -40,7 +42,7 @@ export interface Hud {
 }
 
 export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter): Hud {
-  const root = el(`position:fixed;inset:0;pointer-events:none;font:12px/1.4 monospace;color:${BONE};z-index:1`);
+  const root = el(`${SCALED_LAYER.replace('absolute', 'fixed')};pointer-events:none;font:12px/1.4 monospace;color:${BONE};z-index:1`); // drawn at the UI scale
   const minimap = createMinimap(g, root, painter);
   const hints = createHints(g, root);
   const vitals = el('position:absolute;left:16px;bottom:16px;width:240px', '', root);
@@ -68,7 +70,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   let noticeUntil = 0;
   const say = (text: string): void => {
     if (!text) return;
-    notice.textContent = text;
+    notice.textContent = fill(text, true); // a notice may name a button: {pause}
     noticeUntil = performance.now() + NOTICE_MS;
   };
   let titleUntil = 0;
@@ -136,7 +138,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       const act = fightAction(g);
       const near = interactable(g);
       const verb = near?.kind === 'npc' ? 'talk to' : near?.kind === 'sign' ? 'rest at' : 'pass through';
-      setText(prompt, act ? `E · ${act.label}` : near ? `E · ${verb} ${near.name}` : '');
+      const e = glyph('interact');
+      setText(prompt, act ? `${e} · ${act.label}` : near ? `${e} · ${verb} ${near.name}` : '');
       bosses.update();
       foes.update(camera, canvas);
 
@@ -145,9 +148,9 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       if (t === null || !aim) return setStyle(reticle, 'display', 'none');
       v.set(aim.x, aim.y, aim.z).project(camera);
       if (v.z >= 1) return setStyle(reticle, 'display', 'none');
-      const r = canvas.getBoundingClientRect();
-      setStyle(reticle, 'left', `${Math.round(r.left + ((v.x + 1) / 2) * r.width)}px`);
-      setStyle(reticle, 'top', `${Math.round(r.top + ((1 - v.y) / 2) * r.height)}px`);
+      const [r, k] = [canvas.getBoundingClientRect(), uiScale()]; // screen pixels, in the scaled layer's
+      setStyle(reticle, 'left', `${Math.round((r.left + ((v.x + 1) / 2) * r.width) / k)}px`);
+      setStyle(reticle, 'top', `${Math.round((r.top + ((1 - v.y) / 2) * r.height) / k)}px`);
       setStyle(reticle, 'display', 'block');
     },
   };

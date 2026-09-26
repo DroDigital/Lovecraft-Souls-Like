@@ -4,10 +4,14 @@
  * Mouse: LMB light, Shift+LMB heavy, RMB block, Shift+RMB parry, MMB lock-on, move to look
  * (click to capture) or flick to switch targets. Keys: WASD move, Space dodge (hold: sprint),
  * F revolver, Q lock-on, R West's Reagent (heal), T Laudanum, E interact (rest at an Elder Sign, pass a gate), arrows look
- * (←/→ switch targets). Pad: standard mapping, Souls layout.
+ * (←/→ switch targets). Pad: standard mapping, Souls layout. The keys are the player's to rebind
+ * (bindings.ts); whichever device was used last is the one the prompts name (device.ts); look may
+ * be inverted (playtest round 12).
  */
 
 import { INPUT, SIM } from '../data/tuning';
+import { keyLayout, type Action } from './bindings';
+import { useDevice } from './device';
 
 export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock', 'item', 'heal', 'interact'] as const;
 export type Button = (typeof BUTTONS)[number];
@@ -41,7 +45,9 @@ export function emptyInput(): InputFrame {
   return { moveX: 0, moveY: 0, lookX: 0, lookY: 0, held: noButtons(), pressed: noButtons(), released: noButtons(), switchTarget: 0 };
 }
 
-const KEYS: Readonly<Record<string, Button>> = { Space: 'dodge', KeyF: 'shoot', KeyQ: 'lock', KeyR: 'heal', KeyT: 'item', KeyE: 'interact' };
+/** The buttons the keyboard presses, by the action whose key presses them. */
+const KEYED: readonly (readonly [Action, Button])[] = [['dodge', 'dodge'], ['shoot', 'shoot'], ['lock', 'lock'], ['heal', 'heal'], ['item', 'item'], ['interact', 'interact']];
+const keyButton = (code: string): Button | undefined => KEYED.find(([a]) => keyLayout[a] === code)?.[1];
 /** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, Y Reagent, d-pad down Laudanum, R3 lock-on, A interact. */
 const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, lock: 11, heal: 3, item: 13, interact: 0 };
 
@@ -71,6 +77,7 @@ function readPad(): PadState | null {
 export interface InputDevice {
   poll(): InputFrame;
   sensitivity: number; // look speed multiplier (the settings menu)
+  invertY: boolean; // up looks down (the settings menu)
 }
 
 export function createInput(canvas: HTMLCanvasElement): InputDevice {
@@ -108,15 +115,16 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
   addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
     if (e.repeat) return;
+    useDevice('keys');
     keys.add(e.code);
-    const b = KEYS[e.code];
+    const b = keyButton(e.code);
     if (b) press(b);
     if (e.code === 'ArrowLeft') keySwitch = -1;
     else if (e.code === 'ArrowRight') keySwitch = 1;
   });
   addEventListener('keyup', (e) => {
     keys.delete(e.code);
-    const b = KEYS[e.code];
+    const b = keyButton(e.code);
     if (b) release(b);
   });
   addEventListener('blur', () => {
@@ -125,6 +133,7 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
     for (const b of BUTTONS) release(b);
   });
   canvas.addEventListener('mousedown', (e) => {
+    useDevice('keys');
     if (!captured()) capture();
     const b: Button | undefined =
       e.button === 0 ? (e.shiftKey ? 'heavy' : 'light') : e.button === 2 ? (e.shiftKey ? 'parry' : 'block') : e.button === 1 ? 'lock' : undefined;
@@ -150,13 +159,15 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
 
   const device: InputDevice = {
     sensitivity: 1,
+    invertY: false,
     poll() {
       const dt = 1 / SIM.hz;
       const pad = readPad();
       const f = emptyInput();
+      if (pad && (Object.values(pad.buttons).some(Boolean) || Math.hypot(pad.lx, pad.ly, pad.rx, pad.ry) > 0)) useDevice('pad');
 
-      let mx = key('KeyD') - key('KeyA');
-      let my = key('KeyW') - key('KeyS');
+      let mx = key(keyLayout.right) - key(keyLayout.left);
+      let my = key(keyLayout.forward) - key(keyLayout.back);
       const len = Math.hypot(mx, my);
       if (len > 1) [mx, my] = [mx / len, my / len];
       if (pad && Math.hypot(pad.lx, pad.ly) > Math.hypot(mx, my)) [mx, my] = [pad.lx, pad.ly];
@@ -167,7 +178,7 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
       const ky = key('ArrowDown') - key('ArrowUp');
       const k = device.sensitivity;
       f.lookX = k * (mouseX * INPUT.mouseSensitivity + (kx * INPUT.keyLookSpeed + (pad?.rx ?? 0) * INPUT.stickLookSpeed) * dt);
-      f.lookY = k * (mouseY * INPUT.mouseSensitivity + (ky * INPUT.keyLookSpeed + (pad?.ry ?? 0) * INPUT.stickLookSpeed) * dt);
+      f.lookY = (device.invertY ? -k : k) * (mouseY * INPUT.mouseSensitivity + (ky * INPUT.keyLookSpeed + (pad?.ry ?? 0) * INPUT.stickLookSpeed) * dt);
 
       // Target switching: arrow presses, a mouse flick, or a right-stick flick.
       let sw = keySwitch;

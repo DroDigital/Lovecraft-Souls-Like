@@ -57,9 +57,19 @@ export const MUSIC = {
 export const SETTINGS = {
   fxCap: [0, 1, 0.05, 1], // caps every sanity effect (accessibility); the default is FX.capDefault's
   sensitivity: [0.25, 3, 0.05, 1], // look speed: mouse, stick and arrows
+  invertY: [0, 1, 1, 0], // 1: up looks down (round 12)
   resolution: [0.5, 2, 0.25, 1.5], // internal resolution, × RENDER's 400 × 225 (600 × 338 by default since playtest round 7, so the figures' detail shows)
-  volume: [0, 1, 0.05, 0.7],
+  brightness: [0.7, 1.6, 0.05, 1], // lifts the dark (a gamma, after the grade; round 12)
+  uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
+  shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
+  volume: [0, 1, 0.05, 0.7], // everything
+  music: [0, 1, 0.05, 1], // the title's theme and the boss scores (round 12)
+  sfx: [0, 1, 0.05, 1], // blows, steps, voices
+  ambience: [0, 1, 0.05, 1], // the drones and the recorded ambience
 } satisfies Record<string, readonly [number, number, number, number]>;
+
+/** The UI's scale (ui/uiScale.ts): 1 at a window this tall, and never below or above these. */
+export const UI = { baseHeight: 720, least: 1, most: 2.5 };
 
 /** Levels bought with Echoes at an Elder Sign (playtest round 4): what one level of each attribute adds, and the most levels. */
 export const LEVELS: Record<'vigour' | 'endurance' | 'might', { max: number; hp?: number; stamina?: number; damage?: number }> = {

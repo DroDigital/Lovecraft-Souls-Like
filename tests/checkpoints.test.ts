@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { NPCS } from '../src/data/npcs';
 import { START_SIGN } from '../src/data/sites';
+import { wrapAngle, yawOf } from '../src/core/geom';
+import { emptyInput } from '../src/core/input';
 import { CAMERA, LAUDANUM, SANITY, WORLD } from '../src/data/tuning';
 import { dream, gatePlace, interactable, passGate, rest, signPlace, travel } from '../src/systems/checkpoints';
 import { isAbsent } from '../src/systems/components';
+import { npcEntity, npcPlace, talk } from '../src/systems/npcs';
 import { createWorldGame, stepGame } from '../src/systems/game';
 import { changeInsight } from '../src/systems/insight';
 import { setSanity } from '../src/systems/sanity';
@@ -116,7 +120,7 @@ describe('Elder Signs', () => {
   it('E rests at a sign within reach, or passes a gate within reach', () => {
     const g = createWorldGame();
     const sign = signPlace(START_SIGN)!;
-    expect(interactable(g)).toBeNull(); // the investigator wakes a few steps out, clear of the slab
+    expect(interactable(g)).toMatchObject({ kind: 'sign', id: START_SIGN }); // they wake within reach: E rests at once (round 12)
     goTo(g, (sign.x + sign.rest.x) / 2, (sign.z + sign.rest.z) / 2);
     expect(interactable(g)).toMatchObject({ kind: 'sign', id: START_SIGN });
     const rested = record(g, 'Rested');
@@ -132,6 +136,42 @@ describe('Elder Signs', () => {
     expect(moved).toEqual([{ via: 'gate', to: 'pnakotus_gate', name: gatePlace('pnakotus_gate')!.name }]);
     goTo(g, gate.arrive.x + WORLD.reach + 5, gate.arrive.z + 30);
     expect(interactable(g)).toBeNull();
+  });
+});
+
+describe('E takes what the investigator faces (playtest round 12)', () => {
+  it('between a person and the sign they stand by, facing one or the other chooses', () => {
+    const g = createWorldGame();
+    const person = NPCS.map((n) => ({ n, at: npcPlace(n)!, sign: signPlace(n.sign)! })).find(({ at, sign }) => Math.hypot(at.x - sign.x, at.z - sign.z) < WORLD.reach + WORLD.signReach - 1)!;
+    expect(person).toBeDefined();
+    const { at, sign } = person;
+    const d = Math.hypot(at.x - sign.x, at.z - sign.z);
+    const k = Math.min(WORLD.reach - 0.3, d / 2) / d; // a point within reach of both, on the line between them
+    const [x, z] = [at.x + (sign.x - at.x) * k, at.z + (sign.z - at.z) * k];
+    goTo(g, x, z, yawOf(at.x - x, at.z - z));
+    expect(interactable(g)).toMatchObject({ kind: 'npc', id: person.n.id });
+    goTo(g, x, z, yawOf(sign.x - x, sign.z - z));
+    expect(interactable(g)).toMatchObject({ kind: 'sign', id: sign.id });
+  });
+
+  it('talking turns them to the speaker and the camera frames them, until they move', () => {
+    const g = createWorldGame();
+    const n = NPCS[0];
+    const at = npcPlace(n)!;
+    goTo(g, at.x + 2, at.z, 0); // beside them, looking away
+    talk(g, n.id);
+    expect(g.player.listening).not.toBeNull();
+    run(g, 90);
+    const tr = g.ecs.c.transform.get(g.player.id)!;
+    const want = yawOf(at.x - tr.pos.x, at.z - tr.pos.z);
+    expect(Math.abs(wrapAngle(tr.yaw - want))).toBeLessThan(0.05);
+    expect(Math.abs(wrapAngle(g.camera.yaw - want - CAMERA.talkTurn))).toBeLessThan(0.1); // turned a little, the speaker clear of their back
+    const them = g.ecs.c.transform.get(npcEntity(g, n.id)!)!;
+    expect(Math.abs(wrapAngle(them.yaw - yawOf(tr.pos.x - at.x, tr.pos.z - at.z)))).toBeLessThan(0.05); // and they to them
+    stepGame(g, { ...emptyInput(), moveY: 1 });
+    expect(g.player.listening).toBeNull();
+    run(g, 120);
+    expect(Math.abs(wrapAngle(them.yaw - at.yaw))).toBeLessThan(0.05); // back to where they look
   });
 });
 

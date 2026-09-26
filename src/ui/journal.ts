@@ -12,6 +12,7 @@ import { isDone, stageOf, UNSTARTED } from '../systems/quests';
 import { documentPage } from './dialogue';
 import { BONE } from './hudKit';
 import { button, el, heading, type Page } from './menuKit';
+import { glyph } from './glyphs';
 
 export function journalPage(g: Game, back: () => void, show: (p: Page) => void): Page {
   const page: Page = {
@@ -36,7 +37,7 @@ export function journalPage(g: Game, back: () => void, show: (p: Page) => void):
       heading(p, `DOCUMENTS · ${read.length} of ${Object.keys(DOCUMENTS).length}`);
       for (const name of read) button(p, name, () => show(documentPage(name, () => show(page))));
       heading(p, '');
-      button(p, 'Back  (Esc)', back);
+      button(p, `Back  (${glyph('back')})`, back);
     },
   };
   return page;

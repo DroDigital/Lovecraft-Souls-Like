@@ -10,6 +10,7 @@
 import { MIND_HUD, SANITY } from '../data/tuning';
 import type { Band, Game } from '../systems/components';
 import { atOrBelow, bandIndex } from '../systems/sanity';
+import { glyph } from './glyphs';
 import { bar, BONE, el, setStyle, setText } from './hudKit';
 
 const MAGENTA = '#d80073';
@@ -42,7 +43,7 @@ export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) 
   g.events.on('SanityLost', () => (joltAt = performance.now()));
   g.events.on('SanityBandChanged', (e) => {
     const worse = bandIndex(e.to) > bandIndex(e.from);
-    const call = !worse || bandIndex(e.to) < bandIndex('fractured') ? '' : g.player.laudanum > 0 ? '  ·  T  LAUDANUM' : '  ·  REST AT AN ELDER SIGN';
+    const call = !worse || bandIndex(e.to) < bandIndex('fractured') ? '' : g.player.laudanum > 0 ? `  ·  ${glyph('item').toUpperCase()}  LAUDANUM` : '  ·  REST AT AN ELDER SIGN';
     say(`${worse ? '▼' : '▲'} ${e.to.toUpperCase()}${call}`);
   });
 
@@ -67,7 +68,7 @@ export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) 
       }
       setText(band, `${m.band.toUpperCase()} ${Math.ceil(m.sanity)}`);
       const call = callsForLaudanum(g);
-      setText(laudanum, `${call ? 'T · ' : ''}LAUDANUM ×${g.player.laudanum}`);
+      setText(laudanum, `${call ? `${glyph('item').toUpperCase()} · ` : ''}LAUDANUM ×${g.player.laudanum}`);
       setStyle(laudanum, 'color', call ? '#ff5aa8' : BONE);
       setStyle(laudanum, 'opacity', call ? (0.7 + 0.3 * Math.sin(now / 260)).toFixed(2) : '0.7');
     },

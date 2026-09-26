@@ -12,8 +12,11 @@ function memoryStore() {
 }
 
 describe('settings', () => {
-  it('defaults to the tuning defaults: full FX, sensitivity 1, 400 × 225', () => {
-    expect(defaultSettings()).toEqual({ fxCap: 1, sensitivity: 1, resolution: 1.5, volume: SETTINGS.volume[3] });
+  it('defaults to the tuning defaults: full FX, sensitivity 1, 400 × 225, every level full', () => {
+    expect(defaultSettings()).toEqual({
+      fxCap: 1, sensitivity: 1, invertY: 0, resolution: 1.5, brightness: 1, uiScale: 1, shake: 1,
+      volume: SETTINGS.volume[3], music: 1, sfx: 1, ambience: 1,
+    });
   });
 
   it('clamps into range and snaps to the step', () => {

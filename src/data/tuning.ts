@@ -187,6 +187,7 @@ export const CAMERA = {
   easeOut: 4, // m/s the boom grows back after a pull-in
   follow: 7, // 1/s: how fast the camera swings toward the lock target (or recentres)
   lockPitch: 0.15,
+  talkTurn: 0.5, // radians the camera turns left of the one talking, so they stand clear of the investigator, on the right (round 12)
   lockLift: 0.5, // metres: looks further down on close lock targets, to see them over the player...
   lockPitchMax: 0.8, // ...but never more steeply than this: a short foe close in is seen through the dithered investigator instead (round 12)
   recenterFrames: 20, // lock pressed with no target: swing behind the player
@@ -232,7 +233,9 @@ export const WORLD = {
   seaFloor: -9,
   coast: 24, // beyond the land's edge the ground sinks to the sea floor over this distance
   discover: 6, // an Elder Sign is found this close
-  reach: 3.2, // rest at an Elder Sign or pass a gate this close
+  reach: 3.2, // pass a gate or talk with someone this close
+  signReach: 5.2, // rest at an Elder Sign this close: the point they rise at (4.75 m out) is within it (playtest round 12)
+  faceWeight: 2, // E takes what the investigator faces: a thing straight behind them seems (1 + this) times as far
   gateArrive: 5.5, // those coming through a gate stand this far out from it: the camera behind them clears it, and its E is out of reach
   restFoes: 18, // no resting while a foe hunts the investigator within this distance
   saveSeconds: 20, // autosave interval (also on rest, travel, death and leaving the page)

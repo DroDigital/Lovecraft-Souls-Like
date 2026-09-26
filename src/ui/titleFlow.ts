@@ -27,6 +27,7 @@ export function title(shell: Shell, start: (fresh: boolean) => void): void {
     hasSave: !!(shell.store && loadSave(shell.store)),
     settings: shell.settings,
     change: shell.change,
+    saveKeys: shell.saveKeys,
     byItself: new Promise((resolve) => {
       void music.sounding.then(resolve);
       setTimeout(() => refused || resolve(), THEME.wait * 1000);

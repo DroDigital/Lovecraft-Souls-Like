@@ -14,6 +14,7 @@ import type { SettingId, Settings } from './settings';
 export interface PauseOptions {
   settings: Settings;
   change(id: SettingId, v: number): void;
+  saveKeys?: () => void; // keeps the keyboard's layout when rebound
   resume(): void; // after closing: recapture the mouse
   map?: () => void; // opens the map (not in the arena)
   journal?: (back: () => void, show: (p: Page) => void) => Page; // the journal's page (not in the arena)
@@ -40,7 +41,7 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
       if (o.journal) button(p, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))));
       if (o.arms) button(p, 'Arms', () => screen.show(o.arms!(() => screen.show(main), (pg) => screen.show(pg))));
       button(p, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
-      button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main))));
+      button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
       button(p, 'Quit to title', o.quit);
       if (desktop) button(p, 'Quit to desktop', () => (saveNow(), void desktop!.quit())); // the shell only: a browser tab is closed by its own hand
     },

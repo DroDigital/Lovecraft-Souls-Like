@@ -2,8 +2,9 @@
  * Player input (spec §3B): buttons into the one-slot input buffer, the dodge button's tap/hold
  * split (a short press rolls, or backsteps with no direction; holding sprints), guard, lock-on
  * commands, and camera-relative locomotion intent (strafing while locked on, or while guarding: the
- * guard faces the camera's way). While the Great Race
- * holds the investigator's body (spec §3E control_swap), the thief's input replaces all but the look.
+ * guard faces the camera's way). Talking, they turn to the one who speaks, until they move, look
+ * away or act (playtest round 12). While the Great Race holds the investigator's body (spec §3E
+ * control_swap), the thief's input replaces all but the look.
  */
 
 import type { InputFrame } from '../core/input';
@@ -56,7 +57,10 @@ export function playerControl(g: Game, real: InputFrame): void {
 
   const me = transform.get(p.id)!.pos;
   const target = g.lock.target === null ? undefined : transform.get(g.lock.target)?.pos;
+  if (mag > 0.1 || input.lookX || input.lookY || Object.values(input.pressed).some(Boolean)) p.listening = null; // done listening
+  const heard = p.listening === null ? undefined : transform.get(p.listening)?.pos;
   if (target && !p.sprinting) m.face = yawOf(target.x - me.x, target.z - me.z);
+  else if (heard) m.face = yawOf(heard.x - me.x, heard.z - me.z); // turned to the one talking
   else if (p.blockHeld && a.move === null) m.face = g.camera.yaw; // the guard faces where they look, backing away or not (playtest round 7)
   else m.face = mag > 0.1 ? yawOf(wx, wz) : null;
 }

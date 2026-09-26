@@ -7,6 +7,7 @@ import { worldLayout } from '../src/world/placements';
 import { place, press, steps } from './helpers';
 import { stepGame } from '../src/systems/game';
 import { buildFigure } from '../src/render/figures';
+import { weaponStats } from '../src/ui/armsPage';
 
 describe('arms (data/weapons.ts, systems/arms.ts)', () => {
   it("every weapon's chains are sound: they start at light1 and heavy1, and every combo leads to a move it has", () => {
@@ -76,5 +77,18 @@ describe('arms (data/weapons.ts, systems/arms.ts)', () => {
     const loaded = createWorldGame({ save: parseSave(JSON.stringify(save))! });
     expect(loaded.player.arms).toEqual(['cane']);
     expect(loaded.player.weapon).toBe('cane');
+  });
+});
+
+describe('the Arms page shows each weapon\'s numbers (playtest round 12)', () => {
+  it('its first light and heavy blows, Might counted, how soon it lands, its reach and cost', () => {
+    const axe = weaponStats(WEAPONS.axe);
+    expect(axe).toContain('light 34');
+    expect(axe).toContain('heavy 74');
+    expect(axe).toContain('lands in 0.25 s');
+    expect(axe).toContain('reach 1.5 m');
+    expect(axe).toContain('20 stamina');
+    expect(weaponStats(WEAPONS.axe, 1.2)).toContain('light 41');
+    expect(weaponStats(WEAPONS.razor)).toContain('lands in 0.10 s');
   });
 });

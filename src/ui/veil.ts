@@ -91,7 +91,7 @@ export function createVeil(): Veil {
   [canvas.width, canvas.height] = [W, H];
   canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:8;pointer-events:none;image-rendering:pixelated;display:none';
   const words = document.createElement('div');
-  words.style.cssText = `position:fixed;left:0;right:0;top:61%;z-index:8;pointer-events:none;text-align:center;font:12px monospace;letter-spacing:6px;color:${BONE};opacity:0`;
+  words.style.cssText = `position:fixed;left:0;right:0;top:61%;z-index:8;pointer-events:none;text-align:center;font:calc(12px * var(--ui, 1)) monospace;letter-spacing:calc(6px * var(--ui, 1));color:${BONE};opacity:0`;
   document.body.append(canvas, words);
   const ctx = canvas.getContext('2d');
   const image = ctx?.createImageData(W, H);

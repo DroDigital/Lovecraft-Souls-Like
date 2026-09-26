@@ -6,7 +6,8 @@
  * into the Dreamlands. A gate leads to its twin in another realm. Pure: no Three.js.
  */
 
-import { nearestNpc, talk } from './npcs';
+import { talk } from './npcs';
+import { npcDef } from '../data/npcs';
 import type { InputFrame } from '../core/input';
 import { distXZ } from '../core/geom';
 import type { Place } from '../data/arena';
@@ -51,6 +52,7 @@ export function teleport(g: Game, at: Place): void {
   [tr.yaw, tr.prevYaw] = [at.yaw, at.yaw];
   Object.assign(g.ecs.c.mover.get(g.player.id)!, { vx: 0, vz: 0, face: at.yaw });
   setLock(g, null);
+  g.player.listening = null;
   Object.assign(g.camera, { yaw: at.yaw, prevYaw: at.yaw, pitch: CAMERA.pitch, prevPitch: CAMERA.pitch });
 }
 
@@ -155,21 +157,33 @@ export interface Interactable {
   name: string;
 }
 
-/** The nearest sign, gate or person within reach of a free investigator, if any. */
+/**
+ * How near a thing at distance `d` seems to an investigator facing `yaw`: its distance, lengthened
+ * the further it lies from straight ahead, so E takes the one they face (playtest round 12: near a
+ * sign, the person standing by it took E from their side).
+ */
+function seems(at: { x: number; z: number }, from: { x: number; z: number }, yaw: number, d: number): number {
+  if (d < 1e-3) return 0;
+  const cos = (Math.sin(yaw) * (at.x - from.x) + Math.cos(yaw) * (at.z - from.z)) / d;
+  return d * (1 + (WORLD.faceWeight * (1 - cos)) / 2);
+}
+
+/** The sign, gate or person within reach of a free investigator that they face most nearly, if any. */
 export function interactable(g: Game): Interactable | null {
   if (!g.overworld || g.ecs.c.actor.get(g.player.id)!.move !== null) return null;
-  const pp = g.ecs.c.transform.get(g.player.id)!.pos;
+  const tr = g.ecs.c.transform.get(g.player.id)!;
   let best: Interactable | null = null;
-  let bestD: number = WORLD.reach;
-  const consider = (kind: Interactable['kind'], p: SignPlace | GatePlace): void => {
-    const d = distXZ(p, pp);
-    if (d <= bestD) [best, bestD] = [{ kind, id: p.id, name: p.name }, d];
+  let bestScore = Infinity;
+  const consider = (it: Interactable, at: { x: number; z: number }, reach: number): void => {
+    const d = distXZ(at, tr.pos);
+    const score = d <= reach ? seems(at, tr.pos, tr.yaw, d) : Infinity;
+    if (score < bestScore) [best, bestScore] = [it, score];
   };
   const w = worldLayout();
-  for (const s of w.signs) consider('sign', s);
-  for (const t of w.gates) consider('gate', t);
-  const npc = nearestNpc(g);
-  return npc && npc.d <= bestD ? { kind: 'npc', id: npc.id, name: npc.name } : best; // a person before the sign they stand by
+  for (const s of w.signs) consider({ kind: 'sign', id: s.id, name: s.name }, s, WORLD.signReach);
+  for (const t of w.gates) consider({ kind: 'gate', id: t.id, name: t.name }, t, WORLD.reach);
+  for (const [e, id] of g.ecs.c.npc) consider({ kind: 'npc', id, name: npcDef(id)?.name ?? id }, g.ecs.c.transform.get(e)!.pos, WORLD.reach);
+  return best;
 }
 
 /** One step: signs found by coming near, and the interact button (rest, or pass a gate). */

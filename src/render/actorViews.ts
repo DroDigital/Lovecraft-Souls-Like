@@ -21,6 +21,7 @@ import { veilsFoe } from './occlusion';
 import { createPoseBlend, type PoseBlend } from './poseBlend';
 import { pose } from './poses';
 import { createWorldMaterial } from './worldMaterial';
+import { FEEL } from './feel';
 
 interface View {
   figure: Figure;
@@ -108,8 +109,8 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     f.root.position.set(lerp(tr.prev.x, tr.pos.x), lerp(tr.prev.y, tr.pos.y), lerp(tr.prev.z, tr.pos.z));
     f.root.rotation.y = tr.prevYaw + wrapAngle(tr.yaw - tr.prevYaw) * alpha;
     if (a && a.hitstop > 0) {
-      f.root.position.x += (Math.random() - 0.5) * FEEDBACK.shakeMetres;
-      f.root.position.z += (Math.random() - 0.5) * FEEDBACK.shakeMetres;
+      f.root.position.x += (Math.random() - 0.5) * FEEDBACK.shakeMetres * FEEL.shake;
+      f.root.position.z += (Math.random() - 0.5) * FEEDBACK.shakeMetres * FEEL.shake;
     }
     const dt = Math.min(0.1, Math.max(0, time - v.lastTime));
     v.speed += (Math.hypot(tr.pos.x - tr.prev.x, tr.pos.z - tr.prev.z) * SIM.hz - v.speed) * Math.min(1, dt * FEEDBACK.strideEase);

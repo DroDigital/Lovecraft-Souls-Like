@@ -237,6 +237,7 @@ export interface Pilot {
   reagentMax: number; // ...and the most it holds (Silver Vials add to it)
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
+  listening: Entity | null; // the person talked with: they face them and the camera frames them until they move or look away (round 12)
 }
 
 /** The investigator's mind (spec §3A). */
