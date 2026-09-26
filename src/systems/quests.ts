@@ -10,6 +10,7 @@ import { QUESTS, type Goal } from '../data/quests';
 import type { Game } from './components';
 import { changeInsight } from './insight';
 import { addVial } from './reagent';
+import { giveStones, takeUp } from './arms';
 import { sealsBroken } from './sealCount';
 
 export const UNSTARTED = -1;
@@ -41,6 +42,8 @@ function advance(g: Game, id: string): void {
     }
     if (r.insight) changeInsight(g, r.insight, 'quest', q.title);
     if (r.vial) addVial(g);
+    if (r.stones) giveStones(g, r.stones);
+    if (r.weapon) takeUp(g, r.weapon);
   }
   g.events.emit('QuestChanged', { id, title: q.title, stage: next, done });
 }

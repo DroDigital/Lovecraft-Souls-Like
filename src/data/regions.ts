@@ -59,17 +59,17 @@ export const REGIONS: readonly RegionDef[] = [
   {
     id: 'hub', name: 'Miskatonic University', dungeon: 'University Library', bosses: [], area: [0, 0, 1, 1],
     biome: biome(3, 1.2, 40, 'grass', [0.78, 0.76, 0.7], true, 7, { tree: 3, pillar: 2, ruin: 2, grave: 1 }),
-    spawns: { density: 0.5, table: { exham_troglodyte: 2, rat_swarm: 3, being_from_beyond: 1 } },
+    spawns: { density: 0.5, table: { exham_troglodyte: 2, rat_swarm: 3, being_from_beyond: 1, reanimated_corpse: 1 } },
   },
   {
     id: 'arkham', name: 'Arkham & the Blasted Heath', dungeon: 'The Witch House', bosses: ['colour_out_of_space', 'keziah_mason', 'brown_jenkin'], area: [-1, 0, 1, 1],
     biome: biome(4, 2.5, 50, 'grass', [0.7, 0.7, 0.67], true, 9, { tree: 4, grave: 3, ruin: 2, rock: 2 }),
-    spawns: { density: 1.2, table: { reanimated_corpse: 3, rat_swarm: 2, moon_bog_wraith: 2 } },
+    spawns: { density: 1.2, table: { reanimated_corpse: 3, rat_swarm: 2, moon_bog_wraith: 2, ghoul: 1 } },
   },
   {
     id: 'dunwich', name: 'Dunwich & the Round Hills', dungeon: 'Sentinel Hill', bosses: ['dunwich_horror', 'shub_niggurath'], area: [-1, 1, 1, 1],
     biome: biome(9, 7, 60, 'grass', [0.64, 0.67, 0.62], true, 8, { monolith: 3, tree: 3, rock: 2 }),
-    spawns: { density: 0.6, table: { thousand_young: 1 } },
+    spawns: { density: 0.8, table: { thousand_young: 2, martense_degenerate: 3, rat_swarm: 2, mi_go: 1 } },
   },
   {
     id: 'innsmouth', name: 'Innsmouth & Devil Reef', dungeon: "Y'ha-nthlei", bosses: ['father_dagon', 'mother_hydra'], area: [1, 1, 1, 1],
@@ -84,7 +84,7 @@ export const REGIONS: readonly RegionDef[] = [
   {
     id: 'vermont', name: 'Vermont Hills', dungeon: 'Akeley farmhouse / Mi-Go outpost', bosses: ['whisperer'], area: [0, 1, 1, 1],
     biome: biome(12, 10, 70, 'grass', [0.6, 0.63, 0.58], true, 11, { tree: 6, rock: 3 }),
-    spawns: { density: 1.1, table: { mi_go: 2, martense_degenerate: 3 } },
+    spawns: { density: 1.1, table: { mi_go: 2, martense_degenerate: 3, rat_swarm: 2, moon_bog_wraith: 1 } },
   },
   {
     id: 'mountains', name: 'Mountains of Madness', dungeon: 'Elder Thing city', bosses: ['shoggoth'], area: [-4, 4, 1, 1],
@@ -112,17 +112,17 @@ export const REGIONS: readonly RegionDef[] = [
   {
     id: 'rlyeh', name: "Mu & R'lyeh", dungeon: "Risen R'lyeh", bosses: ['ghatanothoa', 'cthulhu'], area: [2, 4, 1, 1],
     biome: biome(4, 3.5, 25, 'stone', [0.55, 0.6, 0.58], true, 9, { monolith: 4, pillar: 2 }),
-    spawns: { density: 1.3, table: { deep_one: 3, cthulhu_cultist: 2, star_spawn: 1 } },
+    spawns: { density: 1.3, table: { deep_one: 3, cthulhu_cultist: 2, star_spawn: 1, dagon_priest: 1, innsmouth_hybrid: 1 } },
   },
   {
     id: 'yuggoth', name: 'Yuggoth', dungeon: 'Mi-Go cities', bosses: ['rhan_tegoth', 'hastur'], area: [4, 4, 1, 1],
     biome: biome(5, 4, 40, 'flesh', [0.5, 0.5, 0.53], true, 8, { monolith: 3, pillar: 3 }),
-    spawns: { density: 1.1, table: { mi_go: 3, venusian_man_lizard: 2 } },
+    spawns: { density: 1.1, table: { mi_go: 3, venusian_man_lizard: 2, yekubian: 1, being_from_beyond: 2 } },
   },
   {
     id: 'beyond', name: 'Beyond the Gate', dungeon: 'The Ultimate Void', bosses: ['umr_at_tawil', 'yog_sothoth', 'azathoth'], area: [3, 7, 1, 1],
     biome: biome(4, 1.5, 30, 'water', [0.45, 0.45, 0.5], false, 6, { monolith: 3, pillar: 2 }),
-    spawns: { density: 1, table: { dhole: 1, yekubian: 2 } },
+    spawns: { density: 1, table: { dhole: 1, yekubian: 2, being_from_beyond: 2, cat_from_saturn: 2, flying_polyp: 1 } },
   },
 ];
 

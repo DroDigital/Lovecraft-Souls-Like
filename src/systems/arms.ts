@@ -61,11 +61,15 @@ export const stonesOfSlain = (slain: Iterable<string>): number => [...slain].red
 export function registerArms(g: Game): void {
   g.events.on('Vanquished', ({ entity }) => {
     const d = g.ecs.c.dread.get(entity);
-    const n = d ? stonesOf(d.id) : 0;
-    if (n <= 0) return;
-    g.player.stones += n;
-    g.events.emit('Notice', { text: `${n === 1 ? 'A STAR-STONE' : `${n} STAR-STONES`} · SET THEM INTO YOUR ARMS AT AN ELDER SIGN` });
+    if (d) giveStones(g, stonesOf(d.id));
   });
+}
+
+/** Star-stones for the investigator (a boss's, or a quest's thanks), said on the HUD. */
+export function giveStones(g: Game, n: number): void {
+  if (n <= 0) return;
+  g.player.stones += n;
+  g.events.emit('Notice', { text: `${n === 1 ? 'A STAR-STONE' : `${n} STAR-STONES`} · SET THEM INTO YOUR ARMS AT AN ELDER SIGN` });
 }
 
 /** How far each weapon owned is reinforced, fresh: none. */

@@ -90,7 +90,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       stair('sink', 'mouth', 'w', -4),
       room('drowned', 'hall', 'sink', 'w', { sign: { id: 'innsmouth_yhanthlei', name: 'Drowned Hall' } }),
       room('pits', 'pit', 'drowned', 'n', { spawns: ['deep_one'] }),
-      room('cells', 'corridor', 'drowned', 's', { spawns: ['innsmouth_hybrid'] }),
+      room('cells', 'corridor', 'drowned', 's', { spawns: ['innsmouth_hybrid'], weapon: 'cutlass' }),
       room('span', 'bridge', 'drowned', 'w', { spawns: ['deep_one', 'deep_one'] }),
       room('temple', 'hall', 'span', 'w', { wide: true, boss: ['father_dagon', 'mother_hydra'] }),
     ],

@@ -3,6 +3,7 @@
  * toward where the investigator rises there, and E beside one talks with them. They say the first
  * of their topics whose conditions hold (data/npcs.ts); talking closes the quest stages waiting on
  * them (quests.ts), then the topic may begin a quest. Nothing hunts them and nothing can hurt them.
+ * A roster ally may speak for someone (round 12: Nasht & Kaman-Thah): it is talked with where it stands.
  * Pure: no Three.js.
  */
 
@@ -29,10 +30,11 @@ export function npcPlace(n: NpcDef): { x: number; z: number; yaw: number } | und
   return { x, z, yaw: yawOf(s.rest.x - x, s.rest.z - z) };
 }
 
-/** Puts everyone in the world. */
+/** Puts everyone in the world (those a roster ally speaks for come with the ally: `voice`). */
 export function spawnNpcs(g: Game): void {
   const c = g.ecs.c;
   for (const n of NPCS) {
+    if (n.creature) continue;
     const at = npcPlace(n);
     if (!at) continue;
     const e = g.ecs.spawn();
@@ -42,6 +44,12 @@ export function spawnNpcs(g: Game): void {
     c.model.set(e, `${NPC_PREFIX}${n.id}`);
     c.npc.set(e, n.id);
   }
+}
+
+/** A creature just risen: if someone speaks through it (round 12: the Cavern's priests), E beside it talks with them. */
+export function voice(g: Game, e: Entity, roster: string): void {
+  const n = NPCS.find((x) => x.creature === roster);
+  if (n) g.ecs.c.npc.set(e, n.id);
 }
 
 function holds(g: Game, w: When): boolean {
@@ -74,6 +82,7 @@ export function npcSystem(g: Game, dt: number): void {
   for (const [e, id] of g.ecs.c.npc) {
     const tr = g.ecs.c.transform.get(e)!;
     const n = npcDef(id);
+    if (n?.creature && e !== g.player.listening) continue; // a creature's own brain turns it
     const want = e === g.player.listening ? yawOf(me.x - tr.pos.x, me.z - tr.pos.z) : n && npcPlace(n)?.yaw;
     tr.prevYaw = tr.yaw;
     if (want !== undefined) tr.yaw = turnToward(tr.yaw, want, TURN * dt);

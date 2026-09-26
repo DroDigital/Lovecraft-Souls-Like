@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { LANTERN } from '../data/tuning';
-import { axeGeometry, razorGeometry } from './armsMeshes';
+import { ARMS } from './armsMeshes';
 import { cylinder, part, shade, skeleton, type Figure } from './figures';
 import { box, tint } from './meshKit';
 import { BASE, mixRgb, type Rgb } from './palette';
@@ -132,8 +132,8 @@ export function investigator(): Figure {
     box(0.11, 0.035, 0.04, 0, -0.005, 0.02, silver),
     box(0.045, 0.06, 0.045, 0, -0.83, 0.02, silver),
   ]), 'wood');
-  f.arms = { cane, axe: part(f, f.handR, axeGeometry(), 'wood'), razor: part(f, f.handR, razorGeometry(), 'cloth') }; // found weapons (armsMeshes.ts), shown when in hand
-  f.arms.axe.visible = f.arms.razor.visible = false;
+  f.arms = { cane }; // and the found weapons (armsMeshes.ts), each shown when in hand
+  for (const [id, [geo, texture]] of Object.entries(ARMS)) (f.arms[id] = part(f, f.handR, geo(), texture)).visible = false;
   part(f, f.handL, mergeGeometries([ // the revolver, its barrel along the arm
     box(0.045, 0.1, 0.06, 0, -0.08, 0.035, shade(BASE.rust, 0.9)),
     box(0.055, 0.07, 0.08, 0, -0.14, 0.03, dark),

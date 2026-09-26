@@ -4,7 +4,7 @@ import { ph, phases, st, tier } from './kit';
 
 export const GREATER = tier('greater', [
   {
-    id: 'mi_go', name: 'Mi-Go', source: 'The Whisperer in Darkness', regions: ['vermont', 'yuggoth'], canonLooks: true, voice: 'buzz',
+    id: 'mi_go', name: 'Mi-Go', source: 'The Whisperer in Darkness', regions: ['vermont', 'yuggoth', 'dunwich'], canonLooks: true, voice: 'buzz',
     sprite: { silhouette: 'crustacean', palette: 'fungus', scale: 2.6, eyes: 0, wings: 2, limbs: 6 },
     behavior: { archetype: 'hover_ranged', attacks: ['projectile', 'grab', 'beam'] },
     stats: st(420, 60, 24, 4, 1, 5), resist: ['shot'], drops: { echoes: 450 }, insightOnSight: 0,
@@ -40,7 +40,7 @@ export const GREATER = tier('greater', [
     stats: st(600, 90, 28, 2.6, 1, 4), drops: { echoes: 600 }, insightOnSight: 0,
   },
   {
-    id: 'flying_polyp', name: 'Flying Polyp', source: 'The Shadow out of Time', regions: ['pnakotus'], canonLooks: true, voice: 'whistle',
+    id: 'flying_polyp', name: 'Flying Polyp', source: 'The Shadow out of Time', regions: ['pnakotus', 'beyond'], canonLooks: true, voice: 'whistle',
     sprite: { silhouette: 'blob', palette: 'ichor', scale: 3.6, eyes: 0, tentacles: 8 },
     behavior: { archetype: 'invisible_stalker', attacks: ['wind_push', 'grab', 'tentacle_burst'] },
     stats: st(800, 120, 32, 5, 2, 6), resist: ['slash', 'blunt', 'shot'], weak: ['light'], drops: { echoes: 800 }, insightOnSight: 0,
@@ -75,13 +75,13 @@ export const GREATER = tier('greater', [
     stats: st(700, 100, 30, 3, 2, 6), resist: ['slash', 'blunt'], weak: ['fire'], drops: { echoes: 700 }, insightOnSight: 0,
   },
   {
-    id: 'yekubian', name: 'Yekubian', source: 'The Challenge from Beyond', regions: ['beyond'], canonLooks: true,
+    id: 'yekubian', name: 'Yekubian', source: 'The Challenge from Beyond', regions: ['beyond', 'yuggoth'], canonLooks: true,
     sprite: { silhouette: 'serpent', palette: 'pallid', scale: 3.6, eyes: 1, limbs: 10, glow: 'purple' },
     behavior: { archetype: 'mind_thief', attacks: ['projectile', 'gaze', 'grab'] },
     stats: st(650, 80, 26, 3, 2, 8), drops: { echoes: 650 }, insightOnSight: 0,
   },
   {
-    id: 'being_from_beyond', name: 'Being from Beyond', source: 'From Beyond', regions: ['providence', 'hub'], canonLooks: true,
+    id: 'being_from_beyond', name: 'Being from Beyond', source: 'From Beyond', regions: ['providence', 'hub', 'yuggoth', 'beyond'], canonLooks: true,
     sprite: { silhouette: 'orb', palette: 'pallid', scale: 2.8, eyes: 0, tentacles: 6, glow: 'purple' },
     behavior: { archetype: 'invisible_stalker', attacks: ['grab', 'tentacle_burst'] },
     stats: st(400, 40, 22, 4, 3, 8), resist: ['blunt', 'shot'], drops: { echoes: 400 }, insightOnSight: 0,

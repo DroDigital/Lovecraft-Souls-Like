@@ -12,7 +12,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, tint } from './meshKit';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { TextureKind } from './textures';
-import { axeGeometry, razorGeometry } from './armsMeshes';
+import { ARMS } from './armsMeshes';
 import { investigator } from './investigator';
 import { npcFigure } from './npcFigures';
 import { gateGeometry } from './signMeshes';
@@ -227,8 +227,7 @@ function armRack(geo: () => THREE.BufferGeometry): Figure {
 
 const BUILDERS: Record<string, () => Figure> = {
   player: investigator, deepOne, dummy, echo, tome, vial, gate, note, cache,
-  'arm:axe': () => armRack(axeGeometry),
-  'arm:razor': () => armRack(razorGeometry),
+  ...Object.fromEntries(Object.entries(ARMS).map(([id, [geo]]) => [`arm:${id}`, () => armRack(geo)])),
 };
 
 export function buildFigure(model: string): Figure {

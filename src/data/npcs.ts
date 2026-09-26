@@ -1,8 +1,11 @@
 /**
  * The people met in the dream (playtest round 1): other sleepers from Essex County and beyond,
  * each standing by an Elder Sign. What they say depends on the quests (quests.ts): the first topic
- * whose conditions hold is the one they talk about, and hearing it may begin a quest. Data only.
+ * whose conditions hold is the one they talk about, and hearing it may begin a quest. Those of the
+ * far realms are in npcsFar.ts. Data only.
  */
+
+import { FAR_NPCS } from './npcsFar';
 
 export type When = { quest: string; at: 'unstarted' | 'done' | number };
 
@@ -30,11 +33,12 @@ export interface NpcDef {
   side: 1 | -1; // which side of it
   look: NpcLook;
   topics: readonly Topic[];
+  creature?: string; // a roster ally who speaks for them: no figure of their own (round 12, Nasht & Kaman-Thah)
 }
 
 const at = (quest: string, stage: When['at']): When => ({ quest, at: stage });
 
-export const NPCS: readonly NpcDef[] = [
+const NEAR_NPCS: readonly NpcDef[] = [
   {
     id: 'peaslee', name: 'Wingate Peaslee', title: 'Professor of Psychology', sign: 'hub_quad', side: 1,
     look: { coat: 'tweed', hat: 'none', hair: 'grey', glasses: true },
@@ -174,5 +178,7 @@ export const NPCS: readonly NpcDef[] = [
     ],
   },
 ];
+
+export const NPCS: readonly NpcDef[] = [...NEAR_NPCS, ...FAR_NPCS]; // and the far realms' people (npcsFar.ts, round 12)
 
 export const npcDef = (id: string): NpcDef | undefined => NPCS.find((n) => n.id === id);

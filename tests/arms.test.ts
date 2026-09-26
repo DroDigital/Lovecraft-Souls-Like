@@ -19,7 +19,7 @@ describe('arms (data/weapons.ts, systems/arms.ts)', () => {
         const [from, to] = m.hit!.window;
         expect(to, `${id}.${name}`).toBeLessThanOrEqual(m.frames);
         expect(m.cancel!, `${id}.${name}`).toBeGreaterThanOrEqual(to);
-        for (const next of Object.values(m.combo ?? {})) expect(moves[next!], `${id}.${name} → ${next}`).toBeDefined();
+        for (const next of Object.values(m.combo ?? {}) as string[]) expect(moves[next], `${id}.${name} → ${next}`).toBeDefined();
         expect(from).toBeGreaterThan(0);
       }
     }

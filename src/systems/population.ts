@@ -15,6 +15,7 @@ import { chunkKey, chunkOf, regionAt } from '../world/worldMap';
 import { setArena } from './bossFight';
 import type { Game } from './components';
 import { spawnCreature } from './creatures';
+import { voice } from './npcs';
 import { bossAwake } from './sealCount';
 
 const RESCAN = 30; // frames between looks at spawn points when nothing has changed
@@ -62,6 +63,7 @@ export function populationSystem(g: Game): void {
         ow.wounds.delete(s.id);
       }
       if (s.arena) setArena(g, e, s.arena);
+      voice(g, e, s.entity);
       c.origin.set(e, s.id);
       ow.alive.set(s.id, e);
     }
