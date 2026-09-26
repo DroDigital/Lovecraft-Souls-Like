@@ -62,4 +62,24 @@ describe('region plans', () => {
     }
     expect(bad).toEqual([]);
   });
+
+  it('lights its towns from the kerb, never with a lamp before a door (playtest round 10)', () => {
+    const bad: string[] = [];
+    let lit = 0;
+    for (const r of REGIONS) {
+      const props = [...regionPlan(r).props.values()].flat();
+      const houses = props.filter((p) => p.kind === 'house');
+      for (const l of props.filter((p) => p.kind === 'lamp')) {
+        lit++;
+        for (const h of houses) {
+          const [dx, dz, c, s] = [l.x - h.x, l.z - h.z, Math.cos(h.yaw), Math.sin(h.yaw)];
+          const [lx, lz] = [dx * c - dz * s, dx * s + dz * c]; // in the house's frame, its front facing +z
+          if (Math.abs(lx) < h.w + 0.5 && lz > h.d - 0.2 && lz < h.d + 3.5) bad.push(`${r.id}: a lamp at ${l.x.toFixed(0)},${l.z.toFixed(0)} stands before a door`);
+        }
+        if (roadDistance(regionPlan(r).roads, l.x, l.z) < 0.3) bad.push(`${r.id}: a lamp stands in the road`);
+      }
+    }
+    expect(bad).toEqual([]);
+    expect(lit).toBeGreaterThan(50); // the towns are still lit
+  });
 });

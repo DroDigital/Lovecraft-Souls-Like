@@ -95,7 +95,17 @@ function buildPlan(region: RegionDef): RegionPlan {
     props.push(p);
     occ.disk(p.x, p.z, r, true);
   };
-  // Towns: houses face their streets, lamps light them; decayed towns have ruins among the houses.
+  /** Whether (x, z) keeps clear of every house's front: its door, step and porch (playtest round 10). */
+  const clearOfFronts = (x: number, z: number): boolean =>
+    props.every((h) => {
+      if (h.kind !== 'house') return true;
+      const [dx, dz, c, s] = [x - h.x, z - h.z, Math.cos(h.yaw), Math.sin(h.yaw)];
+      const [lx, lz] = [dx * c - dz * s, dx * s + dz * c]; // in the house's frame: its front faces +z
+      return Math.abs(lx) > h.w + 0.5 || lz < h.d - 0.2 || lz > h.d + 3.5;
+    });
+  // Towns: houses face their streets; lamps light them from the kerb between the houses (never
+  // before a door: placed once every house stands); decayed towns have ruins among the houses.
+  const lamps: { x: number; z: number; town: (typeof towns)[number] }[] = [];
   for (const t of towns) {
     for (const road of roads) {
       let run = 0;
@@ -106,6 +116,7 @@ function buildPlan(region: RegionDef): RegionPlan {
         if (run < 11) continue;
         run = 0;
         const [nx, nz] = [-(b.z - a.z) / len, (b.x - a.x) / len];
+        const width: Record<number, number> = {}; // each side's house half-width, where one stands
         for (const side of [1, -1]) {
           const house = makeProp('house', 0, 0, rng, 0, undefined, t.town.style);
           const off = road.width / 2 + 3 + house.d;
@@ -115,14 +126,21 @@ function buildPlan(region: RegionDef): RegionPlan {
           const yaw = Math.atan2(-nx * side, -nz * side);
           const ruined = rng() < (t.town.decay ?? 0);
           put(ruined ? makeProp('ruin', x, z, rng, yaw, [house.w, 0.35, 1 + 2 * rng()]) : { ...makeProp('house', x, z, rng, yaw, [house.w, house.d, house.h], t.town.style) }, reach);
+          width[side] = house.w;
         }
         if (road.street && rng() < 0.6) {
           const side = rng() < 0.5 ? 1 : -1;
-          const [x, z] = [(a.x + b.x) / 2 + nx * side * (road.width / 2 + 1), (a.z + b.z) / 2 + nz * side * (road.width / 2 + 1)];
-          if (Math.hypot(x - t.x, z - t.z) < t.radius) props.push(makeProp('lamp', x, z, rng, 0));
+          const along = (rng() < 0.5 ? 1 : -1) * ((width[side] ?? 3) + 1.2); // just past its house's corner
+          const [ux, uz] = [(b.x - a.x) / len, (b.z - a.z) / len];
+          const kerb = road.width / 2 + 0.8;
+          const [x, z] = [(a.x + b.x) / 2 + nx * side * kerb + ux * along, (a.z + b.z) / 2 + nz * side * kerb + uz * along];
+          lamps.push({ x, z, town: t });
         }
       }
     }
+  }
+  for (const { x, z, town: t } of lamps) {
+    if (Math.hypot(x - t.x, z - t.z) < t.radius && occ.disk(x, z, 0.8, false) && roadClear(x, z, 0.3) && clearOfFronts(x, z)) put(makeProp('lamp', x, z, rng, 0), 0.8);
   }
   // Field walls along the country roads, with gaps.
   if (layout.walls) {

@@ -2,10 +2,10 @@
  * The open world's scene (spec §3D): terrain and props stream in with the 5 × 5 chunks around the
  * investigator and out beyond the 7 × 7, built a slice at a time (at most WORLD.sliceMs a frame);
  * legacy dungeons and boss arenas stand while any chunk they touch is loaded; a sea plane follows.
- * After a long jump (fast travel, a gate, a respawn) the chunks under the investigator are built at
- * once, so they never stand over nothing; the veil hides that (ui/journeys.ts), and while it does
- * the rest are built at a larger budget. The lamps, fires, torches and lit windows they hold light the
- * world while they stand (worldLights.ts).
+ * After a long jump (fast travel, a gate, a respawn) the veil hides the world (ui/journeys.ts) while
+ * its chunks are built, nearest first, at a larger budget a frame, so the veil keeps drawing; a jump
+ * made in sight builds the chunks under the investigator at once, so they never stand over nothing.
+ * The lamps, fires, torches and lit windows they hold light the world while they stand (worldLights.ts).
  */
 
 import * as THREE from 'three';
@@ -129,8 +129,8 @@ export function createWorldScene(lights?: WorldLights): WorldScene {
         for (const k of diff.unload) unload(k);
         for (const c of diff.load) load(c.cx, c.cz, c.key);
         syncSites();
-        if (jumped) {
-          // Just arrived: build what stands under and beside the investigator now.
+        if (jumped && budgetMs <= WORLD.sliceMs) {
+          // Just arrived in sight: build what stands under and beside the investigator now (under the veil, its larger budget builds them while it waits).
           for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) slicer.finish(chunkKey(cx + dx, cz + dz));
           all.forEach((s, k) => s.chunks.includes(key) && slicer.finish(-1 - k));
         }

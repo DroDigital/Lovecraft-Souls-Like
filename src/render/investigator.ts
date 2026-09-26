@@ -1,10 +1,10 @@
 /**
  * The investigator (spec §3B), in detail: a 1920s field coat with lapels, shoulders and a flared
  * skirt in two panels that swing with the legs, shirt and tie under a rust scarf, a belt with its
- * buckle and a satchel on a strap; a fedora with its band over a face with brow, nose and ears;
- * leather gloves; the sword-cane with its silver grip and ferrule; the revolver; trousers and shoes;
- * and the lantern in its cage at the belt. Arms bend at the elbow and legs at the knee. Large value
- * blocks still carry the read: dark coat, lighter sleeves, pale face.
+ * buckle and a satchel on a strap; a fedora with its band over short hair and a face with brow,
+ * nose and ears; leather gloves; the sword-cane with its silver grip and ferrule; the revolver;
+ * trousers and shoes; and the lantern in its cage at the belt. Arms bend at the elbow and legs at
+ * the knee. Large value blocks still carry the read: dark coat, lighter sleeves, pale face.
  */
 
 import * as THREE from 'three';
@@ -34,6 +34,20 @@ function skirtPanel(side: 1 | -1, c: Rgb): THREE.BufferGeometry {
   return tint(g, c);
 }
 
+/**
+ * A short back and sides under the hat (playtest round 10: it was a slab stuck on the back of the
+ * head): it wraps the skull close from the brim down, above and behind the ears, tapers in to the
+ * nape, and leaves short sideburns before the ears.
+ */
+function hairGeometry(c: Rgb): THREE.BufferGeometry[] {
+  return [
+    box(0.206, 0.09, 0.144, 0, 0.195, -0.032, c), // from the brim down to the ears, round the back and sides
+    box(0.2, 0.045, 0.072, 0, 0.1275, -0.064, c), // behind the ears...
+    box(0.14, 0.03, 0.036, 0, 0.09, -0.078, c), // ...narrowing to the nape
+    box(0.198, 0.035, 0.022, 0, 0.1325, 0.039, c), // sideburns
+  ];
+}
+
 export function investigator(): Figure {
   const f = skeleton('humanoid', { hip: 0.92, shoulder: [0.28, 0.58], hipX: 0.11, neck: [0.64, 0], leg: 0.9, thigh: 0.42, upper: 0.3, fore: 0.28, ankle: 0.07 });
   f.character = 'player';
@@ -47,6 +61,7 @@ export function investigator(): Figure {
   const brass = shade(mixRgb(BASE.bone, BASE.rust, 0.4), 1.4);
   const scarf = shade(mixRgb(BASE.rust, BASE.charcoal, 0.2), 1.6);
   const silver = shade(BASE.bone, 1.25);
+  const hair = shade(mixRgb(BASE.charcoal, BASE.rust, 0.3), 1.4); // dark brown, apart from the hat
 
   for (const side of [-1, 1] as const) {
     const panel = new THREE.Group();
@@ -91,7 +106,7 @@ export function investigator(): Figure {
     box(0.17, 0.05, 0.19, 0, 0.03, 0.02, shade(pale, 0.86)), // jaw
     box(0.03, 0.06, 0.05, -0.1, 0.12, 0, shade(pale, 0.9)), // ears
     box(0.03, 0.06, 0.05, 0.1, 0.12, 0, shade(pale, 0.9)),
-    box(0.2, 0.1, 0.06, 0, 0.17, -0.085, dark), // hair at the back
+    ...hairGeometry(hair),
   ]), 'cloth');
   part(f, f.head, mergeGeometries([ // fedora: brim, pinched crown, band
     cylinder(0.22, 0.22, 0.025, 0.25, dark),

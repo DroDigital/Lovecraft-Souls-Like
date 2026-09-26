@@ -2,15 +2,18 @@
  * The title's theme: "Subterranean Pulse", looped. It sounds the moment the browser allows: at once
  * where sound may play on opening, else on the first key press or click (until then browsers refuse
  * sound, whatever the page does), which the title's opening asks for (main.ts). It is buffered while
- * it waits and begins where the track first swells rather than in its near-silent lead-in. It loops
- * as a segue (playtest round 8): two passes take turns, the next beginning from its very start
- * THEME.segue seconds before the one playing ends, so its rising lead-in swells under the old
- * ending's natural decay and its first hit lands as that fades out — no cut, no gap. Played through
- * the audio engine (under the volume setting, beside the sanity FX), its fades run on the audio
- * clock, smooth however long the world takes to build. Spawning in, it sinks away: its level falls
- * evenly in loudness (an exponential fade, not a linear one that holds and then drops) under a
- * closing low-pass, while the world's ambience rises beneath it. Without WebAudio the elements play
- * by themselves and fade by their volume.
+ * it waits and begins where the track first swells rather than in its near-silent lead-in.
+ * It loops by a leap (playtest round 9): one element throughout, since a browser may refuse to start
+ * a second one without a key press or click (Safari does, so a second pass never sounded and the
+ * theme stopped at its end). Near its end, where the ending has all but decayed, it leaps back to
+ * where the lead-in has swelled to the same level a moment before the first hit (THEME.leap), under a
+ * dip of a few hundredths of a second so the jump cannot click: no cut and no silence. Should the
+ * leap be missed (a throttled timer), the file loops by itself, and the leap skips its lead-in.
+ * Played through the audio engine (under the volume setting, beside the sanity FX), its fades run
+ * on the audio clock, smooth however long the world takes to build. Spawning in, it sinks away: its
+ * level falls evenly in loudness (an exponential fade, not a linear one that holds and then drops)
+ * under a closing low-pass, while the world's ambience rises beneath it. Without WebAudio the element
+ * plays by itself and fades by its volume.
  */
 
 import { THEME } from '../../data/tuning';
@@ -28,26 +31,22 @@ export interface Music {
 
 export const MENU_MUSIC = 'music/subterranean-pulse.mp3'; // served from public/, beside the page
 const GESTURES = ['pointerdown', 'keydown', 'touchend'] as const; // what lets a browser play sound
+const DIP = 0.03; // seconds the level dips for a leap, on either side of it
 
 /** The theme's level `t` seconds into a sink of `seconds`, from 1: even in loudness, about −43 dB at the end. */
 export const sinkLevel = (t: number, seconds: number): number => (t >= seconds ? 0 : Math.exp((-5 * t) / seconds));
 
-/** When, in a pass `duration` seconds long, the next pass begins from its start. */
-export const segueAt = (duration: number): number => duration - THEME.segue;
+/** When, in a track `duration` seconds long, the theme leaps back to THEME.leap[1]. */
+export const leapAt = (duration: number): number => duration - THEME.leap[0];
 
 export function playMenuMusic(engine: AudioEngine, volume: number): Music {
   let level = volume;
   let state: 'waiting' | 'playing' | 'sinking' = 'waiting';
-  let route: { ctx: AudioContext; gain: GainNode; tone: BiquadFilterNode } | null = null;
-  const pass = (): HTMLAudioElement => {
-    const a = new Audio(MENU_MUSIC);
-    a.preload = 'auto'; // buffered while the title waits, so the first key or click sounds at once
-    a.volume = 0; // silent until it sounds, then it rises
-    return a;
-  };
-  const passes = [pass(), pass()]; // they take turns, each segueing into the other
-  let cur = 0;
-  const audio = passes[0];
+  let route: { ctx: AudioContext; gain: GainNode; tone: BiquadFilterNode; seam: GainNode } | null = null;
+  const audio = new Audio(MENU_MUSIC);
+  audio.preload = 'auto'; // buffered while the title waits, so the first key or click sounds at once
+  audio.loop = true; // should a leap be missed, it loops by itself
+  audio.volume = 0; // silent until it sounds, then it rises
   audio.currentTime = THEME.from;
   audio.addEventListener('loadedmetadata', () => {
     if (state === 'waiting') audio.currentTime = THEME.from; // in case the start set before loading was not kept
@@ -61,21 +60,21 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     const [ctx, out] = [engine.ctx, engine.music];
     if (route || !ctx || !out) return;
     try {
+      const seam = ctx.createGain(); // dips for a leap
       const tone = ctx.createBiquadFilter();
       tone.type = 'lowpass';
       tone.frequency.value = Math.min(20000, ctx.sampleRate / 2);
       const gain = ctx.createGain();
       gain.gain.value = 0;
-      for (const a of passes) ctx.createMediaElementSource(a).connect(tone);
-      tone.connect(gain).connect(out);
-      route = { ctx, gain, tone };
+      ctx.createMediaElementSource(audio).connect(seam).connect(tone).connect(gain).connect(out);
+      route = { ctx, gain, tone, seam };
     } catch {
-      // They play by themselves, as without WebAudio.
+      // It plays by itself, as without WebAudio.
     }
   };
   const rise = (): void => {
     if (route) {
-      for (const a of passes) a.volume = 1; // the graph sets the level (browsers differ on whether the element's volume reaches it)
+      audio.volume = 1; // the graph sets the level (browsers differ on whether the element's volume reaches it)
       const { ctx, gain } = route;
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(1, ctx.currentTime + THEME.fadeIn);
@@ -90,16 +89,32 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     };
     step();
   };
-  /** The next pass, from its very start, as the one playing nears its end. */
-  const segue = setInterval(() => {
-    const a = passes[cur];
-    if (state !== 'playing' || !(a.duration > 0) || a.currentTime < segueAt(a.duration)) return;
-    cur = 1 - cur;
-    const next = passes[cur];
-    next.currentTime = 0;
-    next.volume = route ? 1 : level;
-    void next.play().catch(() => undefined);
-  }, 100);
+
+  /** The seam's level ramps to `to` over DIP seconds. */
+  const dip = (to: number): void => {
+    if (!route) return;
+    const { ctx, seam } = route;
+    const now = ctx.currentTime;
+    seam.gain.cancelScheduledValues(now);
+    seam.gain.setValueAtTime(seam.gain.value, now);
+    seam.gain.linearRampToValueAtTime(to, now + DIP);
+  };
+  let leaping = false;
+  let last = 0; // where it was at the last look
+  const leap = setInterval(() => {
+    const [t, duration] = [audio.currentTime, audio.duration];
+    const looped = t < last - 1 && t < THEME.leap[1]; // it looped by itself: skip the lead-in
+    last = t;
+    if (state !== 'playing' || leaping || !(duration > 0) || (t < leapAt(duration) && !looped)) return;
+    leaping = true;
+    dip(0);
+    setTimeout(() => {
+      audio.currentTime = THEME.leap[1];
+      last = THEME.leap[1];
+      leaping = false;
+      setTimeout(() => dip(1), DIP * 1000); // back up once the jump has been made
+    }, route ? DIP * 1000 : 0);
+  }, 40);
   const off = (): void => {
     for (const type of GESTURES) removeEventListener(type, gesture, true);
   };
@@ -123,8 +138,8 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
   for (const type of GESTURES) addEventListener(type, gesture, true);
   tryPlay();
   const stop = (): void => {
-    clearInterval(segue);
-    for (const a of passes) a.pause();
+    clearInterval(leap);
+    audio.pause();
   };
 
   return {
@@ -132,7 +147,7 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     refused,
     setVolume(v) {
       level = v;
-      if (state === 'playing' && !route) for (const a of passes) a.volume = v; // through the graph, the master carries the setting
+      if (state === 'playing' && !route) audio.volume = v; // through the graph, the master carries the setting
     },
     fadeOut(seconds = THEME.sink) {
       const was = state;
@@ -155,11 +170,10 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
         setTimeout(() => (stop(), gain.disconnect()), seconds * 1000 + 100);
         return;
       }
-      const start = performance.now();
-      const from = passes.map((a) => a.volume);
+      const [start, from] = [performance.now(), audio.volume];
       const step = (): void => {
         const t = (performance.now() - start) / 1000;
-        passes.forEach((a, i) => (a.volume = from[i] * sinkLevel(t, seconds)));
+        audio.volume = from * sinkLevel(t, seconds);
         if (t < seconds) requestAnimationFrame(step);
         else stop();
       };
