@@ -4,7 +4,7 @@ import { CREATURE_PALETTES } from '../src/data/schema';
 import { buildAssembly } from '../src/render/assemblies';
 import { ANOMALY, CREATURE_COLORS, rgbToHsv, type Rgb } from '../src/render/palette';
 import { GLINT, GLOW, LIT } from '../src/render/sprites/raster';
-import { buildAtlas, CELL, cellOrigin, drawSprite, SPRITE_STATES, spriteKey, spriteRecipes } from '../src/render/sprites/atlas';
+import { atlasBuilder, buildAtlas, CELL, cellOrigin, drawSprite, SPRITE_STATES, spriteKey, spriteRecipes } from '../src/render/sprites/atlas';
 
 const atlas = buildAtlas();
 const recipes = spriteRecipes();
@@ -37,6 +37,23 @@ describe('sprite atlas', () => {
     }
     const [a, b] = frames.attack.map(cellPixels);
     expect(a).not.toEqual(b);
+  });
+
+  it('draws the same atlas a slice at a time, a creature or more each slice (playtest round 10: the page waits on it no longer)', () => {
+    const few = recipes.slice(0, 5);
+    const whole = buildAtlas(few);
+    const b = atlasBuilder(few);
+    const seen: number[] = [];
+    let sliced = b.step(0);
+    while (!sliced) {
+      seen.push(b.progress);
+      sliced = b.step(0);
+    }
+    expect(seen).toEqual([0.2, 0.4, 0.6, 0.8]); // one creature a slice at no budget
+    expect(b.progress).toBe(1);
+    expect(sliced.data).toEqual(whole.data);
+    expect([...sliced.frames]).toEqual([...whole.frames]);
+    expect(sliced.eyes).toEqual(whole.eyes);
   });
 
   it('is deterministic', () => {

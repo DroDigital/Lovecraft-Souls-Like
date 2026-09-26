@@ -116,7 +116,14 @@ function findEyes(px: Uint8Array, cell: number, eyes: Float32Array, colors: Floa
   colors.set([r / n / 255, g / n / 255, b / n / 255], cell * 3);
 }
 
-export function buildAtlas(entries = spriteRecipes()): SpriteAtlas {
+/** Draws the atlas a slice at a time (playtest round 10: in one piece it held the page for most of a second). */
+export interface AtlasBuilder {
+  /** Draws creatures until `ms` has passed (at least one, and one begun is finished); the atlas once every one is drawn. */
+  step(ms: number): SpriteAtlas | null;
+  readonly progress: number; // 0..1
+}
+
+export function atlasBuilder(entries = spriteRecipes()): AtlasBuilder {
   const perSprite = SPRITE_STATES.reduce((n, s) => n + STATE_POSES[s].length, 0);
   const rows = Math.ceil((entries.length * perSprite) / ATLAS_COLUMNS);
   const width = ATLAS_COLUMNS * CELL;
@@ -125,22 +132,35 @@ export function buildAtlas(entries = spriteRecipes()): SpriteAtlas {
   const frames = new Map<string, Record<SpriteState, number[]>>();
   const eyes = new Float32Array(entries.length * perSprite * 4);
   const eyeColors = new Float32Array(entries.length * perSprite * 3);
-  let cell = 0;
-  for (const { key, recipe } of entries) {
-    const byState = {} as Record<SpriteState, number[]>;
-    for (const state of SPRITE_STATES) {
-      byState[state] = STATE_POSES[state].map((_, f) => {
-        const img = drawSprite(recipe, state, f);
-        const [cx, cy] = [(cell % ATLAS_COLUMNS) * CELL, Math.floor(cell / ATLAS_COLUMNS) * CELL];
-        for (let y = 0; y < CELL; y++) data.set(img.px.subarray(y * CELL * 4, (y + 1) * CELL * 4), ((cy + y) * width + cx) * 4);
-        findEyes(img.px, cell, eyes, eyeColors);
-        return cell++;
-      });
-    }
-    frames.set(key, byState);
-  }
-  return { width, height, data, frames, eyes, eyeColors };
+  const atlas: SpriteAtlas = { width, height, data, frames, eyes, eyeColors };
+  let [next, cell] = [0, 0];
+  return {
+    step(ms) {
+      const start = performance.now();
+      while (next < entries.length) {
+        const { key, recipe } = entries[next++];
+        const byState = {} as Record<SpriteState, number[]>;
+        for (const state of SPRITE_STATES) {
+          byState[state] = STATE_POSES[state].map((_, f) => {
+            const img = drawSprite(recipe, state, f);
+            const [cx, cy] = [(cell % ATLAS_COLUMNS) * CELL, Math.floor(cell / ATLAS_COLUMNS) * CELL];
+            for (let y = 0; y < CELL; y++) data.set(img.px.subarray(y * CELL * 4, (y + 1) * CELL * 4), ((cy + y) * width + cx) * 4);
+            findEyes(img.px, cell, eyes, eyeColors);
+            return cell++;
+          });
+        }
+        frames.set(key, byState);
+        if (performance.now() - start >= ms) break;
+      }
+      return next < entries.length ? null : atlas;
+    },
+    get progress() {
+      return entries.length ? next / entries.length : 1;
+    },
+  };
 }
+
+export const buildAtlas = (entries = spriteRecipes()): SpriteAtlas => atlasBuilder(entries).step(Infinity)!;
 
 /** Top-left pixel of an atlas cell. */
 export const cellOrigin = (cell: number): readonly [number, number] => [(cell % ATLAS_COLUMNS) * CELL, Math.floor(cell / ATLAS_COLUMNS) * CELL];
