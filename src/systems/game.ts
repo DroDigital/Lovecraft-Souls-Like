@@ -37,6 +37,7 @@ import { insightSystem, spawnTome } from './insight';
 import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
+import { registerArms, unreinforced } from './arms';
 import { registerPerception } from './perception';
 import { playerControl } from './playerControl';
 import { npcSystem, spawnNpcs } from './npcs';
@@ -72,7 +73,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, steady: 0, mended: 0, listening: null },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, steady: 0, mended: 0, listening: null },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -97,6 +98,7 @@ export function createWorldGame({ seed = WORLD.seed, save }: { seed?: number; sa
   const g = baseGame(createWorldCollision(), signPlace(START_SIGN)!.rest, seed);
   g.overworld = createOverworld(START_SIGN);
   registerOverworld(g);
+  registerArms(g);
   registerHastur(g);
   registerNyarlathotep(g);
   registerSeals(g);

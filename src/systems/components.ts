@@ -57,6 +57,8 @@ export interface Poise {
   value: number;
   max: number;
   calm: number; // frames since the last poise damage
+  grace?: number; // frames left in which it cannot break again...
+  respite?: number; // ...and the grace each break gives (the investigator's, round 12: blow on blow held them staggered to death)
 }
 
 export interface Stamina {
@@ -231,6 +233,8 @@ export interface Pilot {
   levels: Record<LevelId, number>; // bought with Echoes at an Elder Sign (levels.ts)
   arms: WeaponId[]; // the weapons they own (arms.ts)...
   weapon: WeaponId; // ...and the one in hand
+  stones: number; // star-stones carried, left by bosses slain (arms.ts; round 12)...
+  reinforced: Record<WeaponId, number>; // ...and how many levels each weapon has had set into it
   checkpoint: Place; // the last Elder Sign
   laudanum: number; // doses left
   reagent: number; // West's Reagent: doses left...
@@ -248,6 +252,14 @@ export interface Mind {
   seen: Set<string>; // roster ids already beheld: first sight counts once
   upgrades: Record<UpgradeId, number>; // levels bought with insight
   phantomIn: number; // frames until the next hallucination may appear
+  struck: Toll; // the last landed blow's toll on the mind (sanity.ts)...
+  beheld: Toll; // ...and the last first sight's (insight.ts)
+}
+
+/** A toll on the mind taken once within a spell (round 12): when the spell began, and the most it has taken. */
+export interface Toll {
+  at: number; // the frame
+  amount: number;
 }
 
 /** Open-world state (spec §3D); absent in the arena. */

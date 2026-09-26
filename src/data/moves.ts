@@ -103,7 +103,7 @@ export interface SanityDef {
   window: Window; // the frames it works on the mind
   amount: number; // sanity taken over the whole window
   range: number; // metres
-  sight: boolean; // needs line of sight (a gaze); else it carries past walls (a roar)
+  sight: boolean; // needs line of sight (a gaze); else it carries past walls, muffled (a roar)
 }
 
 export interface MoveDef {

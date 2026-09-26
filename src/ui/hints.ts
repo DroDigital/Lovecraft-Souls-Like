@@ -1,7 +1,7 @@
 /**
  * Hints for a new investigator (playtest round 1): a line at the upper left the first time each
  * thing comes up — moving, where the story leads, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
- * a level within reach, a quest, a boss, insight, a grab, a hallucination — then never again (remembered in this browser, not in the save).
+ * a level within reach, a quest, a boss (and blind Azathoth), insight, a grab, a hallucination — then never again (remembered in this browser, not in the save).
  */
 
 import { moveDef } from '../systems/actions';
@@ -25,6 +25,7 @@ const HINTS = {
   map: '{map} opens the map. Ground you have seen stays drawn on it.',
   quest: 'The pause menu ({pause}) has a Journal with what you have been asked to do.',
   boss: 'Watch the ground: a boss shows where its blows will land. Roll through rings and beams.',
+  blind: 'Azathoth cannot see you, and nothing you strike it with matters. It hears: running, rolling, swinging and shots carry far, walking less, and walking with {block} held or standing still not at all. Outlast the piping.',
   insight: 'Insight buys strength when you rest at an Elder Sign.',
   grab: 'A crimson flare means a grab: no guard stops it. Roll away ({dodge}).',
   phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum ({item}) or rest steadies it.',
@@ -69,7 +70,7 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   });
   g.events.on('RegionEntered', () => hint('map'));
   g.events.on('QuestChanged', () => hint('quest'));
-  g.events.on('BossEngaged', () => hint('boss'));
+  g.events.on('BossEngaged', (e) => (hint('boss'), g.ecs.c.fight.get(e.entity)?.id === 'azathoth' && hint('blind')));
   g.events.on('InsightChanged', (e) => e.change > 0 && e.cause !== 'load' && hint('insight'));
   hint('move');
   hint('lead');

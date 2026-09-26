@@ -1,6 +1,7 @@
 /**
  * The Elder Sign's menu (spec §3D), opened by resting at one: spend Echoes on a level of Vigour,
- * Endurance or Might (playtest round 4) and insight on Resolve or a Draught; travel to any Elder Sign
+ * Endurance or Might (playtest round 4) and insight on Resolve or a Draught; set star-stones into a
+ * weapon (round 12); travel to any Elder Sign
  * found, chosen by region and then by name (playtest round 12: one list grew past forty); at the hub's
  * Sleeper's Sign, descend the Seventy Steps into the Dreamlands; and at the Court's, once Azathoth
  * slumbers, choose one of two endings (Phase 5), first of all. A menu screen (menuKit.ts: mouse, keys
@@ -8,13 +9,15 @@
  */
 
 import { getRegion } from '../data/regions';
-import { LEVELS, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { WEAPONS } from '../data/weapons';
+import { canReinforce, edgeAt, reinforce, reinforceCost } from '../systems/arms';
 import { ENDINGS } from '../data/endings';
 import { descentOpen, dream, signPlace, travel } from '../systems/checkpoints';
 import { courtEndings, endGame } from '../systems/endings';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
-import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, nextLevelCost } from '../systems/levels';
+import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLevelCost } from '../systems/levels';
 import { worldLayout, type SignPlace } from '../world/placements';
 import { button, createScreen, el, heading, type Page } from './menuKit';
 import { keyLayout } from '../core/bindings';
@@ -70,6 +73,8 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void) =>
       const level = g.mind.upgrades[id];
       button(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${u.cost} insight`, () => (buyUpgrade(g, id), main.redraw?.()), level < u.max && g.mind.insight >= u.cost);
     }
+    heading(panel, `ARMS  ·  STAR-STONES ${g.player.stones}`);
+    button(panel, 'Reinforce a weapon  ›', () => screen.show(reinforcePage));
     const regions = found();
     const count = [...regions.values()].reduce((n, l) => n + l.length, 0);
     heading(panel, 'TRAVEL');
@@ -84,6 +89,24 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void) =>
     back: close,
     get backKeys() {
       return [keyLayout.interact];
+    },
+  };
+  /** Star-stones set into the weapons owned, a level at a time (round 12). */
+  const reinforcePage: Page = {
+    back: () => screen.show(main),
+    build(panel) {
+      el(panel, 'div', 'REINFORCE', 'font-size:18px;letter-spacing:4px');
+      el(panel, 'div', `Star-stones: ${g.player.stones}. The horrors slain for good leave them; each level set into a weapon adds ${Math.round(REINFORCE.damage * 100)}% to its blows.`, 'opacity:.6;margin:2px 0 8px');
+      for (const id of g.player.arms) {
+        const level = g.player.reinforced[id];
+        const cost = reinforceCost(g, id);
+        const light = (n: number): number => Math.round((WEAPONS[id].moves.light1?.hit?.damage ?? 0) * might(g, g.player.id) * edgeAt(n));
+        const name = `${WEAPONS[id].name} +${level}`;
+        const label = cost === undefined ? `${name}  ·  fully reinforced` : `${name} → +${level + 1}  ·  ${cost} star-stone${cost === 1 ? '' : 's'}  ·  light ${light(level)} → ${light(level + 1)}`;
+        button(panel, label, () => (reinforce(g, id), reinforcePage.redraw?.()), canReinforce(g, id));
+      }
+      heading(panel, '');
+      button(panel, `Back  (${glyph('back')})`, reinforcePage.back!);
     },
   };
   /** The regions with signs found: one line each rather than every sign in one long list (round 12). */

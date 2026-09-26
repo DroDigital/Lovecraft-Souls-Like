@@ -3,6 +3,7 @@
  * audio, the settings menu, consumables, hit feedback, overhead health bars and particles.
  */
 
+import type { Tier } from './schema';
 import type { Ramp, Vec3 } from './tuning';
 
 /** Debug orbit camera of the Phase 0 look-test scene. */
@@ -81,6 +82,12 @@ export type LevelId = keyof typeof LEVELS;
 
 /** Echoes the next level costs: base + step·n + curve·n², n being the levels bought so far. */
 export const LEVEL_COST = { base: 250, step: 90, curve: 9 };
+
+/** Reinforcing a weapon at an Elder Sign (round 12): the most levels, the share each adds to its blows, and the star-stones each level costs. */
+export const REINFORCE = { max: 5, damage: 0.2, cost: [1, 1, 2, 2, 3] as readonly number[] };
+
+/** Star-stones a boss or optional boss leaves when it falls for good, by tier (round 12). */
+export const STAR_STONES: Partial<Record<Tier, number>> = { greater: 1, named: 1, great_old_one: 2, outer_god: 3 };
 
 export interface SkyDef {
   moon: number; // the moon's radius, radians (0: none)

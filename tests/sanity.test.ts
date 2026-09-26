@@ -112,21 +112,27 @@ describe('sanity drains', () => {
     expect(g.mind.sanity).toBe(100 - loss);
   });
 
-  it('a roar takes sanity from the investigator in range, through walls', () => {
+  it('a roar takes sanity from the investigator in range, and a muffled share through walls', () => {
     const g = createGame({ creature: 'dagon_priest' });
     const priest = find(g, 'creature:dagon_priest');
     g.ecs.c.brain.delete(priest);
     g.ecs.c.dread.get(priest)!.aura = 0;
+    g.mind.seen.add('dagon_priest'); // no first-sight shock
     const roar = g.ecs.c.actor.get(priest)!.moves.roar.sanity!;
     place(g, priest, -8, -2, 0);
     place(g, g.player.id, -8, 4, Math.PI); // the pillar at (-8, 1) stands between them
     startMove(g.ecs.c.actor.get(priest)!, 'roar');
     steps(g, 60);
-    expect(g.mind.sanity).toBeCloseTo(100 - roar.amount, 5);
+    const muffled = 100 - roar.amount * SANITY.muffled;
+    expect(g.mind.sanity).toBeCloseTo(muffled, 5);
+    place(g, g.player.id, -4, -2, -Math.PI / 2); // in the open
+    startMove(g.ecs.c.actor.get(priest)!, 'roar');
+    steps(g, 60);
+    expect(g.mind.sanity).toBeCloseTo(muffled - roar.amount, 5);
     place(g, g.player.id, -8, -2 + roar.range + 1, Math.PI);
     startMove(g.ecs.c.actor.get(priest)!, 'roar');
     steps(g, 60);
-    expect(g.mind.sanity).toBeCloseTo(100 - roar.amount, 5);
+    expect(g.mind.sanity).toBeCloseTo(muffled - roar.amount, 5);
   });
 
   it('a gaze needs line of sight', () => {

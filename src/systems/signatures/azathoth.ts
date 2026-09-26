@@ -3,7 +3,9 @@
  * so far (a shot furthest, then sprinting, dodging, striking, walking; standing still or creeping
  * behind a guard, nothing), and where it was heard, a moment later, the court erupts. The fight is
  * not won by damage but by outlasting the piping: its health bar is the song, draining, and when the
- * song ends it slumbers; the Court's Elder Sign then offers two of the endings (endings.ts).
+ * song ends it slumbers; the Court's Elder Sign then offers two of the endings (endings.ts). Round 12:
+ * its script aims at nothing (it had barrages, beams and adds that found a silent investigator), and
+ * engaging it says so, since nothing else taught the creeping.
  */
 
 import type { Entity } from '../../core/ecs';
@@ -44,6 +46,7 @@ export const AZATHOTH_SIGNATURE: Signature = {
   engage(g, e, f) {
     const h = g.ecs.c.health.get(e)!;
     f.sig.left = Math.round((AZATHOTH.survive * h.hp) / h.max); // the song takes up where it broke off
+    g.events.emit('Notice', { text: 'IT IS BLIND, AND HEARS · STAND STILL, OR CREEP WITH {block} HELD, UNTIL THE PIPING ENDS' });
   },
   step(g, e, f) {
     const h = g.ecs.c.health.get(e)!;
