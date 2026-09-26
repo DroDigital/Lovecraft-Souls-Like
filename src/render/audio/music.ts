@@ -1,7 +1,8 @@
 /**
  * The title's theme: "Subterranean Pulse", looped. It sounds the moment the browser allows: at once
  * where sound may play on opening, else on the first key press or click (until then browsers refuse
- * sound, whatever the page does), which the title's opening asks for (main.ts). It is buffered while
+ * sound, whatever the page does), which the title's opening asks for (main.ts); the desktop shell
+ * lets it sound on opening (desktop/main.js), so there it plays as the game boots. It is buffered while
  * it waits and begins where the track first swells rather than in its near-silent lead-in.
  * It loops by a leap (playtest round 9): one element throughout, since a browser may refuse to start
  * a second one without a key press or click (Safari does, so a second pass never sounded and the
