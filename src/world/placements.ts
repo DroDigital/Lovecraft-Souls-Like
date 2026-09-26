@@ -6,7 +6,7 @@
  */
 
 import { NOTE_SITES } from '../data/documents';
-import type { XZ } from '../core/geom';
+import { yawOf, type XZ } from '../core/geom';
 import { hash2 } from '../core/rng';
 import type { HiddenPieceDef, Place } from '../data/arena';
 import { DUNGEONS, type Dir } from '../data/dungeons';
@@ -210,7 +210,8 @@ function build(): WorldLayout {
       const caches = echoCaches(def);
       for (const r of layout.rooms) furnish(w, region, def.id, r, sign, gate, spawn, caches.get(r.def.id));
       const first = layout.rooms[0];
-      if (def.id === DREAM_DESCENT && first) w.dream = { x: first.x, z: first.z, yaw: yawOfDir(first.axis) };
+      const on = first && layout.rooms.find((r) => r.def.from === first.def.id); // the way on: a sealed entrance's own axis faced its back wall (round 12)
+      if (def.id === DREAM_DESCENT && first) w.dream = { x: first.x, z: first.z, yaw: on ? yawOf(on.x - first.x, on.z - first.z) : yawOfDir(first.axis) };
     }
   }
   w.chunk = (cx, cz) => buckets.get(chunkKey(cx, cz)) ?? EMPTY;

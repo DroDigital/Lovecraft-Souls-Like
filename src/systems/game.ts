@@ -40,6 +40,7 @@ import { createOverworld, registerOverworld } from './overworld';
 import { registerArms, unreinforced } from './arms';
 import { applyCarry, type Carry } from './cycles';
 import { registerTally, tallySystem } from './tally';
+import { registerRoomWords, roomWordsSystem } from './roomWords';
 import { registerPerception } from './perception';
 import { playerControl } from './playerControl';
 import { npcSystem, spawnNpcs } from './npcs';
@@ -102,6 +103,7 @@ export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: num
   registerOverworld(g);
   registerArms(g);
   registerTally(g);
+  registerRoomWords(g);
   registerHastur(g);
   registerNyarlathotep(g);
   registerSeals(g);
@@ -176,6 +178,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   explorationSystem(g);
   questSystem(g);
   tallySystem(g);
+  roomWordsSystem(g);
   sealSystem(g);
   hallucinationSystem(g);
   deathSystem(g);

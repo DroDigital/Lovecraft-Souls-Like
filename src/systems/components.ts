@@ -286,6 +286,7 @@ export interface Overworld {
   met: Set<string>; // the people talked with (npcs.ts)
   sold: Map<string, number>; // wares bought from merchants, by ware (trade.ts; round 12)
   tally: Tally; // the run's numbers (tally.ts; round 12)
+  said: Set<string>; // dungeon rooms that have said their words since the last rest or death (roomWords.ts)
 }
 
 export interface Game {

@@ -34,6 +34,7 @@ export interface RoomDef {
   tome?: { name: string; insight: number };
   vial?: string; // a Silver Vial lies here (its unique name): one more dose of West's Reagent
   weapon?: string; // a weapon lies here (data/weapons.ts)
+  words?: string; // said as the investigator first comes in (round 12: the Seventy Steps were nine unmarked rooms)
 }
 
 export interface DungeonDef {
@@ -49,7 +50,7 @@ import { SEALS } from './tuning';
 
 type Extras = Omit<RoomDef, 'id' | 'kind' | 'from' | 'dir'>;
 const room = (id: string, kind: RoomKind, from: string | undefined, dir: Dir, x: Extras = {}): RoomDef => ({ id, kind, from, dir, ...x });
-const stair = (id: string, from: string, dir: Dir, rise: number): RoomDef => room(id, 'stair', from, dir, { rise });
+const stair = (id: string, from: string, dir: Dir, rise: number, x: Extras = {}): RoomDef => room(id, 'stair', from, dir, { rise, ...x });
 
 export const DUNGEONS: readonly DungeonDef[] = [
   ...LAIRS,
@@ -162,15 +163,19 @@ export const DUNGEONS: readonly DungeonDef[] = [
   },
   {
     id: 'slumber', name: 'Stairs of Slumber', region: 'dreamlands', sealed: true, rooms: [
+      // Round 12: the descent was a 30-second walk through nine empty rooms. Now it is said as it goes,
+      // the dream's lesser things wait on the flights, and the seven hundred steps are longer.
       room('threshold', 'hall', undefined, 'n'),
-      stair('light_1', 'threshold', 'n', -4), // the seventy steps of light slumber
-      stair('light_2', 'light_1', 'n', -4),
-      room('cavern', 'hall', 'light_2', 'n', { sign: { id: 'dream_cavern', name: 'Cavern of Flame' }, ally: 'nasht_kaman_thah' }),
-      stair('deep_1', 'cavern', 'n', -5), // the seven hundred steps of deeper slumber
-      stair('deep_2', 'deep_1', 'n', -5),
-      stair('deep_3', 'deep_2', 'n', -5),
-      stair('deep_4', 'deep_3', 'n', -5),
-      room('deeper', 'hall', 'deep_4', 'n', { gate: { id: 'dream_deeper', name: 'Gate of Deeper Slumber', to: 'dream_wood_gate' } }),
+      stair('light_1', 'threshold', 'n', -4, { words: 'THE SEVENTY STEPS OF LIGHT SLUMBER' }),
+      stair('light_2', 'light_1', 'n', -4, { spawns: ['zoog', 'zoog'] }),
+      room('cavern', 'hall', 'light_2', 'n', { sign: { id: 'dream_cavern', name: 'Cavern of Flame' }, ally: 'nasht_kaman_thah', words: 'THE CAVERN OF FLAME' }),
+      stair('deep_1', 'cavern', 'n', -5, { words: 'THE SEVEN HUNDRED STEPS OF DEEPER SLUMBER' }),
+      stair('deep_2', 'deep_1', 'n', -5, { spawns: ['night_gaunt'] }),
+      stair('deep_3', 'deep_2', 'n', -5, { words: 'TWO HUNDRED STEPS', spawns: ['zoog', 'zoog', 'zoog'] }),
+      stair('deep_4', 'deep_3', 'n', -5, { spawns: ['ghast'] }),
+      stair('deep_5', 'deep_4', 'n', -5, { words: 'FOUR HUNDRED STEPS', spawns: ['night_gaunt', 'ghast'] }),
+      stair('deep_6', 'deep_5', 'n', -5, { words: 'SIX HUNDRED STEPS', spawns: ['ghast', 'ghast'] }),
+      room('deeper', 'hall', 'deep_6', 'n', { gate: { id: 'dream_deeper', name: 'Gate of Deeper Slumber', to: 'dream_wood_gate' }, words: 'THE GATE OF DEEPER SLUMBER' }),
     ],
   },
   {
