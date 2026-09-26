@@ -66,7 +66,8 @@ export const LIGHT = {
   echoGlowRange: 6, // a dropped Echo's faint light
   echoGlowIntensity: 0.6,
   character: 0.65, // share of the lantern (and, for sprites, the moon) characters take, without N·L: their values hold as they turn
-  eyes: [6, 13] as const, // metres over which self-lit eyes and markings sink into the dark: no spotting a creature from afar
+  eyes: [12, 22] as const, // metres over which self-lit eyes and markings sink into the dark: seen when near enough, not from afar (playtest round 8: they were gone by 13)
+  eyeGlow: { gain: 0.34, radius: 0.07 }, // the faint glow about them (playtest round 8), out to the same reach
 };
 
 /** The investigator's lantern: a warm point light at the hip, the night's only real light. */

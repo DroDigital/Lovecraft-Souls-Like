@@ -10,7 +10,7 @@ import { ANOMALY, CREATURE_COLORS, scaleRgb } from '../palette';
 import { crustacean, quadruped, serpent, toad, winged } from './beasts';
 import { barrel, blob, cone, orb, swarm } from './masses';
 import type { Pose, Sketch } from './parts';
-import { createCanvas, outline, type Canvas } from './raster';
+import { createCanvas, GLINT, GLOW, outline, type Canvas } from './raster';
 import { skinOf } from './skins';
 import { cephalopod, giant, humanoid, hunched, robed, spectre } from './uprights';
 
@@ -91,6 +91,29 @@ export interface SpriteAtlas {
   data: Uint8Array; // RGBA, row-major, y down
   /** Atlas cell index of every frame, by sprite key and state. */
   frames: Map<string, Record<SpriteState, number[]>>;
+  /** Each cell's eyes (playtest round 8): x, y (cell pixels from its top left) and radius of its self-lit pixels, and how many; then their mean colour. */
+  eyes: Float32Array;
+  eyeColors: Float32Array;
+}
+
+/** Where a frame's self-lit pixels (eyes, glowing marks) gather: into `eyes` and `colors` at `cell`. */
+function findEyes(px: Uint8Array, cell: number, eyes: Float32Array, colors: Float32Array): void {
+  let [n, sx, sy, r, g, b] = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < CELL * CELL; i++) {
+    const a = px[i * 4 + 3];
+    if (a !== GLOW && a !== GLINT) continue;
+    [n, sx, sy] = [n + 1, sx + (i % CELL) + 0.5, sy + Math.floor(i / CELL) + 0.5];
+    [r, g, b] = [r + px[i * 4], g + px[i * 4 + 1], b + px[i * 4 + 2]];
+  }
+  if (!n) return;
+  const [cx, cy] = [sx / n, sy / n];
+  let spread = 0;
+  for (let i = 0; i < CELL * CELL; i++) {
+    const a = px[i * 4 + 3];
+    if (a === GLOW || a === GLINT) spread = Math.max(spread, Math.hypot((i % CELL) + 0.5 - cx, Math.floor(i / CELL) + 0.5 - cy));
+  }
+  eyes.set([cx, cy, spread + 1, n], cell * 4);
+  colors.set([r / n / 255, g / n / 255, b / n / 255], cell * 3);
 }
 
 export function buildAtlas(entries = spriteRecipes()): SpriteAtlas {
@@ -100,6 +123,8 @@ export function buildAtlas(entries = spriteRecipes()): SpriteAtlas {
   const height = Math.max(1, rows) * CELL;
   const data = new Uint8Array(width * height * 4);
   const frames = new Map<string, Record<SpriteState, number[]>>();
+  const eyes = new Float32Array(entries.length * perSprite * 4);
+  const eyeColors = new Float32Array(entries.length * perSprite * 3);
   let cell = 0;
   for (const { key, recipe } of entries) {
     const byState = {} as Record<SpriteState, number[]>;
@@ -108,12 +133,13 @@ export function buildAtlas(entries = spriteRecipes()): SpriteAtlas {
         const img = drawSprite(recipe, state, f);
         const [cx, cy] = [(cell % ATLAS_COLUMNS) * CELL, Math.floor(cell / ATLAS_COLUMNS) * CELL];
         for (let y = 0; y < CELL; y++) data.set(img.px.subarray(y * CELL * 4, (y + 1) * CELL * 4), ((cy + y) * width + cx) * 4);
+        findEyes(img.px, cell, eyes, eyeColors);
         return cell++;
       });
     }
     frames.set(key, byState);
   }
-  return { width, height, data, frames };
+  return { width, height, data, frames, eyes, eyeColors };
 }
 
 /** Top-left pixel of an atlas cell. */
