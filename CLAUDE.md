@@ -9,6 +9,7 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
   [&variant=eldritch|boss]`; `?look` look test (1–9, drag/wheel/O); `?debug` debug panel (sliders, H hides) + `window.game`/`world`/`audio`.
 - `npm run check`: typecheck + Vitest. Must pass before every commit.
 - `npm run build`: typecheck + production build into `dist/`.
+- `npm run desktop`: build, then open it in the desktop shell (Electron: what ships on Steam; sound from boot, so the title opens straight into its menu with its theme; F11 or Alt+Enter: fullscreen). `npm run desktop:dev`: the shell on the running dev server.
 
 ## Folder map
 - `src/core`: 60 Hz loop with interpolation, ECS (typed Maps), typed event bus, input (keys/mouse/pad → `InputFrame`), geom, rng, noise, time `slicer`.
@@ -17,6 +18,7 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 - `src/data`: `tuning.ts` holds every tunable number (boss numbers in `bossTuning`, play numbers in `playTuning`, re-exported); `schema`, `roster` (every id), `entities/` (one file per tier), `registry`, `validate`, `archetypes`, `attacks`, `regions` (+ `regionFeatures`: roads, towns, features); `moves` + `weapons` (the investigator's arms), `placeholders` (dummy + Deep One), `arena`; `sites`, `dungeons` and `lairs` (the world's places and room graphs); story: `intro`, `npcs`, `quests`, `documents`; `endings`; `sounds` + `voices` (audio recipes) + `samples` (recorded sets, ambience) + `music` (boss scores).
 - `src/world`: pure world math: `worldMap`, `land` + `terrain`, `placements` (resolved sites), `regionPlan` (+ `roads`, `features`, `planSpawns`, `props`), `chunks`, `streaming`, `dungeonKit` + `dungeonParts`, `worldCollision`, `validateWorld`, `mapData` (realms, map places), `shrine` (an Elder Sign's layout and colliders); colliders, arena collision + meshes, Phase 0 test scene.
 - `src/ui`: HUD (+ `mindHud`, `bossHud`, `foeBars`, `hints`, `hudKit`), debug panel (+ `debugHooks`), `veil` + `journeys` (long jumps and loading under a transition) + `loading` (the world made in steps, sprites drawn ahead), `shell` (what outlives the title), `menuKit` (screens, keys/pad nav) for `titleScreen`, `intro`, `pauseMenu`, `menuPages`, `journal`, `dialogue` (talk + read), Elder Sign `signMenu`, `endingCard`; the map: `minimap` + `mapScreen` (+ `mapTravel`) over `mapPainter` + `mapArt` (+ `leadMark`); `settings`, `autosave`, `?bestiary`, `?look` look test, orbit rig.
+- `desktop/`: the desktop shell: `main.js` (Electron window, sound allowed from boot) + `serve.js` (serves `dist/` on `app://`, with byte ranges for seeking media).
 - `tests/`: Vitest, runs in Node; `helpers.ts` scripts inputs and a hand-driven Deep One.
 - `docs/`: SPEC.md, DECISIONS.md.
 
@@ -28,7 +30,7 @@ file, then do only the phase named in the message. Log judgment calls in `docs/D
 - Verify with `npm run check` and read only the failing output. Never open `node_modules/` or `dist/`.
 - No asset files: textures, sprites, meshes and audio are generated in code. Exceptions: the title theme (`public/music`) and the recorded sounds (`public/audio`: CC0 recordings cut and treated for the game, each credited in its `CREDITS.md`; playtest round 6).
 - Creatures are data, not classes (15–30 lines each); boss phase scripts are data too.
-- Deps: `three` (+ `@types/three`), `typescript`, `vite`, `vitest`. Ask before adding anything else.
+- Deps: `three` (+ `@types/three`), `typescript`, `vite`, `vitest`, `electron` (the desktop shell, playtest round 11). Ask before adding anything else.
 - Simulation code (combat, stamina, sanity, AI, registry, streaming math) must not import Three.js.
 - Out of scope: multiplayer, skeletal animation, imported models/textures, mobile.
 
