@@ -66,7 +66,6 @@ export const LIGHT = {
   echoGlowRange: 6, // a dropped Echo's faint light
   echoGlowIntensity: 0.6,
   character: 0.65, // share of the lantern (and, for sprites, the moon) characters take, without N·L: their values hold as they turn
-  rim: [0.3, 0.34, 0.38] as Vec3, // characters' cold edge light (playtest round 7): dark figures read against the dark
   eyes: [6, 13] as const, // metres over which self-lit eyes and markings sink into the dark: no spotting a creature from afar
 };
 

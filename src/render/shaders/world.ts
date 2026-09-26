@@ -183,7 +183,6 @@ uniform float uCharacterLight;
 uniform float uLanternSelf; // the investigator's share of their own lantern
 uniform float uSelfMax; // the brightest anything lights the investigator
 uniform float uLanternFacing;
-uniform vec3 uRimColor; // characters' edge light
 uniform float uEmissive;
 uniform float uVary; // world-space tone variation (0: none)
 uniform float uBomb; // 1: a second, turned sample blends in by a noise mask, so organic ground never repeats
@@ -250,10 +249,6 @@ void main() {
   lamp += lampLight(vWorld, n, uLanternFacing * (1.0 - character)) * mix(1.0, uCharacterLight, character); // the world's lamps, fires and windows
   lamp *= (1.0 - uEmissive) * vTint;
   vec3 lit = vLight + lamp;
-  if (character > 0.0) { // form (playtest round 7): a soft light from above, and a cold rim where the body turns from the eye
-    float edge = 1.0 - max(dot(n, normalize(cameraPosition - vWorld)), 0.0);
-    lit = lit * (0.82 + 0.36 * clamp(0.5 + 0.5 * n.y, 0.0, 1.0)) + uRimColor * edge * edge * (1.0 - uEmissive) * vTint;
-  }
   float peak = max(max(lit.r, lit.g), max(lit.b, 0.001));
   lit *= mix(1.0, min(1.0, uSelfMax / peak), self * max(1.0 - uEmissive, 0.0));
   tex = mix(tex, vec3(1.0), 0.6 * uEmissive); // a lit thing shines through its texture
