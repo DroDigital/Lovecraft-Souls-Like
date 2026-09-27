@@ -14,6 +14,7 @@ import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createGameAudio } from './render/audio/gameAudio';
+import { playMenuMusic } from './render/audio/music';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
@@ -117,7 +118,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const scene = world?.scene ?? createArenaScene();
   scene.add(lights.halos);
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game, journeys.go);
-  const ending = createEndingCard(game, store);
+  const ending = createEndingCard(game, store, () => (shell.music = playMenuMusic(shell.engine, settings.volume))); // the title's theme again, under an ending
   const pause = createPauseMenu({
     settings,
     change: shell.change,

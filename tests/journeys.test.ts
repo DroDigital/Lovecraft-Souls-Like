@@ -16,7 +16,7 @@ function fakeVeil() {
   let fill = 0;
   const asked: string[] = [];
   const veil: Veil = {
-    cover: (words = '') => (asked.push(`cover ${words}`), (fill = 0), new Promise<void>((r) => (finish = () => ((covered = true), r())))),
+    cover: (words = '', _secs?: number, line?: string) => (asked.push(line ? `cover ${words} · ${line}` : `cover ${words}`), (fill = 0), new Promise<void>((r) => (finish = () => ((covered = true), r())))),
     lift: () => (asked.push('lift'), (covered = false), Promise.resolve()),
     darken: () => void (covered = true),
     haunt: () => undefined,
@@ -63,6 +63,24 @@ describe('journeys (ui/journeys.ts)', () => {
     j.update(0);
     expect(asked).toEqual(['cover ARKHAM', 'lift']);
     expect(j.still).toBe(false);
+  });
+
+  it('a journey with its own line (the descent) says it, and holds until it can be read (round 17)', async () => {
+    const g = createWorldGame();
+    g.overworld!.discovered.add('arkham_streets');
+    const { veil, asked, covers } = fakeVeil();
+    const j = createJourneys(g, veil);
+    j.go('ARKHAM', () => travel(g, 'arkham_streets'), 'A line of its own.');
+    expect(asked).toEqual(['cover ARKHAM · A line of its own.']);
+    await covers();
+    j.before(emptyInput());
+    j.update(0); // its first frame: nothing to build
+    at(2000);
+    j.update(0);
+    expect(asked).toHaveLength(1); // a journey without a line would have lifted by now
+    at(3500);
+    j.update(0);
+    expect(asked.at(-1)).toBe('lift');
   });
 
   it('E at a gate is a journey through it, named for where it leads', async () => {
