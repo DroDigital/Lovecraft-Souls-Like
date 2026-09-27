@@ -29,6 +29,7 @@ import type { Drones } from './drones';
 import type { AudioEngine } from './engine';
 import { createFoley } from './foley';
 import { createSampler, setFiles } from './sampler';
+import { beatRate } from '../feel';
 import { playSound } from './synth';
 
 export interface GameAudio {
@@ -137,6 +138,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     return sound === 'open' ? null : DUNGEON_AMBIENCE[sound];
   };
 
+  let lastBeat = -1;
   return {
     update(fx, seconds, camera, paused) {
       camera.updateMatrixWorld();
@@ -155,6 +157,11 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
       drones.update(fx, seconds);
       if (paused) return;
+      const h = g.ecs.c.health.get(g.player.id);
+      const rate = h ? beatRate(h.hp / h.max) : 0; // near death, the heart (round 14; hurtFx.ts pulses with it)
+      const beat = Math.floor(seconds * rate);
+      if (rate > 0 && beat !== lastBeat && lastBeat >= 0) playSound(e, STINGERS.heartbeat, { gain: 0.9 });
+      lastBeat = rate > 0 ? beat : -1;
       calls(seconds);
       foley.update(seconds, place, (at) => play({ sound: 'danger', at: { ...at } }));
     },

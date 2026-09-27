@@ -186,6 +186,9 @@ export const HURT = {
   shake: 0.07, // metres the camera jitters at full strength
   chipDelay: 0.6, // seconds before the lost health drains away from the bar
   chipRate: 45, // percent of the bar per second
+  low: 0.3, // below this share of health the heart is heard and the edge pulses red (round 14)...
+  lowPulse: 0.6, // ...this strong at each beat...
+  beats: [1, 1.45] as const, // ...beating this often a second, and faster below half of it
 };
 
 /** How a loss of sanity reads on its bar (ui/mindHud.ts), as a wound does on health's. */

@@ -3,7 +3,7 @@ import { emptyInput } from '../src/core/input';
 import { signPlace, travel } from '../src/systems/checkpoints';
 import { strike } from '../src/systems/combat';
 import { createWorldGame, stepGame } from '../src/systems/game';
-import { createJourneys } from '../src/ui/journeys';
+import { createJourneys, DYING_MS } from '../src/ui/journeys';
 import { inkLine, lineLight, veilField, type Veil } from '../src/ui/veil';
 import { worldLayout } from '../src/world/placements';
 import { press, scriptedGame } from './helpers';
@@ -85,7 +85,10 @@ describe('journeys (ui/journeys.ts)', () => {
     const j = createJourneys(g, veil);
     const respawned = record(g, 'Respawned');
     strike(g, deepOne, g.player.id, deathblow);
-    at(1000);
+    at(DYING_MS - 100);
+    j.update(0);
+    expect(asked).toEqual([]); // the fall shows first, UNMADE over it (round 14)
+    at(DYING_MS + 100);
     j.update(0);
     expect(asked).toEqual(['cover THE ELDER SIGN']);
     for (let i = 0; i < 400; i++) {
@@ -99,9 +102,9 @@ describe('journeys (ui/journeys.ts)', () => {
       if (input) stepGame(g, input);
     }
     expect(respawned).toHaveLength(1);
-    at(3000);
+    at(DYING_MS + 2100);
     j.update(0);
-    at(4000);
+    at(DYING_MS + 3100);
     j.update(0);
     expect(asked.at(-1)).toBe('lift');
   });

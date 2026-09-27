@@ -31,7 +31,7 @@ export interface Journeys {
 
 const HOLD_MS = [900, 4000] as const; // under the veil after a jump, from its first drawn frame: at least (the sign shows), and at most while chunks build
 const BUILD_MS = 24; // chunk building a frame while nothing shows (nothing is drawn under the veil, so it has the frame)
-const DYING_MS = 900; // the fall shows this long before the veil comes
+export const DYING_MS = 2600; // the fall shows this long before the veil comes (round 14: UNMADE had a second, then was gone under the dark)
 
 /** `ready` makes the world ready to be seen before the veil lifts (the shaders it needs, main.ts). */
 export function createJourneys(g: Game, veil: Veil, ready?: () => Promise<void>): Journeys {

@@ -10,6 +10,7 @@ import { engagedFights } from '../systems/bossFight';
 import type { Game } from '../systems/components';
 import { SIGNATURES } from '../systems/signatures';
 import { bar, BONE, el, percent, RUST, setStyle, setText } from './hudKit';
+import { createTally } from './damageTally';
 
 const BARS = 2; // at once: a pair of bosses fights together at most
 const FLASH_MS = 160;
@@ -23,11 +24,16 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
   const box = el('position:absolute;left:50%;bottom:100px;width:52%;margin-left:-26%;display:flex;flex-direction:column-reverse', '', root); // bottom centre, as a boss's bar should be
   const slots = Array.from({ length: BARS }, () => {
     const slot = el('margin-bottom:6px', '', box);
-    const name = el('letter-spacing:3px;font-size:13px', '', slot);
+    const head = el('display:flex;justify-content:space-between;align-items:baseline', '', slot);
+    const name = el('letter-spacing:3px;font-size:14px', '', head);
+    const sum = el('font-size:13px;letter-spacing:1px', '', head); // the run of blows, as soulslikes show it (round 14)
     const fill = bar(slot, RUST);
     fill.parentElement!.style.height = '8px';
+    const chip = el(`position:absolute;left:0;top:0;height:100%;background:${BONE}99`, '', fill.parentElement!);
+    fill.parentElement!.insertBefore(chip, fill);
+    fill.style.position = 'relative';
     const status = el('letter-spacing:2px;font-size:11px;opacity:.8', '', slot);
-    return { slot, name, fill, status, ticks: [] as HTMLDivElement[] };
+    return { slot, name, sum, chip, fill, status, ticks: [] as HTMLDivElement[] };
   });
   const gaze = el('position:absolute;left:16px;bottom:84px;width:240px;display:none;font-size:10px;letter-spacing:2px', 'GAZE', root);
   const gazeFill = bar(gaze, '#6a0dad');
@@ -35,6 +41,7 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
   const stoneFill = bar(stone, '#8a8f86');
   const flash = el('position:absolute;inset:0;background:#e8e0cc;opacity:0', '', root);
   const name = el(`position:absolute;left:0;right:0;top:36%;text-align:center;font-size:72px;letter-spacing:28px;color:${BONE};opacity:0`, '', root);
+  const tally = createTally(g);
   let nameUntil = 0;
   let flashUntil = 0;
   const blink = (): void => void (flashUntil = performance.now() + FLASH_MS);
@@ -64,6 +71,11 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
         const h = g.ecs.c.health.get(e)!;
         setText(s.name, (g.ecs.c.combatant.get(e)?.name ?? f.id).toUpperCase());
         setStyle(s.fill, 'width', percent(h.hp, h.max));
+        const now = performance.now();
+        setStyle(s.chip, 'width', `${(tally.chip(e, h.hp / h.max, now) * 100).toFixed(1)}%`);
+        const [sum, shown] = tally.total(e, now);
+        setText(s.sum, sum);
+        setStyle(s.sum, 'opacity', shown.toFixed(2));
         setText(s.status, SIGNATURES[f.id]?.status?.(g, e, f) ?? '');
         const marks = f.script.phases.slice(1).map((p) => p.hpBelow);
         while (s.ticks.length < marks.length) s.ticks.push(el(`position:absolute;top:-2px;bottom:-2px;width:1px;background:${BONE}aa`, '', s.fill.parentElement!));

@@ -16,7 +16,9 @@ import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
 import { fill, glyph } from './glyphs';
-import { bar, BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
+import { createBanner } from './banner';
+import { DYING_MS } from './journeys';
+import { bar, BONE, el, percent, RUST, SEA, SERIF, setStyle, setText } from './hudKit';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
 import { createHints } from './hints';
@@ -25,7 +27,6 @@ import { createMinimap } from './minimap';
 import { PICTURE_LAYER, uiScale } from './uiScale';
 
 const NOTICE_MS = 1100;
-const TITLE_MS = 2600;
 
 /** Notices for outcomes involving the player: [when the player dealt it, when the player took it]. */
 const NOTICES: Partial<Record<HitOutcome, readonly [dealt: string, taken: string]>> = {
@@ -42,7 +43,7 @@ export interface Hud {
 }
 
 export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter): Hud {
-  const root = el(`${PICTURE_LAYER};pointer-events:none;font:12px/1.4 monospace;color:${BONE};z-index:1`); // drawn at the UI scale
+  const root = el(`${PICTURE_LAYER};pointer-events:none;font:13px/1.4 ${SERIF};font-variant-numeric:lining-nums tabular-nums;color:${BONE};z-index:1`); // drawn at the UI scale, in the period face (round 14)
   const minimap = createMinimap(g, root, painter);
   const hints = createHints(g, root);
   const vitals = el('position:absolute;left:16px;bottom:16px;width:240px', '', root);
@@ -60,11 +61,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   const echoes = el('', '', counters);
   const reticle = el(`position:absolute;width:8px;height:8px;margin:-5px 0 0 -5px;border:1px solid ${BONE};transform:rotate(45deg)`, '', root);
   const notice = el('position:absolute;left:0;right:0;top:64%;text-align:center;font-size:16px;letter-spacing:4px', '', root);
-  const title = el('position:absolute;left:0;right:0;top:22%;text-align:center;font-size:24px;letter-spacing:8px', '', root);
   const prompt = el('position:absolute;left:0;right:0;bottom:64px;text-align:center;letter-spacing:2px;opacity:.85', '', root);
-  const banner = el(`position:absolute;left:0;right:0;top:38%;text-align:center;font-size:44px;letter-spacing:14px;color:${RUST}`, 'UNMADE', root);
-  el('font-size:12px;letter-spacing:2px;color:#d9d0b8aa', 'your Echoes lie where you fell', banner);
-  banner.style.display = 'none';
   document.body.append(root);
 
   let noticeUntil = 0;
@@ -73,11 +70,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
     notice.textContent = fill(text, true); // a notice may name a button: {pause}
     noticeUntil = performance.now() + NOTICE_MS;
   };
-  let titleUntil = 0;
-  const show = (text: string): void => {
-    title.textContent = text;
-    titleUntil = performance.now() + TITLE_MS;
-  };
+  const great = createBanner(); // a death, a horror's fall, a place: the great words (banner.ts)
+  const show = (text: string): void => great.show(text, 'place');
   const bosses = createBossHud(g, root, say, show);
   const foes = createFoeBars(g, root);
   const me = g.player.id;
@@ -91,9 +85,11 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
     else if (e.change === 'earned') say(`+${e.amount} ECHOES`);
   });
   g.events.on('Died', (e) => {
-    if (e.entity === me) banner.style.display = 'block';
+    if (e.entity !== me) return;
+    great.show('UNMADE', 'death', 'YOUR ECHOES LIE WHERE YOU FELL');
+    setTimeout(() => great.hide(), DYING_MS); // it fades as the veil falls (journeys.ts)
   });
-  g.events.on('Respawned', () => (banner.style.display = 'none'));
+  g.events.on('Respawned', () => great.hide());
   g.events.on('FirstSight', (e) => {
     if (e.sanity || e.insight) say([e.name.toUpperCase(), e.sanity && signed(-e.sanity, 'SANITY'), e.insight && signed(e.insight, 'INSIGHT')].filter(Boolean).join('  '));
   });
@@ -102,7 +98,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   });
   g.events.on('RegionEntered', (e) => show(e.name.toUpperCase()));
   g.events.on('Travelled', (e) => show(e.name.toUpperCase()));
-  g.events.on('Vanquished', (e) => show(`${e.name.toUpperCase()} VANQUISHED`));
+  g.events.on('Vanquished', (e) => great.show('HORROR VANQUISHED', 'victory', e.name.toUpperCase()));
   g.events.on('Discovered', (e) => say(`ELDER SIGN FOUND · ${e.name.toUpperCase()}`));
   g.events.on('QuestChanged', (e) => say(e.done ? `DONE · ${e.title.toUpperCase()}` : e.stage === 0 ? `JOURNAL · ${e.title.toUpperCase()}` : `${e.title.toUpperCase()} · UPDATED`));
   g.events.on('RestRefused', () => say('SOMETHING HUNTS YOU · NO REST'));
@@ -134,7 +130,6 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setText(echoes, `ECHOES ${g.player.echoes}${ready ? '  ▲' : ''}`);
       const now = performance.now();
       setStyle(notice, 'opacity', String(Math.min(1, Math.max(0, (noticeUntil - now) / 300)).toFixed(2)));
-      setStyle(title, 'opacity', String(Math.min(1, Math.max(0, (titleUntil - now) / 600)).toFixed(2)));
       const act = fightAction(g);
       const near = interactable(g);
       const verb = near?.kind === 'npc' ? 'talk to' : near?.kind === 'sign' ? 'rest at' : 'pass through';
