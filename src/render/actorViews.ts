@@ -29,6 +29,7 @@ interface View {
   lastTime: number;
   hitAt: number; // sim seconds of the last landed blow
   blend: PoseBlend; // eases one pose into the next when the move or guard changes
+  kneel: number; // 0–1, easing toward kneeling while the investigator rests (round 15)
 }
 
 export interface ActorViews {
@@ -77,7 +78,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
       if (views.has(id) || model.startsWith(MODEL_PREFIX) || model.startsWith(FX_PREFIX) || model === SHRINE_MODEL) continue; // roster creatures: creatureViews; bolts, pools and props: fightViews; Elder Signs: signViews
       const figure = buildFigure(model);
       scene.add(figure.root);
-      views.set(id, { figure, stride: 0, speed: 0, lastTime: 0, hitAt: -Infinity, blend: createPoseBlend(figure) });
+      views.set(id, { figure, stride: 0, speed: 0, lastTime: 0, hitAt: -Infinity, blend: createPoseBlend(figure), kneel: 0 });
     }
     for (const [id, v] of views) {
       if (g.ecs.c.model.has(id)) continue;
@@ -121,7 +122,8 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     const flinch = Math.max(0, 1 - since / FEEDBACK.flinchSeconds);
     const [move, guard] = [a?.move ?? null, a?.guard ?? false];
     v.blend.watch(move, guard, time);
-    pose(f, { move, def, frame, speed, stride: v.stride, guard, flinch, rollYaw, time, ground: groundAbout(f.root) });
+    v.kneel += ((id === g.player.id && g.player.kneeling ? 1 : 0) - v.kneel) * Math.min(1, dt * 3);
+    pose(f, { move, def, frame, speed, stride: v.stride, guard, flinch, rollYaw, time, ground: groundAbout(f.root), kneel: v.kneel });
     v.blend.apply(time);
     if (f.arms && id === g.player.id) for (const [w, m] of Object.entries(f.arms)) m.visible = w === g.player.weapon; // the weapon in hand
     const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)

@@ -245,6 +245,7 @@ export interface Pilot {
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
   listening: Entity | null; // the person talked with: they face them and the camera frames them until they move or look away (round 12)
+  kneeling: { x: number; z: number } | null; // the Elder Sign rested at: they kneel to it until they move or act (round 15)
 }
 
 /** The investigator's mind (spec §3A). */
