@@ -51,7 +51,7 @@ export const QUESTS: Readonly<Record<string, QuestDef>> = {
     main: true,
     after: 'witch_house',
     auto: true, // the stair opens as Keziah falls (round 12)
-    stages: [{ goal: { kind: 'talk', npc: 'kuranes' }, note: "Rest at the Sleeper's Sign on the university grounds and go down the stair. Find a dreamer called Kuranes." }],
+    stages: [{ goal: { kind: 'talk', npc: 'kuranes' }, note: "Find a dreamer called Kuranes: down the stair from the Sleeper's Sign on the university grounds, and on through the Gate of Deeper Slumber." }], // round 17: read well on either side of the stair
     done: 'Kuranes told me what the key opens.',
     reward: { echoes: 500 },
   },
