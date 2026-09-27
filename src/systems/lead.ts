@@ -2,7 +2,8 @@
  * Where the story leads (playtest round 4): the open stage of the main line — whom to speak with,
  * what to slay, where to go — or, before a main quest begins, who will ask it of the investigator;
  * and where that is. The journal says it, and the map and minimap mark it, so a new investigator
- * always has somewhere to go. Pure: no Three.js.
+ * always has somewhere to go; a goal in another realm is marked where the way to it begins (round
+ * 17, leadWay.ts). Pure: no Three.js.
  */
 
 import { distXZ, type XZ } from '../core/geom';
@@ -11,6 +12,7 @@ import { QUESTS, type Goal } from '../data/quests';
 import { worldLayout } from '../world/placements';
 import type { Game } from './components';
 import { npcPlace } from './npcs';
+import { placeKey, wayTo } from './leadWay';
 import { isDone, stageOf, UNSTARTED } from './quests';
 import { SEAL_REGIONS, sealBroken, sealsBroken } from './sealCount';
 
@@ -42,18 +44,22 @@ function bossPlace(boss: string): XZ | null {
   return s ? { x: s.arena?.x ?? s.at.x, z: s.arena?.z ?? s.at.z } : null;
 }
 
-/** The seals' goal: how many have fallen, and the nearest great horror whose seal still holds. */
+const me = (g: Game): XZ => g.ecs.c.transform.get(g.player.id)!.pos;
+
+/** The seals' goal: how many have fallen, and the nearest great horror whose seal still holds (in the investigator's own realm first). */
 function sealLead(g: Game, count: number, note: string): Lead {
-  const me = g.ecs.c.transform.get(g.player.id)!.pos;
+  const [from, here] = [me(g), placeKey(me(g))];
   let [at, best]: [XZ | null, number] = [null, Infinity];
   for (const r of SEAL_REGIONS) {
     if (sealBroken(g, r.id)) continue;
     for (const b of r.bosses) {
       const p = bossPlace(b);
-      if (p && distXZ(p, me) < best) [at, best] = [p, distXZ(p, me)];
+      if (!p) continue;
+      const far = distXZ(p, from) + (placeKey(p) === here ? 0 : 1e6); // another realm's only once this one has none
+      if (far < best) [at, best] = [p, far];
     }
   }
-  return { text: `${note} (${Math.min(count, sealsBroken(g))} of ${count} have fallen.)`, at };
+  return { text: `${note} (${Math.min(count, sealsBroken(g))} of ${count} have fallen.)`, at: at && wayTo(g, from, at) };
 }
 
 /** The main line's next step, or null once it is done (or out of the open world). */
@@ -64,11 +70,12 @@ export function mainLead(g: Game): Lead | null {
     const stage = stageOf(g, id);
     const goal = stage !== UNSTARTED ? q.stages[stage].goal : null;
     if (goal?.kind === 'seals') return sealLead(g, goal.count, q.stages[stage].note);
-    if (goal) return { text: q.stages[stage].note, at: goalPlace(goal) };
+    const way = (at: XZ | null): XZ | null => at && wayTo(g, me(g), at);
+    if (goal) return { text: q.stages[stage].note, at: way(goalPlace(goal)) };
     const giver = NPCS.find((n) => n.topics.some((t) => t.starts === id));
     if (!giver) continue;
     const sign = worldLayout().signs.find((s) => s.id === giver.sign)?.name ?? 'an Elder Sign';
-    return { text: `Speak with ${giver.name}, by the Elder Sign at ${sign}.`, at: npcAt(giver.id) };
+    return { text: `Speak with ${giver.name}, by the Elder Sign at ${sign}.`, at: way(npcAt(giver.id)) };
   }
   return null;
 }
