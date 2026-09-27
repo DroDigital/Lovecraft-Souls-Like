@@ -67,6 +67,8 @@ import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
 import { roofedAt } from './world/terrain';
 
+const INTERACT_GRACE_MS = 350; // after a talk or a menu closes, E is held back this long
+
 interface StartOptions {
   debug: boolean; // exposes the game (and the world scene) on `window` for console poking and scripted checks
   arena: boolean; // the combat arena instead of the open world
@@ -172,10 +174,13 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   let frames = 0;
   let statsAt = performance.now();
 
+  let heldAt = 0; // when a talk or a menu last held the investigator
   startLoop(
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
+        if (menu?.open || shop.open || dialogue.open || pause.open || map.open) heldAt = performance.now();
+        else if (performance.now() - heldAt < INTERACT_GRACE_MS) frame.pressed.interact = false; // E mashed through a talk does not rest at the sign behind it (round 17)
         const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;

@@ -70,8 +70,13 @@ function land(g: Game, e: Entity, at: V3): void {
   g.ecs.despawn(e);
 }
 
+/** When each caster's bolt last landed on the investigator, per game (round 17). */
+const landedAt = new WeakMap<Game, Map<Entity, number>>();
+
 export function boltSystem(g: Game): void {
   const c = g.ecs.c;
+  let landed = landedAt.get(g);
+  if (!landed) landedAt.set(g, (landed = new Map()));
   const dt = 1 / SIM.hz;
   for (const [id, a] of c.actor) {
     const v = moveDef(a)?.volley;
@@ -87,11 +92,16 @@ export function boltSystem(g: Game): void {
     for (const t of hostiles(g, b.faction, b.conjured, false)) {
       const { gap2, radius } = capsuleGap2(g, t, from, to);
       if (b.passed.includes(t) || gap2 > (radius + b.radius) ** 2) continue;
+      if (t === g.player.id && g.frame - (landed.get(b.owner) ?? -Infinity) < BOSS.boltGrace) {
+        b.passed.push(t); // hard on the last from the same hand: it passes by
+        continue;
+      }
       const outcome = strike(g, b.owner, t, { damage: b.damage, poise: b.poise, guard: b.damage, hitstop: 2, parryable: false, interrupts: false }, from);
       if (outcome === 'dodged') {
         b.passed.push(t); // it flies on through the roll
         continue;
       }
+      if (t === g.player.id) landed.set(b.owner, g.frame);
       const p = c.transform.get(t)!.pos;
       land(g, e, { x: p.x, y: p.y, z: p.z });
       struck = true;

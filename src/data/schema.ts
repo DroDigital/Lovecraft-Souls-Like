@@ -196,6 +196,7 @@ export interface BossScript {
   phases: readonly BossPhase[];
   unseen?: boolean; // invisible until revealed: not drawn, locked on to or beheld (the Dunwich Horror)
   called?: boolean; // its world spawn stays empty until it has been called (Hastur, by its name's third appearance)
+  joins?: { with: string; below: number }; // waits hidden until the boss `with` falls below this share of its health, then joins it (round 17: Brown Jenkin)
 }
 
 export interface EntityDef {

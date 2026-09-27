@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ATTACKS } from '../src/data/attacks';
+import { BOSS } from '../src/data/tuning';
 import type { Entity } from '../src/core/ecs';
 import { distXZ, wrapAngle, yawOf } from '../src/core/geom';
 import { emptyInput, noButtons, type InputFrame } from '../src/core/input';
@@ -121,7 +123,17 @@ describe('the dodging game (spec §3E)', () => {
     steps(g, 9);
     const turned = yaws().filter((y) => !first.has(y.toFixed(4)));
     expect(turned).toHaveLength(4);
-    expect(Math.min(...turned.map((y) => Math.abs(wrapAngle(y))))).toBeCloseTo((13 * Math.PI) / 180, 3);
+    expect(Math.min(...turned.map((y) => Math.abs(wrapAngle(y))))).toBeCloseTo((ATTACKS.barrage.barrage!.spin * Math.PI) / 180, 3); // as the barrage turns (round 17: 17°)
+  });
+
+  it("one caster's bolts land on the investigator a third of a second apart at most (round 17)", () => {
+    const { g, player, foe } = armed(4);
+    const at: number[] = [];
+    g.events.on('Hit', (e) => void (e.attacker === foe && e.target === player && e.damage > 0 && at.push(g.frame)));
+    attack(g, foe, 'barrage');
+    steps(g, 160);
+    expect(at.length).toBeGreaterThan(0);
+    for (let i = 1; i < at.length; i++) expect(at[i] - at[i - 1]).toBeGreaterThanOrEqual(BOSS.boltGrace);
   });
 
   it('the vortex draws the investigator in, then bursts', () => {

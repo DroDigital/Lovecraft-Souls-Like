@@ -35,7 +35,7 @@ export const NAMED = tier('named', [
   {
     id: 'brown_jenkin', name: 'Brown Jenkin', source: 'The Dreams in the Witch House', regions: ['arkham'], canonLooks: true,
     sprite: { silhouette: 'quadruped', palette: 'rust', scale: 1, eyes: 2 },
-    ...scripted('skirmisher', phases(ph(1, { bite: 2, grab: 1, combo: 1 }), ph(0.4, { bite: 3, lunge: 1, combo: 2 }))),
+    ...scripted('skirmisher', { ...phases(ph(1, { bite: 2, grab: 1, combo: 1 }), ph(0.4, { bite: 3, lunge: 1, combo: 2 })), joins: { with: 'keziah_mason', below: 0.5 } }), // in the walls until she is half spent
     stats: st(300, 40, 18, 5.5, 1.5, 5), drops: { echoes: 800 }, insightOnSight: 1,
   },
   {

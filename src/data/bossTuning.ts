@@ -19,6 +19,7 @@ export const BOSS = {
   gazeSanity: 12, // a full gaze: this much sanity, and a stagger
   darkFrames: 420, // a darkness attack keeps the arena dark this long
   boltLife: 240, // frames before a bolt gutters out, whatever its range
+  boltGrace: 20, // frames after a bolt lands on the investigator in which the same caster's next ones pass (round 17: a barrage emptied a full bar in seconds)
   gravity: 12, // m/s² on lobbed bolts
   monoliths: 5, // standing stones an arena of monoliths raises...
   monolithShare: 0.5, // ...on a ring at this share of its radius...

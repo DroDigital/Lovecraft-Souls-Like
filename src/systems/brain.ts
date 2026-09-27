@@ -87,6 +87,26 @@ function steady(g: Game, id: Entity, br: Brain, a: Actor, m: Mover, tr: Transfor
   else settle(g, id, br, m);
 }
 
+/** Whether a boss that joins another may come out: that one has fallen below the share, or is gone. */
+function mayJoin(g: Game, j: { with: string; below: number }): boolean {
+  for (const [e, f] of g.ecs.c.fight) {
+    if (f.id !== j.with) continue;
+    const h = g.ecs.c.health.get(e);
+    return !h || g.ecs.c.dead.has(e) || h.hp / h.max < j.below;
+  }
+  return true;
+}
+
+/** A boss that joins another waits hidden (in the walls) until it may come out, then hunts at once (round 17). True while it waits. */
+function waitsToJoin(g: Game, id: Entity, br: Brain): boolean {
+  const joins = g.ecs.c.fight.get(id)?.script.joins;
+  if (!joins || br.state === 'engage') return false;
+  if (!mayJoin(g, joins)) return (br.state = 'hidden'), true;
+  [br.state, br.cooldown, br.target] = ['engage', 0, g.player.id];
+  g.events.emit('Notice', { text: `${(g.ecs.c.combatant.get(id)?.name ?? '').toUpperCase()} JOINS THE FIGHT` });
+  return false;
+}
+
 /** A foe: its senses, its awareness, and what it does about them. */
 function hunt(g: Game, id: Entity, br: Brain, a: Actor, m: Mover, tr: Transform, noise: number): void {
   const c = g.ecs.c;
@@ -156,7 +176,7 @@ export function brainSystem(g: Game): void {
     const tr = transform.get(id)!;
     m.vx = 0;
     m.vz = 0;
-    if (isAbsent(g, id) || a.frozen || (health.get(id)?.hp ?? 0) <= 0) continue;
+    if (isAbsent(g, id) || a.frozen || (health.get(id)?.hp ?? 0) <= 0 || waitsToJoin(g, id, br)) continue;
     const arena = arenaOf(g, id);
     if (arena || br.def.archetype === 'ally') steady(g, id, br, a, m, tr, arena);
     else hunt(g, id, br, a, m, tr, noise);
