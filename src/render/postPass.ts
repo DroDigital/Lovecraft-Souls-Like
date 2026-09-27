@@ -1,14 +1,31 @@
-/** The single fullscreen post pass: material, fullscreen triangle, per-frame uniform update. */
+/** The single fullscreen post pass: material, fullscreen triangle, per-frame uniform update. Round 16: it reads the scene's depth for the volumetric fog (shaders/fog.ts, volumetricFog.ts). */
 
 import * as THREE from 'three';
-import { FX, GRADE } from '../data/tuning';
+import { FOG, FX, GRADE } from '../data/tuning';
 import type { FxParams } from './fx';
 import { ANOMALY_HUES, buildPalette, COLD_TINT, WARM_TINT } from './palette';
 import { POST_FRAG, POST_VERT } from './shaders/post';
+import { worldUniforms } from './worldMaterial';
 
-function createUniforms(source: THREE.Texture, palette: Float32Array) {
+function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, palette: Float32Array) {
+  const w = worldUniforms; // the lantern and the lamps, shared: they light the mist as they light the world
   return {
     tScene: { value: source },
+    tDepth: { value: depth },
+    uProjInv: { value: new THREE.Matrix4() },
+    uCamWorld: { value: new THREE.Matrix4() },
+    uCamPos: { value: new THREE.Vector3() },
+    uFog: { value: new THREE.Vector4(0, 1, 0, 0) }, // none until a frame sets it (volumetricFog.ts)
+    uFogColor: { value: new THREE.Vector3() },
+    uFogDrift: { value: new THREE.Vector3() },
+    uFogFar: { value: FOG.far },
+    uFogGlow: { value: FOG.glow },
+    uLanternPos: w.uLanternPos,
+    uLanternColor: w.uLanternColor,
+    uLanternRange: w.uLanternRange,
+    uLanternDecay: w.uLanternDecay,
+    uLamps: w.uLamps,
+    uLampColors: w.uLampColors,
     uRes: { value: new THREE.Vector2(1, 1) },
     uTime: { value: 0 },
     uRipple: { value: 0 },
@@ -37,11 +54,11 @@ export interface PostPass {
   uniforms: ReturnType<typeof createUniforms>;
 }
 
-export function createPostPass(source: THREE.Texture): PostPass {
+export function createPostPass(source: THREE.Texture, depth: THREE.Texture | null = null): PostPass {
   const palette = buildPalette();
-  const uniforms = createUniforms(source, new Float32Array(palette.flat()));
+  const uniforms = createUniforms(source, depth, new Float32Array(palette.flat()));
   const material = new THREE.ShaderMaterial({
-    defines: { PALETTE_SIZE: palette.length },
+    defines: { PALETTE_SIZE: palette.length, FOG_STEPS: FOG.steps },
     uniforms,
     vertexShader: POST_VERT,
     fragmentShader: POST_FRAG,

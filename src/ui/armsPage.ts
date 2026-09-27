@@ -34,7 +34,7 @@ export function armsPage(g: Game, back: () => void, show: (p: Page) => void): Pa
           show(page);
         });
         el(p, 'div', w.note, 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 2px 10px');
-        el(p, 'div', weaponStats(w, might(g, g.player.id) * edgeAt(level)), 'opacity:.75;font:11px/1.4 monospace;margin:0 0 10px 10px');
+        el(p, 'div', weaponStats(w, might(g, g.player.id) * edgeAt(level)), 'opacity:.75;font-size:12px;line-height:1.4;font-variant-numeric:lining-nums tabular-nums;margin:0 0 10px 10px');
       }
       const unfound = WEAPON_IDS.length - g.player.arms.length;
       if (unfound > 0) el(p, 'div', `${unfound === 1 ? 'One more lies' : `${unfound} more lie`} somewhere in the dream.`, 'opacity:.4;font-style:italic;margin-top:6px');

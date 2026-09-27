@@ -19,6 +19,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
   invertY: ['Invert look', (v) => (v > 0.5 ? 'On' : 'Off')],
   resolution: ['Resolution', (v) => `${Math.round(RENDER.width * v)}×${Math.round(RENDER.height * v)}`],
   brightness: ['Brightness', pct],
+  fog: ['Volumetric fog', (v) => (v > 0 ? pct(v) : 'Off')],
   uiScale: ['Text & HUD', (v) => `×${v.toFixed(2)}`],
   shake: ['Screen shake', pct],
   volume: ['Volume', pct],
@@ -27,7 +28,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
   ambience: ['Ambience', pct],
 };
 const GROUPS: readonly (readonly [string, readonly SettingId[]])[] = [
-  ['VIDEO', ['resolution', 'brightness', 'uiScale', 'fxCap', 'shake']],
+  ['VIDEO', ['resolution', 'brightness', 'fog', 'uiScale', 'fxCap', 'shake']],
   ['CONTROLS', ['sensitivity', 'invertY']],
   ['SOUND', ['volume', 'music', 'sfx', 'ambience']],
 ];

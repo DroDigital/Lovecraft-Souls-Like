@@ -80,7 +80,8 @@ describe('sanity drains', () => {
 
   it('drains near a creature with an aura, fading with distance', () => {
     const { g, player, deepOne } = scriptedGame();
-    const { aura } = g.ecs.c.dread.get(deepOne)!;
+    const d = g.ecs.c.dread.get(deepOne)!;
+    const aura = d.aura * (d.tier === 'lesser' ? SANITY.lesserAura : 1); // the vermin's weigh less (round 17)
     const r = g.ecs.c.body.get(deepOne)!.radius;
     place(g, deepOne, 0, 0, 0);
     place(g, player, 0, r + SANITY.auraNear - 0.5, Math.PI);
@@ -93,6 +94,20 @@ describe('sanity drains', () => {
     const before = g.mind.sanity;
     steps(g, 60);
     expect(g.mind.sanity).toBe(before);
+  });
+
+  it('a crowd weighs on the mind, but not as its sum: the strongest aura whole, the rest in part (round 17)', () => {
+    const { g, player, deepOne } = scriptedGame();
+    const d = g.ecs.c.dread.get(deepOne)!;
+    const one = d.aura * (d.tier === 'lesser' ? SANITY.lesserAura : 1);
+    const twin = g.ecs.spawn();
+    g.ecs.c.dread.set(twin, { ...d });
+    g.ecs.c.transform.set(twin, { pos: { x: 0, y: 0, z: 0 }, prev: { x: 0, y: 0, z: 0 }, yaw: 0, prevYaw: 0 });
+    g.ecs.c.body.set(twin, { ...g.ecs.c.body.get(deepOne)! });
+    place(g, deepOne, 0, 0, 0);
+    place(g, player, 0, g.ecs.c.body.get(deepOne)!.radius + 1, Math.PI);
+    steps(g, 60);
+    expect(g.mind.sanity).toBeCloseTo(100 - one * (1 + SANITY.auraStack), 5);
   });
 
   it("landed blows take the attacker's sanityDamage; blocked and dodged ones do not", () => {

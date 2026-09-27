@@ -77,12 +77,15 @@ function drain(g: Game, dt: number): number {
   const { dread, transform, body, actor, combatant } = g.ecs.c;
   const me = g.player.id;
   const pp = transform.get(me)!.pos;
-  let loss = 0;
+  let [top, rest] = [0, 0]; // the strongest aura, and the sum of the others
   for (const [id, d] of dread) {
     if (d.aura <= 0 || isAbsent(g, id)) continue;
     const gap = distXZ(transform.get(id)!.pos, pp) - (body.get(id)?.radius ?? 0);
-    loss += d.aura * auraShare(gap) * dt;
+    const a = d.aura * auraShare(gap) * (d.tier === 'lesser' ? SANITY.lesserAura : 1);
+    if (a > top) [top, rest] = [a, rest + top];
+    else rest += a;
   }
+  let loss = (top + SANITY.auraStack * rest) * dt; // a crowd weighs on the mind, but not as its sum (round 17)
   for (const [id, a] of actor) {
     const s = moveDef(a)?.sanity;
     if (!s || a.frozen || !inWindow(s.window, a.frame) || isAbsent(g, id) || combatant.get(id)?.faction !== 'enemy') continue;

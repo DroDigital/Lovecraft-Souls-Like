@@ -21,7 +21,7 @@ const LINE = { y: 97, half: 34, ease: 5 }; // the making's line: its row, half i
 
 export interface Veil {
   /** Draws the dark over the screen; resolves once it covers everything and has been shown. */
-  cover(words?: string, seconds?: number): Promise<void>;
+  cover(words?: string, seconds?: number, line?: string): Promise<void>; // `line`: said under the words (else a lore line at random)
   /** Draws it back; resolves once it has gone. */
   lift(seconds?: number): Promise<void>;
   /** Covers at once (over a screen that is already dark). */
@@ -97,9 +97,9 @@ export function createVeil(): Veil {
   lore.style.cssText = `margin:calc(22px * var(--ui, 1)) auto 0;max-width:min(640px,80vw);font-style:italic;letter-spacing:.04em;font-size:calc(13px * var(--ui, 1));line-height:1.6;opacity:.6`;
   const said = document.createElement('span');
   words.append(said, lore);
-  const say = (text: string): void => {
+  const say = (text: string, line?: string): void => {
     said.textContent = text;
-    lore.textContent = text ? LORE_LINES[Math.floor(Math.random() * LORE_LINES.length)] : '';
+    lore.textContent = text ? (line ?? LORE_LINES[Math.floor(Math.random() * LORE_LINES.length)]) : '';
   };
   document.body.append(canvas, words);
   const ctx = canvas.getContext('2d');
@@ -189,9 +189,9 @@ export function createVeil(): Veil {
   }
 
   return {
-    cover(text = '', secs = 0.9) {
+    cover(text = '', secs = 0.9, line) {
       haunting = false;
-      say(text);
+      say(text, line);
       [made, shownMade] = [-1, 0];
       return go(1, secs * (1 - coverage));
     },

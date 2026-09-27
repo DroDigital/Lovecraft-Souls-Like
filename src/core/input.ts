@@ -117,9 +117,9 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
 
   addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+    keys.add(e.code); // held, even by a repeat: a key held down through a menu or a talk walks on once it closes (round 17)
     if (e.repeat) return;
     useDevice('keys');
-    keys.add(e.code);
     const b = keyButton(e.code);
     if (b) press(b);
     if (e.code === 'ArrowLeft') keySwitch = -1;

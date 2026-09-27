@@ -9,6 +9,7 @@
  */
 
 import { getRegion } from '../data/regions';
+import { DESCENT_LINE } from '../data/loreLines';
 import { LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { WEAPONS } from '../data/weapons';
 import { canReinforce, edgeAt, reinforce, reinforceCost } from '../systems/arms';
@@ -37,7 +38,7 @@ export interface SignMenu {
 }
 
 /** `go` makes a long jump under the veil (journeys.ts). */
-export function createSignMenu(g: Game, go: (words: string, jump: () => void) => void): SignMenu {
+export function createSignMenu(g: Game, go: (words: string, jump: () => void, line?: string) => void): SignMenu {
   const screen = createScreen(3, '#050506cc');
   const close = (): void => screen.close();
   const journey = (s: SignPlace): void => (close(), go(s.name.toUpperCase(), () => travel(g, s.id)));
@@ -60,7 +61,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void) =>
     for (const id of endings) button(panel, ENDINGS[id].choice, () => void (close(), endGame(g, id)));
     if (here?.dream) {
       heading(panel, 'THE SLEEPER’S SIGN');
-      if (descentOpen(g)) button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g))));
+      if (descentOpen(g)) button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g), DESCENT_LINE)));
       else el(panel, 'div', 'The stair will not open while Keziah Mason troubles the sleepers, in the Witch House in Arkham.', 'opacity:.6;margin:4px 0 8px');
     }
     heading(panel, `${g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : ''}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  NEXT LEVEL ${nextLevelCost(g)}`);

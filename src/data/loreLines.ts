@@ -22,3 +22,6 @@ export const LORE_LINES: readonly string[] = [
   'Before a horror the fog closes: no one leaves until one of you falls.',
   'Azathoth is blind. It hears.',
 ];
+
+/** Said under the veil as the investigator first goes down into the dream (round 17), in place of a line at random. */
+export const DESCENT_LINE = 'Seventy steps of light slumber, down to the cavern of flame. Behind you the waking world grows thin.';

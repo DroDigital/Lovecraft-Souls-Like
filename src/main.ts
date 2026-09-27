@@ -14,11 +14,13 @@ import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createGameAudio } from './render/audio/gameAudio';
+import { playMenuMusic } from './render/audio/music';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
 import { createSky } from './render/sky';
+import { createVolumetricFog } from './render/volumetricFog';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
@@ -65,6 +67,8 @@ import { takeCarry } from './systems/records';
 import { takeFlag, title } from './ui/titleFlow';
 import { createArenaScene } from './world/arenaScene';
 import { roofedAt } from './world/terrain';
+
+const INTERACT_GRACE_MS = 350; // after a talk or a menu closes, E is held back this long
 
 interface StartOptions {
   debug: boolean; // exposes the game (and the world scene) on `window` for console poking and scripted checks
@@ -114,7 +118,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const scene = world?.scene ?? createArenaScene();
   scene.add(lights.halos);
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game, journeys.go);
-  const ending = createEndingCard(game, store);
+  const ending = createEndingCard(game, store, () => (shell.music = playMenuMusic(shell.engine, settings.volume))); // the title's theme again, under an ending
   const pause = createPauseMenu({
     settings,
     change: shell.change,
@@ -140,6 +144,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
   const sky = createSky();
+  const mist = createVolumetricFog(pipeline.post); // round 16
   scene.add(sky.mesh);
   const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
@@ -170,10 +175,13 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   let frames = 0;
   let statsAt = performance.now();
 
+  let heldAt = 0; // when a talk or a menu last held the investigator
   startLoop(
     {
       step(dt) {
         const frame = input.poll(); // polled even when unused, so no press is left latched for later
+        if (menu?.open || shop.open || dialogue.open || pause.open || map.open) heldAt = performance.now();
+        else if (performance.now() - heldAt < INTERACT_GRACE_MS) frame.pressed.interact = false; // E mashed through a talk does not rest at the sign behind it (round 17)
         const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;
@@ -195,6 +203,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         placeCamera(camera, game, alpha);
         const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
+        const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
+        mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;

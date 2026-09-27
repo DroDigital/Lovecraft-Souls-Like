@@ -17,8 +17,8 @@ import { regionAt } from '../world/worldMap';
 import type { Veil } from './veil';
 
 export interface Journeys {
-  /** Covers, makes the jump, and lifts once the world about the investigator stands. */
-  go(words: string, jump: () => void): void;
+  /** Covers, makes the jump, and lifts once the world about the investigator stands; a journey with its own `line` falls slower and holds until it can be read. */
+  go(words: string, jump: () => void, line?: string): void;
   /** The veil already covers (a game begun, even before its making is done): names the region the investigator stands in, lifts once the world stands, then calls `then`. */
   arrive(then?: () => void): void;
   /** Before a step: the input the world steps with, or null while it stands still. E at a gate becomes a journey through it. */
@@ -30,6 +30,7 @@ export interface Journeys {
 }
 
 const HOLD_MS = [900, 4000] as const; // under the veil after a jump, from its first drawn frame: at least (the sign shows), and at most while chunks build
+const READ_MS = 3400; // under the veil at least, when it says a journey's own line (round 17: the descent's)
 const BUILD_MS = 24; // chunk building a frame while nothing shows (nothing is drawn under the veil, so it has the frame)
 export const DYING_MS = 2600; // the fall shows this long before the veil comes (round 14: UNMADE had a second, then was gone under the dark)
 
@@ -41,6 +42,7 @@ export function createJourneys(g: Game, veil: Veil, ready?: () => Promise<void>)
   let fallen = false; // the veil has begun to fall on a death
   let rise = 0; // steps the world takes on arrival, before it waits
   let [from, peak] = [0, 0]; // the hold's line: the share made before it, and the most chunk jobs it has seen pending
+  let least: number = HOLD_MS[0]; // this hold's shortest
 
   const hold = (after?: () => void): void => {
     [phase, since, then, rise] = ['holding', -1, after, 1];
@@ -65,10 +67,10 @@ export function createJourneys(g: Game, veil: Veil, ready?: () => Promise<void>)
   g.events.on('Respawned', () => void (phase === 'dying' && hold()));
 
   const self: Journeys = {
-    go(words, jump) {
+    go(words, jump, line) {
       if (phase !== 'idle') return;
-      phase = 'covering';
-      void veil.cover(words, 0.9).then(() => {
+      [phase, least] = ['covering', line ? READ_MS : HOLD_MS[0]];
+      void veil.cover(words, line ? 1.6 : 0.9, line).then(() => {
         jump();
         hold();
       });
@@ -99,8 +101,8 @@ export function createJourneys(g: Game, veil: Veil, ready?: () => Promise<void>)
       if (since < 0) [since, from, peak] = [now, veil.fill, 0];
       peak = Math.max(peak, pending);
       veil.progress(from + (1 - from) * (peak > 0 ? 1 - pending / peak : 1));
-      if (now - since < HOLD_MS[0] || (pending > 0 && now - since < HOLD_MS[1])) return;
-      phase = 'readying';
+      if (now - since < least || (pending > 0 && now - since < Math.max(least, HOLD_MS[1]))) return;
+      [phase, least] = ['readying', HOLD_MS[0]];
       if (ready) void ready().then(lift, lift);
       else lift();
     },

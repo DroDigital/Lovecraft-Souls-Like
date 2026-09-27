@@ -6,7 +6,8 @@
  * Select the `onPadSelect` ones. A page may hear keys and read the pad itself (the map).
  * Round 12: coming back to a page finds the focus where it was left; a page is drawn again when
  * the player picks up the other device, so it names that device's buttons; panels scale with the
- * UI scale (uiScale.ts).
+ * UI scale (uiScale.ts). Round 17: a long page opens at its top, and scrolls on (the arrows past
+ * its last choice, or the pad's right stick).
  */
 
 import { useDevice, onDeviceChange } from '../core/device';
@@ -70,16 +71,22 @@ const CSS = `
 
 const items = (panel: HTMLElement): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input')];
 
-function focusAt(panel: HTMLElement, i: number): void {
+function focusAt(panel: HTMLElement, i: number, preventScroll = false): void {
   const list = items(panel);
-  if (list.length) list[Math.max(0, Math.min(list.length - 1, i))].focus({ preventScroll: false });
+  if (list.length) list[Math.max(0, Math.min(list.length - 1, i))].focus({ preventScroll });
 }
 
+/**
+ * The next choice up or down; but past the last choice that way, a long page scrolls on before it
+ * wraps round (playtest round 17: a pad could not read what lay above Achievements' one button).
+ */
 function move(panel: HTMLElement, by: number): void {
   const list = items(panel);
-  if (!list.length) return;
   const i = list.indexOf(document.activeElement as HTMLElement);
-  list[i < 0 ? 0 : (i + by + list.length) % list.length].focus();
+  const room = by < 0 ? panel.scrollTop : panel.scrollHeight - panel.clientHeight - panel.scrollTop;
+  if (i >= 0 && !list[i + by] && room > 1) panel.scrollBy({ top: by * panel.clientHeight * 0.6, behavior: 'smooth' });
+  else if (list.length) list[i < 0 ? 0 : (i + by + list.length) % list.length].focus();
+  else return;
   sound();
 }
 
@@ -130,6 +137,8 @@ function pollPad(now: number): void {
       repeatAt = now + REPEAT_MS[dir === held ? 1 : 0];
       held = dir;
     }
+    const ry = pad?.axes[3] ?? 0; // the right stick scrolls a long page
+    if (Math.abs(ry) > STICK) top.panel.scrollTop += ry * 14;
     if (edge(PAD.left) || (lx < -STICK && !prev.has(-1))) nudge(-1);
     if (edge(PAD.right) || (lx > STICK && !prev.has(-2))) nudge(1);
     if (edge(PAD.a)) {
@@ -187,6 +196,7 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left
     },
     show(page) {
       const same = entry?.page === page;
+      const fresh = !same && !memory.has(page); // a page first opened is read from its top
       const at = same ? focused() : (memory.get(page) ?? 0);
       if (entry && !same) memory.set(entry.page, Math.max(0, focused()));
       page.redraw = () => void (entry?.page === page && self.show(page));
@@ -199,7 +209,8 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left
         stack.push((entry = { panel, page, since: performance.now(), redraw }));
       }
       document.exitPointerLock?.();
-      focusAt(panel, Math.max(0, at));
+      focusAt(panel, Math.max(0, at), fresh);
+      if (fresh) panel.scrollTop = 0;
     },
     close() {
       if (!entry) return;

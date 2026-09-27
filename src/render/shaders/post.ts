@@ -3,8 +3,11 @@
  * split-tone grade with colour isolation, palette quantisation with 4×4 Bayer dithering, and a red
  * vignette on the side a blow came from. It renders at the low-res size; the browser upscales the
  * canvas nearest-neighbour. Scene alpha below 0.5 marks a hue outside the palette (the Colour Out of
- * Space), which is neither graded nor quantised.
+ * Space), which is neither graded nor quantised. Round 16: volumetric fog (fog.ts) lies between the lens
+ * and the scene, marched against the scene's depth.
  */
+
+import { FOG_GLSL } from './fog';
 
 export const POST_VERT = /* glsl */ `
 void main() {
@@ -33,6 +36,7 @@ uniform float uQuantize;
 uniform float uDither;
 uniform float uGamma; // 1 / the brightness setting: below 1 lifts the dark
 uniform vec3 uPalette[PALETTE_SIZE];
+${FOG_GLSL}
 
 const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 
@@ -121,7 +125,8 @@ void main() {
     b = isolate(b);
     e = isolate(e);
   }
-  vec3 col = pow(hurt(vec3(a.r, b.g, e.b), uv), vec3(uGamma));
+  vec4 fog = fogAlong(uv, bayer4(cell) + 0.5); // the mist between the lens and the scene (round 16)
+  vec3 col = pow(hurt(vec3(a.r, b.g, e.b) * fog.a + fog.rgb, uv), vec3(uGamma));
   if (uQuantize > 0.5) col = quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }

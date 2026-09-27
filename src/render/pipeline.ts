@@ -40,8 +40,9 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     magFilter: THREE.NearestFilter,
     generateMipmaps: false,
     depthBuffer: true,
+    depthTexture: new THREE.DepthTexture(RENDER.width, RENDER.height), // read by the volumetric fog (round 16)
   });
-  const post = createPostPass(target.texture);
+  const post = createPostPass(target.texture, target.depthTexture);
   worldUniforms.uMarkCharacters.value = 1; // the post pass reads characters from the target's alpha
   const size = new THREE.Vector2(RENDER.width, RENDER.height);
 
