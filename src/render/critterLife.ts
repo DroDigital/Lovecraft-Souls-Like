@@ -31,6 +31,7 @@ export interface Life extends V3 {
   seen: number; // 0..1: how much of it shows (a firefly: how brightly it glows)
   phase: number; // its own rhythm
   high: boolean; // sitting up on something (a cat on a wall)
+  pass?: number; // crossing the sky (a flock passing over): seconds it takes, and then it is gone for good
   rng: Rng;
 }
 
@@ -41,6 +42,11 @@ export function birth(nest: Nest): Life {
 }
 
 const between = (rng: Rng, [lo, hi]: readonly [number, number]): number => lo + (hi - lo) * rng();
+
+/** A bird of a flock crossing the sky: from `at`, level, at (vx, vz) m/s, for `seconds`. */
+export function passing(nest: Nest, vx: number, vz: number, seconds: number): Life {
+  return { ...birth(nest), vx, vz, mode: 'flee', t: -createRng(nest.seed + 1)() * 0.4, seen: 0, pass: seconds };
+}
 
 /** Sends it off, away from `from`, if it minds such things and is not already going: true if it went. */
 export function startle(l: Life, from: V3): boolean {
@@ -82,9 +88,13 @@ function wander(l: Life, time: number, dt: number): void {
 /** On its way out of sight. */
 function flee(l: Life, dt: number): void {
   if (l.t < 0) return; // about to go
-  const out = l.def.habit === 'perch' ? FAUNA.flight : l.high ? 0.5 : l.def.habit === 'prowl' ? 2 : 1.1; // seconds it is in sight
+  const out = l.pass ?? (l.def.habit === 'perch' ? FAUNA.flight : l.high ? 0.5 : l.def.habit === 'prowl' ? 2 : 1.1); // seconds it is in sight
   const fade = Math.min(1.5, out);
-  if (l.def.habit === 'perch') {
+  if (l.pass) {
+    l.vy = 0.3 * Math.sin(l.t * 1.3 + l.phase); // it rides the air
+    [l.x, l.y, l.z] = [l.x + l.vx * dt, l.y + l.vy * dt, l.z + l.vz * dt];
+    l.seen = Math.min(1, l.t / fade); // out of the dark...
+  } else if (l.def.habit === 'perch') {
     const turn = (l.phase % 1 < 0.5 ? -0.25 : 0.25) * dt; // it banks as it goes
     [l.vx, l.vz] = [l.vx * Math.cos(turn) - l.vz * Math.sin(turn), l.vx * Math.sin(turn) + l.vz * Math.cos(turn)];
     l.vy = Math.max(0.4, l.vy - 0.35 * dt);
@@ -94,7 +104,7 @@ function flee(l: Life, dt: number): void {
     [l.x, l.z] = [l.x + l.vx * dt, l.z + l.vz * dt];
     l.y = surface(l.x, l.z);
   }
-  l.seen = Math.min(l.seen, 1 - Math.max(0, Math.min(1, (l.t - out + fade) / fade))); // the dark takes it
+  l.seen = Math.min(l.seen, 1 - Math.max(0, Math.min(1, (l.t - out + fade) / fade))); // ...and the dark takes it
   if (l.t >= out) [l.mode, l.wait, l.seen] = ['gone', between(l.rng, FAUNA.goneFor), 0];
 }
 

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CHUNK_CRITTERS, CRITTERS, FAUNA as HAUNTS } from '../src/data/fauna';
+import { CHUNK_CRITTERS, CRITTERS, FAUNA as HAUNTS, SKY_VISITORS } from '../src/data/fauna';
+import { getEntity } from '../src/data/registry';
 import { REGIONS } from '../src/data/regions';
-import { FAUNA } from '../src/data/tuning';
-import { birth, live, startle, type Life } from '../src/render/critterLife';
+import { FAUNA, LIGHTNING } from '../src/data/tuning';
+import { birth, live, passing, startle, type Life } from '../src/render/critterLife';
+import { flicker } from '../src/render/lightning';
 import { critterAtlas } from '../src/render/sprites/critters';
 import { nestsOf, type Nest } from '../src/world/haunts';
 import { inDungeon, surface } from '../src/world/terrain';
@@ -124,5 +126,36 @@ describe('the small lives (round 18: data/fauna.ts, world/haunts.ts, render/crit
     let ink = 0;
     for (let i = 3; i < atlas.data.length; i += 4) if (atlas.data[i] > 0) ink++;
     expect(ink).toBeGreaterThan(1000);
+  });
+
+  it('the sky: every visitor is a flock of a bird or a roster creature drawn as a sprite, over a real region; a flock crosses and is gone for good', () => {
+    const regions = new Set(REGIONS.map((r) => r.id));
+    for (const [id, list] of Object.entries(SKY_VISITORS)) {
+      expect(regions.has(id), id).toBe(true);
+      for (const v of list) {
+        if (v.flock) expect(CRITTERS[v.flock].habit, `${id}: ${v.flock}`).toBe('perch');
+        else expect(getEntity(v.shape ?? '')?.sprite, `${id}: ${v.shape}`).toBeDefined();
+        expect(v.every[0]).toBeGreaterThan(10); // now and then, not all the time
+      }
+    }
+    const bird = passing({ critter: 'crow', x: 0, y: 20, z: 0, seed: 7 }, 8, 0, FAUNA.pass);
+    let [t, seen] = [0, 0];
+    for (let i = 0; i < (FAUNA.pass + 1) * 60; i++) {
+      live(bird, 1 / 60, (t += 1 / 60), { x: 0, y: 0, z: 0 }, 0);
+      seen = Math.max(seen, bird.seen);
+      if (i === 120) expect(bird.x).toBeGreaterThan(8);
+    }
+    expect(seen).toBe(1);
+    expect(bird.mode).toBe('gone');
+    expect(Math.abs(bird.y - 20)).toBeLessThan(1); // level flight
+  });
+
+  it('lightning: three quick pulses dying away, only where storms roll', () => {
+    expect(flicker(-0.01)).toBe(0);
+    expect(flicker(0)).toBe(1);
+    expect(flicker(0.09)).toBeLessThan(flicker(0.15));
+    expect(flicker(LIGHTNING.flash)).toBe(0);
+    expect(flicker(LIGHTNING.flash * 0.9)).toBeLessThan(0.1);
+    for (const id of Object.keys(LIGHTNING.every)) expect(REGIONS.some((r) => r.id === id), id).toBe(true);
   });
 });

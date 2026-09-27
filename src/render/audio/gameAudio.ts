@@ -37,6 +37,8 @@ export interface GameAudio {
   update(fx: FxParams, seconds: number, camera: THREE.Camera, paused: boolean): void;
   /** A voice where `at` is, recorded if it can be (round 18: the small lives' cries as they take fright). */
   cry(id: VoiceId, at: V3, gain?: number): void;
+  /** A recording from afar: panned anywhere, duller the quieter (round 18: the thunder after lightning). */
+  far(set: SampleSetId, gain?: number): void;
 }
 
 interface Caller {
@@ -142,6 +144,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
 
   let lastBeat = -1;
   return {
+    far(set, gain = 1) {
+      sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, bus: e.bed ?? undefined });
+    },
     cry(id, at, gain = 1) {
       const [v, set, pitch] = [VOICES[id], VOICE_SAMPLES[id], 0.94 + 0.12 * Math.random()];
       if (set && recorded(set, at, v.range, { pitch, gain })) return;

@@ -146,7 +146,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   const mist = createVolumetricFog(pipeline.post); // round 16
-  const life = createWorldLife(scene, game, audio); // round 18: the world's small lives
+  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet }); // round 18: the world's own life
   scene.add(sky.mesh);
   const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
@@ -223,11 +223,11 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         bossFx.update(alpha, time, camera);
         shadows.update(alpha);
         particles.update(time, camera);
-        life.update(camera, time, enclosed || !world);
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
         applyReality(fx, game.reality);
         lightReality(game.reality);
+        life.update(camera, time, enclosed); // after the night's light: the lightning adds to it
         audio.update(fx, time, camera, still);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);

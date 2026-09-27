@@ -70,3 +70,33 @@ export const FAUNA: Readonly<Record<string, readonly Haunt[]>> = {
 
 /** At most this many critters are kept to one chunk. */
 export const CHUNK_CRITTERS = 20;
+
+/**
+ * What crosses the sky now and then (round 18): a flock of the region's birds, or one of the great
+ * winged things of the realm (a roster creature's sprite), high over the investigator and gone
+ * into the dark again, with a cry as it passes nearest.
+ */
+export interface SkyVisitor {
+  flock?: CritterId; // a flock of these (render/fauna.ts draws them)...
+  shape?: string; // ...or one of these roster creatures, drawn from its sprite...
+  size?: number; // ...this many metres across
+  count: readonly [min: number, max: number];
+  every: readonly [min: number, max: number]; // seconds between
+  height: readonly [min: number, max: number]; // metres over the investigator
+  speed: number; // m/s
+  cry?: VoiceId;
+}
+
+const flock = (kind: CritterId, every: readonly [number, number], count: readonly [number, number] = [5, 9]): SkyVisitor => ({ flock: kind, count, every, height: [5, 9], speed: 8, cry: CRITTERS[kind].cry });
+
+export const SKY_VISITORS: Readonly<Record<string, readonly SkyVisitor[]>> = {
+  hub: [flock('crow', [60, 130])],
+  arkham: [flock('crow', [50, 110])],
+  dunwich: [flock('whippoorwill', [40, 90], [7, 12])], // they gather where a soul is passing
+  innsmouth: [flock('gull', [35, 80], [4, 8])],
+  providence: [flock('crow', [55, 120])],
+  vermont: [flock('crow', [70, 140]), { shape: 'mi_go', size: 3.4, count: [1, 3], every: [45, 110], height: [8, 14], speed: 11, cry: 'buzz' }],
+  yuggoth: [{ shape: 'mi_go', size: 3.4, count: [2, 5], every: [25, 60], height: [8, 16], speed: 12, cry: 'buzz' }],
+  dreamlands: [{ shape: 'night_gaunt', size: 3.6, count: [1, 3], every: [40, 90], height: [7, 13], speed: 9 }, { shape: 'shantak', size: 6.5, count: [1, 1], every: [100, 200], height: [12, 18], speed: 13, cry: 'squawk' }],
+  rlyeh: [flock('gull', [60, 130], [3, 6])],
+};

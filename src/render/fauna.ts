@@ -15,7 +15,7 @@ import type { VoiceId } from '../data/voices';
 import type { Game } from '../systems/components';
 import { nestsOf } from '../world/haunts';
 import { chunkKey, chunkOf } from '../world/worldMap';
-import { birth, gait, live, startle, type Life } from './critterLife';
+import { birth, gait, live, passing, startle, type Life } from './critterLife';
 import { createHalos } from './halos';
 import { SPRITE_FRAG, SPRITE_VERT } from './shaders/sprite';
 import { critterAtlas, critterCell, CRITTER_CELL } from './sprites/critters';
@@ -30,13 +30,16 @@ export interface Fauna {
   update(camera: THREE.Camera, time: number, hidden: boolean): void;
   /** Those living now (for the debug console). */
   readonly lives: () => Life[];
+  /** A flock of `kind` crossing the sky from `at`, heading `yaw` at `speed` m/s for `seconds`. */
+  flock(kind: CritterId, count: number, at: V3, yaw: number, speed: number, seconds: number): void;
 }
 
 export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, at: V3) => void): Fauna {
   const atlas = critterAtlas();
   const tex = new THREE.DataTexture(atlas.data, atlas.width, atlas.height);
   [tex.magFilter, tex.minFilter, tex.generateMipmaps, tex.needsUpdate] = [THREE.NearestFilter, THREE.NearestFilter, false, true];
-  const material = new THREE.ShaderMaterial({ uniforms: { ...worldUniforms, uAtlas: { value: tex } }, vertexShader: SPRITE_VERT, fragmentShader: SPRITE_FRAG });
+  const fog = { value: 1 }; // their own share of the world's fog
+  const material = new THREE.ShaderMaterial({ uniforms: { ...worldUniforms, uFogAmount: fog, uAtlas: { value: tex } }, vertexShader: SPRITE_VERT, fragmentShader: SPRITE_FRAG });
   const geo = new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0);
   const attr = (n: number): THREE.InstancedBufferAttribute => new THREE.InstancedBufferAttribute(new Float32Array(CAPACITY * n), n).setUsage(THREE.DynamicDrawUsage);
   const [cells, info] = [attr(4), attr(4)];
@@ -50,6 +53,7 @@ export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, a
   scene.add(batch, glows.mesh);
 
   const lives = new Map<number, Life[]>(); // by chunk
+  lives.set(NaN, []); // flocks crossing the sky, of no chunk
   const me = { x: 0, y: 0, z: 0 };
   let [here, last, now, lastCry, pace] = [NaN, -1, 0, -Infinity, 0];
   const heard = (l: Life): void => {
@@ -76,13 +80,23 @@ export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, a
         if (!lives.has(key)) lives.set(key, nestsOf(cx + dx, cz + dz).map(birth));
       }
     }
-    for (const key of [...lives.keys()]) if (!keep.has(key)) lives.delete(key);
+    for (const key of [...lives.keys()]) if (!keep.has(key) && !Number.isNaN(key)) lives.delete(key);
   };
 
   const m4 = new THREE.Matrix4();
   const right = new THREE.Vector3();
   return {
     lives: () => [...lives.values()].flat(),
+    flock(kind, count, at, yaw, speed, seconds) {
+      const [dx, dz] = [Math.sin(yaw), Math.cos(yaw)];
+      const flying = lives.get(NaN)!;
+      for (let i = 0; i < count; i++) {
+        const [side, back] = [(i % 2 ? 1 : -1) * Math.ceil(i / 2) * 1.7, Math.ceil(i / 2) * 1.5]; // a loose V
+        const x = at.x - dx * back + dz * side;
+        const z = at.z - dz * back - dx * side;
+        flying.push(passing({ critter: kind, x, y: at.y + (Math.random() - 0.5) * 1.6, z, seed: (Math.random() * 1e9) | 0 }, dx * speed, dz * speed, seconds));
+      }
+    },
     update(camera, time, hidden) {
       const dt = last < 0 ? 0 : Math.min(0.1, Math.max(0, time - last));
       [last, now] = [time, time];
@@ -98,6 +112,9 @@ export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, a
         }
       }
       if (dt > 0) for (const list of lives.values()) for (const l of list) if (live(l, dt, time, me, pace)) heard(l);
+      const flying = lives.get(NaN)!;
+      if (flying.some((l) => l.mode === 'gone')) lives.set(NaN, flying.filter((l) => l.mode !== 'gone')); // a flock over, gone for good
+      fog.value = worldUniforms.uFogAmount.value * FAUNA.fog;
       right.setFromMatrixColumn(camera.matrixWorld, 0);
       const eye = camera.position;
       glows.begin();

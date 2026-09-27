@@ -259,6 +259,19 @@ export const FAUNA = {
   shot: 32, // metres: a shot sends off every bird and beast this near it...
   blow: 10, // ...a blow struck, those this near
   cryGap: 0.5, // seconds: startled together, only one cries
+  fog: 0.4, // share of the world's fog they take: a bird against the night sky is a dark shape, not a pale fleck like a star
+  pass: 16, // seconds a flock or a great winged thing takes to cross the sky (data/fauna.ts SKY_VISITORS)...
+  passBy: [10, 24] as const, // ...passing this far from the investigator at its nearest, low enough to cross the horizon's haze
+};
+
+/** Lightning where storms roll (round 18: render/lightning.ts): now and then the sky flashes, and the thunder follows. */
+export const LIGHTNING = {
+  every: { dunwich: [35, 100], innsmouth: [50, 140], rlyeh: [20, 60], mountains: [70, 170] } as Readonly<Record<string, readonly [number, number]>>,
+  flash: 0.45, // seconds of flicker
+  light: 1.8, // how much it lights the world (added to the moon; the ambient takes half)...
+  sky: 7, // ...brightens the sky's haze...
+  mist: 0.3, // ...and the mist
+  delay: [0.6, 3.2] as const, // seconds before the thunder: the farther the strike, the later and quieter
 };
 
 /** The seals on Kadath's door (playtest round 12, systems/seals.ts). */
