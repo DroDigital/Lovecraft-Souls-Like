@@ -17,6 +17,7 @@ import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
 import { fill, glyph } from './glyphs';
 import { EPITAPHS } from '../data/epitaphs';
+import { REGIONS } from '../data/regions';
 import { creatureOf } from '../systems/creatures';
 import { createBanner } from './banner';
 import { DYING_MS } from './journeys';
@@ -102,6 +103,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   g.events.on('Travelled', (e) => show(e.name.toUpperCase()));
   g.events.on('Vanquished', (e) => great.show('HORROR VANQUISHED', 'victory', e.name.toUpperCase(), EPITAPHS[creatureOf(g, e.entity)?.id ?? '']));
   g.events.on('Discovered', (e) => say(`ELDER SIGN FOUND · ${e.name.toUpperCase()}`));
+  g.events.on('PlaceFound', (e) => great.show(e.name.toUpperCase(), 'place', `${e.found} OF ${e.of} PLACES · ${(REGIONS.find((r) => r.id === e.region)?.name ?? '').toUpperCase()}`)); // round 18
   g.events.on('QuestChanged', (e) => say(e.done ? `DONE · ${e.title.toUpperCase()}` : e.stage === 0 ? `JOURNAL · ${e.title.toUpperCase()}` : `${e.title.toUpperCase()} · UPDATED`));
   g.events.on('RestRefused', () => say('SOMETHING HUNTS YOU · NO REST'));
 

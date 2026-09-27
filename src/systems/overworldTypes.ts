@@ -26,4 +26,5 @@ export interface Overworld {
   sold: Map<string, number>; // wares bought from merchants, by ware (trade.ts; round 12)
   tally: Tally; // the run's numbers (tally.ts; round 12)
   said: Set<string>; // dungeon rooms that have said their words since the last rest or death (roomWords.ts)
+  places: Set<string>; // the named places found (places.ts; round 18)
 }

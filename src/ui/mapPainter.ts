@@ -12,6 +12,7 @@ import { cellsOf, isExplored } from '../systems/exploration';
 import { NPCS } from '../data/npcs';
 import { npcPlace } from '../systems/npcs';
 import { mapPlaces, type MapPlace } from '../world/mapData';
+import { placesOf } from '../world/namedPlaces';
 import { regionAt, regionRect } from '../world/worldMap';
 import { artOf, type Art } from './mapArt';
 import { drawLabels, type MapLabel } from './mapLabels';
@@ -240,13 +241,21 @@ export function createMapPainter(g: Game): MapPainter {
         ctx.lineTo(x - 3, y);
         ctx.fill();
       }
+      const found: MapLabel[] = []; // the named places found, marked and named last (round 18)
+      for (const pl of realm.flatMap((r) => placesOf(r.id))) {
+        if (!ow.places.has(pl.id)) continue;
+        const [x, y] = [sx(pl.x), sy(pl.z)];
+        ctx.fillStyle = DIM;
+        ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+        found.push({ text: pl.name, x, y, size: 8.5 * k, color: DIM, gap: 5 });
+      }
       if (names) {
         for (const r of realm) {
           if (!ow.explored.get(r.id)?.some((v) => v > 0)) continue;
           const rc = regionRect(r);
           regionNames.push({ text: r.name.toUpperCase(), x: sx((rc.x0 + rc.x1) / 2), y: sy(rc.z1) + 6, size: 12 * k, color: 'rgba(217,208,184,0.55)', gap: 0, centred: true });
         }
-        drawLabels(ctx, [...regionNames, ...names, ...people], marks);
+        drawLabels(ctx, [...regionNames, ...names, ...people, ...found], marks);
       }
       const tr = g.ecs.c.transform.get(g.player.id)!;
       const [px, py] = [sx(tr.pos.x), sy(tr.pos.z)];
