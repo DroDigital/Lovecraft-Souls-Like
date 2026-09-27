@@ -24,6 +24,7 @@ export function goalMet(g: Game, goal: AchievementGoal, endings: number): boolea
   if ('level' in goal) return levelsBought(g) + 1 >= goal.level;
   if ('journey' in goal) return g.player.cycle + 1 >= goal.journey;
   if ('met' in goal) return NPCS.every((n) => ow.met.has(n.id));
+  if ('places' in goal) return ow.places.size >= goal.places;
   return ow.tally.kills >= goal.kills;
 }
 

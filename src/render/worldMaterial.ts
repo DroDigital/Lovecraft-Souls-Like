@@ -59,6 +59,7 @@ export interface WorldMaterialOptions {
   texture2?: TextureKind; // a second texture blended in by the geometry's aSplat attribute (roads)
   eldritch?: number; // 0..1: how far the body refuses to hold its shape (shaders/eldritch.ts)
   bodyScale?: number; // metres: the body's height, which that is measured in
+  panes?: boolean; // lit windows, each lived behind by its aPane seed (paneLife.ts; round 18)
 }
 
 const textures = new Map<string, THREE.DataTexture>();
@@ -103,6 +104,7 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,
     vertexColors: o.vertexColors ?? false,
+    defines: o.panes ? { PANES: '' } : {},
   });
   material.userData.emissive = o.emissive ?? 0;
   return material;

@@ -21,6 +21,7 @@ import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
 import { createSky } from './render/sky';
 import { createVolumetricFog } from './render/volumetricFog';
+import { createWorldLife } from './render/worldLife';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
@@ -145,6 +146,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   const mist = createVolumetricFog(pipeline.post); // round 16
+  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet }); // round 18: the world's own life
   scene.add(sky.mesh);
   const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
@@ -160,7 +162,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
-  if (debug) Object.assign(window, { game, world, audio: shell.engine });
+  if (debug) Object.assign(window, { game, world, audio: shell.engine, life });
   placeCamera(camera, game, 1);
   void pipeline.compile(scene, camera); // compiling while the chunks are built (in parallel, where the browser can)
   await made(0.55);
@@ -225,6 +227,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const fx = computeFx(state);
         applyReality(fx, game.reality);
         lightReality(game.reality);
+        life.update(camera, time, enclosed); // after the night's light: the lightning adds to it
         audio.update(fx, time, camera, still);
         const lens = lensAt(fx, time);
         applyLens(camera, lens.fovDeg, lens.skew);

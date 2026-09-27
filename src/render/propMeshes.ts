@@ -29,6 +29,7 @@ const OPTIONS: Record<PropMat, WorldMaterialOptions> = {
   brick: { texture: 'brick', seed: 3, vertexColors: true, vary: 0.5 },
   shingle: { texture: 'shingle', seed: 3, vertexColors: true, vary: 0.5 },
   glow: { texture: 'cloth', emissive: 1, vertexColors: true },
+  pane: { texture: 'cloth', emissive: 1, vertexColors: true, panes: true }, // lit windows (round 18)
 };
 const materials = new Map<PropMat, THREE.ShaderMaterial>();
 const material = (m: PropMat): THREE.ShaderMaterial => {
@@ -47,13 +48,13 @@ export function* propJob(props: readonly Prop[], region: RegionDef, done: (meshe
   for (const p of props) {
     const [s, cs] = [Math.sin(p.yaw), Math.cos(p.yaw)];
     for (const piece of p.kind === 'house' ? housePieces(p, c) : propPieces(p, c)) {
-      if (piece.mat !== 'glow') groundShade(piece.geo, p.kind === 'house' ? 0.62 : 0.55, p.kind === 'house' ? 2.2 : 1.6); // darker toward the ground
+      if (piece.mat !== 'glow' && piece.mat !== 'pane') groundShade(piece.geo, p.kind === 'house' ? 0.62 : 0.55, p.kind === 'house' ? 2.2 : 1.6); // darker toward the ground
       const geo = piece.geo.rotateY(p.yaw).translate(p.x, p.y - 0.15, p.z);
       groups.get(piece.mat)?.push(geo) ?? groups.set(piece.mat, [geo]);
       if (!piece.light) continue;
       if (piece.at) {
         const place = ([x, y, z]: readonly [number, number, number]): { x: number; y: number; z: number } => ({ x: p.x + x * cs + z * s, y: p.y - 0.15 + y, z: p.z - x * s + z * cs }); // turned as the piece was (rotateY), then placed
-        lights.push({ ...place(piece.at), kind: piece.light, glass: piece.glass && place(piece.glass) });
+        lights.push({ ...place(piece.at), kind: piece.light, glass: piece.glass && place(piece.glass), pane: piece.pane });
       } else {
         geo.computeBoundingBox();
         const m = geo.boundingBox!.getCenter(new THREE.Vector3());

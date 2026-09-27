@@ -17,7 +17,8 @@ export type AchievementGoal =
   | { level: number } // the investigator's level
   | { journey: number } // the journey (NG+) under way
   | { met: 'all' } // everyone who can be talked with
-  | { kills: number }; // foes killed in one dream
+  | { kills: number } // foes killed in one dream
+  | { places: number }; // named places found in one dream (round 18)
 
 export interface AchievementDef {
   name: string;
@@ -47,6 +48,7 @@ export const ACHIEVEMENTS = {
   people: { name: 'The Other Sleepers', note: 'Talk with everyone in the dream.', goal: { met: 'all' } },
   hundred: { name: 'A Hundred Horrors', note: 'Kill a hundred foes in one dream.', goal: { kills: 100 } },
   again: { name: 'Once More into the Dream', note: 'Begin a second journey, carrying your strength.', goal: { journey: 2 } },
+  searcher: { name: 'Searcher After Horror', note: 'Find fifty of the dream\'s named places.', goal: { places: 50 } },
 } satisfies Record<string, AchievementDef>;
 
 export type AchievementId = keyof typeof ACHIEVEMENTS;

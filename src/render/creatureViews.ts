@@ -75,6 +75,8 @@ function ghost(a: Assembly, share: number): Assembly {
 
 export interface CreatureViews {
   update(alpha: number, time: number, camera: THREE.Camera): void;
+  /** The sprite atlas and its texture, for others that draw a creature's likeness (round 18: skyLife.ts). */
+  readonly sheet: { atlas: SpriteAtlas; texture: THREE.Texture };
 }
 
 export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAtlas): CreatureViews {
@@ -129,6 +131,7 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
   const seen = new Set<Entity>(); // reused each frame: no garbage per frame
 
   return {
+    sheet: { atlas, texture: tex },
     update(alpha, time, camera) {
       camera.updateMatrixWorld();
       right.setFromMatrixColumn(camera.matrixWorld, 0);

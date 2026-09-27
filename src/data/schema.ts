@@ -175,6 +175,7 @@ export interface ArchetypeParams {
   mobile: boolean;
   turnRate: number; // rad/s
   evade: number; // 0..1: chance it slips a blow winding up close by (bossArena.ts)
+  roam: number; // metres: idle in the open world, it ambles about its post this far (round 18: roam.ts; 0 keeps it still)
 }
 
 export interface Behavior {

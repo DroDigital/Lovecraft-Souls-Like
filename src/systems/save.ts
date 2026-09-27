@@ -59,6 +59,7 @@ export interface SaveData {
   explored?: Record<string, string>; // the ground seen, as base64 bits by region (exploration.ts)
   quests?: Record<string, number>; // each quest begun: its stage (quests.ts)
   met?: string[]; // the people talked with
+  places?: string[]; // the named places found (round 18)
   sold?: Record<string, number>; // wares bought, by ware (round 12)
   tally?: Record<string, number>; // the run's numbers (round 12)
   wounds?: Record<string, number>; // wounded foes by spawn id: their health fractions (a reload does not heal them)
@@ -108,6 +109,7 @@ export function snapshot(g: Game): SaveData {
     explored: packExplored(ow.explored),
     quests: Object.fromEntries(ow.quests),
     met: [...ow.met],
+    places: [...ow.places],
     sold: Object.fromEntries(ow.sold),
     tally: { ...ow.tally },
     wounds: Object.fromEntries(woundsNow(g)),
@@ -137,6 +139,7 @@ export function parseSave(json: string | null): SaveData | null {
   if (o.explored !== undefined && (typeof o.explored !== 'object' || o.explored === null)) return null;
   if (o.quests !== undefined && (typeof o.quests !== 'object' || o.quests === null || !Object.values(o.quests).every(isNum))) return null;
   if (o.met !== undefined && !isStrings(o.met)) return null;
+  if (o.places !== undefined && !isStrings(o.places)) return null;
   if ((o.sold !== undefined && !isCounts(o.sold)) || (o.tally !== undefined && !isCounts(o.tally))) return null;
   if ((o.arms !== undefined && !isStrings(o.arms)) || (o.weapon !== undefined && typeof o.weapon !== 'string')) return null;
   if ((o.cycle !== undefined && !isNum(o.cycle)) || (o.oil !== undefined && !isNum(o.oil)) || (o.stones !== undefined && !isNum(o.stones)) || (o.reinforced !== undefined && !isCounts(o.reinforced))) return null;
@@ -162,6 +165,7 @@ export function applySave(g: Game, s: SaveData): void {
   ow.explored = unpackExplored(s.explored);
   ow.quests = new Map(Object.entries(s.quests ?? {}).filter(([id]) => QUESTS[id]).map(([id, n]) => [id, clampInt(n, -1, QUESTS[id].stages.length)]));
   ow.met = new Set(s.met ?? []);
+  ow.places = new Set(s.places ?? []);
   for (const k of Object.keys(ow.tally) as (keyof Tally)[]) ow.tally[k] = Math.max(0, Math.round(s.tally?.[k] ?? 0));
   ow.sold = new Map(Object.entries(s.sold ?? {}).filter(([id]) => id in WARES).map(([id, n]) => [id, clampInt(n, 0, 99)]));
   ow.wounds = new Map(Object.entries(s.wounds ?? {}).map(([id, f]) => [id, Math.min(1, Math.max(0.01, f))]));

@@ -129,7 +129,7 @@ export const AMBIENCE: Record<string, Ambience> = {
   arena: { beds: [['wind', 0.6]], spots: [] },
   hub: { beds: [['wind', 0.8], ['crickets', 0.22]], spots: [owls, dogs] },
   arkham: { beds: [['wind', 0.7], ['crickets', 0.27]], spots: [owls, dogs, creaks] },
-  dunwich: { beds: [['crickets', 0.63], ['wind', 0.45]], spots: [{ set: 'whippoorwill', every: [14, 35] }, { set: 'thunder', every: [60, 140] }, owls] },
+  dunwich: { beds: [['crickets', 0.63], ['wind', 0.45]], spots: [{ set: 'whippoorwill', every: [14, 35] }, owls] }, // its thunder follows the lightning (round 18: render/lightning.ts)
   innsmouth: { beds: [['surf', 0.9], ['frogs', 0.32]], spots: [{ set: 'hull', every: [15, 40] }, { set: 'gurgle', every: [30, 70] }] },
   providence: { beds: [['wind', 0.72]], spots: [creaks, dogs, owls] },
   vermont: { beds: [['leaves', 0.8], ['crickets', 0.32]], spots: [owls, { set: 'farHowl', every: [60, 120] }] },
@@ -137,7 +137,7 @@ export const AMBIENCE: Record<string, Ambience> = {
   pnakotus: { beds: [['wind', 0.8], ['wind_ghost', 0.2]], spots: [{ set: 'timber', every: [45, 100] }] },
   kn_yan: { beds: [['cave', 0.8], ['drips', 0.65]], spots: [{ set: 'chains', every: [50, 110] }] },
   dreamlands: { beds: [['murmur', 0.65], ['wind', 0.4]], spots: [owls] },
-  rlyeh: { beds: [['waves', 1], ['wind_ghost', 0.3]], spots: [{ set: 'thunder', every: [35, 80] }, { set: 'gurgle', every: [25, 60] }] },
+  rlyeh: { beds: [['waves', 1], ['wind_ghost', 0.3]], spots: [{ set: 'gurgle', every: [25, 60] }] },
   yuggoth: { beds: [['alien', 0.72]], spots: [{ set: 'timber', every: [40, 90] }] },
   beyond: { beds: [['wind_ghost', 0.72], ['cave', 0.36]], spots: [] },
 };

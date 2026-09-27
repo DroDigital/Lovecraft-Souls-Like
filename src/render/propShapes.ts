@@ -15,13 +15,14 @@ import { landmarkPieces } from './landmarkShapes';
 import { box, tileUv, tint } from './meshKit';
 import { BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 
-export type PropMat = 'stone' | 'wood' | 'leaf' | 'clapboard' | 'brick' | 'shingle' | 'glow';
+export type PropMat = 'stone' | 'wood' | 'leaf' | 'clapboard' | 'brick' | 'shingle' | 'glow' | 'pane';
 export interface Piece {
   mat: PropMat;
   geo: THREE.BufferGeometry;
   light?: LightKind; // a lamp's glass, a fire, a lit window: it lights the world about it (worldLights.ts)...
   at?: readonly [number, number, number]; // ...from here in the prop's frame (else from its middle)
   glass?: readonly [number, number, number]; // a window's pane: its glow sits there, seen only from before it (worldLights.ts)
+  pane?: number; // a lit window's seed: who lives behind it (paneLife.ts; round 18)
 }
 
 const BARK: Rgb = scaleRgb(mixRgb(BASE.charcoal, BASE.rust, 0.35), 1.7);

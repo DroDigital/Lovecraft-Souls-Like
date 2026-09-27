@@ -12,6 +12,7 @@ import { ENDINGS, type EndingId } from '../data/endings';
 import { fateOf } from '../data/epilogues';
 import { NPCS } from '../data/npcs';
 import { QUESTS } from '../data/quests';
+import { REGIONS } from '../data/regions';
 import type { Game } from '../systems/components';
 import { carryOf } from '../systems/cycles';
 import { levelsBought } from '../systems/levels';
@@ -19,6 +20,7 @@ import { isDone } from '../systems/quests';
 import { noteEnding, storeCarry, type Records } from '../systems/records';
 import type { SaveStore } from '../systems/save';
 import { bossesSlain, playTime } from '../systems/tally';
+import { placesOf } from '../world/namedPlaces';
 import type { Music } from '../render/audio/music';
 import { creditsPage } from './credits';
 import { BONE, el, SERIF } from './hudKit';
@@ -70,6 +72,7 @@ function numbers(g: Game, records: Records): [string, string][] {
     ['Foes killed', String(t.kills)],
     ['Deaths', String(t.deaths)],
     ['Echoes earned', String(t.echoes)],
+    ['Places found', `${g.overworld!.places.size} of ${REGIONS.reduce((n, r) => n + placesOf(r.id).length, 0)}`], // round 18
     ['Endings reached', `${records.endings.length} of 3`],
   ];
 }

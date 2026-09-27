@@ -13,6 +13,7 @@ import type { Game } from '../systems/components';
 import { mainLead } from '../systems/lead';
 import { exploredShare } from '../systems/exploration';
 import { realmOf, realmRect, type MapPlace } from '../world/mapData';
+import { placesOf } from '../world/namedPlaces';
 import { regionAt } from '../world/worldMap';
 import { BONE } from './hudKit';
 import { drawLead } from './leadMark';
@@ -205,7 +206,9 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
     choose(null);
     const charted = rs.reduce((s, x) => s + exploredShare(g.overworld!.explored, x) * (x.area[2] * x.area[3]), 0) / rs.reduce((s, x) => s + x.area[2] * x.area[3], 0);
     const here = rs.find((x) => x.id === g.overworld!.region)?.name ?? '';
-    heading = `${here.toUpperCase()}   ·   ${Math.round(charted * 100)}% CHARTED`;
+    const places = rs.flatMap((x) => placesOf(x.id)); // round 18
+    const found = places.filter((p) => g.overworld!.places.has(p.id)).length;
+    heading = `${here.toUpperCase()}   ·   ${Math.round(charted * 100)}% CHARTED   ·   ${found} OF ${places.length} PLACES`;
     if (title) title.textContent = heading;
     last = 0;
     requestAnimationFrame(frame);
