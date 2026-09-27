@@ -100,7 +100,7 @@ export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, a
     update(camera, time, hidden) {
       const dt = last < 0 ? 0 : Math.min(0.1, Math.max(0, time - last));
       [last, now] = [time, time];
-      const p = g.ecs.c.transform.get(g.player.id)?.pos;
+      const p = g.overworld ? g.ecs.c.transform.get(g.player.id)?.pos : undefined; // the open world's alone: none in the arena
       if (p) {
         const step = Math.hypot(p.x - me.x, p.z - me.z);
         if (dt > 0) pace = step > 3 ? 0 : pace * 0.8 + (step / dt) * 0.2; // a journey's jump is no run
