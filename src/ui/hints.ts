@@ -2,10 +2,12 @@
  * Hints for a new investigator (playtest round 1): a line at the upper left the first time each
  * thing comes up — moving, where the story leads, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
  * a level within reach, a quest, a boss (and blind Azathoth), insight, a flask of oil bought, a grab, a hallucination — then never again (remembered in this browser, not in the save).
+ * Round 14: a journey taken up again from a save first says where the story had led (the lead's line).
  */
 
 import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
+import { mainLead } from '../systems/lead';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { fill } from './glyphs';
 import { BONE, el, setStyle, setText } from './hudKit';
@@ -76,11 +78,17 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   g.events.on('InsightChanged', (e) => e.change > 0 && e.cause !== 'load' && hint('insight'));
   hint('move');
   hint('lead');
+  let recap = g.overworld && g.overworld.quests.size > 0 ? mainLead(g)?.text : undefined; // a journey taken up again
   return {
     update() {
       const now = performance.now();
       if (now < until) return;
       setStyle(box, 'opacity', '0');
+      if (recap && g.frame > 30) { // once the veil has lifted and the world moves
+        setText(box, `Where you left off: ${recap}`);
+        [recap, until] = [undefined, now + SHOW_MS];
+        return setStyle(box, 'opacity', '1');
+      }
       const next = queue.shift();
       if (!next) return;
       seen.add(next);

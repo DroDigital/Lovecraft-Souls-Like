@@ -10,7 +10,8 @@
  */
 
 import { fbm } from '../core/noise';
-import { BONE } from './hudKit';
+import { LORE_LINES } from '../data/loreLines';
+import { BONE, SERIF } from './hudKit';
 
 const [W, H] = [240, 135]; // pixels, upscaled nearest-neighbour
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
@@ -91,7 +92,15 @@ export function createVeil(): Veil {
   [canvas.width, canvas.height] = [W, H];
   canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;z-index:8;pointer-events:none;image-rendering:pixelated;display:none';
   const words = document.createElement('div');
-  words.style.cssText = `position:fixed;left:0;right:0;top:61%;z-index:8;pointer-events:none;text-align:center;font:calc(12px * var(--ui, 1)) monospace;letter-spacing:calc(6px * var(--ui, 1));color:${BONE};opacity:0`;
+  const lore = document.createElement('div'); // a line under the place's name (round 14)
+  words.style.cssText = `position:fixed;left:0;right:0;top:61%;z-index:8;pointer-events:none;text-align:center;font:calc(13px * var(--ui, 1)) ${SERIF};letter-spacing:calc(6px * var(--ui, 1));color:${BONE};opacity:0`;
+  lore.style.cssText = `margin:calc(22px * var(--ui, 1)) auto 0;max-width:min(640px,80vw);font-style:italic;letter-spacing:.04em;font-size:calc(13px * var(--ui, 1));line-height:1.6;opacity:.6`;
+  const said = document.createElement('span');
+  words.append(said, lore);
+  const say = (text: string): void => {
+    said.textContent = text;
+    lore.textContent = text ? LORE_LINES[Math.floor(Math.random() * LORE_LINES.length)] : '';
+  };
   document.body.append(canvas, words);
   const ctx = canvas.getContext('2d');
   const image = ctx?.createImageData(W, H);
@@ -182,7 +191,7 @@ export function createVeil(): Veil {
   return {
     cover(text = '', secs = 0.9) {
       haunting = false;
-      words.textContent = text;
+      say(text);
       [made, shownMade] = [-1, 0];
       return go(1, secs * (1 - coverage));
     },
@@ -193,7 +202,7 @@ export function createVeil(): Veil {
     },
     darken(text = '') {
       haunting = false;
-      words.textContent = text;
+      say(text);
       void go(1, 0.01);
     },
     haunt(on) {
