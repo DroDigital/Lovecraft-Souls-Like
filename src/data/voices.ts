@@ -76,6 +76,7 @@ export const VOICES = {
   bay: { call: [tone('sawtooth', 190, 1.3, 0.25, { to: 150, attack: 0.15, vibrato: [5, 30], filter: lp(900, 500) }), tone('sawtooth', 95, 1.3, 0.1, { to: 75, attack: 0.15, filter: lp(400) })], every: [5, 10], range: 70 },
   squawk: { call: [0, 0.2].map((at, k) => tone('square', 620 - 60 * k, 0.14, 0.24, { at, to: 480 - 40 * k, filter: bp(1200, undefined, 2) })), every: [5, 12], range: 18 },
   hiss: { call: [noise('highpass', 2800, 1.6, 0.5, { attack: 0.35 }), noise('bandpass', 5200, 1.4, 0.3, { q: 2, attack: 0.4 })], every: [5, 11], range: 20 }, // Yig's children (playtest round 6)
+  caw: { call: [0, 0.33, 0.62].flatMap((at, k) => [tone('sawtooth', 640 - 30 * k, 0.22, 0.2, { at, to: 440 - 25 * k, attack: 0.015, vibrato: [28, 20], filter: bp(1150, 800, 2.5) }), noise('bandpass', 1500, 0.18, 0.08, { q: 3, at })]), every: [8, 16], range: 40 }, // a crow taking wing (round 18: data/fauna.ts)
 } satisfies Record<string, Voice>;
 
 export type VoiceId = keyof typeof VOICES;

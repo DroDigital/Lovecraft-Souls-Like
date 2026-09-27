@@ -35,6 +35,8 @@ import { playSound } from './synth';
 export interface GameAudio {
   /** `paused`: the world stands still, and so do its creatures' voices. */
   update(fx: FxParams, seconds: number, camera: THREE.Camera, paused: boolean): void;
+  /** A voice where `at` is, recorded if it can be (round 18: the small lives' cries as they take fright). */
+  cry(id: VoiceId, at: V3, gain?: number): void;
 }
 
 interface Caller {
@@ -140,6 +142,12 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
 
   let lastBeat = -1;
   return {
+    cry(id, at, gain = 1) {
+      const [v, set, pitch] = [VOICES[id], VOICE_SAMPLES[id], 0.94 + 0.12 * Math.random()];
+      if (set && recorded(set, at, v.range, { pitch, gain })) return;
+      const { gain: level, pan } = place(at, v.range);
+      if (level > 0) playSound(e, v.call, { gain: level * gain, pan, pitch });
+    },
     update(fx, seconds, camera, paused) {
       camera.updateMatrixWorld();
       const m = camera.matrixWorld.elements;

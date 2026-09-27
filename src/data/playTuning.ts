@@ -248,6 +248,19 @@ export const AI = {
   detour: 0.7, // ...it steps aside this long to get round what blocks it
 };
 
+/** The world's small lives (playtest round 18: data/fauna.ts gives each its size, pace and nerve; render/critterLife.ts their ways). */
+export const FAUNA = {
+  near: 1, // chunks about the investigator's own whose critters live (a 3 × 3 block)
+  draw: 70, // metres: drawn this near the lens
+  flight: 6, // seconds a startled bird is on the wing before the dark has it...
+  goneFor: [18, 45] as const, // ...and seconds before a startled critter may come back...
+  backBeyond: 24, // ...then only while the investigator is this far from its haunt
+  fade: 1, // seconds it takes to show again
+  shot: 32, // metres: a shot sends off every bird and beast this near it...
+  blow: 10, // ...a blow struck, those this near
+  cryGap: 0.5, // seconds: startled together, only one cries
+};
+
 /** The seals on Kadath's door (playtest round 12, systems/seals.ts). */
 export const SEALS = {
   exempt: ['hub', 'dreamlands', 'beyond'] as readonly string[], // regions holding no seal
