@@ -6,6 +6,7 @@
  * (shaders/eldritch.ts).
  */
 
+import { PANE_GLSL } from '../paneLife';
 import { ELDRITCH_FRAG, ELDRITCH_VERT } from './eldritch';
 
 /**
@@ -129,6 +130,10 @@ uniform vec2 uUvScale;
 uniform vec2 uUvScroll;
 
 attribute float aSplat; // the second ground texture's share (roads, paths); 0 where a mesh has none
+#ifdef PANES
+attribute float aPane; // a lit window's seed (paneLife.ts; round 18)
+varying float vPane;
+#endif
 ${ELDRITCH_VERT}
 
 varying vec2 vUv;
@@ -145,6 +150,9 @@ void main() {
   vec4 wp = modelMatrix * vec4(uEldritch > 0.0 ? writhe(position, normal) : position, 1.0);
   vec3 wn = normalize(mat3(modelMatrix) * normal);
   vWorld = wp.xyz;
+#ifdef PANES
+  vPane = aPane;
+#endif
   wp.xyz = displace(wp.xyz);
 
   vec4 vp = viewMatrix * wp;
@@ -200,6 +208,10 @@ ${LANTERN_GLSL}
 ${LAMPS_GLSL}
 ${NOISE_GLSL}
 ${ELDRITCH_FRAG}
+#ifdef PANES
+varying float vPane;
+${PANE_GLSL}
+#endif
 // Mip levels come from the true mapping's gradients (gx, gy), so none jumps along a face's diagonal.
 vec3 sampleMap(sampler2D map, vec2 uv, vec2 gx, vec2 gy) {
   vec3 t = textureGrad(map, uv, gx, gy).rgb;
@@ -253,6 +265,9 @@ void main() {
   lit *= mix(1.0, min(1.0, uSelfMax / peak), self * max(1.0 - uEmissive, 0.0));
   tex = mix(tex, vec3(1.0), 0.6 * uEmissive); // a lit thing shines through its texture
   vec3 col = eldritch(tex * lit);
+#ifdef PANES
+  col *= paneLit(vPane, uTime); // lived behind: put out now and then, dimmed as someone passes
+#endif
   gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
 }
 `;

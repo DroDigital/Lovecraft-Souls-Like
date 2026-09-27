@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { LIGHTS, type LightDef, type LightKind } from '../data/tuning';
 import { createHalos } from './halos';
+import { paneLit } from './paneLife';
 import { LAMP_SLOTS } from './shaders/world';
 import { worldUniforms } from './worldMaterial';
 
@@ -20,6 +21,7 @@ export interface LightSpot {
   kind: LightKind;
   /** A lit window's pane (playtest round 13: its glow hung half a metre before the window, where the light is cast from): the glow sits on the glass, and fades as the window is seen edge on. */
   glass?: { x: number; y: number; z: number };
+  pane?: number; // a lit window's seed: put out now and then, dimmed as someone passes (paneLife.ts; round 18)
 }
 
 /** How much of a window's glow shows from `eye`: all of it square on, nothing edge on or from behind. */
@@ -83,14 +85,14 @@ export function createWorldLights(): WorldLights {
           continue;
         }
         lamps[i].set(n.s.x, n.s.y, n.s.z, k.range);
-        colors[i].set(...k.color).multiplyScalar(k.strength * weight * waver(n.s, k.flicker, time));
+        colors[i].set(...k.color).multiplyScalar(k.strength * weight * waver(n.s, k.flicker, time) * (n.s.pane === undefined ? 1 : paneLit(n.s.pane, time)));
       }
       batch.begin();
       if (lantern) batch.put(lantern.x, lantern.y, lantern.z, LIGHTS.lantern.halo, LIGHTS.lantern.color, LIGHTS.lantern.haloGain * waver({ x: 0, y: 0, z: 0, kind: 'torch' }, 0.05, time));
       for (const { s } of near) {
         const k: LightDef = LIGHTS.kinds[s.kind];
         if (s.glass) {
-          const face = glassFacing(s, eye);
+          const face = glassFacing(s, eye) * (s.pane === undefined ? 1 : paneLit(s.pane, time));
           if (face > 0 && !batch.put(s.glass.x, s.glass.y, s.glass.z, LIGHTS.paneHalo, k.haloColor ?? k.color, k.haloGain * face)) break;
           continue;
         }

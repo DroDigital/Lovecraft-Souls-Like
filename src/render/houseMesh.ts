@@ -67,6 +67,20 @@ interface Lit {
   geo: THREE.BufferGeometry;
   at: [number, number, number];
   glass: [number, number, number];
+  pane: number; // its seed (paneLife.ts)
+}
+
+/** A lit pane's seed, from where it is on its house (the house's random draws are left as they were). */
+const seedOf = (x: number, y: number, z: number, w: number, d: number): number => {
+  const s = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + w * 4.1 + d * 7.3) * 43758.5453;
+  return s - Math.floor(s);
+};
+
+/** A lit pane, carrying its seed to every vertex. */
+function paneBox(w: number, h: number, d: number, x: number, y: number, z: number, seed: number): THREE.BufferGeometry {
+  const g = box(w, h, d, x, y, z, LIT);
+  g.setAttribute('aPane', new THREE.Float32BufferAttribute(new Array(g.getAttribute('position').count).fill(seed), 1));
+  return g;
 }
 
 /** A window's frame, its cross of mullions and its sill, and shutters if it has them; `turn` a quarter turn for a side wall. */
@@ -91,13 +105,15 @@ function windows(w: number, d: number, top: number, rng: Rng, lit: number, shutt
         const z = side * (d + 0.03);
         frames.push(...frame(x, y, z, side, false, shutters));
         const on = rng() < lit; // one draw: a lit window glows in the lamplight's colour
-        if (on) glows.push({ geo: box(0.7, 1.05, 0.08, x, y, z, LIT), at: [x, y, side * (d + 0.55)], glass: [x, y, z] });
+        const seed = seedOf(x, y, z, w, d);
+        if (on) glows.push({ geo: paneBox(0.7, 1.05, 0.08, x, y, z, seed), at: [x, y, side * (d + 0.55)], glass: [x, y, z], pane: seed });
         else panes.push(box(0.7, 1.05, 0.08, x, y, z, PANE));
       }
       const x = side * (w + 0.03);
       frames.push(...frame(x, y, 0, side, true, shutters));
       const on = rng() < lit;
-      if (on) glows.push({ geo: box(0.08, 1.05, 0.7, x, y, 0, LIT), at: [side * (w + 0.55), y, 0], glass: [x, y, 0] });
+      const seed = seedOf(x, y, 0, w, d);
+      if (on) glows.push({ geo: paneBox(0.08, 1.05, 0.7, x, y, 0, seed), at: [side * (w + 0.55), y, 0], glass: [x, y, 0], pane: seed });
       else panes.push(box(0.08, 1.05, 0.7, x, y, 0, PANE));
     }
   }
@@ -149,6 +165,6 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
     { mat: 'wood', geo: tileUv(mergeGeometries([...frames, ...panes, ...door]), 1, 1) },
   ];
   if (chimneys.length) pieces.push({ mat: 'brick', geo: mergeGeometries(chimneys) });
-  for (const g of glows) pieces.push({ mat: 'glow', geo: g.geo, light: 'window', at: g.at, glass: g.glass });
+  for (const g of glows) pieces.push({ mat: 'pane', geo: g.geo, light: 'window', at: g.at, glass: g.glass, pane: g.pane });
   return pieces;
 }
