@@ -45,17 +45,17 @@ export function createMinimap(g: Game, root: HTMLElement, painter: MapPainter): 
       const region = g.overworld.region ?? regionAt(p.x, p.z)?.id;
       if (!region) return;
       const view = { cx: p.x, cz: p.z, scale: SIZE / 2 / EXPLORE.minimap, w: SIZE, h: SIZE };
-      const yaw = g.camera.yaw; // yaw 0 looks north; east is a quarter turn clockwise
+      const yaw = g.camera.yaw; // yaw 0 looks north; turning right lessens it
       ctx.clearRect(0, 0, SIZE, SIZE);
       ctx.save();
       ctx.translate(SIZE / 2, SIZE / 2);
-      ctx.rotate(-yaw); // what the camera looks at, up (the round face hides the square's turned corners)
+      ctx.rotate(yaw); // what the camera looks at, up (the round face hides the square's turned corners)
       ctx.translate(-SIZE / 2, -SIZE / 2);
       painter.paint(ctx, view, realmOf(region), false);
       drawLead(ctx, view, mainLead(g)?.at ?? null, realmOf(region), true);
       ctx.restore();
       const r = SIZE / 2 - 1;
-      north.style.left = `${SIZE / 2 - Math.sin(yaw) * r}px`;
+      north.style.left = `${SIZE / 2 + Math.sin(yaw) * r}px`;
       north.style.top = `${SIZE / 2 - Math.cos(yaw) * r}px`;
     },
   };

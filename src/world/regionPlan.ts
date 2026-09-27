@@ -8,7 +8,6 @@
 
 import type { XZ } from '../core/geom';
 import { createRng, hash2, type Rng } from '../core/rng';
-import { LAIRS } from '../data/lairs';
 import { REGION_LAYOUTS, type RegionLayout } from '../data/regionFeatures';
 import type { PropKind, RegionDef } from '../data/regions';
 import { WORLD } from '../data/tuning';
@@ -62,18 +61,57 @@ function occupancy(rect: Rect) {
   };
 }
 
-/** Where a region's roads must go: its signs, gates, legacy dungeons' doors, towns and borders. */
+/**
+ * Where a region's roads must go: its signs, gates, towns and borders. Round 13: no longer every
+ * legacy dungeon's door (a road ran up to each, and the dungeons sat at their ends for all to see);
+ * a dungeon is found by searching, or by the lead's mark.
+ */
 function stops(region: RegionDef, layout: RegionLayout): XZ[] {
   const w = worldLayout();
-  const lesser = new Set(LAIRS.map((d) => d.id));
   const out: XZ[] = [...w.signs.filter((s) => s.region === region.id).map((s) => s.rest), ...w.gates.filter((g) => g.region === region.id).map((g) => g.arrive)];
-  for (const d of w.dungeons) {
-    if (d.layout.region !== region.id || lesser.has(d.layout.def.id) || d.layout.def.sealed) continue;
-    const door = d.layout.doors.find((x) => x.b === null);
-    if (door) out.push({ x: door.x + DIRS[door.side].x * 6, z: door.z + DIRS[door.side].z * 6 });
-  }
   out.push(...layout.towns.map((t) => toWorld(region, t.at)), ...borderPoints(region));
   return out;
+}
+
+/**
+ * A thicket about every dungeon of the region (round 13): two loose rows of the biome's trees and
+ * rocks round its heaped walls, leaving the way to its mouth open, so it is come upon, not seen
+ * across a field.
+ */
+function thickets(region: RegionDef, rng: Rng, occ: ReturnType<typeof occupancy>, roadClear: (x: number, z: number, m: number) => boolean, props: Prop[]): void {
+  const kinds = (Object.entries(region.biome.props) as [PropKind, number][]).filter(([k]) => k === 'tree' || k === 'rock' || k === 'monolith');
+  const pool: [PropKind, number][] = kinds.length ? kinds : [['rock', 1]];
+  const total = pool.reduce((s, [, n]) => s + n, 0);
+  for (const d of worldLayout().dungeons) {
+    const L = d.layout;
+    if (L.region !== region.id || L.def.sealed) continue;
+    const door = L.doors.find((x) => x.b === null);
+    const n = door ? DIRS[door.side] : { x: 0, z: 0 };
+    for (const off of [7, 11]) {
+      const r = { x0: L.rect.x0 - off, z0: L.rect.z0 - off, x1: L.rect.x1 + off, z1: L.rect.z1 + off };
+      const per = 2 * (r.x1 - r.x0 + r.z1 - r.z0);
+      for (let t = rng() * 4; t < per; t += 3.5 + rng() * 3) {
+        let [x, z] = [0, 0];
+        const w = r.x1 - r.x0;
+        const h = r.z1 - r.z0;
+        if (t < w) [x, z] = [r.x0 + t, r.z0];
+        else if (t < w + h) [x, z] = [r.x1, r.z0 + t - w];
+        else if (t < 2 * w + h) [x, z] = [r.x1 - (t - w - h), r.z1];
+        else [x, z] = [r.x0, r.z1 - (t - 2 * w - h)];
+        [x, z] = [x + (rng() - 0.5) * 3, z + (rng() - 0.5) * 3];
+        if (door) {
+          const [dx, dz] = [x - door.x, z - door.z];
+          const ahead = dx * n.x + dz * n.z;
+          if (ahead > -2 && Math.abs(dx * n.z - dz * n.x) < 8 + ahead * 0.4) continue; // the way in stays open
+        }
+        if (!occ.free(x, z) || !roadClear(x, z, 2)) continue;
+        let roll = rng() * total;
+        const kind = pool.find(([, wt]) => (roll -= wt) < 0)?.[0] ?? pool[0][0];
+        props.push(makeProp(kind, x, z, rng));
+        occ.disk(x, z, 2, true);
+      }
+    }
+  }
 }
 
 function buildPlan(region: RegionDef): RegionPlan {
@@ -88,6 +126,8 @@ function buildPlan(region: RegionDef): RegionPlan {
   }
   const towns = layout.towns.map((t) => ({ ...toWorld(region, t.at), radius: t.radius, town: t }));
   const roads = planRoads(stops(region, layout), towns, layout.width, (rng() * 1e9) >>> 0);
+  /** Clear of every site's pad by `m` metres (the occupancy's cells are too coarse to keep a lamp off a sign's; round 13). */
+  const offSites = (x: number, z: number, m: number): boolean => w.pads.every((p) => (p.kind === 'circle' ? Math.hypot(x - p.x, z - p.z) - p.radius : rectDistance(p.rect, x, z)) > m);
   const roadClear = (x: number, z: number, m: number): boolean => roads.every((r) => r.pts.every((p, i) => i === 0 || segmentDistance(x, z, r.pts[i - 1], p) >= r.width / 2 + m));
 
   const props: Prop[] = [];
@@ -140,7 +180,7 @@ function buildPlan(region: RegionDef): RegionPlan {
     }
   }
   for (const { x, z, town: t } of lamps) {
-    if (Math.hypot(x - t.x, z - t.z) < t.radius && occ.disk(x, z, 0.8, false) && roadClear(x, z, 0.3) && clearOfFronts(x, z)) put(makeProp('lamp', x, z, rng, 0), 0.8);
+    if (Math.hypot(x - t.x, z - t.z) < t.radius && occ.disk(x, z, 0.8, false) && offSites(x, z, 1) && roadClear(x, z, 0.3) && clearOfFronts(x, z)) put(makeProp('lamp', x, z, rng, 0), 0.8);
   }
   // Field walls along the country roads, with gaps.
   if (layout.walls) {
@@ -159,6 +199,7 @@ function buildPlan(region: RegionDef): RegionPlan {
     }
   }
   for (const r of roads) for (let i = 1; i < r.pts.length; i++) occ.disk((r.pts[i - 1].x + r.pts[i].x) / 2, (r.pts[i - 1].z + r.pts[i].z) / 2, r.width / 2 + 3, true);
+  thickets(region, rng, occ, roadClear, props);
   const features = placeFeatures(layout, rect, rng, roads, occ, props);
   scatterBiome(region, rect, rng, occ, props);
   const spawns = planSpawns(region, features, roads, towns, props, rng);

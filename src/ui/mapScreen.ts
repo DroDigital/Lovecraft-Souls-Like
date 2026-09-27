@@ -80,8 +80,8 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
     const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
     last = now;
     const step = (PAN * view.w * dt) / view.scale;
-    if (held.has('ArrowLeft') || held.has('KeyA')) view.cx -= step;
-    if (held.has('ArrowRight') || held.has('KeyD')) view.cx += step;
+    if (held.has('ArrowLeft') || held.has('KeyA')) view.cx += step; // +x is drawn on the left (mapPainter.ts)
+    if (held.has('ArrowRight') || held.has('KeyD')) view.cx -= step;
     if (held.has('ArrowUp') || held.has('KeyW')) view.cz += step;
     if (held.has('ArrowDown') || held.has('KeyS')) view.cz -= step;
     workArt(ART_MS);
@@ -145,7 +145,7 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
     pad(p) {
       const [x, y] = [p.axes[0] ?? 0, p.axes[1] ?? 0];
       const step = (0.02 * view.w) / view.scale;
-      if (Math.hypot(x, y) > 0.2) [view.cx, view.cz] = [view.cx + x * step, view.cz - y * step];
+      if (Math.hypot(x, y) > 0.2) [view.cx, view.cz] = [view.cx - x * step, view.cz - y * step];
       if (p.buttons[7]?.pressed) zoomBy(1.03);
       if (p.buttons[6]?.pressed) zoomBy(0.97);
       const edge = (i: number): boolean => !!p.buttons[i]?.pressed && !padWas.has(i);
@@ -185,7 +185,7 @@ export function createMapScreen(g: Game, painter: MapPainter, resume: () => void
       return;
     }
     const k = canvas.width / canvas.clientWidth / view.scale;
-    view.cx -= (e.clientX - drag.x) * k;
+    view.cx += (e.clientX - drag.x) * k;
     view.cz += (e.clientY - drag.y) * k;
     drag = { x: e.clientX, y: e.clientY, moved: drag.moved + Math.hypot(e.clientX - drag.x, e.clientY - drag.y) };
   });

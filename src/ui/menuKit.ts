@@ -10,6 +10,7 @@
  */
 
 import { useDevice, onDeviceChange } from '../core/device';
+import { activePad, muteHeldPad } from '../core/pads';
 import { BONE, SERIF } from './hudKit';
 import { SCALED_LAYER } from './uiScale';
 
@@ -115,7 +116,7 @@ let held = 0; // the direction held: -1 up, 1 down, 0 none
 let repeatAt = 0;
 
 function pollPad(now: number): void {
-  const pad = [...(navigator.getGamepads?.() ?? [])].find((p): p is Gamepad => !!p && p.connected);
+  const pad = activePad();
   const down = new Set<number>();
   pad?.buttons.forEach((b, i) => (b.pressed || b.value > 0.5) && down.add(i));
   const [lx, ly] = [pad?.axes[0] ?? 0, pad?.axes[1] ?? 0];
@@ -206,6 +207,7 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left
       stack.splice(stack.indexOf(entry), 1);
       entry = null;
       root.style.display = 'none';
+      if (!stack.length) muteHeldPad(); // the B or A that closed it is not a dodge or a word
       (document.activeElement as HTMLElement | null)?.blur?.();
     },
   };

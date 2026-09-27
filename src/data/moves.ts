@@ -139,7 +139,8 @@ export interface MoveDef {
 }
 
 /** Distinct swings, so a chain of blows never looks the same twice. */
-export type SwingAnim = 'slash' | 'backhand' | 'thrust' | 'overhead' | 'spin';
+/** The light blows' (render/swings.ts), then the heavy blows' key poses (render/heavySwings.ts, playtest round 13). */
+export type SwingAnim = 'slash' | 'backhand' | 'thrust' | 'overhead' | 'spin' | 'cleave' | 'wheel' | 'lunge' | 'whirl';
 
 export type MoveSet = Readonly<Record<string, MoveDef>>;
 
@@ -201,8 +202,8 @@ export const PLAYER_MOVES = {
     motion: { window: [6, 16], distance: 0.9, dir: 'facing' },
     hit: { window: [14, 18], damage: 30, poise: 22, guard: 26, hitstop: 3, reach: 1.6, radius: 0.4, height: 1.25, arc: [0, 0] },
   },
-  heavy1: cleave([100, -60], 'heavy2', 44, 24, 'overhead'),
-  heavy2: cleave([-100, 60], 'heavy1', 48, 26, 'spin'),
+  heavy1: cleave([100, -60], 'heavy2', 44, 24, 'cleave'),
+  heavy2: cleave([-100, 60], 'heavy1', 48, 26, 'wheel'),
   roll: { frames: 48, stamina: 18, cancel: 36, release: 34, iframes: [2, 24], motion: { window: [0, 34], distance: 4.2, dir: 'input' } }, // a full tumble takes the better part of a second; running on, it flows into the stride as it lands
   backstep: { frames: 22, stamina: 12, cancel: 16, release: 14, rest: 10, iframes: [1, 7], motion: { window: [0, 12], distance: 2.4, dir: 'back' } }, // never twice in a row: spammed, it outran a sprint with i-frames a third of the time
   parry: { frames: 36, stamina: 10, parry: [3, 11] },

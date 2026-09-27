@@ -48,7 +48,7 @@ function sites(): Site[] {
   const w = worldLayout();
   const out: Site[] = w.dungeons.map((d) => ({ chunks: footprint(d.layout.rect), job: (done) => dungeonJob(d, done), meshes: null }));
   for (const a of w.arenas) {
-    const r = a.radius + 3;
+    const r = a.radius + 12; // its dressing's ring stands outside it (round 13)
     out.push({ chunks: footprint({ x0: a.x - r, z0: a.z - r, x1: a.x + r, z1: a.z + r }), job: (done) => arenaJob(a, done), meshes: null });
   }
   return out;

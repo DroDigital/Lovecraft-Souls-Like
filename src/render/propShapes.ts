@@ -21,6 +21,7 @@ export interface Piece {
   geo: THREE.BufferGeometry;
   light?: LightKind; // a lamp's glass, a fire, a lit window: it lights the world about it (worldLights.ts)...
   at?: readonly [number, number, number]; // ...from here in the prop's frame (else from its middle)
+  glass?: readonly [number, number, number]; // a window's pane: its glow sits there, seen only from before it (worldLights.ts)
 }
 
 const BARK: Rgb = scaleRgb(mixRgb(BASE.charcoal, BASE.rust, 0.35), 1.7);

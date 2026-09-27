@@ -7,7 +7,7 @@ import { worldLayout } from '../src/world/placements';
 import { regionPlan } from '../src/world/regionPlan';
 import { segmentDistance, type Road } from '../src/world/roads';
 import { createWorldCollision } from '../src/world/worldCollision';
-import { rectDistance, regionAt } from '../src/world/worldMap';
+import { DIRS, rectDistance, regionAt } from '../src/world/worldMap';
 
 const roadDistance = (roads: readonly Road[], x: number, z: number): number =>
   Math.min(...roads.flatMap((r) => r.pts.slice(1).map((p, i) => segmentDistance(x, z, r.pts[i], p) - r.width / 2)));
@@ -30,7 +30,7 @@ describe('region plans', () => {
     expect(bad).toEqual([]);
   });
 
-  it('roads reach every Elder Sign and legacy dungeon; the lesser dungeons and lairs lie off the road', () => {
+  it('roads reach every Elder Sign; no dungeon has a road run up to its door (round 13), and the lairs lie off the road', () => {
     const lesser = new Set(LAIRS.map((d) => d.id));
     const bad: string[] = [];
     for (const r of REGIONS) {
@@ -41,7 +41,6 @@ describe('region plans', () => {
       for (const d of w.dungeons.filter((x) => x.layout.region === r.id && !x.layout.def.sealed)) {
         const door = d.layout.doors.find((x) => x.b === null)!;
         const near = roadDistance(roads, door.x, door.z);
-        if (!lesser.has(d.layout.def.id) && near > 12) bad.push(`dungeon ${d.layout.def.id} has no road to its door`);
         if (lesser.has(d.layout.def.id) && near < 10) bad.push(`lesser dungeon ${d.layout.def.id} lies on a road`);
       }
     }
@@ -81,5 +80,37 @@ describe('region plans', () => {
     }
     expect(bad).toEqual([]);
     expect(lit).toBeGreaterThan(50); // the towns are still lit
+  });
+  it('leave a way from every dungeon door out past its thicket (round 13: thickets ring them)', () => {
+    const bad: string[] = [];
+    const free = (x: number, z: number): boolean => {
+      const pos = { x, y: world.ground(x, z), z };
+      resolveCapsule(world, pos, 0.45, 1.8);
+      return Math.hypot(pos.x - x, pos.z - z) < 0.01;
+    };
+    for (const d of w.dungeons.filter((x) => !x.layout.def.sealed)) {
+      const door = d.layout.doors.find((x) => x.b === null)!;
+      const n = DIRS[door.side];
+      const R = d.layout.rect;
+      const [x0, z0, x1, z1] = [R.x0 - 18, R.z0 - 18, R.x1 + 18, R.z1 + 18]; // past the thicket's outer ring (11 m)
+      const start = { x: door.x + n.x * 3, z: door.z + n.z * 3 };
+      const key = (x: number, z: number): string => `${Math.round(x)},${Math.round(z)}`;
+      const seen = new Set([key(start.x, start.z)]);
+      const queue = [start];
+      let out = false;
+      while (queue.length && !out) {
+        const p = queue.shift()!;
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const [x, z] = [Math.round(p.x) + dx, Math.round(p.z) + dz];
+          if (seen.has(key(x, z))) continue;
+          seen.add(key(x, z));
+          if (!free(x, z)) continue; // (the walls are colliders: the way may lead through the rooms, as a player may)
+          if (x <= x0 || x >= x1 || z <= z0 || z >= z1) { out = true; break; }
+          queue.push({ x, z });
+        }
+      }
+      if (!out) bad.push(`${d.layout.def.id}: shut in`);
+    }
+    expect(bad).toEqual([]);
   });
 });

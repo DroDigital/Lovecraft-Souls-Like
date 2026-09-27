@@ -4,7 +4,7 @@
  * only: dungeons lay their own floors over holes in it); `ground` is what feet stand on. Pure.
  */
 
-import { floorAt, roomAt } from './dungeonKit';
+import { floorAt, kitOfRoom, roomAt, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { landHeight, smoothstep } from './land';
 import { worldLayout, type Pad } from './placements';
 import { chunkOf, rectDistance } from './worldMap';
@@ -30,6 +30,21 @@ export function ground(x: number, z: number): number {
     if (r) return floorAt(r, x, z);
   }
   return surface(x, z);
+}
+
+/** The dungeon room whose floor is at (x, z), with its dungeon, if any. */
+export function dungeonRoomAt(x: number, z: number): { layout: DungeonLayout; room: RoomLayout } | null {
+  for (const layout of worldLayout().chunk(chunkOf(x), chunkOf(z)).dungeons) {
+    const room = roomAt(layout, x, z);
+    if (room) return { layout, room };
+  }
+  return null;
+}
+
+/** Whether (x, z) lies under a dungeon's roof (open ruins are under the sky; round 13). */
+export function roofedAt(x: number, z: number): boolean {
+  const d = dungeonRoomAt(x, z);
+  return !!d && kitOfRoom(d.layout, d.room).roof !== 'open';
 }
 
 /** Whether (x, z) lies on a dungeon room's floor (the terrain mesh leaves a hole there). */

@@ -15,6 +15,7 @@ import { worldLayout, type SpawnPoint } from './placements';
 import { propCollider, type Prop } from './props';
 import type { Road } from './roads';
 import { DIRS, rectDistance, regionRect } from './worldMap';
+import { MOUND_BAND } from './dungeonParts';
 
 const SAFE = 30; // metres of peace around every Elder Sign and gate
 const PATROL = 95; // metres of road between patrols
@@ -36,7 +37,7 @@ export function planSpawns(region: RegionDef, features: readonly Feature[], road
   const safe = [...w.signs.filter((s) => s.region === region.id).map((s) => s.rest), ...w.gates.filter((g) => g.region === region.id).map((g) => g.arrive)];
   const grid = new Map<number, Collider[]>(); // colliders by 8 m cell
   const cell = (x: number, z: number): number => Math.floor(x / 8) * 65536 + Math.floor(z / 8);
-  for (const p of props) {
+  for (const p of [...props, ...w.arenas.filter((a) => a.region === region.id).flatMap((a) => a.decor)]) { // and an arena's dressing (round 13)
     const c = propCollider(p);
     if (!c) continue;
     const b = colliderBounds(c);
@@ -58,7 +59,7 @@ export function planSpawns(region: RegionDef, features: readonly Feature[], road
   const clear = (x: number, z: number): boolean =>
     x > rect.x0 + 6 && x < rect.x1 - 6 && z > rect.z0 + 6 && z < rect.z1 - 6 &&
     safe.every((p) => Math.hypot(p.x - x, p.z - z) >= SAFE) &&
-    w.pads.every((p) => (p.kind === 'circle' ? Math.hypot(x - p.x, z - p.z) > p.radius + 1 : rectDistance(p.rect, x, z) > 2)) &&
+    w.pads.every((p) => (p.kind === 'circle' ? Math.hypot(x - p.x, z - p.z) > p.radius + 1 : rectDistance(p.rect, x, z) > 2 + MOUND_BAND + 1)) && // clear of a mound heaped over a dungeon (round 13)
     !solid(x, z);
 
   const out: SpawnPoint[] = [];

@@ -71,8 +71,8 @@ export function createFoeBars(g: Game, parent: HTMLElement): FoeBars {
         setText(s.name, c.combatant.get(id)!.name);
         setStyle(s.fill, 'width', percent(h.hp, h.max));
         const k = uiScale(); // screen pixels, in the HUD's scaled layer
-        setStyle(s.root, 'left', `${Math.round((r.left + ((v.x + 1) / 2) * r.width) / k)}px`);
-        setStyle(s.root, 'top', `${Math.round((r.top + ((1 - v.y) / 2) * r.height) / k) - 16}px`);
+        setStyle(s.root, 'left', `${Math.round((((v.x + 1) / 2) * r.width) / k)}px`); // the layer is the picture's box
+        setStyle(s.root, 'top', `${Math.round((((1 - v.y) / 2) * r.height) / k) - 16}px`);
         setStyle(s.root, 'display', 'block');
       }
       for (; n < slots.length; n++) setStyle(slots[n].root, 'display', 'none');

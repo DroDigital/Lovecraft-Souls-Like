@@ -142,5 +142,14 @@ export const AMBIENCE: Record<string, Ambience> = {
   beyond: { beds: [['wind_ghost', 0.72], ['cave', 0.36]], spots: [] },
 };
 
-/** Inside a legacy dungeon: stone and water, whatever the region. */
-export const DUNGEON_AMBIENCE: Ambience = { beds: [['cave', 0.63], ['drips', 0.8]], spots: [{ set: 'chains', every: [45, 100] }, { set: 'timber', every: [50, 110] }] };
+/**
+ * Inside a legacy dungeon, by its kit's sound (data/kits.ts; round 13: every dungeon dripped, the
+ * roofless ruins and the upstairs of houses too): stone and water below ground, old boards and the
+ * wind outside in a house, water and worse in the drowned places. Ruins under the sky ('open') keep
+ * the region's own.
+ */
+export const DUNGEON_AMBIENCE: Record<'cave' | 'house' | 'drowned', Ambience> = {
+  cave: { beds: [['cave', 0.63], ['drips', 0.8]], spots: [{ set: 'chains', every: [45, 100] }, { set: 'timber', every: [50, 110] }] },
+  house: { beds: [['wind', 0.3]], spots: [creaks, { set: 'timber', every: [30, 70] }] },
+  drowned: { beds: [['cave', 0.5], ['drips', 1]], spots: [{ set: 'gurgle', every: [15, 40] }, { set: 'chains', every: [60, 120] }] },
+};

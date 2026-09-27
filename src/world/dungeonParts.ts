@@ -10,11 +10,11 @@ import type { HiddenPieceDef, LayerBox } from '../data/arena';
 import type { Dir, Veil } from '../data/dungeons';
 import { DUNGEON } from '../data/tuning';
 import type { Collider } from './colliders';
-import { floorRange, roomAt, roomPoint, type DoorLayout, type DungeonLayout, type RoomLayout } from './dungeonKit';
+import { floorRange, kitOfRoom, roomAt, roomPoint, type DoorLayout, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { DIRS } from './worldMap';
 
 /** How a part is drawn: 'none' is an invisible collider (a chasm's edge), 'chasm' a dark hole. */
-export type Look = 'wall' | 'floor' | 'step' | 'pillar' | 'rim' | 'deck' | 'chasm' | 'none';
+export type Look = 'wall' | 'floor' | 'step' | 'pillar' | 'rim' | 'deck' | 'chasm' | 'ceiling' | 'none';
 
 export interface BoxPart {
   shape: 'box';
@@ -22,6 +22,8 @@ export interface BoxPart {
   min: V3;
   max: V3;
   solid: boolean;
+  room: number; // the room it belongs to (its kit decides its look; round 13)
+  outer?: Dir; // a wall with nothing beyond it on this side: the dungeon's outside face
 }
 
 export interface CylPart {
@@ -33,6 +35,7 @@ export interface CylPart {
   y0: number;
   y1: number;
   solid: boolean;
+  room: number;
 }
 
 export type Part = BoxPart | CylPart;
@@ -49,7 +52,7 @@ export const partCollider = (p: Part): Collider =>
 function local(r: RoomLayout, u0: number, u1: number, v0: number, v1: number, y0: number, y1: number, look: Look, solid: boolean): BoxPart {
   const a = roomPoint(r, u0, v0);
   const b = roomPoint(r, u1, v1);
-  return { shape: 'box', look, solid, min: { x: Math.min(a.x, b.x), y: y0, z: Math.min(a.z, b.z) }, max: { x: Math.max(a.x, b.x), y: y1, z: Math.max(a.z, b.z) } };
+  return { shape: 'box', look, solid, room: r.index, min: { x: Math.min(a.x, b.x), y: y0, z: Math.min(a.z, b.z) }, max: { x: Math.max(a.x, b.x), y: y1, z: Math.max(a.z, b.z) } };
 }
 
 /** The room-local side a compass side is on: v+ (far), v- (entry), u+ or u-. */
@@ -74,7 +77,7 @@ function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: s
       const ring = r.size === 3 ? Array.from({ length: 8 }, (_, k) => [17 * Math.cos((k + 0.5) * (Math.PI / 4)), 17 * Math.sin((k + 0.5) * (Math.PI / 4))]) : [[5, 5], [-5, 5], [5, -5], [-5, -5]];
       for (const [u, v] of ring) {
         const p = roomPoint(r, u, v);
-        out.push({ shape: 'cyl', look: 'pillar', x: p.x, z: p.z, radius: r.size === 3 ? 0.9 : 0.55, y0: L, y1: L + H - 0.6, solid: true });
+        out.push({ shape: 'cyl', look: 'pillar', x: p.x, z: p.z, radius: r.size === 3 ? 0.9 : 0.55, y0: L, y1: L + H - 0.6, solid: true, room: r.index });
       }
       break;
     }
@@ -120,7 +123,7 @@ function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: s
     }
     case 'well': {
       floor(-h, h, -h, h);
-      out.push({ shape: 'cyl', look: 'rim', x: r.x, z: r.z, radius: well + 0.35, y0: L - chasm, y1: L + 0.9, solid: true });
+      out.push({ shape: 'cyl', look: 'rim', x: r.x, z: r.z, radius: well + 0.35, y0: L - chasm, y1: L + 0.9, solid: true, room: r.index });
       break;
     }
   }
@@ -174,7 +177,7 @@ function wallParts(d: DungeonLayout, out: Part[], pieces: HiddenPieceDef[]): voi
         const seg = (a0: number, a1: number, b0: number, b1: number): void => {
           const ax = [mx + p.x * a0 - n.x * (T / 2), mx + p.x * a1 + n.x * (T / 2)];
           const az = [mz + p.z * a0 - n.z * (T / 2), mz + p.z * a1 + n.z * (T / 2)];
-          out.push({ shape: 'box', look: 'wall', solid: true, min: { x: Math.min(...ax), y: b0, z: Math.min(...az) }, max: { x: Math.max(...ax), y: b1, z: Math.max(...az) } });
+          out.push({ shape: 'box', look: 'wall', solid: true, room: r.index, ...(!nb && { outer: side }), min: { x: Math.min(...ax), y: b0, z: Math.min(...az) }, max: { x: Math.max(...ax), y: b1, z: Math.max(...az) } });
         };
         const L = C / 2 + T / 2;
         const door = d.doors.find((o) => Math.abs(o.x - mx) < 0.01 && Math.abs(o.z - mz) < 0.01);
@@ -191,12 +194,41 @@ function wallParts(d: DungeonLayout, out: Part[], pieces: HiddenPieceDef[]): voi
   }
 }
 
+/** A roofed room's ceiling, level with its walls' tops (round 13: every dungeon stood open to the sky). */
+function ceiling(d: DungeonLayout, r: RoomLayout, out: Part[]): void {
+  if (kitOfRoom(d, r).roof === 'open') return;
+  const top = floorRange(r)[1] + DUNGEON.height;
+  const t = DUNGEON.wall / 2;
+  out.push(local(r, -r.half - t, r.half + t, -r.half - t, r.half + t, top - 0.05, top + 0.45, 'ceiling', true)); // solid: the lens stays under it
+}
+
+/** Metres of heaped earth and rock that stand out from a mound's outer walls (render/dungeonShell.ts): feet stop at them. */
+export const MOUND_BAND = 2;
+
+/** The heaped earth outside a mound-shelled room's outer walls: an unseen edge that feet cannot climb. */
+function moundBands(d: DungeonLayout, out: Part[]): void {
+  for (const p of [...out]) {
+    if (p.shape !== 'box' || !p.outer || kitOfRoom(d, d.rooms[p.room]).shell !== 'mound') continue;
+    if (p.min.y > d.rooms[p.room].level + 1) continue; // a lintel over the way in
+    const n = DIRS[p.outer];
+    const min = { ...p.min };
+    const max = { ...p.max };
+    if (n.x > 0) [min.x, max.x] = [p.max.x, p.max.x + MOUND_BAND];
+    if (n.x < 0) [min.x, max.x] = [p.min.x - MOUND_BAND, p.min.x];
+    if (n.z > 0) [min.z, max.z] = [p.max.z, p.max.z + MOUND_BAND];
+    if (n.z < 0) [min.z, max.z] = [p.min.z - MOUND_BAND, p.min.z];
+    out.push({ shape: 'box', look: 'none', solid: true, room: p.room, min, max });
+  }
+}
+
 /** Every piece of a dungeon. */
 export function dungeonParts(d: DungeonLayout): DungeonParts {
   const parts: Part[] = [];
   const pieces: HiddenPieceDef[] = [];
   for (const r of d.rooms) roomParts(r, parts, pieces, `${d.def.name}: ${r.def.id}`);
+  for (const r of d.rooms) ceiling(d, r, parts);
   wallParts(d, parts, pieces);
+  moundBands(d, parts);
   return { parts, pieces };
 }
 

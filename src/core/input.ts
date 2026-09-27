@@ -12,6 +12,7 @@
 import { INPUT, SIM } from '../data/tuning';
 import { keyLayout, type Action } from './bindings';
 import { useDevice } from './device';
+import { activePad, takeResync } from './pads';
 
 export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock', 'item', 'heal', 'throw', 'interact'] as const;
 export type Button = (typeof BUTTONS)[number];
@@ -61,7 +62,7 @@ interface PadState {
 }
 
 function readPad(): PadState | null {
-  const pad = [...(navigator.getGamepads?.() ?? [])].find((p): p is Gamepad => !!p && p.connected);
+  const pad = activePad();
   if (!pad) return null;
   const axis = (i: number): number => {
     const v = pad.axes[i] ?? 0;
@@ -88,6 +89,7 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
   const up = noButtons();
   const mouseButtons = new Map<number, Button>();
   let prevPad = noButtons();
+  const muted = new Set<Button>(); // pad buttons held as a menu closed: unheard until let go
   let mouseX = 0;
   let mouseY = 0;
   let flick = 0;
@@ -200,7 +202,12 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
       mouseX = 0;
       mouseY = 0;
 
-      const padHeld = pad?.buttons ?? noButtons();
+      const padHeld = { ...(pad?.buttons ?? noButtons()) };
+      if (takeResync()) for (const b of BUTTONS) if (padHeld[b]) muted.add(b);
+      for (const b of muted) {
+        if (padHeld[b]) padHeld[b] = false;
+        else muted.delete(b);
+      }
       for (const b of BUTTONS) {
         f.held[b] = held[b] || padHeld[b];
         f.pressed[b] = down[b] || (padHeld[b] && !prevPad[b]);

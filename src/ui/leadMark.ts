@@ -9,12 +9,12 @@ import type { XZ } from '../core/geom';
 import type { RegionDef } from '../data/regions';
 import { regionAt } from '../world/worldMap';
 import { BONE } from './hudKit';
-import type { MapView } from './mapPainter';
+import { screenX, screenY, type MapView } from './mapPainter';
 
 export function drawLead(ctx: CanvasRenderingContext2D, view: MapView, at: XZ | null, realm: readonly RegionDef[], rim: boolean): void {
   if (!at || !realm.some((r) => r.id === regionAt(at.x, at.z)?.id)) return;
-  let x = (at.x - view.cx) * view.scale + view.w / 2;
-  let y = (view.cz - at.z) * view.scale + view.h / 2;
+  let x = screenX(view, at.x);
+  let y = screenY(view, at.z);
   const [cx, cy] = [view.w / 2, view.h / 2];
   const edge = Math.min(cx, cy) - 7;
   const d = Math.hypot(x - cx, y - cy);

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { REGIONS } from '../src/data/regions';
 import { LIGHT, SKY } from '../src/data/tuning';
-import { inDungeon } from '../src/render/sky';
+import { roofedAt } from '../src/world/terrain';
+import { kitOf } from '../src/data/kits';
 import { worldLayout } from '../src/world/placements';
 
 describe('the night sky (render/sky.ts)', () => {
@@ -10,9 +11,12 @@ describe('the night sky (render/sky.ts)', () => {
     expect(LIGHT.nightMoonDir[1]).toBeGreaterThan(0);
   });
 
-  it("closes off inside a dungeon's walls and opens outside them", () => {
-    const { rect } = worldLayout().dungeons[0].layout;
-    expect(inDungeon((rect.x0 + rect.x1) / 2, (rect.z0 + rect.z1) / 2)).toBe(true);
-    expect(inDungeon(rect.x0 - 20, rect.z0 - 20)).toBe(false);
+  it("closes off under a dungeon's roof, and stays open over ruins and outside (round 13)", () => {
+    const roofed = worldLayout().dungeons.find((d) => kitOf(d.layout.def.id).roof !== 'open')!.layout;
+    const first = roofed.rooms[0];
+    expect(roofedAt(first.x, first.z)).toBe(true);
+    expect(roofedAt(roofed.rect.x0 - 20, roofed.rect.z0 - 20)).toBe(false);
+    const ruin = worldLayout().dungeons.find((d) => d.layout.def.id === 'elder_city')!.layout;
+    expect(roofedAt(ruin.rooms[0].x, ruin.rooms[0].z)).toBe(false);
   });
 });

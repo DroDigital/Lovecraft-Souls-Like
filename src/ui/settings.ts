@@ -12,6 +12,8 @@ export type Settings = Record<SettingId, number>;
 
 export const SETTINGS_KEY = 'lovecraft-souls-like/settings';
 export const SETTING_IDS = Object.keys(SETTINGS) as SettingId[];
+/** Settings kept before this version start at the most resolution again (playtest round 13: the game starts at its sharpest). */
+const VERSION = 13;
 
 export function defaultSettings(): Settings {
   return Object.fromEntries(SETTING_IDS.map((id) => [id, SETTINGS[id][3]])) as Settings;
@@ -33,7 +35,9 @@ export function parseSettings(json: string | null): Settings {
     // A broken entry: the defaults.
   }
   const r = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
-  return Object.fromEntries(SETTING_IDS.map((id) => [id, clampSetting(id, r[id])])) as Settings;
+  const s = Object.fromEntries(SETTING_IDS.map((id) => [id, clampSetting(id, r[id])])) as Settings;
+  if (r.v !== VERSION) s.resolution = SETTINGS.resolution[3];
+  return s;
 }
 
 export function loadSettings(store: Pick<SaveStore, 'getItem'> | null): Settings {
@@ -46,7 +50,7 @@ export function loadSettings(store: Pick<SaveStore, 'getItem'> | null): Settings
 
 export function storeSettings(store: Pick<SaveStore, 'setItem'> | null, s: Settings): void {
   try {
-    store?.setItem(SETTINGS_KEY, JSON.stringify(s));
+    store?.setItem(SETTINGS_KEY, JSON.stringify({ ...s, v: VERSION }));
   } catch {
     // Storage refused: the settings last until the page closes.
   }

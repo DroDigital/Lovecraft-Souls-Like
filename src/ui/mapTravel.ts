@@ -10,7 +10,7 @@ import { distXZ, type XZ } from '../core/geom';
 import type { RegionDef } from '../data/regions';
 import type { Game } from '../systems/components';
 import { mapPlaces, type MapPlace } from '../world/mapData';
-import type { MapView } from './mapPainter';
+import { screenX, screenY, type MapView } from './mapPainter';
 
 const PICK_PX = 14; // a sign this near the pointer is picked
 export const BAR_WORDS = {
@@ -27,7 +27,7 @@ export function litSigns(g: Game, realm: readonly RegionDef[], from: XZ): MapPla
     .sort((a, b) => distXZ(a, from) - distXZ(b, from));
 }
 
-const screenOf = (view: MapView, p: XZ): [number, number] => [(p.x - view.cx) * view.scale + view.w / 2, (view.cz - p.z) * view.scale + view.h / 2];
+const screenOf = (view: MapView, p: XZ): [number, number] => [screenX(view, p.x), screenY(view, p.z)];
 
 /** The lit sign nearest a point on the canvas (pixels), within PICK_PX, if any. */
 export function signAt(signs: readonly MapPlace[], view: MapView, px: number, py: number): MapPlace | null {
