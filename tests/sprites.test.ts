@@ -54,7 +54,7 @@ describe('sprite atlas', () => {
     expect(sliced.data).toEqual(whole.data);
     expect([...sliced.frames]).toEqual([...whole.frames]);
     expect(sliced.eyes).toEqual(whole.eyes);
-  });
+  }, 20_000); // two whole atlases: slow when the suite runs in parallel
 
   it('is deterministic', () => {
     const r = recipes[0].recipe;

@@ -53,6 +53,7 @@ export function teleport(g: Game, at: Place): void {
   Object.assign(g.ecs.c.mover.get(g.player.id)!, { vx: 0, vz: 0, face: at.yaw });
   setLock(g, null);
   g.player.listening = null;
+  g.player.kneeling = null;
   Object.assign(g.camera, { yaw: at.yaw, prevYaw: at.yaw, pitch: CAMERA.pitch, prevPitch: CAMERA.pitch });
 }
 
@@ -95,6 +96,7 @@ export function rest(g: Game, id: string): boolean {
   g.player.checkpoint = { ...s.rest };
   resetFoes(g);
   reopen(g);
+  g.player.kneeling = { x: s.x, z: s.z }; // down on one knee before the stone (round 15)
   g.events.emit('Rested', { sign: id, name: s.name });
   return true;
 }

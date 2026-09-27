@@ -50,3 +50,35 @@ describe('lines under the veil (playtest round 14)', () => {
     for (const l of LORE_LINES) expect(l.length, l).toBeLessThan(120);
   });
 });
+
+describe('resting kneels before the stone (playtest round 15)', () => {
+  it('rest kneels, turned to the Elder Sign; moving or acting gets up', async () => {
+    const { rest, signPlace } = await import('../src/systems/checkpoints');
+    const { START_SIGN } = await import('../src/data/sites');
+    const { stepGame } = await import('../src/systems/game');
+    const { emptyInput } = await import('../src/core/input');
+    const { wrapAngle, yawOf } = await import('../src/core/geom');
+    const g = createWorldGame();
+    const sign = signPlace(START_SIGN)!;
+    expect(rest(g, START_SIGN)).toBe(true);
+    expect(g.player.kneeling).toEqual({ x: sign.x, z: sign.z });
+    for (let i = 0; i < 90; i++) stepGame(g, emptyInput());
+    const tr = g.ecs.c.transform.get(g.player.id)!;
+    expect(Math.abs(wrapAngle(tr.yaw - yawOf(sign.x - tr.pos.x, sign.z - tr.pos.z)))).toBeLessThan(0.05);
+    stepGame(g, { ...emptyInput(), moveY: 1 });
+    expect(g.player.kneeling).toBeNull();
+  });
+});
+
+describe('an epitaph for each great horror (playtest round 15)', () => {
+  it('every named horror, Great Old One and Outer God has one, short enough to read in a breath', async () => {
+    const { EPITAPHS } = await import('../src/data/epitaphs');
+    const { ENTITIES } = await import('../src/data/registry');
+    const great = ENTITIES.filter((d) => d.tier === 'named' || d.tier === 'great_old_one' || d.tier === 'outer_god').map((d) => d.id);
+    for (const id of great) expect(EPITAPHS[id], id).toBeTruthy();
+    for (const [id, line] of Object.entries(EPITAPHS)) {
+      expect(great, id).toContain(id);
+      expect(line.length, id).toBeLessThan(100);
+    }
+  });
+});

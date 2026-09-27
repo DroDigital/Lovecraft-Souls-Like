@@ -22,6 +22,7 @@ export interface PoseInput {
   rollYaw: number; // roll direction relative to facing
   time: number;
   ground?: Ground; // the lie of the land about the feet (flat when absent)
+  kneel?: number; // 0–1: kneeling before an Elder Sign, eased in and out (round 15)
 }
 
 const clamp01 = (t: number): number => Math.min(1, Math.max(0, t));
@@ -144,6 +145,22 @@ function slump(f: Figure, frame: number): void {
   f.elbowR.rotation.x = f.elbowL.rotation.x = -0.4 * t;
 }
 
+/** Resting at an Elder Sign: down on the right knee before the stone, head bowed, forearms on the raised knee (round 15). */
+function kneel(f: Figure, k: number): void {
+  const t = ease(k);
+  f.body.position.y -= 0.4 * t;
+  f.body.rotation.x += 0.18 * t;
+  f.torso.rotation.x += 0.12 * t;
+  f.head.rotation.x += 0.45 * t; // bowed
+  f.legL.rotation.x = -1.3 * t; // the front leg: thigh forward, shin straight down
+  f.kneeL.rotation.x = 1.35 * t;
+  f.legR.rotation.x = 0.2 * t; // the back leg: its knee to the ground
+  f.kneeR.rotation.x = 1.55 * t;
+  f.armR.rotation.set(-0.5 * t, 0, -0.1 * t, 'YXZ');
+  f.armL.rotation.set(-0.6 * t, 0, 0.14 * t, 'YXZ');
+  f.elbowR.rotation.x = f.elbowL.rotation.x = -0.75 * t;
+}
+
 function fall(f: Figure, frame: number): void {
   const t = ease(frame / 30);
   f.body.rotation.x = f.hunch * (1 - t) - (Math.PI / 2) * t;
@@ -168,7 +185,10 @@ export function pose(f: Figure, p: PoseInput): void {
     f.body.rotation.x = -0.35 * Math.sin(t * Math.PI * 3) * (1 - t) - 0.1 * p.flinch * Math.sin(p.time * 40);
     return;
   }
-  if (!d || p.move === null) stride(f, p.speed, p.stride, p.time, p.guard);
+  if (!d || p.move === null) {
+    stride(f, p.speed, p.stride, p.time, p.guard);
+    if (p.kneel) kneel(f, p.kneel);
+  }
   else if (p.move === 'death') fall(f, p.frame);
   else if (p.move === 'stagger' || p.move === 'guardBreak') reel(f, p.frame / d.frames, p.move === 'guardBreak' ? 1.6 : 1);
   else if (p.move === 'parried') slump(f, p.frame);
