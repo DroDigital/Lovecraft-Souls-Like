@@ -19,6 +19,7 @@ import { createCombatFx } from './render/combatFx';
 import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
 import { createSky } from './render/sky';
+import { createVolumetricFog } from './render/volumetricFog';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
@@ -140,6 +141,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
   const sky = createSky();
+  const mist = createVolumetricFog(pipeline.post); // round 16
   scene.add(sky.mesh);
   const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
@@ -195,6 +197,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         placeCamera(camera, game, alpha);
         const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
+        const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
+        mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;

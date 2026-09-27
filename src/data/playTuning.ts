@@ -61,6 +61,7 @@ export const SETTINGS = {
   invertY: [0, 1, 1, 0], // 1: up looks down (round 12)
   resolution: [0.5, 2, 0.25, 2], // internal resolution, × RENDER's 400 × 225 (the most, 800 × 450, by default since playtest round 13)
   brightness: [0.7, 1.6, 0.05, 1], // lifts the dark (a gamma, after the grade; round 12)
+  fog: [0, 1, 0.25, 1], // the volumetric fog's strength (0: none, for slower machines; round 16)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
   volume: [0, 1, 0.05, 0.7], // everything
@@ -180,6 +181,15 @@ export const REAGENT = {
 };
 
 /** How a blow taken reads without making the investigator blink: a red edge from the blow's side, a shake, a health bar that drains behind. */
+/** Volumetric fog (round 16; render/volumetricFog.ts, the regions' mists in data/fogs.ts). */
+export const FOG = {
+  steps: 10, // samples along each pixel's ray (their start dithered, as the picture is)
+  far: 48, // metres the march reaches; the far fog (FX.fogFar) takes over past it
+  glow: 0.55, // how strongly the lantern and the lamps shine in the mist
+  madness: 0.6, // a failing mind thickens it: this much more at full stress
+  ease: 0.5, // share a second by which it turns to a new place's mist
+};
+
 export const HURT = {
   seconds: 0.7, // the red edge fades over this long
   strength: [0.35, 1] as const, // its strength for a grazing blow and for one taking a third of full health
