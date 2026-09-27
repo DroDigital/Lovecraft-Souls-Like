@@ -37,7 +37,7 @@ export function planSpawns(region: RegionDef, features: readonly Feature[], road
   const safe = [...w.signs.filter((s) => s.region === region.id).map((s) => s.rest), ...w.gates.filter((g) => g.region === region.id).map((g) => g.arrive)];
   const grid = new Map<number, Collider[]>(); // colliders by 8 m cell
   const cell = (x: number, z: number): number => Math.floor(x / 8) * 65536 + Math.floor(z / 8);
-  for (const p of props) {
+  for (const p of [...props, ...w.arenas.filter((a) => a.region === region.id).flatMap((a) => a.decor)]) { // and an arena's dressing (round 13)
     const c = propCollider(p);
     if (!c) continue;
     const b = colliderBounds(c);

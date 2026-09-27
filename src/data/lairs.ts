@@ -22,7 +22,7 @@ export const LAIRS: readonly DungeonDef[] = [
       stair('stairs', 'hall', 'n', 4, { spawns: ['exham_troglodyte'] }),
       room('landing', 'corridor', 'stairs', 'n', { spawns: ['reanimated_corpse'] }),
       room('plant', 'corridor', 'landing', 'w', { spawns: ['reanimated_corpse'], words: 'THE REFRIGERATING PLANT' }),
-      room('cold', 'hall', 'landing', 'n', { boss: ['dr_munoz'], vial: 'Silver Vial of the Cold Room' }),
+      room('cold', 'hall', 'landing', 'n', { wide: true, boss: ['dr_munoz'], vial: 'Silver Vial of the Cold Room' }),
     ],
   },
   {
@@ -34,7 +34,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('dungeon', 'corridor', 'vault', 's', { spawns: ['exham_troglodyte', 'rat_swarm'] }),
       room('cells', 'hall', 'dungeon', 's', { spawns: ['reanimated_corpse', 'reanimated_corpse'] }),
       room('armoury', 'hall', 'vault', 'n', { spawns: ['exham_troglodyte', 'exham_troglodyte'] }),
-      room('laboratory', 'hall', 'vault', 'w', { boss: ['charles_le_sorcier'], tome: { name: "Michel Mauvais's Notes", insight: 1 } }),
+      room('laboratory', 'hall', 'vault', 'w', { wide: true, boss: ['charles_le_sorcier'], tome: { name: "Michel Mauvais's Notes", insight: 1 } }),
     ],
   },
   {
@@ -46,7 +46,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('nave', 'corridor', 'bones', 'w', { spawns: ['rat_swarm'] }),
       room('shaft', 'well', 'nave', 'w'),
       stair('climb', 'bones', 's', 4),
-      room('mirror', 'hall', 'climb', 's', { boss: ['the_outsider'], vial: 'Silver Vial of the Mirror Room' }),
+      room('mirror', 'hall', 'climb', 's', { wide: true, boss: ['the_outsider'], vial: 'Silver Vial of the Mirror Room' }),
     ],
   },
   {
@@ -58,7 +58,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('ossuary', 'pit', 'grave', 's', { spawns: ['rat_swarm', 'reanimated_corpse'] }),
       room('robbers', 'corridor', 'ossuary', 'w', { spawns: ['reanimated_corpse'] }),
       room('charnel', 'hall', 'robbers', 'w', { hidden: { minInsight: 1 }, tome: { name: "St John's Diary", insight: 1 } }),
-      room('coffin', 'hall', 'ossuary', 's', { boss: ['the_hound'], vial: 'Silver Vial of the Jade Amulet' }),
+      room('coffin', 'hall', 'ossuary', 's', { wide: true, boss: ['the_hound'], vial: 'Silver Vial of the Jade Amulet' }),
     ],
   },
   {
@@ -70,7 +70,7 @@ export const LAIRS: readonly DungeonDef[] = [
       stair('cellar_stair', 'front_room', 's', -4),
       room('cellar', 'hall', 'cellar_stair', 's', { spawns: ['moon_bog_wraith', 'moon_bog_wraith'] }),
       stair('attic_stair', 'front_room', 'e', 4),
-      room('attic', 'hall', 'attic_stair', 'e', { boss: ['the_unnamable'], tome: { name: "Carter's Account", insight: 1 } }),
+      room('attic', 'hall', 'attic_stair', 'e', { wide: true, boss: ['the_unnamable'], tome: { name: "Carter's Account", insight: 1 } }),
     ],
   },
   {
@@ -81,7 +81,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('side_vault', 'corridor', 'passage', 'e', { spawns: ['reanimated_corpse'] }),
       room('bone_pit', 'pit', 'side_vault', 'e', { spawns: ['rat_swarm', 'rat_swarm'] }),
       room('flooded', 'corridor', 'passage', 'w', { spawns: ['moon_bog_wraith'] }),
-      room('vault', 'hall', 'passage', 'n', { boss: ['voice_in_the_tomb'], vial: 'Silver Vial of the Telephone Wire' }),
+      room('vault', 'hall', 'passage', 'n', { wide: true, boss: ['voice_in_the_tomb'], vial: 'Silver Vial of the Telephone Wire' }),
     ],
   },
   {
@@ -90,7 +90,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('parlour', 'hall', 'doorway', 'n', { spawns: ['ghoul', 'cthulhu_cultist'] }),
       room('stairwell', 'corridor', 'parlour', 'w', { spawns: ['ghoul'] }),
       stair('cellar_stair', 'doorway', 'w', -4),
-      room('cellar', 'hall', 'cellar_stair', 'w', { boss: ['shunned_house_entity'], vial: 'Silver Vial of the Nitre Stain' }),
+      room('cellar', 'hall', 'cellar_stair', 'w', { wide: true, boss: ['shunned_house_entity'], vial: 'Silver Vial of the Nitre Stain' }),
       room('nitre', 'corridor', 'cellar', 's', { spawns: ['ghoul'] }),
       room('grave', 'pit', 'nitre', 's', { spawns: ['ghoul', 'ghoul'], words: 'THE SHAPE IN THE NITRE' }),
     ],
@@ -104,7 +104,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('crypt', 'hall', 'lower_steps', 'w', { spawns: ['ghoul', 'ghoul'] }),
       stair('trapdoor', 'dance_hall', 's', -5),
       room('canal', 'bridge', 'trapdoor', 's', { spawns: ['cthulhu_cultist'] }),
-      room('shrine', 'hall', 'canal', 's', { boss: ['lilith'], tome: { name: "Suydam's Papers", insight: 1 } }),
+      room('shrine', 'hall', 'canal', 's', { wide: true, boss: ['lilith'], tome: { name: "Suydam's Papers", insight: 1 } }),
     ],
   },
   {
@@ -114,7 +114,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('front_hall', 'hall', 'gate', 'e', { spawns: ['cthulhu_cultist'] }),
       stair('stair', 'front_hall', 'n', 4),
       room('upper', 'corridor', 'stair', 'n', { spawns: ['cthulhu_cultist', 'ghoul'] }),
-      room('bottles', 'hall', 'front_hall', 'e', { boss: ['terrible_old_man'], vial: 'Silver Vial of the Pendulum Bottle' }),
+      room('bottles', 'hall', 'front_hall', 'e', { wide: true, boss: ['terrible_old_man'], vial: 'Silver Vial of the Pendulum Bottle' }),
     ],
   },
   {
@@ -125,7 +125,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('kitchen', 'hall', 'yard', 'n', { weapon: 'axe' }),
       room('boarded', 'corridor', 'kitchen', 'w', { spawns: ['thousand_young'], words: 'THE BOARDED ROOMS' }),
       stair('loft', 'kitchen', 'n', 4, { spawns: ['thousand_young'] }),
-      room('upstairs', 'hall', 'loft', 'n', { boss: ['wilbur_whateley'], vial: 'Silver Vial of the Boarded Rooms' }),
+      room('upstairs', 'hall', 'loft', 'n', { wide: true, boss: ['wilbur_whateley'], vial: 'Silver Vial of the Boarded Rooms' }),
     ],
   },
   {
@@ -137,7 +137,7 @@ export const LAIRS: readonly DungeonDef[] = [
       stair('cellar_stair', 'parlour', 'w', -4),
       room('cellar', 'hall', 'cellar_stair', 'w', { spawns: ['deep_one', 'deep_one'] }),
       stair('stairs', 'parlour', 's', 4),
-      room('study', 'hall', 'stairs', 's', { boss: ['ephraim_waite'], vial: 'Silver Vial of the Thing on the Doorstep' }),
+      room('study', 'hall', 'stairs', 's', { wide: true, boss: ['ephraim_waite'], vial: 'Silver Vial of the Thing on the Doorstep' }),
     ],
   },
   {
@@ -147,7 +147,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('garden', 'corridor', 'foot', 'w', { spawns: ['gnorri'] }),
       room('fountain', 'well', 'garden', 'w'),
       stair('turret', 'foot', 'n', 5, { spawns: ['zoog'] }),
-      room('studio', 'hall', 'turret', 'n', { boss: ['hypnos'], vial: 'Silver Vial of the Laurel Head' }),
+      room('studio', 'hall', 'turret', 'n', { wide: true, boss: ['hypnos'], vial: 'Silver Vial of the Laurel Head' }),
     ],
   },
   {
@@ -157,7 +157,7 @@ export const LAIRS: readonly DungeonDef[] = [
       room('lodging', 'hall', 'alley', 'e', { spawns: ['yekubian', 'being_from_beyond'] }),
       stair('first_flight', 'street', 'n', 4),
       stair('second_flight', 'first_flight', 'n', 4, { spawns: ['dhole'] }),
-      room('garret', 'hall', 'second_flight', 'n', { boss: ['zann_window_thing'], vial: 'Silver Vial of the Viol' }),
+      room('garret', 'hall', 'second_flight', 'n', { wide: true, boss: ['zann_window_thing'], vial: 'Silver Vial of the Viol' }),
     ],
   },
 ];

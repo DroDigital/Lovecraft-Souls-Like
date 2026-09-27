@@ -5,6 +5,7 @@
  * and each legacy dungeon's front door. Rooms inside dungeons carry their own (dungeons.ts).
  */
 
+import { MIN_ARENA } from './arenaStyles';
 import type { Dir } from './dungeons';
 
 export type At = readonly [x: number, z: number];
@@ -63,8 +64,8 @@ export const START_SIGN = 'hub_quad';
 export const DREAM_DESCENT = 'slumber';
 
 const sign = (id: string, name: string, x: number, z: number, face: Dir, dream?: boolean): SignSite => ({ id, name, at: [x, z], face, ...(dream && { dream }) });
-const arena = (bosses: readonly string[], x: number, z: number, radius: number, extra: Partial<ArenaSite> = {}): ArenaSite => ({ bosses, at: [x, z], radius, ...extra });
-const lair = (id: string, x: number, z: number, radius = 10): ArenaSite => arena([id], x, z, radius);
+const arena = (bosses: readonly string[], x: number, z: number, radius: number, extra: Partial<ArenaSite> = {}): ArenaSite => ({ bosses, at: [x, z], radius: Math.max(radius, MIN_ARENA), ...extra }); // never too small to fight in (round 13)
+const lair = (id: string, x: number, z: number, radius = MIN_ARENA): ArenaSite => arena([id], x, z, radius);
 const ally = (id: string, x: number, z: number): AllySite => ({ id, at: [x, z] });
 const gate = (id: string, name: string, to: string, x: number, z: number, face: Dir): GateSite => ({ id, name, to, at: [x, z], face });
 const tome = (name: string, insight: number, x: number, z: number): TomeSite => ({ name, insight, at: [x, z] });
@@ -82,7 +83,7 @@ export const SITES: Readonly<Record<string, RegionSites>> = {
       gate('hub_australia', 'Miskatonic Australian Expedition', 'pnakotus_gate', 432, 80, 'n'),
     ],
     tomes: [],
-    dungeons: [dungeon('library', 256, 296), dungeon('munoz_rooms', 430, 330), dungeon('alchemist_cellars', 100, 300), dungeon('outsider_crypt', 360, 480)],
+    dungeons: [dungeon('library', 256, 296), dungeon('munoz_rooms', 462, 296), dungeon('alchemist_cellars', 150, 300), dungeon('outsider_crypt', 360, 480)],
   },
   arkham: {
     signs: [sign('arkham_streets', 'Arkham Streets', 448, 256, 'w'), sign('arkham_heath', 'Blasted Heath', 240, 184, 'w')],
@@ -104,7 +105,7 @@ export const SITES: Readonly<Record<string, RegionSites>> = {
     gates: [],
     tomes: [tome('Cultes des Goules', 1, 128, 320)],
     dungeons: [
-      dungeon('curwen_catacombs', 200, 200), dungeon('starry_wisdom', 340, 260), dungeon('shunned_cellar', 80, 400), dungeon('red_hook_vaults', 220, 428),
+      dungeon('curwen_catacombs', 200, 200), dungeon('starry_wisdom', 340, 260), dungeon('shunned_cellar', 130, 400), dungeon('red_hook_vaults', 220, 428),
       dungeon('old_man_house', 410, 224),
     ],
   },

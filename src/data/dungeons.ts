@@ -91,7 +91,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       room('lodgers', 'corridor', 'landing', 'e', { spawns: ['reanimated_corpse', 'rat_swarm'] }), // the lodgers' rooms, empty of lodgers
       room('dombrowski', 'hall', 'lodgers', 'e', { spawns: ['reanimated_corpse', 'rat_swarm', 'rat_swarm'] }),
       room('closet', 'hall', 'landing', 'w', { hidden: { minInsight: 1 }, tome: { name: "Keziah's Formulae", insight: 1 } }),
-      room('garret', 'hall', 'landing', 'n', { boss: ['keziah_mason', 'brown_jenkin'] }),
+      room('garret', 'hall', 'landing', 'n', { wide: true, boss: ['keziah_mason', 'brown_jenkin'] }),
     ],
   },
   {
@@ -138,7 +138,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       room('ossuary', 'corridor', 'crypt', 'w', { hidden: { minInsight: 2 }, tome: { name: "Curwen's Journal", insight: 1 } }),
       room('charnel', 'hall', 'ossuary', 'w', { spawns: ['ghoul', 'being_from_beyond'] }),
       room('saltes', 'corridor', 'charnel', 's', { vial: 'Silver Vial of the Essential Saltes' }),
-      room('laboratory', 'hall', 'crypt', 's', { boss: ['joseph_curwen'] }),
+      room('laboratory', 'hall', 'crypt', 's', { wide: true, boss: ['joseph_curwen'] }),
     ],
   },
   {
@@ -155,7 +155,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       room('belfry', 'corridor', 'tower', 'n', { sign: { id: 'prov_church', name: 'Belfry Stair' } }),
       room('gallery', 'corridor', 'belfry', 'w', { spawns: ['winged_hybrid', 'winged_hybrid'] }),
       stair('spire', 'belfry', 'n', 4),
-      room('steeple', 'hall', 'spire', 'n', { boss: ['haunter_of_the_dark'] }),
+      room('steeple', 'hall', 'spire', 'n', { wide: true, boss: ['haunter_of_the_dark'] }),
     ],
   },
   {
@@ -166,7 +166,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       room('barn', 'hall', 'kitchen', 'e', { spawns: ['martense_degenerate', 'martense_degenerate', 'rat_swarm'] }),
       stair('cellar', 'parlour', 'w', -4, { spawns: ['rat_swarm'] }),
       room('root_cellar', 'hall', 'cellar', 'w', { spawns: ['martense_degenerate', 'moon_bog_wraith'] }),
-      room('study', 'hall', 'parlour', 'n', { boss: ['whisperer'] }),
+      room('study', 'hall', 'parlour', 'n', { wide: true, boss: ['whisperer'] }),
       room('tunnel', 'corridor', 'study', 'w', { kit: 'mine' }),
       stair('shaft', 'tunnel', 'w', -4, { kit: 'mine' }),
       room('outpost', 'well', 'shaft', 'w', { spawns: ['mi_go', 'mi_go'], kit: 'mine', words: 'THE OUTPOST' }),
@@ -254,7 +254,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       room('road', 'corridor', 'ulthar', 'n', { spawns: ['zoog', 'zoog'] }),
       room('dylath_leen', 'hall', 'road', 'e', { spawns: ['moon_beast', 'man_of_leng'], words: 'DYLATH-LEEN' }),
       stair('leng_climb', 'road', 'n', 5),
-      room('leng', 'hall', 'leng_climb', 'n', { boss: ['high_priest'], spawns: ['man_of_leng'] }),
+      room('leng', 'hall', 'leng_climb', 'n', { wide: true, boss: ['high_priest'], spawns: ['man_of_leng'] }),
       room('monastery', 'corridor', 'leng', 'n', { spawns: ['man_of_leng', 'man_of_leng'] }),
       room('zin_steps', 'stair', 'leng', 'e', { rise: -5, spawns: ['gug', 'ghast'] }),
       room('zin', 'pit', 'zin_steps', 'e', { sign: { id: 'dream_zin', name: 'Vaults of Zin' }, ally: 'pickman' }),
@@ -300,7 +300,7 @@ export const DUNGEONS: readonly DungeonDef[] = [
       room('pitch_bridge', 'bridge', 'spore_field', 'n', { spawns: ['mi_go'] }),
       room('black_tower', 'hall', 'pitch_bridge', 'n', { spawns: ['yekubian', 'mi_go'], words: 'THE BLACK TOWERS' }),
       stair('tower', 'fungus', 'e', 5),
-      room('cylinders', 'hall', 'tower', 'e', { boss: ['rhan_tegoth'] }),
+      room('cylinders', 'hall', 'tower', 'e', { wide: true, boss: ['rhan_tegoth'] }),
     ],
   },
   {

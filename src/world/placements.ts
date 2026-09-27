@@ -7,14 +7,17 @@
 
 import { NOTE_SITES } from '../data/documents';
 import { yawOf, type XZ } from '../core/geom';
-import { hash2 } from '../core/rng';
 import type { HiddenPieceDef, Place } from '../data/arena';
 import { DUNGEONS, type Dir } from '../data/dungeons';
 import { isWeapon, WEAPONS } from '../data/weapons';
 import { REGIONS, type RegionDef } from '../data/regions';
-import { DREAM_DESCENT, SITES, type ArenaSite } from '../data/sites';
+import { DREAM_DESCENT, SITES } from '../data/sites';
 import { DUNGEON, WORLD } from '../data/tuning';
+import { arenaStyle } from '../data/arenaStyles';
+import { roomProps } from './arenaDecor';
+import { placeArena, propCollide } from './arenaPlace';
 import { echoCaches } from './caches';
+import type { Prop } from './props';
 import { colliderBounds, type Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import { dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
@@ -65,7 +68,8 @@ export interface ArenaPlace {
   radius: number;
   well: boolean;
   bosses: readonly string[];
-  stones: readonly { x: number; z: number; radius: number; height: number }[];
+  stones: readonly { x: number; z: number; radius: number; height: number }[]; // when its ring is standing stones
+  decor: Prop[]; // its ring of other pieces, its heart and its braziers (arenaDecor.ts; round 13)
 }
 
 export interface SpawnPoint {
@@ -85,6 +89,7 @@ export type Pad =
 export interface Dungeon {
   layout: DungeonLayout;
   parts: Part[];
+  decor: Prop[]; // its boss rooms' hearts and braziers (arenaDecor.ts; round 13)
 }
 
 export interface ChunkStatics {
@@ -186,7 +191,7 @@ function build(): WorldLayout {
     }
     for (const a of sites.arenas) {
       const p = at(a.at);
-      arena(w, region, p, a, pad(p.x, p.z, PAD.arena, a.radius), collide, spawn);
+      placeArena(w, region, p, a, pad(p.x, p.z, PAD.arena, a.radius), collide, spawn);
     }
     for (const d of sites.dungeons) {
       const def = DUNGEONS.find((x) => x.id === d.id);
@@ -199,7 +204,8 @@ function build(): WorldLayout {
       const { parts, pieces } = dungeonParts(layout);
       w.errors.push(...layout.errors.map((e) => `dungeon ${def.id}: ${e}`));
       if (def.region !== region.id) w.errors.push(`dungeon ${def.id}: placed in ${region.id} but belongs to ${def.region}`);
-      w.dungeons.push({ layout, parts });
+      const decor: Prop[] = [];
+      w.dungeons.push({ layout, parts, decor });
       w.pieces.push(...pieces);
       for (const p of parts) if (p.solid) collide(partCollider(p));
       const rp: Pad = { kind: 'rect', rect: layout.rect, blend: PAD.dungeon, level: layout.base };
@@ -208,7 +214,8 @@ function build(): WorldLayout {
       bucket({ x0: layout.rect.x0 - b, z0: layout.rect.z0 - b, x1: layout.rect.x1 + b, z1: layout.rect.z1 + b }, (k) => k.pads.push(rp));
       bucket(layout.rect, (k) => k.dungeons.push(layout));
       const caches = echoCaches(def);
-      for (const r of layout.rooms) furnish(w, region, def.id, r, sign, gate, spawn, caches.get(r.def.id));
+      for (const r of layout.rooms) decor.push(...furnish(w, region, def.id, r, sign, gate, spawn, caches.get(r.def.id)));
+      for (const d of decor) propCollide(d, collide);
       const first = layout.rooms[0];
       const on = first && layout.rooms.find((r) => r.def.from === first.def.id); // the way on: a sealed entrance's own axis faced its back wall (round 12)
       if (def.id === DREAM_DESCENT && first) w.dream = { x: first.x, z: first.z, yaw: on ? yawOf(on.x - first.x, on.z - first.z) : yawOfDir(first.axis) };
@@ -221,27 +228,8 @@ function build(): WorldLayout {
 type SignFn = (region: string, x: number, z: number, y: number, id: string, name: string, face: Dir, dream?: boolean, at?: XZ) => void;
 type GateFn = (region: string, x: number, z: number, y: number, id: string, name: string, to: string, face: Dir) => void;
 
-/** An arena: its ring of standing stones, the well at its heart, and its bosses. */
-function arena(w: WorldLayout, region: RegionDef, p: XZ, a: ArenaSite, y: number, collide: (c: Collider) => void, spawn: (s: SpawnPoint) => void): void {
-  const ring = a.radius + 1.5;
-  const n = Math.max(6, Math.round((2 * Math.PI * ring) / 5.5));
-  const stones = Array.from({ length: n }, (_, k) => {
-    const t = (k / n) * Math.PI * 2;
-    return { x: p.x + Math.cos(t) * ring, z: p.z + Math.sin(t) * ring, radius: 0.7, height: 2.5 + 3 * hash2(k, n, WORLD.seed) };
-  });
-  for (const s of stones) collide({ kind: 'cylinder', x: s.x, z: s.z, radius: s.radius, y0: y - 0.3, y1: y + s.height });
-  if (a.well) collide({ kind: 'cylinder', x: p.x, z: p.z, radius: 2.75, y0: y - 12, y1: y + 0.9 });
-  w.arenas.push({ region: region.id, x: p.x, z: p.z, y, radius: a.radius, well: !!a.well, bosses: a.bosses, stones });
-  const spread = Math.min(8, a.radius / 3);
-  a.bosses.forEach((id, k) => {
-    const dx = (k - (a.bosses.length - 1) / 2) * spread;
-    const at = { x: p.x + dx, z: p.z + (a.well ? a.radius / 2 : 0), yaw: Math.PI };
-    spawn({ id: `boss:${id}`, entity: id, variant: a.variant, region: region.id, at, unique: true, arena: { x: p.x, z: p.z, radius: a.radius } });
-  });
-}
-
 /** What stands in a dungeon room: its Elder Sign, gate, tome or Echo cache, a weapon, bosses, allies and spawns. */
-function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void, cache?: number): void {
+function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void, cache?: number): Prop[] {
   const s = roomSpots(r);
   const pt = ([u, v]: readonly [number, number]) => {
     const p = roomPoint(r, u, v);
@@ -284,7 +272,12 @@ function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayo
   const next = (): XZ => roomPoint(r, ...(ring.shift() ?? [0, 0]));
   if (d.ally) spawn({ id: `ally:${d.ally}`, entity: d.ally, region: region.id, at: { ...next(), yaw: face }, unique: false });
   (d.spawns ?? []).forEach((id, k) => spawn({ id: `room:${dungeon}:${d.id}:${k}`, entity: id, region: region.id, at: { ...next(), yaw: face }, unique: false }));
+  if (!d.boss) return [];
+  const ax = DIRS[r.axis];
+  const away = d.gate ? { x: ax.z, z: -ax.x } : ax; // the far side, or beside it when a gate stands there
+  return roomProps(arenaStyle(d.boss[0]), r.x, r.z, r.level, r.half - DUNGEON.wall, away);
 }
+
 
 /** Whether a spawn point's creature stays slain once killed: bosses and optional bosses. */
 export const isUnique = (spawnId: string): boolean => spawnId.startsWith('boss:');

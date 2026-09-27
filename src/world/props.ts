@@ -32,7 +32,10 @@ const OPEN = new Set<PropKind>(['bush', 'firepit', 'globe']); // no collider: wa
 type Size = readonly [w: number, d: number, h: number];
 
 /** A prop of `kind` at (x, z) on the ground, sized from `rng` unless `size` is given. */
-export function makeProp(kind: PropKind, x: number, z: number, rng: Rng, yaw?: number, size?: Size, style?: HouseStyle): Prop {
+export const makeProp = (kind: PropKind, x: number, z: number, rng: Rng, yaw?: number, size?: Size, style?: HouseStyle): Prop => propAt(kind, x, surface(x, z), z, rng, yaw, size, style);
+
+/** A prop of `kind` standing at height `y` (round 13: an arena's dressing is placed while the ground itself is still being laid out). */
+export function propAt(kind: PropKind, x: number, y: number, z: number, rng: Rng, yaw?: number, size?: Size, style?: HouseStyle): Prop {
   const r = (lo: number, hi: number): number => lo + (hi - lo) * rng();
   const sizes: Record<PropKind, () => Size> = {
     tree: () => [r(0.25, 0.4), 0, r(5, 9)],
@@ -68,7 +71,7 @@ export function makeProp(kind: PropKind, x: number, z: number, rng: Rng, yaw?: n
   };
   const [w, d, h] = size ?? sizes[kind]();
   const turn = yaw ?? (ROUND.has(kind) ? r(0, Math.PI * 2) : rng() < 0.5 ? 0 : Math.PI / 2);
-  return { kind, x, y: surface(x, z), z, w, d, h, yaw: turn, seed: Math.floor(rng() * 1e6), ...(style && { style }) };
+  return { kind, x, y, z, w, d, h, yaw: turn, seed: Math.floor(rng() * 1e6), ...(style && { style }) };
 }
 
 /** The prop's collider, or null for what is walked through (bushes, fire pits). */

@@ -2,7 +2,7 @@
  * Meshes for the world's sites (spec §3D): a legacy dungeon from its kit parts (stone walls with
  * their plinths, cornices, pilasters, sconces and rubble; blocks, pillars with bases and capitals,
  * and well rims; slab floors and steps; wooden bridge decks; dark pits and chasms seen from
- * inside), and an arena's ring of standing stones (and the well at its heart). Built a few parts at
+ * inside), and an arena's ring of standing stones (and the well at its heart), or its style's dressing (round 13). Built a few parts at
  * a time (a sliced job). Round 12: each dungeon's kit (data/kits.ts) chooses its walls' and floors'
  * textures and tone, its trim (masonry, timber beams and posts, or none) and how many flames it holds.
  */
@@ -14,6 +14,7 @@ import type { DungeonKit, KitTexture } from '../data/kits';
 import { getRegion } from '../data/regions';
 import { DUNGEON } from '../data/tuning';
 import { kitOfRoom } from '../world/dungeonKit';
+import { propJob } from './propMeshes';
 import type { Part } from '../world/dungeonParts';
 import { dungeonShell } from './dungeonShell';
 import type { ArenaPlace, Dungeon } from '../world/placements';
@@ -187,11 +188,14 @@ export function* dungeonJob(d: Dungeon, done: (meshes: THREE.Mesh[], lights: Lig
     if (k % PER_STEP === PER_STEP - 1) yield;
   }
   for (const s of dungeonShell(d.layout, d.parts, colour)) add(s.texture, s.geo);
-  done(meshes(groups), lights);
+  const built = meshes(groups);
+  const region = getRegion(d.layout.region);
+  if (d.decor.length && region) yield* propJob(d.decor, region, (m, l) => void (built.push(...m), lights.push(...l))); // the boss room's heart and braziers (round 13)
+  done(built, lights);
 }
 
-/** Builds an arena's ring of standing stones (and its well); `done` receives the mesh. */
-export function* arenaJob(a: ArenaPlace, done: (meshes: THREE.Mesh[]) => void): Generator<void, void> {
+/** Builds an arena's ring of standing stones (and its well) and its dressing; `done` receives the meshes and the braziers' lights. */
+export function* arenaJob(a: ArenaPlace, done: (meshes: THREE.Mesh[], lights: LightSpot[]) => void): Generator<void, void> {
   const c = mixRgb(STONE, getRegion(a.region)?.biome.tint ?? STONE, 0.5);
   const parts = a.stones.map((s, k) => {
     const lean = ((k * 37) % 11) / 11 - 0.5;
@@ -201,5 +205,9 @@ export function* arenaJob(a: ArenaPlace, done: (meshes: THREE.Mesh[]) => void): 
   });
   yield;
   if (a.well) parts.push(...well(a.x, a.z, DUNGEON.well + 0.35, a.y + 0.9, c));
-  done([new THREE.Mesh(mergeGeometries(parts), material('stone'))]);
+  const out: THREE.Mesh[] = parts.length ? [new THREE.Mesh(mergeGeometries(parts), material('stone'))] : [];
+  const lights: LightSpot[] = [];
+  const region = getRegion(a.region);
+  if (a.decor.length && region) yield* propJob(a.decor, region, (m, l) => void (out.push(...m), lights.push(...l))); // its style's ring, heart and braziers (round 13)
+  done(out, lights);
 }
