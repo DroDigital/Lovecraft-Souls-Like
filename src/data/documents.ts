@@ -53,6 +53,63 @@ export const DOCUMENTS: Readonly<Record<string, Document>> = {
     "Robert Suydam's papers, water-stained. Lists of names and addresses in Red Hook, most of them crossed out. The draft of a wedding announcement.",
     'At the bottom of the last page: "The tall gentleman says the gate will be open by the autumn, and I may bring my bride through."',
   ),
+  // Round 13: the tomes in the dungeons' new rooms.
+  'Liber Ivonis': tome(
+    "The Latin Book of Eibon, a fifteenth-century copy chained to its shelf. The chain has been cut.",
+    'A slip marks the chapter on Zhothaqquah, "who dwelleth in N\'kai beneath the mound". Someone has written in the margin: "the mound at Dunwich? or the one at Binger?"',
+  ),
+  "Gilman's Dream-Diary": tome(
+    "A student's notebook, water-stained, found in a rat-hole. Walter Gilman's hand, getting worse page by page.",
+    '"March 30. The little thing with the man\'s face came again last night. It nuzzled my hand. I am afraid of the angles of this room. I am more afraid of the day I stop being afraid of them."',
+  ),
+  "Old Whateley's Ledger": tome(
+    'A farm account-book: cattle bought, cattle bought, cattle bought. Never a head sold.',
+    'On the inside cover, in a different ink: "Enlarge the shed agin. He grows faster than they told. Yog-Sothoth is the gate. The boy must learn the words."',
+  ),
+  "Obed Marsh's Log": tome(
+    "The captain's log of the Sumatra Queen, 1838 to 1846, swollen with seawater.",
+    '"Walakea says they will give fish and gold for young folk. I told him Innsmouth has plenty of both kinds of young folk, and the ones that go down to them will not die, only change. Signed it at the reef tonight."',
+  ),
+  "Bowen's Journal": tome(
+    'Professor Enoch Bowen, Providence, 1844, on his return from Egypt: a list of what he brought home in his crates.',
+    '"The box with the stone. Keep it closed. The stone must not be left in darkness, and it must not be left in light. I have not decided which is worse."',
+  ),
+  "Danforth's Sketches": tome(
+    "Pencil drawings from the Miskatonic Antarctic Expedition's second flight. The later sheets are not of buildings.",
+    'The last sketch is of a black, bubbling mass filling a tunnel from wall to wall, lit by the plane\'s lamp. Written under it, over and over: "Tekeli-li. Tekeli-li."',
+  ),
+  'The Case of the Earth Race': tome(
+    'Metal-bound pages in a script like hooked marks, and, pressed between them, a sheet of University letterhead.',
+    'Peaslee\'s hand: "It is my own writing. I wrote this, in their script, in 1908 to 1913, in a body that was not mine. I have now seen the shelf it was kept on. I wish I had not."',
+  ),
+  "Zamacona's Manuscript": tome(
+    "A roll of parchment in sixteenth-century Spanish, found in a clay cylinder. Pánfilo de Zamacona y Nuñez's account of K'n-yan.",
+    '"They have given up the gods of the upper world, and even Yig and Tulu they keep only as a habit. But of what lies beneath red-litten Yoth, in black N\'kai, they will not speak at all."',
+  ),
+  'The Pnakotic Fragments': tome(
+    "Loose leaves the elder priests of Ulthar keep behind a grille. They are older than Ulthar.",
+    '"Seek not Kadath, for the gods of earth are weak, and dwell there under the guard of the Other Gods from outside, whose soul and messenger is the crawling chaos Nyarlathotep."',
+  ),
+  "Johansen's Narrative": tome(
+    'The Norwegian mate\'s account of the Emma and the Alert, the copy his widow sent to Professor Angell.',
+    '"The angles were all wrong. A man went in over a corner that was not there, and did not come out. Then the great door opened, and It came out, and I steered for It."',
+  ),
+  "The Outer Ones' Ledger": tome(
+    'A list scratched on a thin sheet of some metal that is not any metal, in English, in a hand that tried hard to be human.',
+    '"Received for the journey: one brain, H.W.A., in cylinder 12. Condition good. He asks for his son. We have told him the son will come."',
+  ),
+  "The Silver Key's Inscription": tome(
+    'Nine lines in no known alphabet, rubbed from the key itself onto a sheet of paper by someone who could not read them either.',
+    'Beneath, in pencil: "Randolph Carter turned it at the Snake Den on his fifty-fourth birthday. He was never found. He was never quite lost either."',
+  ),
+  "St John's Diary": tome(
+    'A pocket diary with a green jade amulet pressed into its last pages, so that the shape of it stays in the paper.',
+    '"We should never have opened that grave in Holland. The baying follows us across the moor now. St John says it is only a dog. There are no dogs within ten miles."',
+  ),
+  "Asenath's Notes": tome(
+    "Loose sheets in a heavy, forceful hand that does not match the woman's signature at the bottom.",
+    '"The body is young but it is a woman\'s, and a woman cannot enter the Order\'s inner circle. Edward Derby is weak. Edward Derby will do."',
+  ),
   'Cultes des Goules': tome(
     "The Comte d'Erlette's book on the ghoul cults of France, in a cheap later printing. A railway ticket marks the chapter on New England. The name on the ticket is Pickman.",
     'The chapter says the ghouls were men once, and still keep some of the habits of men, including a taste for good paintings.',

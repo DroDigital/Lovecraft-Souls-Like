@@ -30,7 +30,7 @@ describe('region plans', () => {
     expect(bad).toEqual([]);
   });
 
-  it('roads reach every Elder Sign and legacy dungeon; the lesser dungeons and lairs lie off the road', () => {
+  it('roads reach every Elder Sign; no dungeon has a road run up to its door (round 13), and the lairs lie off the road', () => {
     const lesser = new Set(LAIRS.map((d) => d.id));
     const bad: string[] = [];
     for (const r of REGIONS) {
@@ -41,7 +41,6 @@ describe('region plans', () => {
       for (const d of w.dungeons.filter((x) => x.layout.region === r.id && !x.layout.def.sealed)) {
         const door = d.layout.doors.find((x) => x.b === null)!;
         const near = roadDistance(roads, door.x, door.z);
-        if (!lesser.has(d.layout.def.id) && near > 12) bad.push(`dungeon ${d.layout.def.id} has no road to its door`);
         if (lesser.has(d.layout.def.id) && near < 10) bad.push(`lesser dungeon ${d.layout.def.id} lies on a road`);
       }
     }

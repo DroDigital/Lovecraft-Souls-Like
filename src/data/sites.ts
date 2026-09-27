@@ -105,7 +105,7 @@ export const SITES: Readonly<Record<string, RegionSites>> = {
     tomes: [tome('Cultes des Goules', 1, 128, 320)],
     dungeons: [
       dungeon('curwen_catacombs', 200, 200), dungeon('starry_wisdom', 340, 260), dungeon('shunned_cellar', 80, 400), dungeon('red_hook_vaults', 220, 428),
-      dungeon('old_man_house', 460, 224),
+      dungeon('old_man_house', 410, 224),
     ],
   },
   dunwich: {
