@@ -21,39 +21,40 @@ const BASE: ArchetypeParams = {
   mobile: true,
   turnRate: 5,
   evade: 0,
+  roam: 8,
 };
 
 const arch = (p: Partial<ArchetypeParams>): ArchetypeParams => ({ ...BASE, ...p });
 
 export const ARCHETYPES: Readonly<Record<ArchetypeId, ArchetypeParams>> = {
   /** Fast, eager melee that closes in and harries. */
-  pack_hunter: arch({ aggro: 26, cooldown: [30, 70], strafe: 0.3, turnRate: 6 }),
+  pack_hunter: arch({ aggro: 26, cooldown: [30, 70], strafe: 0.3, turnRate: 6, roam: 12 }),
   /** Lies still and unseen until its prey is close, then strikes. */
-  ambusher: arch({ hide: 'ambush', reveal: 5, fov: 360, cooldown: [25, 60], turnRate: 7 }),
+  ambusher: arch({ hide: 'ambush', reveal: 5, fov: 360, cooldown: [25, 60], turnRate: 7, roam: 0 }),
   /** Slow, heavy hitter that walks straight in. */
-  brute: arch({ aggro: 20, cooldown: [60, 110], turnRate: 3 }),
+  brute: arch({ aggro: 20, cooldown: [60, 110], turnRate: 3, roam: 6 }),
   /** Keeps just out of reach, circles, darts in. */
   skirmisher: arch({ range: [2.5, 5], strafe: 0.8, cooldown: [35, 70], flee: 0.3, turnRate: 7, evade: 0.3 }),
   /** Keeps its distance and works from range. */
   caster: arch({ aggro: 28, range: [7, 13], strafe: 0.4, cooldown: [70, 120], flee: 0.5, evade: 0.3 }),
   /** Circles high, then dives. */
-  flyer_swoop: arch({ aggro: 30, fov: 360, range: [3, 8], strafe: 0.7, hover: 2.5, cooldown: [50, 90] }),
+  flyer_swoop: arch({ aggro: 30, fov: 360, range: [3, 8], strafe: 0.7, hover: 2.5, cooldown: [50, 90], roam: 14 }),
   /** Hangs in the air at range. */
   hover_ranged: arch({ aggro: 28, fov: 360, range: [6, 12], strafe: 0.5, hover: 2, cooldown: [60, 110] }),
   /** Waits underground and erupts beneath its prey. */
-  burrower: arch({ hide: 'burrow', reveal: 7, fov: 360, hearing: 12, cooldown: [45, 90], turnRate: 4 }),
+  burrower: arch({ hide: 'burrow', reveal: 7, fov: 360, hearing: 12, cooldown: [45, 90], turnRate: 4, roam: 0 }),
   /** A mass of small things that simply floods forward. */
   swarm: arch({ aggro: 18, fov: 360, cooldown: [15, 35], turnRate: 9 }),
   /** Unseen except while it strikes. */
-  invisible_stalker: arch({ hide: 'invisible', fov: 360, hearing: 8, strafe: 0.5, cooldown: [40, 90] }),
+  invisible_stalker: arch({ hide: 'invisible', fov: 360, hearing: 8, strafe: 0.5, cooldown: [40, 90], roam: 0 }),
   /** Works on the mind from mid range and avoids melee. */
   mind_thief: arch({ aggro: 26, range: [5, 10], strafe: 0.6, cooldown: [80, 140], flee: 0.6, evade: 0.4 }),
   /** Never moves; lashes out at anything in reach. */
-  stationary_horror: arch({ fov: 360, hearing: 10, mobile: false, range: [0, 99], cooldown: [45, 90], turnRate: 2 }),
+  stationary_horror: arch({ fov: 360, hearing: 10, mobile: false, range: [0, 99], cooldown: [45, 90], turnRate: 2, roam: 0 }),
   /** Arena foe: follows its boss script's attacks; never leashes. */
-  boss: arch({ aggro: 40, fov: 360, hearing: 40, leash: 1000, range: [0, 3], cooldown: [50, 100], turnRate: 3 }),
+  boss: arch({ aggro: 40, fov: 360, hearing: 40, leash: 1000, range: [0, 3], cooldown: [50, 100], turnRate: 3, roam: 0 }),
   /** Non-hostile by default: follows the player and fights what threatens them. */
-  ally: arch({ aggro: 14, fov: 360, range: [0, 2], cooldown: [50, 100], turnRate: 6 }),
+  ally: arch({ aggro: 14, fov: 360, range: [0, 2], cooldown: [50, 100], turnRate: 6, roam: 0 }),
 };
 
 /** One attack a brain may choose: the move id, its weight, and the distance bracket it is used in. */

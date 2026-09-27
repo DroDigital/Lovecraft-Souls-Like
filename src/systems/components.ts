@@ -104,7 +104,9 @@ export interface Brain {
   last?: XZ | null; // where it last saw or heard its quarry
   searching?: number; // frames it has left to look about there
   token?: boolean; // one of the few closing in on the investigator at once (the rest wait their turn)
-  lookIn?: number; // frames before an idle creature next looks about or strays
+  lookIn?: number; // frames before an idle creature next looks about or moves on
+  roamTo?: XZ | null; // on its rounds: where it is ambling to (roam.ts)
+  roamFor?: number; // frames it has left to get there
   stuck?: number; // frames it has pushed without getting anywhere
   detour?: number; // frames it steps aside round what blocks it (the sign: which way)
   fallBack?: number; // frames it gives ground after its blow

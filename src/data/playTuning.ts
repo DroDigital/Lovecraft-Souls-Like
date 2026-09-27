@@ -236,8 +236,9 @@ export const AI = {
   lose: 1.5, // out of sight and hearing this long, a hunter goes to look where it last knew its quarry...
   search: 7, // ...and looks about there this long before it goes home
   stalk: 0.55, // share of its pace a stirred creature closes in at
-  wander: 2.5, // an idle creature strays this far from its post as it looks about...
-  lookEvery: [3, 7] as const, // ...every so often
+  lookEvery: [3, 7] as const, // an idle creature that keeps its post looks about every so often
+  amble: 0.35, // share of its pace a foe on its rounds walks at (round 18: roam.ts; how far, its archetype's `roam`)...
+  linger: [3, 9] as const, // ...and seconds it lingers, looking about, before it moves on
   tokens: 2, // hunters closing in to strike the investigator at once; the rest keep off, circling, waiting their turn
   wait: 4.5, // how far the waiting ones keep (at least this far beyond their reach)
   space: 1.1, // hunters keep this far apart (beyond their bodies)

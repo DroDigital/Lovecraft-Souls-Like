@@ -2,8 +2,9 @@
  * The shared behaviour state machine (spec §3C; the hunt reworked in playtest round 8). Every
  * creature runs it; its archetype params give it a temperament. A foe's states:
  * - hidden: lying in ambush or burrowed; strikes when a hostile comes within `reveal`.
- * - idle: keeps its post, now and then looking about; what it glimpses or hears stirs it
- *   (perception.ts builds its awareness: at once up close, over a moment farther off).
+ * - idle: keeps its post, now and then looking about, or in the open world makes its rounds about
+ *   it (roam.ts); what it glimpses or hears stirs it (perception.ts builds its awareness: at once up
+ *   close, over a moment farther off).
  * - alert: stirred but not yet sure: it turns to where it saw or heard something and closes in on
  *   it at a stalk; once sure it hunts, and if nothing more comes it settles back.
  * - engage: hunts its quarry (tactics.ts), rousing its kind as it begins; struck, any creature
@@ -24,6 +25,7 @@ import { AI, BOSS, SIM } from '../data/tuning';
 import { arenaOf, within } from './bossArena';
 import { isAbsent, type Actor, type ArenaCircle, type Brain, type Game, type Mover, type Transform } from './components';
 import { callPack, hears, noiseOf, perceive, sight, tracks } from './perception';
+import { roam } from './roam';
 import { assignTokens, fight, walk } from './tactics';
 import { targetsOf } from './targets';
 
@@ -140,6 +142,7 @@ function hunt(g: Game, id: Entity, br: Brain, a: Actor, m: Mover, tr: Transform,
     return;
   }
   const home = distXZ(tr.pos, anchor);
+  const rounds = g.overworld && post && p.mobile && p.hide === 'none' ? p.roam : 0; // how far it strays on its rounds
   if (br.state !== 'engage' && (br.aware ?? 0) >= 1 && br.target !== null && (br.state !== 'return' || home < p.leash * 0.8)) {
     br.state = 'engage';
     callPack(g, id, br.target);
@@ -155,10 +158,11 @@ function hunt(g: Game, id: Entity, br: Brain, a: Actor, m: Mover, tr: Transform,
     if (distXZ(tr.pos, last) > 1.5 && p.mobile) walk(m, tr.pos, last, br.speed * (br.state === 'search' ? 0.8 : AI.stalk));
     else if (br.state === 'search' && (br.searching ?? 0) % 50 === 0) m.face = g.rng() * Math.PI * 2; // it looks about
     else if (br.state === 'alert') m.face = yawOf(last.x - tr.pos.x, last.z - tr.pos.z);
-  } else if (br.state === 'return' || home > 0.3) {
+  } else if (br.state === 'return' || (home > 0.3 && !rounds)) {
     if (home > 0.3 && p.mobile) walk(m, tr.pos, anchor, br.speed);
     else settle(g, id, br, m);
   } else if ((br.aware ?? 0) > 0) br.state = 'alert';
+  else if (rounds) roam(g, br, m, tr, anchor, rounds);
   else if ((br.lookIn = (br.lookIn ?? 0) - 1) <= 0) { // idle at its post: now and then it looks about
     const [lo, hi] = AI.lookEvery;
     br.lookIn = Math.round((lo + (hi - lo) * g.rng()) * SIM.hz);
