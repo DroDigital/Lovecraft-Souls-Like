@@ -110,6 +110,7 @@ export interface Brain {
   stuck?: number; // frames it has pushed without getting anywhere
   detour?: number; // frames it steps aside round what blocks it (the sign: which way)
   fallBack?: number; // frames it gives ground after its blow
+  joined?: boolean; // an ally that has fallen in beside the investigator (its notice said once: round 19)
 }
 
 export interface Drop {

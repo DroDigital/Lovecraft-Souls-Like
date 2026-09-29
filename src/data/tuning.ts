@@ -126,6 +126,7 @@ export const COMBAT = {
   dummyReset: 180, // frames without damage before the immortal training dummy heals
   muzzleHeight: 1.35,
   shotRadius: 0.2, // revolver bullet radius for the hit test
+  limb: 2.5, // metres: a blow reaching further sweeps all it passes over, from the body out (round 19: a colossus's tentacle swept over one who stood close in)
 };
 
 /** Sanity & Insight (spec §3A). Band arrays run Lucid, Uneasy, Fractured, Unmoored. */

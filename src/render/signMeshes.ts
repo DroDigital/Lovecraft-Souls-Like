@@ -49,9 +49,13 @@ function standingStone(base: number, top: number, h: number, d: number, y0: numb
   return tint(tileUv(g, base, h), c);
 }
 
-/** The carved sign on one face (`side` 1: +z), `z` out from the stone's middle, its stem's foot at `y0`. */
+/**
+ * The carved sign on one face (`side` 1: +z), `z` out from the stone's middle, its stem's foot at `y0`.
+ * Its strokes stand 5.5 cm proud of the face (round 19: at 2.7 cm the PS1's snapping sank them into
+ * the stone and out again as the view turned, a few steps off).
+ */
 function carved(side: 1 | -1, y0: number, z: number): THREE.BufferGeometry {
-  const strokes = STROKES.map(([x, y, a, len]) => box(0.075, len, 0.03, 0, len / 2, 0, BASE.bone).rotateZ(-a * side).translate(x, y0 + y, side * z));
+  const strokes = STROKES.map(([x, y, a, len]) => box(0.075, len, 0.06, 0, len / 2, 0, BASE.bone).rotateZ(-a * side).translate(x, y0 + y, side * z));
   return mergeGeometries(strokes);
 }
 
@@ -122,11 +126,11 @@ export function shrineGeometry(): ShrineGeometry {
   });
   const lesser = SHRINE.lesser.map(([a, dist, r, h, lean], i) =>
     standingStone(r * 2, r * 1.3, h + 0.2, r * 1.5, -0.2, scaleRgb(ROCK, 0.72), 40 + i).rotateZ(lean).rotateY(a * 2.3).translate(Math.sin(a) * dist, 0, Math.cos(a) * dist));
-  const face = depth / 2 + 0.012;
+  const face = depth / 2 + 0.025;
   shrine = {
     stone: mergeGeometries([...steps, standingStone(base, top, height, depth, PLINTH, ROCK, 7), ...lesser]),
     glyph: mergeGeometries([carved(1, PLINTH + GLYPH_FOOT, face), carved(-1, PLINTH + GLYPH_FOOT, face)]),
-    glow: glowRibbons(PLINTH + GLYPH_FOOT, depth / 2 + 0.035),
+    glow: glowRibbons(PLINTH + GLYPH_FOOT, depth / 2 + 0.07), // just before the strokes
     runes: runeRing(),
     wax: mergeGeometries(CANDLES.map(([x, z, h]) => tint(new THREE.CylinderGeometry(0.03, 0.036, h, 6).translate(x, PLINTH + h / 2, z), WAX))),
     flames: mergeGeometries(CANDLES.map(([x, z, h]) => tint(new THREE.OctahedronGeometry(0.035, 0).scale(0.8, 1.6, 0.8).translate(x, PLINTH + h + 0.05, z), FLAME))),
@@ -137,7 +141,7 @@ export function shrineGeometry(): ShrineGeometry {
 /** The arena's Elder Sign (no plinth): a standing stone and the sign carved on one face (`side` 1: +z). */
 export function elderSignGeometry(side: 1 | -1 = 1): { slab: THREE.BufferGeometry; glyph: THREE.BufferGeometry } {
   const [w, h, d] = ELDER_SIGN_SIZE;
-  return { slab: standingStone(w, w * 0.72, h, d, 0, ROCK, 3), glyph: carved(side, 0.35, d / 2 + 0.012) };
+  return { slab: standingStone(w, w * 0.72, h, d, 0, ROCK, 3), glyph: carved(side, 0.35, d / 2 + 0.025) };
 }
 
 /** A gate's stone frame, its glowing glyph bands, and the veil between its jambs. */

@@ -30,6 +30,7 @@ import { createMinimap } from './minimap';
 import { PICTURE_LAYER, uiScale } from './uiScale';
 
 const NOTICE_MS = 1100;
+const NOTICE_HOLD_MS = 700; // a notice stands at least this long before the next takes its place (round 19: two at once, the first was lost)
 
 /** Notices for outcomes involving the player: [when the player dealt it, when the player took it]. */
 const NOTICES: Partial<Record<HitOutcome, readonly [dealt: string, taken: string]>> = {
@@ -68,10 +69,17 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   document.body.append(root);
 
   let noticeUntil = 0;
-  const say = (text: string): void => {
-    if (!text) return;
+  const waiting: string[] = []; // notices held back while one stands
+  let noticeAt = -Infinity;
+  const put = (text: string): void => {
     notice.textContent = fill(text, true); // a notice may name a button: {pause}
-    noticeUntil = performance.now() + NOTICE_MS;
+    noticeAt = performance.now();
+    noticeUntil = noticeAt + NOTICE_MS;
+  };
+  const say = (text: string): void => {
+    if (!text || waiting.includes(text)) return;
+    if (performance.now() - noticeAt < NOTICE_HOLD_MS) void (waiting.length < 3 && waiting.push(text));
+    else put(text);
   };
   const great = createBanner(); // a death, a horror's fall, a place: the great words (banner.ts)
   const show = (text: string): void => great.show(text, 'place');
@@ -133,6 +141,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
       setText(echoes, `ECHOES ${g.player.echoes}${ready ? '  ▲' : ''}`);
       const now = performance.now();
+      if (waiting.length && now - noticeAt >= NOTICE_HOLD_MS) put(waiting.shift()!);
       setStyle(notice, 'opacity', String(Math.min(1, Math.max(0, (noticeUntil - now) / 300)).toFixed(2)));
       const act = fightAction(g);
       const near = interactable(g);

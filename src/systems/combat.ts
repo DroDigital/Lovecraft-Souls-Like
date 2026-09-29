@@ -178,9 +178,12 @@ export function meleeSystem(g: Game): void {
     const k = a.frame - hit.window[0];
     const s0 = hitCentre(tr.pos, tr.yaw, hit, k / n);
     const s1 = hitCentre(tr.pos, tr.yaw, hit, (k + 1) / n);
+    const root = hit.reach > COMBAT.limb ? { x: tr.pos.x, y: s1.y, z: tr.pos.z } : null; // a long limb, swept from the body out
     for (const t of targetsOf(g, id)) {
       if (a.hits.has(t)) continue;
-      const { gap2, radius } = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
+      const tip = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
+      const gap2 = root ? Math.min(tip.gap2, capsuleGap2(g, t, aimAt(g, t, tr.pos.y, root), aimAt(g, t, tr.pos.y, s1)).gap2) : tip.gap2;
+      const radius = tip.radius;
       if (gap2 > (hit.radius + radius) ** 2) continue;
       a.hits.add(t);
       const crit = backstab(g, id, t);

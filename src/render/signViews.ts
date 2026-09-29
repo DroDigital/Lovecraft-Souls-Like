@@ -108,7 +108,7 @@ function glowMaterial(mode: number): THREE.ShaderMaterial {
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide,
-    polygonOffset: mode > 0, // the rings lie on the ground: drawn over it
+    polygonOffset: true, // the rings lie on the ground, the ribbons on the stone's face: drawn over them
     polygonOffsetFactor: -2,
     polygonOffsetUnits: -4,
   });

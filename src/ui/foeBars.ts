@@ -3,7 +3,8 @@
  * investigator, wounded or locked on to, within reach and in plain sight, nearest first. Bosses keep
  * theirs at the bottom of the screen (bossHud.ts), and so do their decoys (none here, which would give
  * them away). Round 14: the damage a run of blows adds up to shows beside the name, and the lost
- * share lingers pale behind the bar before draining (damageTally.ts).
+ * share lingers pale behind the bar before draining (damageTally.ts). Round 19: allies at the
+ * investigator's side wear theirs too, marked and in the sea's colour, so none is taken for a foe.
  */
 
 import { Vector3, type Camera } from 'three';
@@ -11,7 +12,7 @@ import type { Entity } from '../core/ecs';
 import { FOE_BARS } from '../data/tuning';
 import { isAbsent, isConcealed, isUnseen, type Game } from '../systems/components';
 import { hasLineOfSight } from '../world/colliders';
-import { BONE, el, percent, RUST, setStyle, setText } from './hudKit';
+import { BONE, el, percent, RUST, SEA, setStyle, setText } from './hudKit';
 import { createTally } from './damageTally';
 import { uiScale } from './uiScale';
 
@@ -41,9 +42,16 @@ export function createFoeBars(g: Game, parent: HTMLElement): FoeBars {
   const eye = new Vector3();
   const tally = createTally(g);
 
+  /** An ally at the investigator's side: following them, or fighting for them. */
+  const ally = (id: Entity): boolean => {
+    const br = g.ecs.c.brain.get(id);
+    return br?.def.archetype === 'ally' && (br.state === 'follow' || br.state === 'engage');
+  };
+
   function shown(id: Entity): boolean {
     const c = g.ecs.c;
     const cb = c.combatant.get(id);
+    if (cb && ally(id)) return !isAbsent(g, id) && !isUnseen(g, id) && c.actor.get(id)?.move !== 'death';
     if (!cb || cb.faction !== 'enemy' || c.fight.has(id) || c.phantom.get(id)?.decoy) return false;
     if (isAbsent(g, id) || isConcealed(g, id) || isUnseen(g, id) || c.actor.get(id)?.move === 'death') return false;
     const br = c.brain.get(id);
@@ -76,7 +84,9 @@ export function createFoeBars(g: Game, parent: HTMLElement): FoeBars {
         if (!hasLineOfSight(g.world, { x: eye.x, y: eye.y, z: eye.z }, { x: top.x, y: top.y - 0.4, z: top.z })) continue;
         const s = slots[n++];
         const h = c.health.get(id)!;
-        setText(s.name, c.combatant.get(id)!.name);
+        const friend = ally(id);
+        setText(s.name, friend ? `✦ ${c.combatant.get(id)!.name}` : c.combatant.get(id)!.name);
+        setStyle(s.fill, 'background', friend ? SEA : RUST);
         const now = performance.now();
         setStyle(s.fill, 'width', percent(h.hp, h.max));
         setStyle(s.chip, 'width', `${(tally.chip(id, h.hp / h.max, now) * 100).toFixed(1)}%`);
