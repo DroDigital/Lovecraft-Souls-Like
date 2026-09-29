@@ -2,9 +2,10 @@
  * The realms' far silhouettes (playtest round 12; data/skylines.ts): Kadath's crowned peak, the
  * Mountains of Madness, R'lyeh's city, Yuggoth's towers, the Round Hills. The camera's far plane is
  * 90 m, so each is drawn just inside it, after the sky and behind everything else: a flat shape
- * darker than the haze, at the bearing of where it truly stands, sized to the angle it would fill
- * from there (so it drifts as the investigator walks, no more than a far thing would). Each realm's
- * fade in as it is entered; a dungeon's walls hide them. Render only.
+ * darker than the haze, its foot fading into it, at the bearing of where it truly stands, sized to
+ * the angle it would fill from there (so it drifts as the investigator walks, no more than a far thing
+ * would), up to SKY.farAngle. Each realm's fade in as it is entered; a dungeon's walls hide them.
+ * Render only.
  */
 
 import * as THREE from 'three';
@@ -16,6 +17,11 @@ import { regionRect } from '../world/worldMap';
 
 const R = RENDER.far * 0.7; // metres from the camera they are drawn at
 const SAMPLES = 260;
+const TALLEST = Math.tan((SKY.farAngle * Math.PI) / 180); // height over distance at the most
+
+const VERT = 'varying float vUp; void main() { vUp = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const FRAG = `uniform vec3 uColor; uniform float uAlpha; varying float vUp;
+void main() { gl_FragColor = vec4(uColor, uAlpha * mix(0.12, 1.0, smoothstep(-0.05, ${SKY.farFoot.toFixed(3)}, vUp))); }`;
 
 /** Height (share of the silhouette's) along its width, x from −0.5 to 0.5. */
 function profile(kind: SilhouetteKind, rng: Rng): (x: number) => number {
@@ -110,9 +116,17 @@ export function createSkyline(scene: THREE.Scene): Skyline {
     alpha.set(id, a);
     const material = new THREE.ShaderMaterial({
       uniforms: { uColor: { value: tone }, uAlpha: a },
-      vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'uniform vec3 uColor; uniform float uAlpha; void main() { gl_FragColor = vec4(uColor, uAlpha); }',
-      transparent: true,
+      vertexShader: VERT,
+      fragmentShader: FRAG,
+      // Drawn with the opaque, so its render order puts it after the sky and before the world (round
+      // 19: as a transparent it came after the world and, testing no depth, was painted over it, the
+      // investigator and all, the mist ghosting what it hid): blended over the sky by hand, the sky's
+      // alpha kept.
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.SrcAlphaFactor,
+      blendDst: THREE.OneMinusSrcAlphaFactor,
+      blendSrcAlpha: THREE.ZeroFactor,
+      blendDstAlpha: THREE.OneFactor,
       depthTest: false,
       depthWrite: false,
       side: THREE.DoubleSide,
@@ -141,7 +155,7 @@ export function createSkyline(scene: THREE.Scene): Skyline {
         const d = Math.hypot(dx, dz);
         f.mesh.visible = alpha.get(f.region)!.value > 0.01 && d > R * 1.5;
         if (!f.mesh.visible) continue;
-        const [ux, uz, s] = [dx / d, dz / d, R / d];
+        const [ux, uz, s] = [dx / d, dz / d, R / Math.max(d, f.def.height / TALLEST)];
         f.mesh.position.set(cam.x + ux * R, cam.y + (f.base - cam.y) * s, cam.z + uz * R);
         f.mesh.scale.set(f.def.width * s, f.def.height * s, 1);
         f.mesh.rotation.set(0, Math.atan2(-ux, -uz), 0);

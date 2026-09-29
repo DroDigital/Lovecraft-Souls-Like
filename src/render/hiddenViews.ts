@@ -32,9 +32,9 @@ function build(p: HiddenPieceDef): THREE.Group {
   for (const [dx, dz, hw, hd, y0, y1] of p.boxes) {
     const [x, z, h] = [p.x + dx, p.z + dz, y1 - y0];
     stone.push(tileUv(box(hw * 2, h, hd * 2, x, (y0 + y1) / 2, z, STONE, ARENA.lightCell), Math.max(hw, hd) * 2, h));
-    // Glyph bands just proud of every face, two per metre of height.
-    for (let y = y0 + 0.3; y < y1 - 0.1; y += 0.5) glyphs.push(box(hw * 2 + 0.03, 0.09, hd * 2 + 0.03, x, y, z, glow));
-    if (h < 0.5) glyphs.push(box(hw * 2 + 0.03, 0.08, hd * 2 + 0.03, x, (y0 + y1) / 2, z, glow));
+    // Glyph bands 5 cm proud of every face (round 19: at 1.5 cm the PS1's snapping sank them into the stone and out), two per metre of height.
+    for (let y = y0 + 0.3; y < y1 - 0.1; y += 0.5) glyphs.push(box(hw * 2 + 0.1, 0.09, hd * 2 + 0.1, x, y, z, glow));
+    if (h < 0.5) glyphs.push(box(hw * 2 + 0.1, 0.08, hd * 2 + 0.1, x, (y0 + y1) / 2, z, glow));
   }
   const root = new THREE.Group();
   root.add(new THREE.Mesh(mergeGeometries(stone), createWorldMaterial({ texture: 'stone', seed: 5, emissive: SHEEN, vertexColors: true })));

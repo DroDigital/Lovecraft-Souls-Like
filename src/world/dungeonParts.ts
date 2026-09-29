@@ -11,6 +11,7 @@ import type { Dir, Veil } from '../data/dungeons';
 import { DUNGEON } from '../data/tuning';
 import type { Collider } from './colliders';
 import { floorRange, kitOfRoom, roomAt, roomPoint, type DoorLayout, type DungeonLayout, type RoomLayout } from './dungeonKit';
+import { bankEnds, grounded } from './moundBanks';
 import { DIRS } from './worldMap';
 
 /** How a part is drawn: 'none' is an invisible collider (a chasm's edge), 'chasm' a dark hole. */
@@ -118,7 +119,7 @@ function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: s
       out.push(local(r, -h, -deck / 2, -p, p, L - chasm, L + rim, 'none', true));
       out.push(local(r, deck / 2, h, -p, p, L - chasm, L + rim, 'none', true));
       if (r.def.hidden) pieces.push(bridgePiece(r, name, p, r.def.hidden));
-      else out.push(local(r, -deck / 2, deck / 2, -p - 0.3, p + 0.3, L - 0.4, L, 'deck', false));
+      else out.push(local(r, -deck / 2, deck / 2, -p - 0.3, p + 0.3, L - 0.4, L + 0.05, 'deck', false)); // its planks laid 5 cm proud of the stone they rest on (round 19: flush, the two fought)
       break;
     }
     case 'well': {
@@ -135,8 +136,8 @@ const glowOf = (v: Veil): 'purple' | 'magenta' => (v.minInsight !== undefined ||
 function bridgePiece(r: RoomLayout, name: string, p: number, veil: Veil): HiddenPieceDef {
   const { deck, chasm, rim } = DUNGEON;
   const alongX = DIRS[r.axis].x !== 0;
-  const [hw, hd] = alongX ? [p + 0.3, deck / 2] : [deck / 2, p + 0.3];
-  const [sw, sd] = alongX ? [p, deck / 2] : [deck / 2, p];
+  const [hw, hd] = alongX ? [p, deck / 2] : [deck / 2, p]; // from brink to brink: laid over the floors' edges, flush, the two fought (round 19)
+  const [sw, sd] = [hw, hd];
   return {
     name, x: r.x, z: r.z, ...veil, glow: glowOf(veil),
     boxes: [[0, 0, hw, hd, r.level - 0.4, r.level]],
@@ -205,14 +206,15 @@ function ceiling(d: DungeonLayout, r: RoomLayout, out: Part[]): void {
 /** Metres of heaped earth and rock that stand out from a mound's outer walls (render/dungeonShell.ts): feet stop at them. */
 export const MOUND_BAND = 2;
 
-/** The heaped earth outside a mound-shelled room's outer walls: an unseen edge that feet cannot climb. */
+/** The heaped earth outside a mound-shelled room's outer walls (and round its corners: round 19): an unseen edge that feet cannot climb. */
 function moundBands(d: DungeonLayout, out: Part[]): void {
-  for (const p of [...out]) {
-    if (p.shape !== 'box' || !p.outer || kitOfRoom(d, d.rooms[p.room]).shell !== 'mound') continue;
-    if (p.min.y > d.rooms[p.room].level + 1) continue; // a lintel over the way in
+  const walls = [...out];
+  for (const p of walls) {
+    if (!grounded(d, p) || kitOfRoom(d, d.rooms[p.room]).shell !== 'mound') continue; // not a lintel over the way in
     const n = DIRS[p.outer];
-    const min = { ...p.min };
-    const max = { ...p.max };
+    const [lo, hi] = bankEnds(d, walls, p).map((e) => (e === 'corner' ? MOUND_BAND : 0));
+    const min = n.z !== 0 ? { ...p.min, x: p.min.x - lo } : { ...p.min, z: p.min.z - lo };
+    const max = n.z !== 0 ? { ...p.max, x: p.max.x + hi } : { ...p.max, z: p.max.z + hi };
     if (n.x > 0) [min.x, max.x] = [p.max.x, p.max.x + MOUND_BAND];
     if (n.x < 0) [min.x, max.x] = [p.min.x - MOUND_BAND, p.min.x];
     if (n.z > 0) [min.z, max.z] = [p.max.z, p.max.z + MOUND_BAND];

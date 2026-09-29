@@ -72,7 +72,7 @@ function monolith(): THREE.Group {
   const [w, h] = BOSS.monolith;
   const root = new THREE.Group();
   root.add(new THREE.Mesh(tileUv(box(w, h, w, 0, h / 2, 0, scaleRgb(BASE.charcoal, 2.2), 0.5), w, h), createWorldMaterial({ texture: 'stone', seed: 9, vertexColors: true })));
-  const bands = [1.2, 2.6, 4.4, 6.1].map((y) => box(w + 0.04, 0.1, w + 0.04, 0, y, 0, ANOMALY.purple));
+  const bands = [1.2, 2.6, 4.4, 6.1].map((y) => box(w + 0.1, 0.1, w + 0.1, 0, y, 0, ANOMALY.purple)); // 5 cm proud: nearer, the PS1's snapping sank them into the stone (round 19)
   root.add(new THREE.Mesh(mergeGeometries(bands), createWorldMaterial({ texture: 'stone', emissive: 0.8, vertexColors: true })));
   return root;
 }

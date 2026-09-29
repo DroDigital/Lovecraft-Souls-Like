@@ -26,6 +26,7 @@ import { createWorldMaterial } from './worldMaterial';
 const STONE: Rgb = [0.9, 0.9, 0.88];
 const WOOD: Rgb = [0.75, 0.7, 0.62];
 const PER_STEP = 12;
+const SLAB = 0.3; // a floor slab's depth (world/dungeonParts.ts)
 
 type Kind = 'wall' | 'floor' | 'wood' | 'glow'; // a kit gives the first two their textures
 type Built = { kind: Kind; geo: THREE.BufferGeometry; light?: LightSpot }; // a flame is a light too (worldLights.ts)
@@ -91,10 +92,15 @@ function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
   return [...(stone.length ? [{ kind: 'wall' as const, geo: mergeGeometries(stone) }] : []), ...(wood.length ? [{ kind: 'wood' as const, geo: mergeGeometries(wood) }] : []), ...glow];
 }
 
-/** An open-topped box seen from inside: a pit's four walls and its floor, in shadow. */
-function pit(min: V3, max: V3, c: Rgb): THREE.BufferGeometry {
-  const [w, h, d] = [max.x - min.x, max.y - min.y, max.z - min.z];
-  const [cx, cy, cz] = [(min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2];
+/**
+ * An open-topped box seen from inside: a pit's four walls and its floor, in shadow. Its walls stop
+ * under the floor slabs about it, whose own faces make its brim (round 19: they rose flush with
+ * those faces, and the two fought, dark and pale, all along the rim).
+ */
+export function pit(min: V3, max: V3, c: Rgb): THREE.BufferGeometry {
+  const top = max.y - SLAB;
+  const [w, h, d] = [max.x - min.x, top - min.y, max.z - min.z];
+  const [cx, cy, cz] = [(min.x + max.x) / 2, (min.y + top) / 2, (min.z + max.z) / 2];
   const faces = [
     new THREE.PlaneGeometry(w, h).translate(cx, cy, min.z),
     new THREE.PlaneGeometry(w, h).rotateY(Math.PI).translate(cx, cy, max.z),
@@ -105,12 +111,30 @@ function pit(min: V3, max: V3, c: Rgb): THREE.BufferGeometry {
   return tint(tileUv(mergeGeometries(faces), Math.max(w, d), h), scaleRgb(c, 0.22));
 }
 
-/** A well: a stone rim knee-high above its floor and the dark water far below. */
-function well(x: number, z: number, radius: number, top: number, c: Rgb): THREE.BufferGeometry[] {
+/** Turns a geometry's faces to look the other way (its winding and normals reversed). */
+function inward(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const index = g.getIndex()!;
+  for (let i = 0; i < index.count; i += 3) {
+    const b = index.getX(i + 1);
+    index.setX(i + 1, index.getX(i + 2));
+    index.setX(i + 2, b);
+  }
+  const n = g.getAttribute('normal');
+  for (let i = 0; i < n.count; i++) n.setXYZ(i, -n.getX(i), -n.getY(i), -n.getZ(i));
+  return g;
+}
+
+/**
+ * A well: a stone rim knee-high above its floor, and the dark water far below. The rim has its
+ * inner face down to the water (round 19: without it, the floor beyond and whatever stood there
+ * showed through the far side of the rim).
+ */
+export function well(x: number, z: number, radius: number, top: number, c: Rgb): THREE.BufferGeometry[] {
   const rim = tint(tileUv(new THREE.CylinderGeometry(radius, radius, 0.9, 10, 1, true).translate(x, top - 0.45, z), Math.PI * 2 * radius, 0.9), c);
+  const inner = tint(tileUv(inward(new THREE.CylinderGeometry(radius - 0.35, radius - 0.35, 0.6, 10, 1, true)).translate(x, top - 0.3, z), Math.PI * 2 * radius, 0.6), scaleRgb(c, 0.6));
   const lip = tint(new THREE.RingGeometry(radius - 0.35, radius, 10).rotateX(-Math.PI / 2).translate(x, top, z), c);
   const shaft = tint(new THREE.CircleGeometry(radius - 0.35, 10).rotateX(-Math.PI / 2).translate(x, top - 0.6, z), scaleRgb(c, 0.08));
-  return [rim, lip, shaft];
+  return [rim, inner, lip, shaft];
 }
 
 /**

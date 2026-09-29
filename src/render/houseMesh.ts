@@ -83,12 +83,24 @@ function paneBox(w: number, h: number, d: number, x: number, y: number, z: numbe
   return g;
 }
 
-/** A window's frame, its cross of mullions and its sill, and shutters if it has them; `turn` a quarter turn for a side wall. */
+// Round 19: the glass stood 1.5 cm before a slab of frame and 2 cm behind its mullions, and the PS1's
+// snapping moves a face's depth by more than that on a wall seen aslant: windows flickered, lit and
+// dark, as the view turned. Now nothing lies behind the glass but the wall, 7 cm back, and the frame
+// stands about it, its mullions 7 cm before it.
+const GLASS = 0.04; // the glass's middle, out from the wall's face (0.06 thick)
+
+/** A window's frame about its glass, its cross of mullions and its sill, and shutters if it has them; (x, y, z) on the wall's face, `turn` a quarter turn for a side wall. */
 function frame(x: number, y: number, z: number, out: number, turn: boolean, shutters: boolean): THREE.BufferGeometry[] {
   const at = (w: number, h: number, d: number, dx: number, dy: number, dz: number, c: Rgb): THREE.BufferGeometry =>
     turn ? box(d, h, w, x + dz * out, y + dy, z + dx, c) : box(w, h, d, x + dx, y + dy, z + dz * out, c);
-  const parts = [at(0.95, 1.3, 0.05, 0, 0, 0, TRIM), at(0.05, 1.05, 0.1, 0, 0, 0.01, TRIM), at(0.7, 0.05, 0.1, 0, 0.08, 0.01, TRIM), at(1.1, 0.08, 0.18, 0, -0.68, 0.07, TRIM)];
-  if (shutters) for (const s of [-1, 1]) parts.push(at(0.42, 1.25, 0.04, s * 0.72, 0, 0.02, DOOR));
+  const parts = [
+    ...[-1, 1].map((s) => at(0.95, 0.125, 0.12, 0, s * 0.5875, 0.065, TRIM)), // head and foot
+    ...[-1, 1].map((s) => at(0.125, 1.05, 0.12, s * 0.4125, 0, 0.065, TRIM)), // the jambs
+    at(0.05, 1.05, 0.1, 0, 0, 0.09, TRIM),
+    at(0.7, 0.05, 0.1, 0, 0.08, 0.09, TRIM),
+    at(1.1, 0.08, 0.18, 0, -0.68, 0.1, TRIM),
+  ];
+  if (shutters) for (const s of [-1, 1]) parts.push(at(0.42, 1.25, 0.04, s * 0.72, 0, 0.05, DOOR));
   return parts;
 }
 
@@ -102,19 +114,19 @@ function windows(w: number, d: number, top: number, rng: Rng, lit: number, shutt
     for (const side of [-1, 1]) {
       for (let x = -w + 1.3; x <= w - 1.2; x += 2.3) {
         if (side > 0 && f === floors[0] && Math.abs(x) < 1.1) continue; // the door
-        const z = side * (d + 0.03);
-        frames.push(...frame(x, y, z, side, false, shutters));
+        const z = side * (d + GLASS);
+        frames.push(...frame(x, y, side * d, side, false, shutters));
         const on = rng() < lit; // one draw: a lit window glows in the lamplight's colour
         const seed = seedOf(x, y, z, w, d);
-        if (on) glows.push({ geo: paneBox(0.7, 1.05, 0.08, x, y, z, seed), at: [x, y, side * (d + 0.55)], glass: [x, y, z], pane: seed });
-        else panes.push(box(0.7, 1.05, 0.08, x, y, z, PANE));
+        if (on) glows.push({ geo: paneBox(0.7, 1.05, 0.06, x, y, z, seed), at: [x, y, side * (d + GLASS + 0.52)], glass: [x, y, z], pane: seed });
+        else panes.push(box(0.7, 1.05, 0.06, x, y, z, PANE));
       }
-      const x = side * (w + 0.03);
-      frames.push(...frame(x, y, 0, side, true, shutters));
+      const x = side * (w + GLASS);
+      frames.push(...frame(side * w, y, 0, side, true, shutters));
       const on = rng() < lit;
       const seed = seedOf(x, y, 0, w, d);
-      if (on) glows.push({ geo: paneBox(0.08, 1.05, 0.7, x, y, 0, seed), at: [side * (w + 0.55), y, 0], glass: [x, y, 0], pane: seed });
-      else panes.push(box(0.08, 1.05, 0.7, x, y, 0, PANE));
+      if (on) glows.push({ geo: paneBox(0.06, 1.05, 0.7, x, y, 0, seed), at: [side * (w + GLASS + 0.52), y, 0], glass: [x, y, 0], pane: seed });
+      else panes.push(box(0.06, 1.05, 0.7, x, y, 0, PANE));
     }
   }
   return { frames, panes, glows };

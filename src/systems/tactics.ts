@@ -27,6 +27,9 @@ export function chooseAttack(def: BrainDef, d: number, rng: Rng): string | null 
   return null;
 }
 
+/** Whether a blow of its own would reach were it nearer: one falls short from `d` (a follow-up's none: it is only ever chained). */
+export const reachesNearer = (def: BrainDef, d: number): boolean => def.attacks.some((a) => a.range[1] > 0 && a.range[1] < d);
+
 export function walk(m: Mover, from: XZ, to: XZ, speed: number, away = false): void {
   const dx = (to.x - from.x) * (away ? -1 : 1);
   const dz = (to.z - from.z) * (away ? -1 : 1);
@@ -120,6 +123,7 @@ export function fight(g: Game, id: Entity, br: Brain, m: Mover, target: Entity, 
   const waiting = !arena && target === g.player.id && !br.token && p.mobile && p.range[1] <= AI.wait;
   const [lo, hi] = p.cooldown;
   const ready = br.cooldown === 0 || (!arena && target === g.player.id && br.cooldown <= hi * (1 - AI.punish) && opening(g));
+  let dart = false;
   if (ready && !(waiting && d > p.range[1] + 1)) { // one waiting its turn strikes only what comes to it
     const attack = chooseAttack(br.def, d, g.rng);
     if (attack) {
@@ -128,12 +132,15 @@ export function fight(g: Game, id: Entity, br: Brain, m: Mover, target: Entity, 
       if (!arena && p.strafe >= 0.8) br.fallBack = Math.round(AI.fallBack * SIM.hz);
       return;
     }
+    // Ready, and its blows reach only nearer than it keeps: it darts in to strike (round 19: a skirmisher
+    // whose blows all fell short of the ring it holds, the Innsmouth hybrid or Brown Jenkin, never struck).
+    dart = !waiting && !fleeing && reachesNearer(br.def, d);
   }
   if (!p.mobile) return;
   if (arena) {
     const [near, far] = fleeing ? [Math.min(p.range[1], 5), p.range[1] + 1] : [Math.min(p.range[0], 4), p.range[1]];
     const cornered = rimGap(arena, pos) < BOSS.rim + 2;
-    if (d > far) walk(m, pos, tp, br.speed);
+    if (d > far || dart) walk(m, pos, tp, br.speed);
     else if (d < near && !cornered) walk(m, pos, tp, br.speed * 0.6, true);
     else if (p.strafe > 0 || (d < near && cornered)) {
       if (g.rng() < 0.01) br.strafe = br.strafe === 1 ? -1 : 1;
@@ -150,7 +157,7 @@ export function fight(g: Game, id: Entity, br: Brain, m: Mover, target: Entity, 
   if (br.fallBack) {
     br.fallBack--;
     walk(m, pos, tp, br.speed * 0.8, true);
-  } else if (d > far) walk(m, pos, tp, br.speed * (waiting ? 0.7 : 1));
+  } else if (d > far || dart) walk(m, pos, tp, br.speed * (waiting ? 0.7 : 1));
   else if (d < near) walk(m, pos, tp, br.speed * (waiting ? 0.6 : 1), true);
   else if (p.strafe > 0 || waiting) {
     if (g.rng() < 0.01) br.strafe = br.strafe === 1 ? -1 : 1;

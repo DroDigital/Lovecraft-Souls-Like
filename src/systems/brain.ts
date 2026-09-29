@@ -75,6 +75,7 @@ function steady(g: Game, id: Entity, br: Brain, a: Actor, m: Mover, tr: Transfor
     else if (p.hide === 'ambush' || p.hide === 'burrow') br.state = 'hidden';
     else if (ally && (br.state === 'follow' || distXZ(tr.pos, anchor) <= p.aggro)) {
       br.state = 'follow'; // an ally waits where it stands until the investigator comes within sight
+      if (!br.joined) announce(g, id, br);
       if (distXZ(tr.pos, anchor) > FOLLOW[1]) walk(m, tr.pos, anchor, br.speed);
       else if (distXZ(tr.pos, anchor) < FOLLOW[0]) m.face = null;
     }
@@ -87,6 +88,12 @@ function steady(g: Game, id: Entity, br: Brain, a: Actor, m: Mover, tr: Transfor
     fight(g, id, br, m, target, arena);
   } else if (distXZ(tr.pos, anchor) > 0.3 && p.mobile) walk(m, tr.pos, anchor, br.speed);
   else settle(g, id, br, m);
+}
+
+/** An ally falls in beside the investigator: said once, so a glowing thing that never strikes them is known for a friend (round 19: the Light-Being from Algol was taken for a foe that would not fight). */
+function announce(g: Game, id: Entity, br: Brain): void {
+  br.joined = true;
+  g.events.emit('Notice', { text: `${(g.ecs.c.combatant.get(id)?.name ?? '').toUpperCase()} · AT YOUR SIDE` });
 }
 
 /** Whether a boss that joins another may come out: that one has fallen below the share, or is gone. */
