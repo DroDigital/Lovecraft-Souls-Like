@@ -1,0 +1,35 @@
+/**
+ * The look of the game's moments (playtest round 20): what a slain foe's Echoes do on their way to the
+ * investigator (render/echoFx.ts, echoPath.ts), and the weight a blow has where it lands
+ * (render/impactFx.ts). Lengths in metres, times in seconds.
+ */
+
+/** A foe's bounty comes away from its body as wisps, hangs a moment, then is drawn into the investigator. */
+export const ECHO_FX = {
+  wisps: [3, 12] as const, // fewest and most it is parted into: the fewest for a scrap, one more for each 1.6 doublings of Echoes
+  doubling: 1.6,
+  rise: [0.55, 1] as const, // seconds a wisp unspools upward out of the body...
+  hold: [0.1, 0.5] as const, // ...and hangs there, bobbing, before it is drawn
+  lift: [1.1, 2.2] as const, // metres a second it leaves the body at, slowing as it rises
+  sway: 0.4, // metres a second it circles about where it left, while it rises
+  speed: [2.5, 13] as const, // metres a second it is drawn at: at first, and at the most
+  quicken: 9, // metres a second, each second
+  turn: 5.5, // how sharply it follows its aim: the share of the way to it made good each second
+  spiral: 3.2, // metres a second it turns from a straight line, easing as it nears
+  arrive: 0.5, // metres from the chest that takes it in
+  give: 4.5, // seconds drawn before it is taken in wherever it is
+  far: 60, // metres: left this far behind (a long journey) it is taken in at once
+  chest: 1.25, // metres above the feet: where the investigator takes it in
+  trail: 0.8, // motes it drops a frame (at 60 a second)
+  gap: 0.05, // seconds between the sounds of one gathering
+};
+
+/** The weight of the investigator's blows as they land (playtest round 20: render/audio/impact.ts and render/impactFx.ts). */
+export const IMPACT = {
+  weight: { base: 0.5, damage: 0.35, full: 50, heavy: 0.2, stagger: 0.1, riposte: 0.25, kill: 0.3, most: 1.4 }, // a blow's weight: where it starts, what its damage adds (up to `full` of it), what each kind of blow adds; never past `most`
+  big: 0.9, // metres of body radius from which a foe is big: a kill of one booms
+  sparks: [6, 18] as const, // fewest and most sparks a blow throws, by its weight
+  chunks: [2, 7] as const, // and the ichor it flings
+  kick: { push: 0.14, shake: 0.025, seconds: 0.22 }, // the camera's: metres it is pushed toward the blow at a weight of 1, how much it is shaken, and how long it takes to settle
+  finisher: 3, // frames more hitstop for a blow that kills or lands as a riposte
+};

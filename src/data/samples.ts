@@ -36,6 +36,16 @@ export const SAMPLE_SETS = {
   roll: set(takes('roll', 2), 0.32),
   hurt: set(takes('hurt', 4), 0.4, [0.96, 1.04]),
   dying: set(['dying'], 0.8, [0.97, 1]),
+  // finding (round 20): a great bell tolled, a gong from far off
+  bell: set(takes('bell', 2), 0.85, [0.92, 1]),
+  ghost: set(['ghost1'], 0.7, [0.92, 1]),
+  // a blow landing (round 20): flesh, a smack, bone, a wet burst, a low boom, an axe's bite
+  flesh: set(takes('flesh', 5), 0.6, [0.82, 1.08]),
+  smack: set(takes('smack', 3), 0.5, [0.85, 1.1]),
+  crunch: set(takes('crunch', 4), 0.5, [0.85, 1.05]),
+  splat: set(takes('splat', 3), 0.42, [0.85, 1.05]),
+  boom: set(takes('boom', 2), 0.7, [0.85, 1]),
+  chop: set(takes('chop', 2), 0.6, [0.9, 1.1]),
   // footsteps
   stepDirt: set(takes('step_dirt', 4), 0.26, [0.9, 1.08]),
   stepRoad: set(takes('step_road', 4), 0.38, [0.92, 1.08]),
@@ -86,6 +96,9 @@ export const STINGER_SAMPLES: Partial<Record<StingerId, readonly [SampleSetId, n
   death: ['dying', 1], // the doom chord stays
   page: ['page', 0],
   lampLit: ['match', 0.4],
+  found: ['bell', 0.5], // a sign found: the bell, the recipe's sub swell and breath beneath
+  place: ['ghost', 0.5],
+  release: ['whisper', 0.5], // a body giving up its Echoes: the dead's breath
 };
 
 /** Voices that are recorded (the rest keep their recipes: the pipers, the viol, the choirs, the Tekeli-li). */

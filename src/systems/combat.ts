@@ -12,7 +12,7 @@
 import type { Entity } from '../core/ecs';
 import { segSegDist2, wrapAngle, yawOf, type V3 } from '../core/geom';
 import type { HitDef } from '../data/moves';
-import { COMBAT } from '../data/tuning';
+import { COMBAT, IMPACT } from '../data/tuning';
 import { inWindow, moveDef, startMove } from './actions';
 import { isAbsent, type Actor, type Game, type Health, type HitOutcome, type Poise, type Stamina } from './components';
 import { edge } from './arms';
@@ -139,8 +139,9 @@ export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow, fr
   const { outcome, damage } = resolveHit(defender, felt, frontal);
   if (outcome === 'parried' && aa) startMove(aa, 'parried');
   if (outcome !== 'dodged' && blow.hitstop > 0) {
-    if (aa && !from) aa.hitstop = blow.hitstop;
-    ta.hitstop = blow.hitstop;
+    const stop = blow.hitstop + (attacker === g.player.id && (outcome === 'kill' || outcome === 'riposte') ? IMPACT.finisher : 0); // the moment a finishing blow lands hangs (round 20)
+    if (aa && !from) aa.hitstop = stop;
+    ta.hitstop = stop;
   }
   g.events.emit('Hit', { attacker, target, outcome, damage, ...(blow.lingering && { lingering: true }) });
   if (outcome === 'kill') g.events.emit('Died', { entity: target, killer: attacker, at: { ...tt.pos } });

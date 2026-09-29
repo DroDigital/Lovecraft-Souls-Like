@@ -25,13 +25,19 @@ The title's theme (`../music/subterranean-pulse.mp3`) came with the project.
 | `amb/wind.mp3` | [Four Seasons Wind](https://freesound.org/people/craigsmith/sounds/817191/) | craigsmith | CC0 | 4–36 s; looped (a 2 s crossfade) |
 | `amb/wind_cold.mp3` | [R27-28-Big Cold Winter Wind.wav](https://freesound.org/people/craigsmith/sounds/481148/) | craigsmith | CC0 | 6–40 s; looped (a 2 s crossfade) |
 | `amb/wind_ghost.mp3` | [S41-21 Spooky singing ghost wind.wav](https://freesound.org/people/craigsmith/sounds/675716/) | craigsmith | CC0 | 0.4–15.1 s; looped (a 1.5 s crossfade) |
+| `sfx/bell1.mp3` | [Creepy church bell.mp3](https://freesound.org/people/Aeonemi/sounds/180329/) | Aeonemi | CC0 | 5.4–10.9 s; tape speed ×0.82; low-pass 4200 Hz (round 20) |
+| `sfx/bell2.mp3` | [Creepy church bell.mp3](https://freesound.org/people/Aeonemi/sounds/180329/) | Aeonemi | CC0 | 10.9–16.4 s; tape speed ×0.8; low-pass 3800 Hz (round 20) |
 | `sfx/bellow1.mp3` | [S28-10 Elephant grunt and squeal slowed down to create a monster.wav](https://freesound.org/people/craigsmith/sounds/675498/) | craigsmith | CC0 | 18.9–22 s; tape speed ×0.85 |
 | `sfx/bellow2.mp3` | [S28-10 Elephant grunt and squeal slowed down to create a monster.wav](https://freesound.org/people/craigsmith/sounds/675498/) | craigsmith | CC0 | 24.7–27.8 s; tape speed ×0.85 |
 | `sfx/bellow3.mp3` | [S28-10 Elephant grunt and squeal slowed down to create a monster.wav](https://freesound.org/people/craigsmith/sounds/675498/) | craigsmith | CC0 | 0.3–1.3 s; tape speed ×0.85 |
 | `sfx/bodyfall1.mp3` | [G24-11-Single Body Fall on Wood.wav](https://freesound.org/people/craigsmith/sounds/438311/) | craigsmith | CC0 | 2.4–3.7 s |
 | `sfx/bodyfall2.mp3` | [S03-14 Punch & body fall; short.wav](https://freesound.org/people/craigsmith/sounds/675930/) | craigsmith | CC0 | 0.8–1.7 s |
+| `sfx/boom1.mp3` | [DSGNStngr_basic trailer boom impact](https://freesound.org/people/harrisonlace/sounds/816376/) | harrisonlace | CC0 | 0–3.2 s; low-pass 3000 Hz (round 20) |
+| `sfx/boom2.mp3` | [super low bass hit kick drum wAv](https://freesound.org/people/phluidbox/sounds/339437/) | phluidbox | CC0 | 0–0.3 s (round 20) |
 | `sfx/buzz1.mp3` | [R01-30-Buzzing Sound.wav](https://freesound.org/people/craigsmith/sounds/479812/) | craigsmith | CC0 | 2–3.6 s; tape speed ×0.9 |
 | `sfx/buzz2.mp3` | [S28-33 Bees swarming.wav](https://freesound.org/people/craigsmith/sounds/675426/) | craigsmith | CC0 | 8–10 s; tape speed ×0.8 |
+| `sfx/chop1.mp3` | [Axe Chop.mp3](https://freesound.org/people/Evcy/sounds/583272/) | Evcy | CC0 | 0–0.2 s; tape speed ×0.8 (round 20) |
+| `sfx/chop2.mp3` | [Axe Cut #9](https://freesound.org/people/birdswkaren/sounds/712103/) | birdswkaren | CC0 | 0–0.4 s; tape speed ×0.85 (round 20) |
 | `sfx/clang1.mp3` | [R28-04-Sword Hits ans Slides.wav](https://freesound.org/people/craigsmith/sounds/481962/) | craigsmith | CC0 | 1.15–2.01 s |
 | `sfx/clang2.mp3` | [R28-04-Sword Hits ans Slides.wav](https://freesound.org/people/craigsmith/sounds/481962/) | craigsmith | CC0 | 4.51–5.37 s |
 | `sfx/clang3.mp3` | [R28-04-Sword Hits ans Slides.wav](https://freesound.org/people/craigsmith/sounds/481962/) | craigsmith | CC0 | 8.01–8.52 s |
@@ -43,7 +49,17 @@ The title's theme (`../music/subterranean-pulse.mp3`) came with the project.
 | `sfx/croak2.mp3` | [Common toad (Bufo bufo)](https://freesound.org/people/Breviceps/sounds/462863/) | Breviceps | CC0 | 3.74–4.07 s; tape speed ×0.62 |
 | `sfx/croak3.mp3` | [Common toad (Bufo bufo)](https://freesound.org/people/Breviceps/sounds/462863/) | Breviceps | CC0 | 5.62–5.95 s; tape speed ×0.62 |
 | `sfx/croak4.mp3` | [Common toad (Bufo bufo)](https://freesound.org/people/Breviceps/sounds/462863/) | Breviceps | CC0 | 10.35–10.68 s; tape speed ×0.62 |
+| `sfx/crunch1.mp3` | [Bones Breaking 1](https://freesound.org/people/Gammelsmurfen778/sounds/474001/) | Gammelsmurfen778 | CC0 | 6.66–7.18 s; tape speed ×0.85; low-pass 5500 Hz (round 20) |
+| `sfx/crunch2.mp3` | [Bones Breaking 1](https://freesound.org/people/Gammelsmurfen778/sounds/474001/) | Gammelsmurfen778 | CC0 | 8.44–8.96 s; tape speed ×0.85; low-pass 5500 Hz (round 20) |
+| `sfx/crunch3.mp3` | [Bones Breaking 3](https://freesound.org/people/Gammelsmurfen778/sounds/474003/) | Gammelsmurfen778 | CC0 | 6.22–6.74 s; tape speed ×0.85; low-pass 5500 Hz (round 20) |
+| `sfx/crunch4.mp3` | [Bones Breaking 3](https://freesound.org/people/Gammelsmurfen778/sounds/474003/) | Gammelsmurfen778 | CC0 | 15.6–16.12 s; tape speed ×0.85; low-pass 5500 Hz (round 20) |
 | `sfx/dying.mp3` | [R15-29-Man Grunting in Pain.wav](https://freesound.org/people/craigsmith/sounds/483253/) | craigsmith | CC0 | 13.42–14.35 s; tape speed ×0.8 |
+| `sfx/flesh1.mp3` | [Blunt Force Trauma (Clean and Juicy)](https://freesound.org/people/TheFilmLook/sounds/365574/) | TheFilmLook | CC0 | 0.86–1.3 s; low-pass 6000 Hz (round 20) |
+| `sfx/flesh2.mp3` | [Blunt Force Trauma (Clean and Juicy)](https://freesound.org/people/TheFilmLook/sounds/365574/) | TheFilmLook | CC0 | 3.64–4.08 s; low-pass 6000 Hz (round 20) |
+| `sfx/flesh3.mp3` | [Blunt Force Trauma (Clean and Juicy)](https://freesound.org/people/TheFilmLook/sounds/365574/) | TheFilmLook | CC0 | 4.35–4.79 s; low-pass 6000 Hz (round 20) |
+| `sfx/flesh4.mp3` | [Blunt Force Trauma (Clean and Juicy)](https://freesound.org/people/TheFilmLook/sounds/365574/) | TheFilmLook | CC0 | 4.98–5.42 s; low-pass 6000 Hz (round 20) |
+| `sfx/flesh5.mp3` | [Blunt Force Trauma (Clean and Juicy)](https://freesound.org/people/TheFilmLook/sounds/365574/) | TheFilmLook | CC0 | 8.4–8.84 s; low-pass 6000 Hz (round 20) |
+| `sfx/ghost1.mp3` | [ghost gong 2.wav](https://freesound.org/people/electra/sounds/473728/) | electra | CC0 | 0.6–10 s; tape speed ×0.9; low-pass 3000 Hz (round 20) |
 | `sfx/groan1.mp3` | [S27-34 Young Mythical beast groans and screams.wav](https://freesound.org/people/craigsmith/sounds/675511/) | craigsmith | CC0 | 0.6–2.8 s; tape speed ×0.75 |
 | `sfx/groan2.mp3` | [S27-34 Young Mythical beast groans and screams.wav](https://freesound.org/people/craigsmith/sounds/675511/) | craigsmith | CC0 | 7.7–9.8 s; tape speed ×0.75 |
 | `sfx/groan3.mp3` | [S27-34 Young Mythical beast groans and screams.wav](https://freesound.org/people/craigsmith/sounds/675511/) | craigsmith | CC0 | 12.2–14.2 s; tape speed ×0.75 |
@@ -74,9 +90,15 @@ The title's theme (`../music/subterranean-pulse.mp3`) came with the project.
 | `sfx/slash1.mp3` | [R27-01-Large Sword Stab and Slide.wav](https://freesound.org/people/craigsmith/sounds/481957/) | craigsmith | CC0 | 12.05–12.82 s |
 | `sfx/slash2.mp3` | [R27-01-Large Sword Stab and Slide.wav](https://freesound.org/people/craigsmith/sounds/481957/) | craigsmith | CC0 | 18.16–18.93 s |
 | `sfx/slash3.mp3` | [R27-01-Large Sword Stab and Slide.wav](https://freesound.org/people/craigsmith/sounds/481957/) | craigsmith | CC0 | 25.52–26.29 s |
+| `sfx/smack1.mp3` | [Smacks And Thwacks (m).wav](https://freesound.org/people/BarryTheWhite/sounds/396345/) | BarryTheWhite | CC0 | 1.51–1.98 s; low-pass 7000 Hz (round 20) |
+| `sfx/smack2.mp3` | [Smacks And Thwacks (m).wav](https://freesound.org/people/BarryTheWhite/sounds/396345/) | BarryTheWhite | CC0 | 4.44–4.91 s; low-pass 7000 Hz (round 20) |
+| `sfx/smack3.mp3` | [Smacks And Thwacks (m).wav](https://freesound.org/people/BarryTheWhite/sounds/396345/) | BarryTheWhite | CC0 | 8.68–9.15 s; low-pass 7000 Hz (round 20) |
 | `sfx/snarl1.mp3` | [G12-45-Tiger Hiss and Growl.wav](https://freesound.org/people/craigsmith/sounds/437978/) | craigsmith | CC0 | 4.7–6 s; tape speed ×0.85 |
 | `sfx/snarl2.mp3` | [G12-45-Tiger Hiss and Growl.wav](https://freesound.org/people/craigsmith/sounds/437978/) | craigsmith | CC0 | 9.85–11.1 s; tape speed ×0.85 |
 | `sfx/snarl3.mp3` | [G12-45-Tiger Hiss and Growl.wav](https://freesound.org/people/craigsmith/sounds/437978/) | craigsmith | CC0 | 13.4–14.7 s; tape speed ×0.85 |
+| `sfx/splat1.mp3` | [splat.ogg](https://freesound.org/people/gprosser/sounds/360942/) | gprosser | CC0 | 0–0.7 s; tape speed ×0.9 (round 20) |
+| `sfx/splat2.mp3` | [splat2.ogg](https://freesound.org/people/gprosser/sounds/361030/) | gprosser | CC0 | 0–0.7 s; tape speed ×0.9 (round 20) |
+| `sfx/splat3.mp3` | [goreSplat.wav](https://freesound.org/people/ThefitzyG/sounds/414296/) | ThefitzyG | CC0 | 0–0.7 s; tape speed ×0.9 (round 20) |
 | `sfx/spot_boat.mp3` | [S29-24 Creak and roll of old sailing boat; closer; wood stressing.wav](https://freesound.org/people/craigsmith/sounds/675785/) | craigsmith | CC0 | 0–4.6 s |
 | `sfx/spot_chains.mp3` | [R16-33-Chains Dragging.wav](https://freesound.org/people/craigsmith/sounds/486285/) | craigsmith | CC0 | 5.2–9 s; tape speed ×0.9 |
 | `sfx/spot_creak1.mp3` | [R22-34-Light Wood Creaks.wav](https://freesound.org/people/craigsmith/sounds/481882/) | craigsmith | CC0 | 3.4–4.6 s |

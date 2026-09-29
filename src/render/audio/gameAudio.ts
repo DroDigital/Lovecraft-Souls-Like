@@ -14,7 +14,7 @@ import type { Entity } from '../../core/ecs';
 import type { V3 } from '../../core/geom';
 import { getEntity } from '../../data/registry';
 import { AMBIENCE, DUNGEON_AMBIENCE, SAMPLE_SETS, STINGER_SAMPLES, VOICE_ALERTS, VOICE_SAMPLES, type Ambience, type SampleSetId } from '../../data/samples';
-import { STINGERS } from '../../data/sounds';
+import { STINGERS, type StingerId } from '../../data/sounds';
 import { AUDIO } from '../../data/tuning';
 import { voiceIdOf, VOICES, type Voice, type VoiceId } from '../../data/voices';
 import { engagedFights } from '../../systems/bossFight';
@@ -25,6 +25,7 @@ import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
 import { CUES, cueFor, dullness, nextCall, placeSound, type Cue } from './cues';
+import { impactLayers, landedBlow } from './impact';
 import type { Drones } from './drones';
 import type { AudioEngine } from './engine';
 import { createFoley } from './foley';
@@ -39,6 +40,8 @@ export interface GameAudio {
   cry(id: VoiceId, at: V3, gain?: number): void;
   /** A recording from afar: panned anywhere, duller the quieter (round 18: the thunder after lightning). */
   far(set: SampleSetId, gain?: number): void;
+  /** A stinger heard without place, recorded if it can be (round 20: an Echo drawn into the investigator). */
+  stinger(sound: StingerId, o?: { gain?: number; pitch?: number }): void;
 }
 
 interface Caller {
@@ -58,9 +61,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   const foley = createFoley(g, sampler);
   const place = (at: V3 | null, range: number): { gain: number; pan: number } => placeSound(listener, right, at, range);
   /** One of a set's takes where `at` is; false when none has loaded. */
-  const recorded = (id: SampleSetId, at: V3 | null, range: number, o: { gain?: number; pitch?: number } = {}): boolean => {
+  const recorded = (id: SampleSetId, at: V3 | null, range: number, o: { gain?: number; pitch?: number; delay?: number } = {}): boolean => {
     const { gain, pan } = place(at, range);
-    return gain > 0 && sampler.play(SAMPLE_SETS[id], { gain: gain * (o.gain ?? 1), pan, pitch: o.pitch, lowpass: at ? dullness(gain) : undefined });
+    return gain > 0 && sampler.play(SAMPLE_SETS[id], { gain: gain * (o.gain ?? 1), pan, pitch: o.pitch, delay: o.delay, lowpass: at ? dullness(gain) : undefined });
   };
   const play = (cue: Cue): void => {
     const { gain, pan } = place(cue.at, AUDIO.eventRange);
@@ -97,6 +100,10 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   };
   g.events.on('Hit', (ev) => {
     if (ev.target === g.player.id && !ev.lingering && HURT.has(ev.outcome)) recorded('hurt', null, 1);
+    const landed = landedBlow(g, ev); // the investigator's blow lands: what it meets, layer on layer (round 20)
+    if (!landed) return;
+    const where = g.ecs.c.transform.get(ev.target)?.pos ?? null;
+    for (const l of impactLayers(landed)) recorded(l.set, where, AUDIO.eventRange, { gain: l.gain, pitch: l.pitch, delay: l.delay });
   });
   g.events.on('Vanished', ({ at, struck }) => {
     if (!struck) return;
@@ -146,6 +153,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   return {
     far(set, gain = 1) {
       sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, bus: e.bed ?? undefined });
+    },
+    stinger(sound, o = {}) {
+      play({ sound, at: null, ...o });
     },
     cry(id, at, gain = 1) {
       const [v, set, pitch] = [VOICES[id], VOICE_SAMPLES[id], 0.94 + 0.12 * Math.random()];

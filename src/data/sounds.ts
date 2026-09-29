@@ -68,8 +68,26 @@ export const STINGERS = {
   better: [noise('lowpass', 900, 1.2, 0.12, { to: 300, attack: 0.3 }), tone('triangle', 392, 1.4, 0.06, { attack: 0.3 })],
   levelUp: [...chord('triangle', [146.8, 220, 293.7, 440], 2.4, 0.34, { attack: 0.08 }), ...notes('sine', [[0.05, 587.3, 1.2], [0.16, 880, 1.4], [0.27, 1174.7, 1.6]], 0.07), tone('sine', 73.4, 2.6, 0.3, { attack: 0.05 })], // a level bought: an open chord that blooms
   insight: [tone('sine', 1318.5, 2.2, 0.12), tone('sine', 1975.5, 1.8, 0.08, { at: 0.12 }), tone('sine', 2637, 1.4, 0.06, { at: 0.24 })],
-  echoes: notes('sine', [[0, 880, 0.6], [0.07, 1108.7, 0.6], [0.14, 1318.5, 0.6], [0.21, 1760, 0.9]], 0.08),
-  found: [tone('triangle', 659.3, 1.8, 0.14), tone('triangle', 987.8, 1.6, 0.1, { at: 0.18 }), tone('sine', 1318.5, 1.8, 0.07, { at: 0.36 })],
+  // Echoes recovered (round 20; it was a bright run of notes): a long breath in and a low swell, under the wisps landing (render/echoFx.ts).
+  echoes: [noise('bandpass', 500, 1.4, 0.1, { to: 1200, q: 2, attack: 0.5 }), tone('sine', 98, 1.6, 0.22, { attack: 0.4, to: 110 }), tone('sine', 147, 1.4, 0.1, { attack: 0.5 })],
+  // An Echo drawn into the investigator (round 20): a breath taken, a low thump in the chest, a thin ring.
+  absorb: [noise('bandpass', 650, 0.28, 0.13, { to: 1700, q: 2.2, attack: 0.1 }), tone('sine', 82, 0.3, 0.22, { to: 60, attack: 0.02 }), tone('sine', 1244, 0.45, 0.02, { attack: 0.06, to: 1180, vibrato: [6, 25] })],
+  // A body giving up its Echoes (round 20): a long soft exhale.
+  release: [noise('bandpass', 1400, 0.9, 0.06, { to: 2600, q: 5, attack: 0.3 }), tone('sine', 196, 0.9, 0.04, { attack: 0.3, to: 294, vibrato: [5, 20] })],
+  // A sign found (round 20; it was a bright chime): a great bell's one stroke, its partials out of tune with one another and its twin beating slowly against it, a sub swell felt in the chest and a breath over stone.
+  found: [
+    ...[[82.4, 0.24, 7], [165, 0.16, 6], [196.6, 0.1, 5], [247.5, 0.06, 4], [331, 0.06, 3.4], [416, 0.035, 2.4], [498, 0.02, 1.8]].map(([hz, gain, dur]) => tone('sine', hz, dur, gain, { attack: 0.004 })),
+    tone('sine', 166.6, 6, 0.07, { attack: 0.004 }),
+    noise('bandpass', 900, 0.09, 0.2, { q: 1.2 }),
+    tone('sine', 41.2, 4.5, 0.25, { attack: 0.5, to: 38 }),
+    noise('bandpass', 420, 4, 0.08, { attack: 1.4, to: 700, q: 2 }),
+  ],
+  // A place found: a gong heard from far off, its wash swelling and sinking, with a low murmur under it.
+  place: [
+    ...[[110, 0.16, 6.5], [161.7, 0.09, 5], [217.8, 0.07, 4.2], [288, 0.05, 3.4], [374, 0.03, 2.4]].map(([hz, gain, dur]) => tone('sine', hz, dur, gain, { attack: 0.35 })),
+    tone('sine', 55, 4, 0.16, { attack: 0.9, to: 51 }),
+    noise('bandpass', 620, 4.5, 0.07, { attack: 1.2, to: 380, q: 3 }),
+  ],
   rested: chord('triangle', [196, 246.9, 293.7, 392], 3, 0.3, { attack: 0.6 }),
   refused: [tone('sine', 70, 0.3, 0.5, { to: 50 }), noise('lowpass', 250, 0.25, 0.3)],
   travel: [noise('bandpass', 200, 1.6, 0.25, { to: 3000, q: 1.5, attack: 0.8 }), tone('sine', 110, 1.6, 0.15, { to: 440, attack: 0.8 })],

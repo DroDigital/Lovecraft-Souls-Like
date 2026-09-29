@@ -17,6 +17,8 @@ import { createGameAudio } from './render/audio/gameAudio';
 import { playMenuMusic } from './render/audio/music';
 import { createBossFx } from './render/bossFx';
 import { createCombatFx } from './render/combatFx';
+import { createEchoFx } from './render/echoFx';
+import { createImpactFx } from './render/impactFx';
 import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
 import { createSky } from './render/sky';
@@ -141,6 +143,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
   const combatFx = createCombatFx(game, particles);
+  const impactFx = createImpactFx(game, particles); // round 20: the weight of the investigator's blows
+  const echoFx = createEchoFx(game, particles, audio); // round 20: a slain foe's Echoes leave the body and are drawn into the investigator
   const signs = createSignViews(scene, game, particles, lights);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
@@ -155,7 +159,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const dialogue = createDialogue(game);
   const shop = createShopMenu(game);
   const painter = createMapPainter(game);
-  const hud = createHud(game, canvas, painter);
+  const hud = createHud(game, canvas, painter, echoFx.pending);
   const map = createMapScreen(game, painter, capture, journeys.go);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(creature, variant) : [])], panelOptions(game, settings, shell.change)) : null;
   lightNight();
@@ -209,6 +213,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);
+        impactFx.update(camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);
         journeys.update(world?.pending ?? 0);
@@ -219,6 +224,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         hidden.update(time);
         fights.update(alpha, time);
         combatFx.update();
+        echoFx.update(time);
         signs.update(time, camera.position);
         bossFx.update(alpha, time, camera);
         shadows.update(alpha);

@@ -46,7 +46,8 @@ export interface Hud {
   update(camera: Camera): void;
 }
 
-export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter): Hud {
+/** `held`: Echoes earned but still on their way to the investigator (render/echoFx.ts): the count rises as they land. */
+export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter, held: () => number = () => 0): Hud {
   const root = el(`${PICTURE_LAYER};pointer-events:none;font:13px/1.4 ${SERIF};font-variant-numeric:lining-nums tabular-nums;color:${BONE};z-index:1`); // drawn at the UI scale, in the period face (round 14)
   const minimap = createMinimap(g, root, painter);
   const hints = createHints(g, root);
@@ -139,7 +140,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setText(reagent, `REAGENT ×${g.player.reagent}${g.player.oil > 0 ? `   OIL ×${g.player.oil}` : ''}`); // flasks once any are carried (round 12)
       setText(insight, `INSIGHT ${g.mind.insight}`);
       const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
-      setText(echoes, `ECHOES ${g.player.echoes}${ready ? '  ▲' : ''}`);
+      setText(echoes, `ECHOES ${Math.max(0, g.player.echoes - held())}${ready ? '  ▲' : ''}`);
       const now = performance.now();
       if (waiting.length && now - noticeAt >= NOTICE_HOLD_MS) put(waiting.shift()!);
       setStyle(notice, 'opacity', String(Math.min(1, Math.max(0, (noticeUntil - now) / 300)).toFixed(2)));

@@ -4,6 +4,7 @@ import { leapAt, sinkLevel } from '../src/render/audio/music';
 import { THEME } from '../src/data/tuning';
 import { REGIONS } from '../src/data/regions';
 import { ENTITIES, getEntity } from '../src/data/registry';
+import { STINGER_SAMPLES } from '../src/data/samples';
 import { STINGERS, type Sound } from '../src/data/sounds';
 import { validateRegistry } from '../src/data/validate';
 import { DRONES, VOICES, voiceOf } from '../src/data/voices';
@@ -88,6 +89,17 @@ describe('cues', () => {
     expect(shot(player)).toEqual({ sound: 'shot', at: from });
     expect(shot(dummy)).toEqual({ sound: 'beam', at: from });
     expect(STINGERS.beam).not.toEqual(STINGERS.shot);
+  });
+
+  it('finding a sign tolls a bell and finding a place sounds a far gong, both low and dark (round 20: the chime was bright)', () => {
+    expect(cueFor(g, 'Discovered', { sign: 'x', name: 'x' })).toEqual({ sound: 'found', at: null });
+    expect(cueFor(g, 'PlaceFound', { id: 'x', name: 'x', region: 'hub', found: 1, of: 2 })).toEqual({ sound: 'place', at: null });
+    for (const id of ['found', 'place'] as const) {
+      const pitched = STINGERS[id].filter((l) => l.src !== 'noise');
+      expect(Math.max(...pitched.map((l) => l.hz!)), id).toBeLessThan(600); // no chime up in the trebles
+      expect(Math.min(...pitched.map((l) => l.hz!)), id).toBeLessThan(90); // a swell under it
+      expect(STINGER_SAMPLES[id], id).toBeDefined(); // recorded, the recipe beneath
+    }
   });
 
   it('the mind sounds inside the head; a band change says which way it went', () => {
