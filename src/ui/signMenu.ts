@@ -27,7 +27,7 @@ import { glyph } from './glyphs';
 /** What one more level of each gives, in words. */
 const GAINS: Record<LevelId | UpgradeId, string> = {
   vigour: `+${LEVELS.vigour.hp} health`,
-  endurance: `+${LEVELS.endurance.stamina} stamina`,
+  endurance: `+${LEVELS.endurance.stamina} stamina, and it returns faster`,
   might: `+${Math.round(LEVELS.might.damage! * 100)}% damage`,
   resolve: `sanity losses −${Math.round(UPGRADES.resolve.resist! * 100)}%`,
   draught: `+${UPGRADES.draught.doses} Laudanum`,

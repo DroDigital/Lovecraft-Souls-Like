@@ -6,7 +6,7 @@
  */
 
 import type { Entity } from '../core/ecs';
-import { LAUDANUM, LEVEL_COST, LEVELS, PLAYER, UPGRADES, type LevelId } from '../data/tuning';
+import { LAUDANUM, LEVEL_COST, LEVELS, PLAYER, STAMINA, UPGRADES, type LevelId } from '../data/tuning';
 import type { Game } from './components';
 
 export const LEVEL_IDS = Object.keys(LEVELS) as LevelId[];
@@ -25,7 +25,10 @@ export const nextLevelCost = (g: Pick<Game, 'player'>): number => levelCost(leve
 /** Whether another level of `id` can be bought now. */
 export const canLevel = (g: Pick<Game, 'player'>, id: LevelId): boolean => g.player.levels[id] < LEVELS[id].max && g.player.echoes >= nextLevelCost(g);
 
-/** Sets the investigator's most health and stamina from their levels; a rise is felt at once. */
+/** Stamina regained per second at `endurance` levels (round 22): the start's, and more with each. */
+export const staminaRegen = (endurance: number): number => STAMINA.regen + endurance * (LEVELS.endurance.regen ?? 0);
+
+/** Sets the investigator's most health and stamina, and how fast the stamina returns, from their levels; a rise is felt at once. */
 export function applyLevels(g: Game): void {
   const h = g.ecs.c.health.get(g.player.id)!;
   const s = g.ecs.c.stamina.get(g.player.id)!;
@@ -33,6 +36,7 @@ export function applyLevels(g: Game): void {
   const stamina = PLAYER.stamina + g.player.levels.endurance * (LEVELS.endurance.stamina ?? 0);
   [h.hp, h.max] = [Math.max(1, h.hp + hp - h.max), hp];
   [s.value, s.max] = [Math.max(0, s.value + stamina - s.max), stamina];
+  s.regen = staminaRegen(g.player.levels.endurance);
 }
 
 /** Spends Echoes on one level of `id`; false when short of Echoes or at the most levels. */

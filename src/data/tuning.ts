@@ -108,8 +108,8 @@ export const PLAYER = {
 };
 
 export const STAMINA = {
-  regen: 40, // per second
-  regenDelay: 36, // frames of no regen after any spending
+  regen: 24, // per second at the start; each Endurance level adds LEVELS.endurance.regen (round 22: it was 40 for all, and a bar refilled so soon that rolling on and on cost nothing)
+  regenDelay: 48, // frames of no regen after any spending: longer than a roll, so a chain of rolls draws on the bar alone
   guardRegen: 0.35, // regen multiplier while guarding
   sprintDrain: 18, // per second
 };

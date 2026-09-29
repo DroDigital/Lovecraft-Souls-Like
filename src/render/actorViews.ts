@@ -34,6 +34,8 @@ interface View {
 
 export interface ActorViews {
   update(alpha: number, time: number): void;
+  /** The investigator, up from the knee, takes `seconds` over it (a cutscene's slow rise); otherwise they rise as fast as they move. */
+  rise(seconds: number): void;
   /** Where the glow light sits this frame (the Echo drop), or null. */
   readonly glow: THREE.Vector3 | null;
   /** Where the investigator's lantern flame is drawn this frame, or null while they are not. */
@@ -61,6 +63,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
   let glow: THREE.Vector3 | null = null;
   const flameAt = new THREE.Vector3();
   let flame: THREE.Vector3 | null = null;
+  let rising: { seconds: number; at: number | null } | null = null; // a cutscene's slow rise from the knee: when it began (set by the first frame drawn)
 
   g.events.on('Hit', (e) => {
     const v = views.get(e.target);
@@ -122,8 +125,15 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     const flinch = Math.max(0, 1 - since / FEEDBACK.flinchSeconds);
     const [move, guard] = [a?.move ?? null, a?.guard ?? false];
     v.blend.watch(move, guard, time);
-    v.kneel += ((id === g.player.id && g.player.kneeling ? 1 : 0) - v.kneel) * Math.min(1, dt * 3);
-    if (v.kneel < 0.004 && !(id === g.player.id && g.player.kneeling)) v.kneel = 0; // up: the walk is the walk's again
+    const kneeling = id === g.player.id && !!g.player.kneeling;
+    if (kneeling) rising = null;
+    if (id === g.player.id && rising) {
+      rising.at ??= time;
+      const u = (time - rising.at) / rising.seconds; // a rise of its own length, whatever the frame rate: the pose stages its parts (poses.ts)
+      v.kneel = Math.min(v.kneel, 1 - Math.min(1, Math.max(0, u)));
+      if (u >= 1) rising = null;
+    } else v.kneel += ((kneeling ? 1 : 0) - v.kneel) * Math.min(1, dt * 3);
+    if (v.kneel < 0.004 && !kneeling) v.kneel = 0; // up: the walk is the walk's again
     pose(f, { move, def, frame, speed, stride: v.stride, guard, flinch, rollYaw, time, ground: groundAbout(f.root), kneel: v.kneel });
     v.blend.apply(time);
     if (f.arms && id === g.player.id) for (const [w, m] of Object.entries(f.arms)) m.visible = w === g.player.weapon; // the weapon in hand
@@ -134,6 +144,9 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
   }
 
   return {
+    rise(seconds) {
+      rising = seconds > 0 ? { seconds, at: null } : null;
+    },
     get glow() {
       return glow;
     },

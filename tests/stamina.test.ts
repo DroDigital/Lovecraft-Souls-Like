@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { emptyInput } from '../src/core/input';
 import { DEEP_ONE } from '../src/data/placeholders';
-import { PLAYER, SIM, STAMINA } from '../src/data/tuning';
+import { LEVELS, PLAYER, SIM, STAMINA } from '../src/data/tuning';
+import { PLAYER_MOVES } from '../src/data/moves';
 import { startMove } from '../src/systems/actions';
 import type { Stamina } from '../src/systems/components';
-import { stepGame } from '../src/systems/game';
+import { applyLevels, staminaRegen } from '../src/systems/levels';
+import { createGame, stepGame } from '../src/systems/game';
 import { absorb, canAfford, spend, tickStamina } from '../src/systems/stamina';
 import { place, press, scriptedGame, steps } from './helpers';
 
@@ -97,5 +99,55 @@ describe('stamina in play', () => {
       if (outcome === 'guardBreak') expect(a.move).toBe('guardBreak');
       steps(g, 120);
     }
+  });
+});
+
+describe('stamina returns slowly, and faster with each level of Endurance (round 22)', () => {
+  /** Seconds a bar takes to fill from empty once its delay is over. */
+  const fill = (regen: number | undefined, max = 100): number => {
+    const s: Stamina = { value: 0, max, delay: 0, regen };
+    let frames = 0;
+    while (s.value < max && frames < 60 * 60) (tickStamina(s, 'idle', dt), frames++);
+    return frames / SIM.hz;
+  };
+
+  it('a first-level investigator takes long to refill, and the twentieth regains it as fast as everyone once did', () => {
+    expect(fill(undefined)).toBeGreaterThan(4); // (it was under two and a half seconds)
+    expect(staminaRegen(0)).toBe(STAMINA.regen);
+    expect(staminaRegen(LEVELS.endurance.max)).toBeCloseTo(40, 6);
+    for (let n = 1; n <= LEVELS.endurance.max; n++) expect(staminaRegen(n)).toBeGreaterThan(staminaRegen(n - 1));
+  });
+
+  it('a set rate is the one used, and a bar without one takes the start\'s', () => {
+    expect(fill(60)).toBeLessThan(fill(undefined));
+    expect(fill(staminaRegen(0))).toBeCloseTo(fill(undefined), 6);
+  });
+
+  it('nothing comes back between rolls run on at their fastest, so a chain of them draws on the bar alone', () => {
+    const roll = PLAYER_MOVES.roll;
+    expect(STAMINA.regenDelay).toBeGreaterThanOrEqual(roll.frames); // the delay outlasts the whole roll
+    const s = bar(100);
+    let rolls = 0;
+    while (s.value > 0) {
+      spend(s, roll.stamina!);
+      rolls++;
+      for (let f = 0; f < roll.cancel!; f++) tickStamina(s, 'idle', dt); // the next roll as soon as the last may be cut short
+    }
+    expect(rolls).toBeLessThanOrEqual(6);
+    const full = bar(100);
+    for (let n = 0; n < 4; n++) {
+      spend(full, roll.stamina!);
+      for (let f = 0; f < roll.frames; f++) tickStamina(full, 'idle', dt); // or as it ends
+    }
+    expect(full.value).toBeCloseTo(100 - 4 * roll.stamina!, 6);
+  });
+
+  it('levelling Endurance sets how fast the investigator regains stamina, and a save keeps it', () => {
+    const g = createGame();
+    const s = g.ecs.c.stamina.get(g.player.id)!;
+    g.player.levels.endurance = 5;
+    applyLevels(g);
+    expect(s.regen).toBeCloseTo(STAMINA.regen + 5 * LEVELS.endurance.regen!, 6);
+    expect(s.max).toBe(PLAYER.stamina + 5 * LEVELS.endurance.stamina!);
   });
 });

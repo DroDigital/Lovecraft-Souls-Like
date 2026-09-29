@@ -29,5 +29,5 @@ export function tickStamina(s: Stamina, mode: StaminaMode, dt: number): void {
     s.delay--;
     return;
   }
-  s.value = Math.min(s.max, s.value + STAMINA.regen * dt * (mode === 'guard' ? STAMINA.guardRegen : 1));
+  s.value = Math.min(s.max, s.value + (s.regen ?? STAMINA.regen) * dt * (mode === 'guard' ? STAMINA.guardRegen : 1));
 }

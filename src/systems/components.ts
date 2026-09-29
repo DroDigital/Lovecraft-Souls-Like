@@ -66,6 +66,7 @@ export interface Stamina {
   value: number;
   max: number;
   delay: number; // frames before regen resumes
+  regen?: number; // regained per second (the investigator's, from Endurance: levels.ts); STAMINA.regen without
 }
 
 export interface Actor {
