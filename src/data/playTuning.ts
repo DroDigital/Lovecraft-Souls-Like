@@ -42,6 +42,7 @@ export const THEME = {
   sink: 7, // spawning in, it sinks away over this long: an equal-power fade...
   sinkTo: 280, // ...under a low-pass closing to this (Hz), as the world's ambience rises beneath it (AUDIO.fade)
   wait: 4, // the title opens by itself after this long if the theme has neither sounded nor been refused (a slow line)
+  wake: 0.35, // seconds it gives WebAudio to start running once the theme may play, before it counts as refused (round 20)
   leap: [1.1, 3.2] as const, // looping, it leaps from this long before the end, where the ending has decayed to about −20 dB, back to here, where the lead-in has swelled to the same...
   hit: 3.85, // ...a moment before the first hit (playtest round 9)
 };
@@ -64,6 +65,7 @@ export const SETTINGS = {
   fog: [0, 1, 0.25, 1], // the volumetric fog's strength (0: none, for slower machines; round 16)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
+  cutscenes: [0, 1, 1, 1], // 0: none play: a new game's wake, a horror's arrival and fall, an ending's (round 20)
   volume: [0, 1, 0.05, 0.7], // everything
   music: [0, 1, 0.05, 1], // the title's theme and the boss scores (round 12)
   sfx: [0, 1, 0.05, 1], // blows, steps, voices

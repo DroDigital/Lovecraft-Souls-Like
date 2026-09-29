@@ -10,6 +10,10 @@
  * where the lead-in has swelled to the same level a moment before the first hit (THEME.leap), under a
  * dip of a few hundredths of a second so the jump cannot click: no cut and no silence. Should the
  * leap be missed (a throttled timer), the file loops by itself, and the leap skips its lead-in.
+ * Round 20: it counts as sounding only once WebAudio runs. After a reload (Quit to title) a browser may
+ * let the element play but keep WebAudio suspended (no key press or click on the new page yet): the
+ * element, routed into that silent graph, stalled, and the title opened by itself over no music at all.
+ * Now it waits, paused, and the title asks for a key as on a first visit.
  * Played through the audio engine (under the volume setting, beside the sanity FX), its fades run
  * on the audio clock, smooth however long the world takes to build. Spawning in, it sinks away: its
  * level falls evenly in loudness (an exponential fade, not a linear one that holds and then drops)
@@ -128,8 +132,42 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     off();
     sound();
   };
+  /** Whether the theme would be heard: WebAudio runs (or there is none: the element plays by itself). Waits a moment for it to wake. */
+  const audible = (): Promise<boolean> => {
+    const ctx = engine.ctx;
+    if (!ctx || ctx.state === 'running') return Promise.resolve(true);
+    return new Promise((done) => {
+      const finish = (ok: boolean): void => {
+        clearTimeout(give);
+        ctx.removeEventListener('statechange', woke);
+        done(ok);
+      };
+      const woke = (): void => void (ctx.state === 'running' && finish(true));
+      const give = setTimeout(() => finish(ctx.state === 'running'), THEME.wake * 1000);
+      ctx.addEventListener('statechange', woke);
+    });
+  };
+  let trying = false;
   const tryPlay = (): void => {
-    if (state === 'waiting') audio.play().then(begin, refuse);
+    if (state !== 'waiting' || trying) return;
+    trying = true;
+    audio.play().then(
+      () => {
+        engine.start(); // WebAudio may start now too
+        void audible().then((ok) => {
+          trying = false;
+          if (state !== 'waiting') return;
+          if (ok) return begin();
+          audio.pause(); // the graph is silent until a key press or click: wait for one
+          audio.currentTime = THEME.from;
+          refuse();
+        });
+      },
+      () => {
+        trying = false;
+        refuse();
+      },
+    );
   };
   function gesture(): void {
     engine.start();

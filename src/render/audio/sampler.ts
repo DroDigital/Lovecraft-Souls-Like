@@ -16,6 +16,7 @@ export const AUDIO_BASE = 'audio/'; // served from public/, beside the page
 export interface SampleOptions extends PlayOptions {
   lowpass?: number; // Hz: dulled by distance
   bus?: AudioNode; // the one-shots bus by default
+  delay?: number; // seconds after now it starts (round 20: a blow's layers land a moment apart)
 }
 
 export interface Sampler {
@@ -95,7 +96,7 @@ export function createSampler(e: AudioEngine, base = AUDIO_BASE): Sampler {
         e.playing--;
         pan.disconnect();
       };
-      src.start();
+      src.start(o.delay ? ctx.currentTime + o.delay : 0);
       return true;
     },
   };

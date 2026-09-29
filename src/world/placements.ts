@@ -20,9 +20,9 @@ import { echoCaches } from './caches';
 import type { Prop } from './props';
 import { colliderBounds, type Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
-import { dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
+import { doorwayClear, dungeonParts, partCollider, roomSpots, type Part } from './dungeonParts';
 import { landHeight } from './land';
-import { shrineColliders } from './shrine';
+import { shrineColliders, standingStones } from './shrine';
 import { chunkKey, chunkOf, DIRS, OPPOSITE, toWorld, yawOfDir, type Rect } from './worldMap';
 
 export interface SignPlace {
@@ -35,6 +35,7 @@ export interface SignPlace {
   face: Dir;
   dream: boolean;
   rest: Place; // where the investigator rises
+  stones: readonly number[]; // the lesser stones of its shrine that stand (shrine.ts): a ring the room cannot hold is broken where the walls are
 }
 
 export interface GatePlace {
@@ -119,6 +120,7 @@ const PAD = { sign: [4, 6], gate: [5, 6], tome: [2.5, 4], ally: [3, 4], arena: [
 function build(): WorldLayout {
   const w: WorldLayout = { signs: [], gates: [], tomes: [], arenas: [], dungeons: [], spawns: [], pads: [], pieces: [], dream: null, errors: [], chunk: () => EMPTY };
   const buckets = new Map<number, ChunkStatics>();
+  const doorways: Collider[] = []; // what the dungeons' doors keep open: no collision, but nothing is set in them
   const bucket = (r: Rect, add: (b: ChunkStatics) => void): void => {
     for (let cx = chunkOf(r.x0); cx <= chunkOf(r.x1); cx++) {
       for (let cz = chunkOf(r.z0); cz <= chunkOf(r.z1); cz++) {
@@ -143,14 +145,23 @@ function build(): WorldLayout {
     bucket({ x0: s.at.x, z0: s.at.z, x1: s.at.x, z1: s.at.z }, (b) => b.spawns.push(s));
   };
   const side = (d: Dir): { x: number; z: number } => ({ x: DIRS[d].z, z: -DIRS[d].x });
+  /** The colliders placed so far within `r` of a point. */
+  const around = (x: number, z: number, r: number): Collider[] => {
+    const found = new Set<Collider>();
+    for (let cx = chunkOf(x - r); cx <= chunkOf(x + r); cx++) {
+      for (let cz = chunkOf(z - r); cz <= chunkOf(z + r); cz++) for (const c of buckets.get(chunkKey(cx, cz))?.colliders ?? []) found.add(c);
+    }
+    return [...found, ...doorways.filter((c) => c.kind === 'box' && c.max.x >= x - r && c.min.x <= x + r && c.max.z >= z - r && c.min.z <= z + r)];
+  };
 
   /** An Elder Sign; the investigator rises well in front of it and to one side, so the camera behind them clears the slab, or at `at`. */
   const sign: SignFn = (region, x, z, y, id, name, face, dream = false, at) => {
     const f = DIRS[face];
     const s = side(face);
     const rest = { ...(at ?? { x: x + f.x * 4.6 + s.x * 1.2, z: z + f.z * 4.6 + s.z * 1.2 }), yaw: yawOfDir(face) };
-    w.signs.push({ id, name, region, x, z, y, face, dream, rest });
-    for (const c of shrineColliders(x, y, z, yawOfDir(face))) collide(c); // its shrine (shrine.ts)
+    const stones = standingStones(x, y, z, yawOfDir(face), around(x, z, 5));
+    w.signs.push({ id, name, region, x, z, y, face, dream, rest, stones });
+    for (const c of shrineColliders(x, y, z, yawOfDir(face), stones)) collide(c); // its shrine (shrine.ts)
   };
   const gate: GateFn = (region, x, z, y, id, name, to, face) => {
     const f = DIRS[face];
@@ -206,6 +217,7 @@ function build(): WorldLayout {
       if (def.region !== region.id) w.errors.push(`dungeon ${def.id}: placed in ${region.id} but belongs to ${def.region}`);
       const decor: Prop[] = [];
       w.dungeons.push({ layout, parts, decor });
+      for (const o of layout.doors) doorways.push(doorwayClear(o));
       w.pieces.push(...pieces);
       for (const p of parts) if (p.solid) collide(partCollider(p));
       const rp: Pad = { kind: 'rect', rect: layout.rect, blend: PAD.dungeon, level: layout.base };

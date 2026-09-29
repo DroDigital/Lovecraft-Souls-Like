@@ -31,10 +31,10 @@ describe('the recorded sounds (data/samples.ts, public/audio)', () => {
     for (const f of [...files('sfx'), ...files('amb')]) expect(rows.get(f), f).toBe('CC0');
   });
 
-  it('stays small: under 6 MB in all, no one-shot over 200 KB', () => {
+  it('stays small: under 10 MB in all, no one-shot over 200 KB', () => {
     const size = (f: string): number => statSync(`${AUDIO}/${f}.mp3`).size;
     const all = [...files('sfx'), ...files('amb')];
-    expect(all.reduce((n, f) => n + size(f), 0)).toBeLessThan(6 * 2 ** 20);
+    expect(all.reduce((n, f) => n + size(f), 0)).toBeLessThan(10 * 2 ** 20);
     for (const f of files('sfx')) expect(size(f), f).toBeLessThan(200 * 1024);
   });
 

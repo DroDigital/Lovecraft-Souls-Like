@@ -16,7 +16,11 @@ import { createActorViews } from './render/actorViews';
 import { createGameAudio } from './render/audio/gameAudio';
 import { playMenuMusic } from './render/audio/music';
 import { createBossFx } from './render/bossFx';
+import { createCinema } from './render/cinema';
+import { createDirector, wakeKneeling } from './render/cinemaDirector';
 import { createCombatFx } from './render/combatFx';
+import { createEchoFx } from './render/echoFx';
+import { createImpactFx } from './render/impactFx';
 import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
 import { createSky } from './render/sky';
@@ -46,6 +50,7 @@ import { haltAutosave, saveNow, startAutosave } from './ui/autosave';
 import { showCrash } from './ui/crashScreen';
 import { startBestiary } from './ui/bestiary';
 import { HINTS, panelOptions, playerStats, spawnHint, worldStats } from './ui/debugHooks';
+import { createCinemaUi } from './ui/cinemaUi';
 import { createDebugPanel } from './ui/debugPanel';
 import { createEndingCard, NEW_GAME_FLAG } from './ui/endingCard';
 import { createHud } from './ui/hud';
@@ -98,6 +103,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   if (store && opts.fresh) clearSave(store);
   const carry = store && opts.fresh ? takeCarry(store) : null; // a new journey, begun from an ending (NG+)
   const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined, carry: carry ?? undefined });
+  if (opts.intro && !opts.arena) wakeKneeling(game); // the wake (render/cinema.ts) begins on one knee
   const capture = (): void => {
     try {
       const r: unknown = canvas.requestPointerLock();
@@ -109,6 +115,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const reveal = (): void => {
     shell.music?.fadeOut(); // the title's theme plays on until the world shows, then sinks away under its ambience
     shell.music = undefined;
+    if (opts.intro) director.wake(); // a new game: the investigator wakes in the dream (round 20)
   };
   const journeys = createJourneys(game, veil, () => pipeline.warm(scene, camera).then(nextFrame)); // before the veil lifts, once the GPU has caught up
   const intro: Intro | null = opts.intro ? showIntro(() => (capture(), journeys.arrive(reveal))) : null; // the world is made behind it
@@ -130,6 +137,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     arms: (back, show) => armsPage(game, back, show),
     achievements: opts.arena ? undefined : (back) => achievementsPage(store, back),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
+    held: () => cinema.active, // a cutscene has the screen
   });
   if (store) startAutosave(game, store);
   if (!opts.arena) watchAchievements(game, store);
@@ -141,6 +149,10 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
   const combatFx = createCombatFx(game, particles);
+  const impactFx = createImpactFx(game, particles); // round 20: the weight of the investigator's blows
+  const echoFx = createEchoFx(game, particles, audio); // round 20: a slain foe's Echoes leave the body and are drawn into the investigator
+  const cinema = createCinema(game, createCinemaUi(), audio, particles, { enabled: () => settings.cutscenes > 0.5 }); // round 20: wake, arrivals, falls, endings
+  const director = createDirector(game, cinema, (id) => ending.show(id));
   const signs = createSignViews(scene, game, particles, lights);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
@@ -155,14 +167,14 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const dialogue = createDialogue(game);
   const shop = createShopMenu(game);
   const painter = createMapPainter(game);
-  const hud = createHud(game, canvas, painter);
+  const hud = createHud(game, canvas, painter, echoFx.pending);
   const map = createMapScreen(game, painter, capture, journeys.go);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(creature, variant) : [])], panelOptions(game, settings, shell.change)) : null;
   lightNight();
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
-  if (debug) Object.assign(window, { game, world, audio: shell.engine, life });
+  if (debug) Object.assign(window, { game, world, audio: shell.engine, life, cinema });
   placeCamera(camera, game, 1);
   void pipeline.compile(scene, camera); // compiling while the chunks are built (in parallel, where the browser can)
   await made(0.55);
@@ -187,11 +199,12 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const through = pause.open || map.open || dialogue.reading || intro?.open ? null : journeys.before(frame);
         if (!through) return; // the world stands still
         simTime += dt;
-        stepGame(game, menu?.open || shop.open || ending.open || dialogue.talking ? emptyInput() : through); // talking, the world goes on while the investigator listens
+        if (!cinema.step(dt)) return; // a cutscene: the world stands still, or takes only some of its steps
+        stepGame(game, menu?.open || shop.open || ending.open || dialogue.talking || cinema.active ? emptyInput() : through); // talking, the world goes on while the investigator listens
       },
       render(blend) {
         const still = pause.open || map.open || dialogue.reading || !!intro?.open || journeys.still;
-        const alpha = still ? 1 : blend;
+        const alpha = still || cinema.frozen ? 1 : cinema.alpha(blend);
         const time = simTime + alpha / SIM.hz;
         input.sensitivity = settings.sensitivity;
         input.invertY = settings.invertY > 0.5;
@@ -203,12 +216,15 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
           resize();
         }
         placeCamera(camera, game, alpha);
+        cinema.update(camera, still ? 0 : blend); // over the follow camera's pose
+        hud.hide(cinema.active);
         const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
         const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
         mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         hurt.update(pipeline.post, camera, time);
+        impactFx.update(camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
         world?.update(at.x, at.z, journeys.budget);
         journeys.update(world?.pending ?? 0);
@@ -219,6 +235,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         hidden.update(time);
         fights.update(alpha, time);
         combatFx.update();
+        echoFx.update(time);
         signs.update(time, camera.position);
         bossFx.update(alpha, time, camera);
         shadows.update(alpha);
@@ -230,7 +247,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         life.update(camera, time, enclosed); // after the night's light: the lightning adds to it
         audio.update(fx, time, camera, still);
         const lens = lensAt(fx, time);
-        applyLens(camera, lens.fovDeg, lens.skew);
+        applyLens(camera, cinema.lensFov(lens.fovDeg), lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
         updatePostUniforms(pipeline.post, fx, time, pipeline.size);
         if (!veil.covered) pipeline.render(scene, camera); // nothing shows under the veil: its frames go to the making

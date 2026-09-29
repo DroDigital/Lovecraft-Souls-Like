@@ -40,7 +40,7 @@ type Handlers = { [K in keyof GameEvents]?: (e: GameEvents[K], g: Game) => Cue |
 
 export const CUES: Handlers = {
   Hit: (e, g) => (e.lingering ? null : { sound: HIT[e.outcome], at: at(g, e.target), gain: e.attacker === g.player.id || e.target === g.player.id ? 1 : 0.6 }),
-  Shot: (e) => ({ sound: 'shot', at: { ...e.from } }),
+  Shot: (e, g) => ({ sound: e.shooter === g.player.id ? 'shot' : 'beam', at: { ...e.from } }), // the revolver's bang is the investigator's alone (round 20: a Mi-Go's beam went off like it)
   Died: (e, g) => (e.entity === g.player.id ? inside('death') : null),
   Respawned: (e, g) => (e.entity === g.player.id ? inside('rise') : null),
   Echoes: (e) => (e.change === 'recovered' ? inside('echoes') : null),
@@ -51,7 +51,7 @@ export const CUES: Handlers = {
   InsightChanged: (e) => (e.change > 0 && e.cause !== 'load' && e.cause !== 'debug' ? inside('insight') : null),
   FirstSight: (e) => (e.sanity > 0 ? { sound: 'sight', at: null, pitch: Math.max(0.5, 1.1 - e.sanity / 40) } : null), // the greater the horror, the lower
   Discovered: () => inside('found'),
-  PlaceFound: () => ({ sound: 'found', at: null, gain: 0.45, pitch: 0.75 }), // a named place: the sign's chime, lower and softer (round 18)
+  PlaceFound: () => inside('place'), // a named place (round 18): a gong from far off (round 20; it was the sign's chime, lower)
   Rested: () => inside('rested'),
   RestRefused: () => inside('refused'),
   Travelled: () => inside('travel'),

@@ -20,6 +20,9 @@ export interface Nest extends V3 {
   seed: number;
 }
 
+/** How far above the ground a perching critter sits at the least. */
+const PERCH_UP = 0.12;
+
 /** Where on a prop a critter keeps. */
 function spot(p: Prop, critter: CritterId, rng: Rng): V3 {
   const habit = CRITTERS[critter].habit;
@@ -62,7 +65,9 @@ function place(cx: number, cz: number): Nest[] {
       const n = h.count[0] + Math.floor(rng() * (h.count[1] - h.count[0] + 1));
       for (let i = 0; i < n && out.length < CHUNK_CRITTERS; i++) {
         const at = spot(p, h.critter, rng);
-        if (!inDungeon(at.x, at.z)) out.push({ critter: h.critter, ...at, seed: Math.floor(rng() * 1e9) });
+        const seed = Math.floor(rng() * 1e9);
+        if (inDungeon(at.x, at.z) || (CRITTERS[h.critter].habit === 'perch' && at.y - surface(at.x, at.z) < PERCH_UP)) continue; // a perch sits up on its prop, not on the ground that rises beside a low wall
+        out.push({ critter: h.critter, ...at, seed });
       }
     }
   }

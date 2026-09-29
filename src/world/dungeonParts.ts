@@ -158,6 +158,13 @@ function doorPiece(o: DoorLayout, name: string, veil: Veil): HiddenPieceDef {
   };
 }
 
+/** What a doorway keeps open: its opening, and half a metre either way through the wall's thickness and beyond it, up to the lintel. Nothing is set in it (round 20: a shrine's stone stood in one). */
+export function doorwayClear(o: DoorLayout): Collider {
+  const { door: D, wall: T, lintel } = DUNGEON;
+  const [hx, hz] = DIRS[o.side].z !== 0 ? [D / 2, T / 2 + 0.5] : [T / 2 + 0.5, D / 2];
+  return { kind: 'box', min: { x: o.x - hx, y: o.level, z: o.z - hz }, max: { x: o.x + hx, y: o.level + lintel, z: o.z + hz } };
+}
+
 /** Every wall segment on a room boundary (each shared edge once), with doorways and lintels. */
 function wallParts(d: DungeonLayout, out: Part[], pieces: HiddenPieceDef[]): void {
   const { cell: C, wall: T, height: H, door: D, lintel } = DUNGEON;
@@ -252,14 +259,14 @@ export function roomSpots(r: RoomLayout): RoomSpots {
   switch (r.def.kind) {
     case 'hall':
       return r.size === 3
-        ? { centre: [0, 0], sign: [6, 4 - h], rest: [3, 6.5 - h], gate: [0, h - 4], tome: [-8, 8], ring: [[10, 8], [-10, 8], [10, -8], [-10, -8], [0, 12], [0, -12]] }
-        : { centre: [0, 0], sign: [2.8, 3 - h], rest: [0.8, 5 - h], gate: [0, h - 3], tome: [-3, 2], ring: [[2.5, 3], [-2.5, 3], [-2.5, -2.5], [2.5, -1.5]] };
+        ? { centre: [0, 0], sign: [6, 4.5 - h], rest: [3, 7 - h], gate: [0, h - 4], tome: [-8, 8], ring: [[10, 8], [-10, 8], [10, -8], [-10, -8], [0, 12], [0, -12]] }
+        : { centre: [0, 0], sign: [3, 4.5 - h], rest: [1, 6.5 - h], gate: [0, h - 3], tome: [-3, 2], ring: [[2.5, 3], [-2.5, 3], [-2.5, -2.5], [2.5, -1.5]] }; // the sign 3.5 m from the wall: its whole ring of stones stands (round 20: at 2.5 they sank into it)
     case 'corridor':
-      return { centre: [0, 0], sign: [1.2, 3 - h], rest: [-0.6, 5 - h], gate: [0, 0], tome: [0, 0.5], ring: [[0, -3.5], [-1, -6.5], [1, -6.5], [0, 1]] };
+      return { centre: [0, 0], sign: [0.7, 3 - h], rest: [-0.6, 5 - h], gate: [0, 0], tome: [0, 0.5], ring: [[0, -3.5], [-1, -6.5], [1, -6.5], [0, 1]] }; // its plinth 10 cm off the lane's wall (round 20: it stood 0.4 m in it)
     case 'stair':
-      return { centre: [0, 0], sign: [1.8, -4], rest: [-0.5, -2.5], gate: [0, 4], tome: [-1.8, 2], ring: [[0, -4], [0, 3], [-1.5, 6], [1.5, -6]] };
+      return { centre: [0, 0], sign: [1.7, -4], rest: [-0.5, -2.5], gate: [0, 4], tome: [-1.8, 2], ring: [[0, -4], [0, 3], [-1.5, 6], [1.5, -6]] };
     case 'well':
-      return { centre: [0, e - 0.75], sign: [3, 0.75 - e], rest: [0.5, 2.5 - e], gate: [0, e - 0.75], tome: [e - 0.75, 0], ring: [[0.75 - e, 0], [-5, 5], [5, 5], [-5, -5]] };
+      return { centre: [0, e - 0.75], sign: [3, 2.5 - e], rest: [0.5, 2 - e], gate: [0, e - 0.75], tome: [e - 0.75, 0], ring: [[0.75 - e, 0], [-5, 5], [5, 5], [-5, -5]] };
     default: // pit and bridge: the ledges
       return { centre: [0, e], sign: [3, -e], rest: [0, -e], gate: [0, e], tome: [-4, e], ring: [[4, e], [-4, -e], [5.5, e], [-5.5, e]] };
   }

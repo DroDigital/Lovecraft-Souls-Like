@@ -30,10 +30,11 @@ export function showIntro(done: () => void): Intro {
     keys: (e) => void (e.code === keyLayout.interact && !e.repeat && next()),
     build(p) {
       const card = INTRO[i];
-      el(p, 'div', card.heading, `letter-spacing:3px;color:${BONE};opacity:.8;margin-bottom:14px`);
+      const heading = el(p, 'div', card.heading, `letter-spacing:3px;color:${BONE};opacity:.8;margin-bottom:14px`);
       const telegram = i === 0;
-      for (const para of card.text) el(p, 'p', para, `font-size:${telegram ? 14 : 16}px;line-height:1.7;margin:0 0 12px;${telegram ? `letter-spacing:2px;font-family:${TYPEWRITER}` : ''}`);
+      const paras = card.text.map((para) => el(p, 'p', para, `font-size:${telegram ? 14 : 16}px;line-height:1.7;margin:0 0 12px;${telegram ? `letter-spacing:2px;font-family:${TYPEWRITER}` : ''}`));
       const row = el(p, 'div', '', 'display:flex;justify-content:space-between;align-items:center;margin-top:18px');
+      [heading, ...paras, row].forEach((n, k) => n.animate([{ opacity: 0 }, { opacity: n === heading ? 0.8 : 1 }], { duration: 900, delay: 100 + k * 420, easing: 'ease-out', fill: 'backwards' })); // each line out of the dark in turn (round 20)
       el(row, 'div', `${glyph('back')} · skip`, 'opacity:.3;font-size:10px');
       button(row, `${glyph('interact')} · ${i < INTRO.length - 1 ? 'Turn the page' : 'Wake'}`, next).style.cssText = 'width:auto;display:inline-block';
     },

@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import type { Entity } from '../core/ecs';
 import { SIGIL } from '../data/tuning';
+import { signPlace } from '../systems/checkpoints';
 import type { Game } from '../systems/components';
 import { PLINTH, SHRINE } from '../world/shrine';
 import { BASE, mixRgb, type Rgb } from './palette';
@@ -131,7 +132,6 @@ interface View {
 const rand = (a: number, b: number): number => a + (b - a) * Math.random();
 
 export function createSignViews(scene: THREE.Scene, g: Game, particles: Particles, lights: WorldLights): SignViews {
-  const geo = shrineGeometry();
   const stone = createWorldMaterial({ texture: 'rock', seed: 5, vertexColors: true, vary: 0.4 });
   const wax = createWorldMaterial({ texture: 'cloth', vertexColors: true });
   const views = new Map<Entity, View>();
@@ -143,6 +143,7 @@ export function createSignViews(scene: THREE.Scene, g: Game, particles: Particle
     const root = new THREE.Group();
     root.position.set(tr.pos.x, tr.pos.y, tr.pos.z);
     root.rotation.y = tr.yaw;
+    const geo = shrineGeometry(signPlace(sign)?.stones); // the lesser stones its room leaves standing
     const glyph = createWorldMaterial({ texture: 'rock', seed: 5, vertexColors: true });
     const glow = glowMaterial(0);
     const flameMat = createWorldMaterial({ texture: 'cloth', emissive: 1, vertexColors: true });

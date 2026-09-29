@@ -12,9 +12,10 @@
 import type * as THREE from 'three';
 import type { Entity } from '../../core/ecs';
 import type { V3 } from '../../core/geom';
+import { soundOf, type CreatureSound } from '../../data/creatureSounds';
 import { getEntity } from '../../data/registry';
 import { AMBIENCE, DUNGEON_AMBIENCE, SAMPLE_SETS, STINGER_SAMPLES, VOICE_ALERTS, VOICE_SAMPLES, type Ambience, type SampleSetId } from '../../data/samples';
-import { STINGERS } from '../../data/sounds';
+import { STINGERS, type StingerId } from '../../data/sounds';
 import { AUDIO } from '../../data/tuning';
 import { voiceIdOf, VOICES, type Voice, type VoiceId } from '../../data/voices';
 import { engagedFights } from '../../systems/bossFight';
@@ -25,6 +26,7 @@ import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
 import { CUES, cueFor, dullness, nextCall, placeSound, type Cue } from './cues';
+import { impactLayers, landedBlow } from './impact';
 import type { Drones } from './drones';
 import type { AudioEngine } from './engine';
 import { createFoley } from './foley';
@@ -39,6 +41,10 @@ export interface GameAudio {
   cry(id: VoiceId, at: V3, gain?: number): void;
   /** A recording from afar: panned anywhere, duller the quieter (round 18: the thunder after lightning). */
   far(set: SampleSetId, gain?: number): void;
+  /** A stinger heard without place, recorded if it can be (round 20: an Echo drawn into the investigator). */
+  stinger(sound: StingerId, o?: { gain?: number; pitch?: number }): void;
+  /** A recording heard without place (round 20: a cutscene's laugh, its choir). */
+  sample(set: SampleSetId, o?: { gain?: number; pitch?: number }): void;
 }
 
 interface Caller {
@@ -48,6 +54,7 @@ interface Caller {
 }
 
 const HURT: ReadonlySet<string> = new Set(['hit', 'stagger', 'guardBreak', 'riposte', 'interrupted']);
+const CRY_GAP = 48; // frames between one creature's cries at blows
 
 export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAudio {
   const listener = { x: 0, y: 0, z: 0 };
@@ -58,9 +65,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   const foley = createFoley(g, sampler);
   const place = (at: V3 | null, range: number): { gain: number; pan: number } => placeSound(listener, right, at, range);
   /** One of a set's takes where `at` is; false when none has loaded. */
-  const recorded = (id: SampleSetId, at: V3 | null, range: number, o: { gain?: number; pitch?: number } = {}): boolean => {
+  const recorded = (id: SampleSetId, at: V3 | null, range: number, o: { gain?: number; pitch?: number; delay?: number } = {}): boolean => {
     const { gain, pan } = place(at, range);
-    return gain > 0 && sampler.play(SAMPLE_SETS[id], { gain: gain * (o.gain ?? 1), pan, pitch: o.pitch, lowpass: at ? dullness(gain) : undefined });
+    return gain > 0 && sampler.play(SAMPLE_SETS[id], { gain: gain * (o.gain ?? 1), pan, pitch: o.pitch, delay: o.delay, lowpass: at ? dullness(gain) : undefined });
   };
   const play = (cue: Cue): void => {
     const { gain, pan } = place(cue.at, AUDIO.eventRange);
@@ -76,27 +83,48 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     });
   }
 
-  const voices = new Map<string, { id: VoiceId; voice: Voice } | null>(); // by roster id
-  const voice = (rosterId: string): { id: VoiceId; voice: Voice } | null => {
+  interface Voiced {
+    id: VoiceId;
+    voice: Voice;
+    sound?: CreatureSound; // its own mix of the recorded families (data/creatureSounds.ts), if it has one
+  }
+  const voices = new Map<string, Voiced | null>(); // by roster id
+  const voice = (rosterId: string): Voiced | null => {
     let v = voices.get(rosterId);
     if (v === undefined) {
       const def = getEntity(rosterId);
       const id = def ? voiceIdOf(def) : null;
-      voices.set(rosterId, (v = id ? { id, voice: VOICES[id] } : null));
+      voices.set(rosterId, (v = id ? { id, voice: VOICES[id], sound: soundOf(rosterId) } : null));
     }
     return v;
   };
+  /** The playback rate of one of a creature's cries: drawn from its own range, else nearly 1. */
+  const pitchOf = (v: Voiced): number => (v.sound ? v.sound.pitch[0] + (v.sound.pitch[1] - v.sound.pitch[0]) * Math.random() : 0.94 + 0.12 * Math.random());
   /** A creature's call where it stands: recorded if it can be, else its recipe. */
-  const call = (id: Entity, v: { id: VoiceId; voice: Voice }, o: { alert?: boolean; pitch?: number; gain?: number } = {}): boolean => {
+  const call = (id: Entity, v: Voiced, o: { alert?: boolean; pitch?: number; gain?: number } = {}): boolean => {
     const at = g.ecs.c.transform.get(id)?.pos ?? null;
-    const set = (o.alert ? VOICE_ALERTS[v.id] : undefined) ?? VOICE_SAMPLES[v.id];
-    const pitch = o.pitch ?? 0.94 + 0.12 * Math.random();
+    const set = v.sound ? ((o.alert ? v.sound.alert : undefined) ?? v.sound.call ?? VOICE_SAMPLES[v.id]) : ((o.alert ? VOICE_ALERTS[v.id] : undefined) ?? VOICE_SAMPLES[v.id]);
+    const pitch = o.pitch ?? pitchOf(v);
     if (set && recorded(set, at, v.voice.range, { pitch, gain: o.gain })) return true;
     const { gain, pan } = place(at, v.voice.range);
     return gain > 0 && playSound(e, v.voice.call, { gain: gain * (o.gain ?? 1), pan, pitch });
   };
+  const cried = new Map<Entity, number>(); // the frame each creature last cried out at a blow
   g.events.on('Hit', (ev) => {
     if (ev.target === g.player.id && !ev.lingering && HURT.has(ev.outcome)) recorded('hurt', null, 1);
+    if (ev.target !== g.player.id && !ev.lingering && HURT.has(ev.outcome)) {
+      const rosterId = g.ecs.c.dread.get(ev.target)?.id; // a creature cries out as it is struck, in its own voice (round 20)
+      const v = rosterId ? voice(rosterId) : null;
+      const set = v?.sound?.hurt;
+      if (v && set && g.frame - (cried.get(ev.target) ?? -1e9) >= CRY_GAP && Math.random() < 0.75) {
+        cried.set(ev.target, g.frame);
+        recorded(set, g.ecs.c.transform.get(ev.target)?.pos ?? null, v.voice.range, { pitch: pitchOf(v), gain: 0.85 });
+      }
+    }
+    const landed = landedBlow(g, ev); // the investigator's blow lands: what it meets, layer on layer (round 20)
+    if (!landed) return;
+    const where = g.ecs.c.transform.get(ev.target)?.pos ?? null;
+    for (const l of impactLayers(landed)) recorded(l.set, where, AUDIO.eventRange, { gain: l.gain, pitch: l.pitch, delay: l.delay });
   });
   g.events.on('Vanished', ({ at, struck }) => {
     if (!struck) return;
@@ -106,7 +134,10 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   g.events.on('Died', ({ entity }) => {
     const rosterId = g.ecs.c.dread.get(entity)?.id;
     const v = rosterId ? voice(rosterId) : null;
-    if (v) call(entity, v, { pitch: 0.78 + 0.1 * Math.random(), gain: 0.9 }); // its death cry
+    if (!v) return;
+    const at = g.ecs.c.transform.get(entity)?.pos ?? null;
+    if (v.sound?.die && recorded(v.sound.die, at, v.voice.range, { pitch: pitchOf(v), gain: 0.95 })) return; // its own dying, if it has one (round 20)
+    call(entity, v, { pitch: 0.78 + 0.1 * Math.random(), gain: 0.9 }); // else its call, deeper
   });
 
   const callers = new Map<Entity, Caller>();
@@ -146,6 +177,12 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   return {
     far(set, gain = 1) {
       sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, bus: e.bed ?? undefined });
+    },
+    stinger(sound, o = {}) {
+      play({ sound, at: null, ...o });
+    },
+    sample(set, o = {}) {
+      recorded(set, null, 1, o);
     },
     cry(id, at, gain = 1) {
       const [v, set, pitch] = [VOICES[id], VOICE_SAMPLES[id], 0.94 + 0.12 * Math.random()];
