@@ -44,6 +44,8 @@ const signed = (n: number, what: string): string => `${n > 0 ? '+' : '−'}${Mat
 
 export interface Hud {
   update(camera: Camera): void;
+  /** The bars and counters fade away (a cutscene has the screen) or come back. */
+  hide(on: boolean): void;
 }
 
 /** `held`: Echoes earned but still on their way to the investigator (render/echoFx.ts): the count rises as they land. */
@@ -117,7 +119,9 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   g.events.on('RestRefused', () => say('SOMETHING HUNTS YOU · NO REST'));
 
   const v = new Vector3();
+  root.style.transition = 'opacity .6s';
   return {
+    hide: (on) => void (root.style.opacity = on ? '0' : '1'),
     update(camera) {
       minimap.update();
       if (!menuOpen()) hints.update();

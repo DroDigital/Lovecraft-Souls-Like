@@ -22,6 +22,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
   fog: ['Volumetric fog', (v) => (v > 0 ? pct(v) : 'Off')],
   uiScale: ['Text & HUD', (v) => `×${v.toFixed(2)}`],
   shake: ['Screen shake', pct],
+  cutscenes: ['Cutscenes', (v) => (v > 0.5 ? 'On' : 'Off')],
   volume: ['Volume', pct],
   music: ['Music', pct],
   sfx: ['Effects', pct],
@@ -29,7 +30,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
 };
 const GROUPS: readonly (readonly [string, readonly SettingId[]])[] = [
   ['VIDEO', ['resolution', 'brightness', 'fog', 'uiScale', 'fxCap', 'shake']],
-  ['CONTROLS', ['sensitivity', 'invertY']],
+  ['CONTROLS', ['sensitivity', 'invertY', 'cutscenes']],
   ['SOUND', ['volume', 'music', 'sfx', 'ambience']],
 ];
 

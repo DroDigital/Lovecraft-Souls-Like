@@ -22,6 +22,7 @@ export interface PauseOptions {
   arms?: (back: () => void, show: (p: Page) => void) => Page; // the weapons owned
   achievements?: (back: () => void) => Page; // the achievements, earned or not (round 12)
   quit(): void;
+  held?: () => boolean; // something has the screen (a cutscene, round 20): the pause menu keeps out of it
 }
 
 export interface PauseMenu {
@@ -51,7 +52,7 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
     },
   };
   const pause = (): void => {
-    if (!menuOpen()) screen.show(main);
+    if (!menuOpen() && !o.held?.()) screen.show(main);
   };
   addEventListener('keydown', (e) => e.code === 'Escape' && !e.repeat && pause());
   document.addEventListener('pointerlockchange', () => document.pointerLockElement === null && document.hasFocus() && pause());

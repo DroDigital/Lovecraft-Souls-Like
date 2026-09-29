@@ -43,6 +43,8 @@ export interface GameAudio {
   far(set: SampleSetId, gain?: number): void;
   /** A stinger heard without place, recorded if it can be (round 20: an Echo drawn into the investigator). */
   stinger(sound: StingerId, o?: { gain?: number; pitch?: number }): void;
+  /** A recording heard without place (round 20: a cutscene's laugh, its choir). */
+  sample(set: SampleSetId, o?: { gain?: number; pitch?: number }): void;
 }
 
 interface Caller {
@@ -178,6 +180,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     },
     stinger(sound, o = {}) {
       play({ sound, at: null, ...o });
+    },
+    sample(set, o = {}) {
+      recorded(set, null, 1, o);
     },
     cry(id, at, gain = 1) {
       const [v, set, pitch] = [VOICES[id], VOICE_SAMPLES[id], 0.94 + 0.12 * Math.random()];

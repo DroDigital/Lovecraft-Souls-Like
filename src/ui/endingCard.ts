@@ -5,7 +5,8 @@
  * (systems/tally.ts), with the choice: walk on in the world, or begin anew — asked first, then a new
  * game with its opening, as the title's New game, or a new journey carrying the investigator's
  * strength (NG+, systems/cycles.ts). Round 17: the title's theme sounds again under it, and its
- * words come out of the dark one after another.
+ * words come out of the dark one after another. Round 20: the ending's cutscene plays first
+ * (main.ts opens the card once it is done).
  */
 
 import { ENDINGS, type EndingId } from '../data/endings';
@@ -33,6 +34,8 @@ export const NEW_GAME_FLAG = 'lovecraft-souls-like/new-game';
 
 export interface EndingCard {
   readonly open: boolean;
+  /** Opens the card for an ending (main.ts: once its cutscene, render/cinema.ts, is over). */
+  show(id: string): void;
 }
 
 /** Leaves this dream for a new one: the reload finds the flag, forgets the save and plays the opening. */
@@ -86,7 +89,7 @@ export function createEndingCard(g: Game, store: SaveStore | null, theme?: () =>
     music?.fadeOut(4);
     music = undefined;
   };
-  g.events.on('Ending', ({ id }) => {
+  const show = (id: string): void => {
     const e = ENDINGS[id as EndingId];
     if (!e || !g.overworld) return;
     music ??= theme?.();
@@ -135,8 +138,9 @@ export function createEndingCard(g: Game, store: SaveStore | null, theme?: () =>
       },
     };
     screen.show(card);
-  });
+  };
   return {
+    show,
     get open() {
       return screen.open;
     },
