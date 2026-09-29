@@ -8,8 +8,11 @@
 
 import type { Entity } from '../../core/ecs';
 import type { V3 } from '../../core/geom';
+import { ATTACK_SOUNDS, soundOf, type AttackSound } from '../../data/creatureSounds';
 import { SAMPLE_SETS, type SampleSetId } from '../../data/samples';
+import type { AttackId } from '../../data/schema';
 import { WORLD } from '../../data/tuning';
+import type { MoveDef } from '../../data/moves';
 import { moveDef } from '../../systems/actions';
 import { isAbsent, type Game } from '../../systems/components';
 import { chunkContent } from '../../world/chunks';
@@ -42,6 +45,16 @@ export const strideAt = (speed: number): number => {
   const t = Math.min(1, Math.max(0, (speed - PACE[0]) / (PACE[1] - PACE[0])));
   return STRIDE[0] + (STRIDE[1] - STRIDE[0]) * t;
 };
+
+/** The frame a creature's attack lands, its bolt leaves or its roar begins: where its own sound is heard (round 20). */
+export const strikeFrame = (def: MoveDef): number | undefined => def.hit?.window[0] ?? def.volley?.frame ?? def.pool?.frame ?? def.marks?.frame ?? def.wave?.frame ?? def.sanity?.window[0];
+
+/** How the attack `move` of creature `rosterId` sounds as it lands: the creature's own, else the attack library's, else nothing beyond the whoosh. */
+export function attackSound(rosterId: string | undefined, move: string): AttackSound | undefined {
+  const base = ATTACK_SOUNDS[move as AttackId];
+  const own = rosterId ? soundOf(rosterId)?.attacks?.[move as AttackId] : undefined;
+  return own ? { gain: 0.8, ...base, set: own } : base;
+}
 
 /** Whether a move running `frame` (at `was` the frame before, or a new move) has just reached `at`. */
 export const reached = (at: number, frame: number, was: number | null): boolean => frame >= at && (was === null || was < at);
@@ -97,6 +110,16 @@ export function createFoley(g: Game, sampler: Sampler): Foley {
         if (a.move === 'drink' && reached(10, a.frame, prev)) play('cork');
       }
       if (!player && def.hit?.unblockable && prev === null) warn(transform.get(id)!.pos); // a grab: no guard will stop it
+      const strike = player ? undefined : strikeFrame(def);
+      if (strike !== undefined && reached(strike, a.frame, prev)) {
+        const sound = attackSound(g.ecs.c.dread.get(id)?.id, a.move); // its jaws, its claws, its lash, its spit (round 20)
+        const at = transform.get(id)?.pos;
+        if (sound && at) {
+          const { gain, pan } = place(at, SWING_RANGE);
+          const size = body.get(id)?.radius ?? 0.5;
+          if (gain > 0) play(sound.set, gain * sound.gain, pan, Math.max(0.55, Math.min(1.2, 1.25 - 0.25 * size)) * (sound.pitch ?? 1), dullness(gain));
+        }
+      }
       if (!def.hit || !reached(Math.max(0, def.hit.window[0] - SWING_LEAD), a.frame, prev)) continue;
       if (player) {
         const heavy = a.move.startsWith('heavy') || def.hit.poise >= 30;
