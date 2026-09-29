@@ -7,11 +7,12 @@
  * stays until the veil has covered it.
  */
 
-import { GAME_NAME, TITLE_LINES } from '../data/intro';
+import { TITLE_LINES } from '../data/intro';
 import { creditsPage } from './credits';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
 import { button, createScreen, el, heading, type Page } from './menuKit';
+import { wordmark } from './logo';
 import { controlsPage, settingsPage } from './menuPages';
 import type { SettingId, Settings } from './settings';
 
@@ -30,23 +31,26 @@ export interface TitleOptions {
 }
 
 export function showTitle(o: TitleOptions): void {
-  const screen = createScreen(5, '#000', 'left:50%;top:46%;transform:translate(-50%,-50%);width:min(460px,92vw);text-align:center');
+  const screen = createScreen(5, '#000', 'left:50%;top:47%;transform:translate(-50%,-50%);width:min(560px,94vw);text-align:center');
+  const logo = wordmark(); // the name cut in stone over its seventy treads (round 20), made once
   let begun = false;
   const begin = (fresh: boolean): void => {
     if (begun) return;
     begun = true;
     o.start(fresh, () => screen.close());
   };
-  const titleBlock = (p: HTMLElement): void => {
-    el(p, 'div', GAME_NAME.toUpperCase(), 'font-size:28px;letter-spacing:10px;margin-bottom:14px');
-    el(p, 'div', TITLE_LINES[0], 'opacity:.6;letter-spacing:2px;margin:0 auto 6px');
-    el(p, 'div', TITLE_LINES[1], 'opacity:.45;font-style:italic;margin:0 auto 30px;max-width:380px');
+  let first = true; // the lines under the name come up once the descent is done, the first time the menu is drawn
+  const titleBlock = (p: HTMLElement, rise = false): void => {
+    p.append(logo.canvas);
+    const lines = [el(p, 'div', TITLE_LINES[0], 'opacity:.6;letter-spacing:2px;margin:0 auto 6px'), el(p, 'div', TITLE_LINES[1], 'opacity:.45;font-style:italic;margin:0 auto 26px;max-width:380px')];
+    if (rise) lines.forEach((l, k) => l.animate([{ opacity: 0 }, { opacity: l.style.opacity }], { duration: 1600, delay: 4200 + 500 * k, fill: 'backwards', easing: 'ease-out' }));
   };
   let awake = false;
   const wake = (): void => {
     if (awake) return;
     awake = true;
     o.open();
+    logo.play(); // the light sets out down the seventy steps as the dark draws back
     removeEventListener('pointerdown', wake, true);
     setTimeout(() => screen.show(main), 350); // a beat, and the waking key or click is spent before the menu stands under it
   };
@@ -63,7 +67,8 @@ export function showTitle(o: TitleOptions): void {
   addEventListener('pointerdown', wake, true);
   const main: Page = {
     build(p) {
-      titleBlock(p);
+      titleBlock(p, first);
+      first = false;
       const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
       const lines = o.slots();
       if (lines[o.active - 1]) button(menu, 'Continue', () => begin(false));
