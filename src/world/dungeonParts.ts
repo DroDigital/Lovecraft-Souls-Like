@@ -202,12 +202,16 @@ function wallParts(d: DungeonLayout, out: Part[], pieces: HiddenPieceDef[]): voi
   }
 }
 
-/** A roofed room's ceiling, level with its walls' tops (round 13: every dungeon stood open to the sky). */
+/**
+ * A roofed room's ceiling, level with its walls' tops (round 13: every dungeon stood open to the sky).
+ * It reaches to the middle of the walls about it, no further (round 21: it reached their outer faces,
+ * so a cellar's dark ceiling lay in the plane of the wall of the room above it, beside it, and the
+ * two fought: flat wedges of stone over the bricks of the library).
+ */
 function ceiling(d: DungeonLayout, r: RoomLayout, out: Part[]): void {
   if (kitOfRoom(d, r).roof === 'open') return;
   const top = floorRange(r)[1] + DUNGEON.height;
-  const t = DUNGEON.wall / 2;
-  out.push(local(r, -r.half - t, r.half + t, -r.half - t, r.half + t, top - 0.05, top + 0.45, 'ceiling', true)); // solid: the lens stays under it
+  out.push(local(r, -r.half, r.half, -r.half, r.half, top - 0.05, top + 0.45, 'ceiling', true)); // solid: the lens stays under it
 }
 
 /** Metres of heaped earth and rock that stand out from a mound's outer walls (render/dungeonShell.ts): feet stop at them. */

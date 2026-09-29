@@ -15,7 +15,7 @@ import { landmarkPieces } from './landmarkShapes';
 import { box, tileUv, tint } from './meshKit';
 import { BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 
-export type PropMat = 'stone' | 'wood' | 'leaf' | 'clapboard' | 'brick' | 'shingle' | 'glow' | 'pane';
+export type PropMat = 'stone' | 'wood' | 'leaf' | 'clapboard' | 'brick' | 'shingle' | 'glow' | 'pane' | 'trim'; // 'trim': wood that stands off a wall (a house's frames, panes and door), drawn nearer than it is (round 21)
 export interface Piece {
   mat: PropMat;
   geo: THREE.BufferGeometry;
@@ -82,14 +82,21 @@ function pine(p: Prop, rng: Rng): Piece[] {
   return [{ mat: 'wood', geo: trunk }, { mat: 'leaf', geo: mergeGeometries(boughs) }];
 }
 
+/** A scatter in [0, 1) from where a point is (round 21: a sphere's seam and poles are several vertices at one place, and drawing a scatter for each tore the rock open along them). */
+const scatter = (x: number, y: number, z: number, salt: number): number => {
+  const v = Math.sin(Math.round(x * 1e4) * 12.9898 + Math.round(y * 1e4) * 78.233 + Math.round(z * 1e4) * 37.719 + salt * 4.1414) * 43758.5453;
+  return v - Math.floor(v);
+};
+
 function rock(p: Prop, rng: Rng, c: Rgb): Piece[] {
   const geo = new THREE.SphereGeometry(p.w, 8, 6);
   const pos = geo.getAttribute('position');
   const colors = new Float32Array(pos.count * 3);
+  const salt = rng() * 100;
   for (let i = 0; i < pos.count; i++) {
     const [x, y, z] = [pos.getX(i), pos.getY(i), pos.getZ(i)];
-    const k = 0.78 + 0.44 * rng();
-    pos.setXYZ(i, x * k, Math.max(-0.25 * p.w, y) * (p.h / p.w) * (0.85 + 0.3 * rng()), z * (0.78 + 0.44 * rng()));
+    const k = 0.78 + 0.44 * scatter(x, y, z, salt);
+    pos.setXYZ(i, x * k, Math.max(-0.25 * p.w, y) * (p.h / p.w) * (0.85 + 0.3 * scatter(x, y, z, salt + 1)), z * (0.78 + 0.44 * scatter(x, y, z, salt + 2)));
     const moss = Math.max(0, y / p.w) * 0.5; // lichen on the top
     colors.set(mixRgb(c, scaleRgb(mixRgb(BASE.seaGrey, BASE.charcoal, 0.3), 1.6), moss), i * 3);
   }
@@ -213,7 +220,7 @@ function stump(p: Prop): Piece[] {
 function altar(p: Prop, rng: Rng, c: Rgb): Piece[] {
   const slab = box(p.w * 2, 0.3, p.d * 2, 0, p.h - 0.15, 0, scaleRgb(c, 0.8));
   const legs = [-1, 1].map((s) => box(0.5, p.h - 0.3, p.d * 1.6, s * p.w * 0.6, (p.h - 0.3) / 2, 0, scaleRgb(c, 0.7)));
-  const stain = box(p.w * 1.2, 0.02, p.d * 1.2, (rng() - 0.5) * 0.3, p.h + 0.01, 0, scaleRgb(BASE.rust, 0.5));
+  const stain = box(p.w * 1.2, 0.07, p.d * 1.2, (rng() - 0.5) * 0.3, p.h + 0.035, 0, scaleRgb(BASE.rust, 0.5)); // a stained cloth laid on it: 7 cm, not the 2 that fought the slab's top
   return [{ mat: 'stone', geo: tileUv(mergeGeometries([slab, ...legs, stain]), 1, 1) }];
 }
 

@@ -23,6 +23,8 @@ export interface Pipeline {
   compile(scene: THREE.Scene, camera: THREE.Camera): Promise<void>;
   /** Compiles, then draws a frame (sending the GPU what the scene holds), so the next one shown comes at once. */
   warm(scene: THREE.Scene, camera: THREE.Camera): Promise<void>;
+  /** The last frame's low-res picture as the world drew it, before the post pass: RGBA bytes, rows from the bottom (the glitch hunts read it: round 21). */
+  grab(): { data: Uint8Array; width: number; height: number };
 }
 
 export function createPipeline(parent: HTMLElement): Pipeline {
@@ -72,6 +74,12 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     async warm(scene, camera) {
       await compile(scene, camera);
       render(scene, camera);
+    },
+    grab() {
+      const [width, height] = [target.width, target.height];
+      const data = new Uint8Array(width * height * 4);
+      renderer.readRenderTargetPixels(target, 0, 0, width, height, data);
+      return { data, width, height };
     },
     resize(lowRes, scale = 1) {
       const aspect = RENDER.width / RENDER.height;

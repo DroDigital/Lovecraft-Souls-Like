@@ -24,6 +24,7 @@ const BUDGET = 8; // prop weight per slice (a house weighs 4)
 const OPTIONS: Record<PropMat, WorldMaterialOptions> = {
   stone: { texture: 'stone', seed: 6, vertexColors: true, vary: 0.6 },
   wood: { texture: 'wood', seed: 6, uvScale: [0.5, 0.5], vertexColors: true, vary: 0.4 },
+  trim: { texture: 'wood', seed: 6, uvScale: [0.5, 0.5], vertexColors: true, vary: 0.4 },
   leaf: { texture: 'grass', seed: 9, vertexColors: true, vary: 0.4 },
   clapboard: { texture: 'clapboard', seed: 3, vertexColors: true, vary: 0.5 },
   brick: { texture: 'brick', seed: 3, vertexColors: true, vary: 0.5 },
@@ -32,9 +33,14 @@ const OPTIONS: Record<PropMat, WorldMaterialOptions> = {
   pane: { texture: 'cloth', emissive: 1, vertexColors: true, panes: true }, // lit windows (round 18)
 };
 const materials = new Map<PropMat, THREE.ShaderMaterial>();
+/** What stands 4 to 10 cm off a wall (frames, glass, doors) is drawn nearer than it is by a pixel's slope of depth: the PS1's snapping moves a face's depth by up to that on a wall seen aslant, and the wall showed through it (round 21). */
+const RELIEF: ReadonlySet<PropMat> = new Set(['trim', 'pane']);
 const material = (m: PropMat): THREE.ShaderMaterial => {
   let mat = materials.get(m);
-  if (!mat) materials.set(m, (mat = createWorldMaterial(OPTIONS[m])));
+  if (!mat) {
+    materials.set(m, (mat = createWorldMaterial(OPTIONS[m])));
+    if (RELIEF.has(m)) Object.assign(mat, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+  }
   return mat;
 };
 

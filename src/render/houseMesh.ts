@@ -19,8 +19,26 @@ const PANE: Rgb = scaleRgb(BASE.charcoal, 0.5);
 const LIT: Rgb = scaleRgb(mixRgb(BASE.bone, [1, 0.78, 0.45], 0.6), 0.85);
 const DOOR: Rgb = scaleRgb(mixRgb(BASE.rust, BASE.charcoal, 0.5), 1.4);
 
-/** A roof and its two gable ends from a profile across the depth: [z, y] points from eave to eave. */
-function roof(profile: readonly (readonly [number, number])[], w: number, over: number): { roof: THREE.BufferGeometry; gables: THREE.BufferGeometry } {
+/** The profile from `floor` up: a slope that starts below it starts where it crosses it. */
+function above(profile: readonly (readonly [number, number])[], floor: number): [number, number][] {
+  const out: [number, number][] = [];
+  const cross = (a: readonly [number, number], b: readonly [number, number]): [number, number] => [a[0] + ((b[0] - a[0]) * (floor - a[1])) / (b[1] - a[1]), floor];
+  profile.forEach((p, i) => {
+    if (p[1] < floor) return;
+    if (i > 0 && profile[i - 1][1] < floor) out.push(cross(profile[i - 1], p));
+    out.push([p[0], p[1]]);
+    if (i + 1 < profile.length && profile[i + 1][1] < floor) out.push(cross(p, profile[i + 1]));
+  });
+  return out;
+}
+
+/**
+ * A roof and its two gable ends from a profile across the depth: [z, y] points from eave to eave.
+ * Round 21: the roof is seen from below too (its eaves were open sky from beneath), and a gable
+ * begins where the wall ends, at `floor` (it began 20 cm under it, and lay in the wall's own plane
+ * over that band, the two fighting).
+ */
+function roof(profile: readonly (readonly [number, number])[], w: number, over: number, floor: number): { roof: THREE.BufferGeometry; gables: THREE.BufferGeometry } {
   const pos: number[] = [];
   const uv: number[] = [];
   const idx: number[] = [];
@@ -39,27 +57,35 @@ function roof(profile: readonly (readonly [number, number])[], w: number, over: 
   r.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   r.setIndex(idx);
   r.computeVertexNormals();
+  const under = r.clone();
+  const turned = under.getIndex()!;
+  for (let i = 0; i < turned.count; i += 3) {
+    const b = turned.getX(i + 1);
+    turned.setX(i + 1, turned.getX(i + 2));
+    turned.setX(i + 2, b);
+  }
+  under.computeVertexNormals();
   // Gables: a fan from the eave line's middle, at both ends.
+  const pts = above(profile, floor);
   const gp: number[] = [];
   const gu: number[] = [];
   const gi: number[] = [];
   for (const side of [-1, 1]) {
     const base = gp.length / 3;
-    const y0 = profile[0][1];
-    gp.push(side * w, y0, 0);
+    gp.push(side * w, floor, 0);
     gu.push(0.5, 0);
-    for (const [z, y] of profile) {
-      gp.push(side * w, y, z * 0.97);
-      gu.push(z / 4, (y - y0) / 2);
+    for (const [z, y] of pts) {
+      gp.push(side * w, y, z * 0.995); // a hair inside the roof's edge (0.97 left a sliver of open air along each slope)
+      gu.push(z / 4, (y - floor) / 2);
     }
-    for (let i = 1; i < profile.length; i++) side < 0 ? gi.push(base, base + i + 1, base + i) : gi.push(base, base + i, base + i + 1); // facing out
+    for (let i = 1; i < pts.length; i++) side < 0 ? gi.push(base, base + i + 1, base + i) : gi.push(base, base + i, base + i + 1); // facing out
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2));
   g.setIndex(gi);
   g.computeVertexNormals();
-  return { roof: r, gables: g };
+  return { roof: mergeGeometries([r, under]), gables: g };
 }
 
 /** A lit window's glass, where its light spills from (half a metre out from the wall), and the glass's middle, where its glow sits. */
@@ -156,7 +182,7 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
         : [[-wd - over, top - 0.2], [0, top + rh], [wd + over, top - 0.2]];
   const sag = style === 'hovel' ? 0.25 : 0;
   if (sag) profile[1][1] -= sag;
-  const { roof: roofGeo, gables } = roof(profile, wx, style === 'stone' ? 0 : over);
+  const { roof: roofGeo, gables } = roof(profile, wx, style === 'stone' ? 0 : over, top);
   const roofTint = style === 'stone' ? scaleRgb(c, 0.8) : scaleRgb(BASE.bone, 1.2);
 
   const chimneys: THREE.BufferGeometry[] = [];
@@ -174,7 +200,7 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
     { mat: wallMat, geo: mergeGeometries([walls, tint(tileUv(gables, 1, 1), wallTint)]) },
     { mat: 'stone', geo: mergeGeometries([footing, tileUv(step, 1, 1)]) },
     { mat: style === 'stone' ? 'stone' : 'shingle', geo: tint(roofGeo, roofTint) },
-    { mat: 'wood', geo: tileUv(mergeGeometries([...frames, ...panes, ...door]), 1, 1) },
+    { mat: 'trim', geo: tileUv(mergeGeometries([...frames, ...panes, ...door]), 1, 1) }, // relief on the walls, drawn nearer than they are (round 21)
   ];
   if (chimneys.length) pieces.push({ mat: 'brick', geo: mergeGeometries(chimneys) });
   for (const g of glows) pieces.push({ mat: 'pane', geo: g.geo, light: 'window', at: g.at, glass: g.glass, pane: g.pane });
