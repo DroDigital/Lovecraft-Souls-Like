@@ -76,4 +76,20 @@ describe('the earth heaped over mound dungeons (round 19: its banks crossed like
     expect(joined).toBeGreaterThan(10);
     expect(open).toBeGreaterThan(5); // the ways in
   });
+
+  it("a bank stops at a doorway out, or at another room's wall, its end buried in it, never on that wall's face (round 21)", () => {
+    let neighbour = 0;
+    for (const { d, walls } of mounds()) {
+      for (const p of walls) {
+        bankEnds(d.layout, d.parts, p).forEach((end, e) => {
+          const at = endPoint(p, e as 0 | 1);
+          if (end === 'neighbour') neighbour++;
+          if (end !== 'open') return;
+          const way = d.layout.doors.some((o) => o.b === null && Math.hypot(o.x - at[0], o.z - at[1]) < DUNGEON.door / 2 + DUNGEON.wall + 0.5);
+          expect(way, `${d.layout.def.id}: an open end at ${at.map((v) => v.toFixed(1))} is not at a way out`).toBe(true);
+        });
+      }
+    }
+    expect(neighbour).toBeGreaterThan(5);
+  });
 });

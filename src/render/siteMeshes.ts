@@ -16,9 +16,10 @@ import { DUNGEON } from '../data/tuning';
 import { kitOfRoom } from '../world/dungeonKit';
 import { propJob } from './propMeshes';
 import type { Part } from '../world/dungeonParts';
+import { drawn } from '../world/wallJoins';
 import { dungeonShell } from './dungeonShell';
 import type { ArenaPlace, Dungeon } from '../world/placements';
-import { box, tileUv, tint } from './meshKit';
+import { box, tileUv, tint, worldUv } from './meshKit';
 import { mixRgb, scaleRgb, type Rgb } from './palette';
 import type { LightSpot } from './worldLights';
 import { createWorldMaterial } from './worldMaterial';
@@ -28,38 +29,45 @@ const WOOD: Rgb = [0.75, 0.7, 0.62];
 const PER_STEP = 12;
 const SLAB = 0.3; // a floor slab's depth (world/dungeonParts.ts)
 
-type Kind = 'wall' | 'floor' | 'wood' | 'glow'; // a kit gives the first two their textures
+type Kind = 'wall' | 'floor' | 'wood' | 'glow' | 'trim' | 'beam'; // a kit gives the first two their textures; trim and beams are relief on a wall (round 21)
 type Built = { kind: Kind; geo: THREE.BufferGeometry; light?: LightSpot }; // a flame is a light too (worldLights.ts)
+/** What a piece is drawn with: a kit's texture, or (marked `+`) the same drawn a little nearer than it is, for relief that stands 6 to 15 cm off a wall's face. */
+export type Group = KitTexture | 'glow' | `${KitTexture}+`;
+type Origin = { x: number; z: number }; // where a dungeon's world-space UVs count from
 const FLAME: Rgb = [1, 0.78, 0.5];
 const IRON: Rgb = [0.3, 0.29, 0.3];
 const DARK_WOOD: Rgb = [0.42, 0.36, 0.3];
 const materials = new Map<string, THREE.ShaderMaterial>();
-const material = (texture: KitTexture | 'glow'): THREE.ShaderMaterial => {
-  let m = materials.get(texture);
+const material = (group: Group): THREE.ShaderMaterial => {
+  let m = materials.get(group);
   if (!m) {
+    const relief = group.endsWith('+');
+    const texture = (relief ? group.slice(0, -1) : group) as KitTexture | 'glow';
     const o = texture === 'glow' ? { texture: 'cloth' as const, emissive: 1 } : { texture, vary: 0.7, ...(texture === 'wood' && { uvScale: [0.5, 0.5] as const }) };
-    materials.set(texture, (m = createWorldMaterial({ seed: 8, vertexColors: true, ...o })));
+    m = createWorldMaterial({ seed: 8, vertexColors: true, ...o });
+    if (relief) Object.assign(m, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }); // nearer by a pixel's slope, however slanted the view: the PS1's snapping moves a face's depth by up to that, and the wall behind showed through it
+    materials.set(group, m);
   }
   return m;
 };
-/** The texture of each kind in this kit. */
-const textureOf = (k: Kind, kit: DungeonKit): KitTexture | 'glow' => (k === 'wall' ? kit.wall : k === 'floor' ? kit.floor : k);
+/** The group of each kind in this kit. */
+const textureOf = (k: Kind, kit: DungeonKit): Group => (k === 'wall' ? kit.wall : k === 'floor' ? kit.floor : k === 'trim' ? `${kit.wall}+` : k === 'beam' ? 'wood+' : k);
 
 /**
  * A wall's trim: a plinth and a cornice along it and pilasters every few metres (masonry), or a
  * skirting, a beam and posts of dark wood (timber), or none; on some of them an iron sconce with its
  * flame (the kit's share); and rubble at its foot.
  */
-function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
+function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit, at: Origin): Built[] {
   const [w, h, d] = [max.x - min.x, max.y - min.y, max.z - min.z];
   if (h < 2 || Math.max(w, d) < 2) return [];
   const alongX = w >= d;
   const [len, thick] = alongX ? [w, d] : [d, w];
   const [cx, cz] = [(min.x + max.x) / 2, (min.z + max.z) / 2];
-  const at = (t: number, across: number): [number, number] => (alongX ? [cx + t, cz + across] : [cx + across, cz + t]);
+  const along = (t: number, across: number): [number, number] => (alongX ? [cx + t, cz + across] : [cx + across, cz + t]);
   const slab = (l: number, t: number, hh: number, y: number, tt: number, a = 0, tone = 1): THREE.BufferGeometry => {
-    const [x, z] = at(tt, a);
-    return tileUv(box(alongX ? l : t, hh, alongX ? t : l, x, y, z, scaleRgb(c, tone)), l, hh);
+    const [x, z] = along(tt, a);
+    return worldUv(box(alongX ? l : t, hh, alongX ? t : l, x, y, z, scaleRgb(c, tone)), at);
   };
   const stone: THREE.BufferGeometry[] = [];
   const wood: THREE.BufferGeometry[] = [];
@@ -76,7 +84,7 @@ function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
     if (((k * 7919 + seed * 104729) % 1000) / 1000 >= kit.flames) continue;
     for (const side of [-1, 1]) { // a sconce on either face
       const a = side * (thick / 2 + 0.28);
-      const [x, z] = at(t, a);
+      const [x, z] = along(t, a);
       stone.push(tint(box(0.08, 0.3, 0.08, x, min.y + 2.1, z, IRON), IRON));
       glow.push({ kind: 'glow', geo: box(0.12, 0.18, 0.12, x, min.y + 2.35, z, FLAME), light: { x, y: min.y + 2.4, z, kind: 'torch' } });
     }
@@ -85,11 +93,11 @@ function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
     const r = 0.12 + ((seed * (k + 3)) % 7) * 0.03;
     const t = -len / 2 + ((seed * (k + 1) * 37) % 100) / 100 * len;
     const side = (seed + k) % 2 ? 1 : -1;
-    const [x, z] = at(t, side * (thick / 2 + 0.35 + r));
+    const [x, z] = along(t, side * (thick / 2 + 0.35 + r));
     stone.push(tint(new THREE.IcosahedronGeometry(r, 0).scale(1, 0.6, 1).translate(x, min.y + r * 0.4, z), scaleRgb(c, 0.75)));
   }
   for (const g of [...stone, ...wood]) if (!g.index) g.setIndex([...Array(g.getAttribute('position').count).keys()]);
-  return [...(stone.length ? [{ kind: 'wall' as const, geo: mergeGeometries(stone) }] : []), ...(wood.length ? [{ kind: 'wood' as const, geo: mergeGeometries(wood) }] : []), ...glow];
+  return [...(stone.length ? [{ kind: 'trim' as const, geo: mergeGeometries(stone) }] : []), ...(wood.length ? [{ kind: 'beam' as const, geo: mergeGeometries(wood) }] : []), ...glow];
 }
 
 /**
@@ -132,8 +140,9 @@ function inward(g: THREE.BufferGeometry): THREE.BufferGeometry {
 export function well(x: number, z: number, radius: number, top: number, c: Rgb): THREE.BufferGeometry[] {
   const rim = tint(tileUv(new THREE.CylinderGeometry(radius, radius, 0.9, 10, 1, true).translate(x, top - 0.45, z), Math.PI * 2 * radius, 0.9), c);
   const inner = tint(tileUv(inward(new THREE.CylinderGeometry(radius - 0.35, radius - 0.35, 0.6, 10, 1, true)).translate(x, top - 0.3, z), Math.PI * 2 * radius, 0.6), scaleRgb(c, 0.6));
-  const lip = tint(new THREE.RingGeometry(radius - 0.35, radius, 10).rotateX(-Math.PI / 2).translate(x, top, z), c);
-  const shaft = tint(new THREE.CircleGeometry(radius - 0.35, 10).rotateX(-Math.PI / 2).translate(x, top - 0.6, z), scaleRgb(c, 0.08));
+  const turn = Math.PI / 10; // a ring's ten corners start a half step from a cylinder's (round 21: the lip stood off the walls it joins, in ten slivers of open air about the well)
+  const lip = tint(new THREE.RingGeometry(radius - 0.35, radius, 10).rotateZ(turn).rotateX(-Math.PI / 2).translate(x, top, z), c);
+  const shaft = tint(new THREE.CircleGeometry(radius - 0.35, 10).rotateZ(turn).rotateX(-Math.PI / 2).translate(x, top - 0.6, z), scaleRgb(c, 0.08));
   return [rim, inner, lip, shaft];
 }
 
@@ -141,7 +150,7 @@ export function well(x: number, z: number, radius: number, top: number, c: Rgb):
  * A ruin's wall (round 13: the roofless dungeons stood whole to the brim): in lengths of two to four
  * metres, each broken off at its own height, the lowest a little over a man's head.
  */
-function ruin(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
+function ruin(min: V3, max: V3, c: Rgb, kit: DungeonKit, at: Origin): Built[] {
   const [w, h, d] = [max.x - min.x, max.y - min.y, max.z - min.z];
   const alongX = w >= d;
   const len = alongX ? w : d;
@@ -153,13 +162,13 @@ function ruin(min: V3, max: V3, c: Rgb, kit: DungeonKit): Built[] {
     const drop = (((seed + k * 7919) % 100) / 100) * Math.min(h - 2.6, 3.2);
     const hh = h - drop;
     const [cx, cz] = alongX ? [min.x + t + l / 2, (min.z + max.z) / 2] : [(min.x + max.x) / 2, min.z + t + l / 2];
-    pieces.push(tileUv(box(alongX ? l : w, hh, alongX ? d : l, cx, min.y + hh / 2, cz, c, 1), l, hh));
+    pieces.push(worldUv(box(alongX ? l : w, hh, alongX ? d : l, cx, min.y + hh / 2, cz, c, 1), at));
     t += l;
   }
-  return [{ kind: 'wall', geo: mergeGeometries(pieces) }, ...wallDetail(min, { ...max, y: min.y + Math.min(h, 3.4) }, c, { ...kit, trim: 'none' })];
+  return [{ kind: 'wall', geo: mergeGeometries(pieces) }, ...wallDetail(min, { ...max, y: min.y + Math.min(h, 3.4) }, c, { ...kit, trim: 'none' }, at)];
 }
 
-function partGeometry(p: Part, c: Rgb, kit: DungeonKit): Built[] {
+function partGeometry(p: Part, c: Rgb, kit: DungeonKit, at: Origin): Built[] {
   if (p.shape === 'cyl') {
     if (p.look === 'rim') return well(p.x, p.z, p.radius, p.y1, c).map((geo) => ({ kind: 'wall', geo }));
     const h = p.y1 - p.y0;
@@ -175,44 +184,53 @@ function partGeometry(p: Part, c: Rgb, kit: DungeonKit): Built[] {
       return [{ kind: 'wall', geo: pit(p.min, p.max, c) }];
     case 'floor':
     case 'step':
-      return [{ kind: 'floor', geo: tileUv(box(w, h, d, x, y, z, scaleRgb(c, 0.9), 1), w, d) }];
+      return [{ kind: 'floor', geo: worldUv(box(w, h, d, x, y, z, scaleRgb(c, 0.9), 1), at) }];
     case 'deck':
-      return [{ kind: 'wood', geo: box(w, h, d, x, y, z, WOOD, 1) }];
+      return [{ kind: 'beam', geo: worldUv(box(w, h, d, x, y, z, WOOD, 1), at, 4) }]; // laid on the stone: relief, drawn nearer than what it rests on
     case 'none':
       return [];
     case 'ceiling':
-      return [{ kind: kit.roof === 'beams' ? 'wood' : 'wall', geo: tileUv(box(w, h, d, x, y, z, scaleRgb(c, 0.6), 2), w, d) }];
+      return [{ kind: kit.roof === 'beams' ? 'wood' : 'wall', geo: worldUv(box(w, h, d, x, y, z, scaleRgb(c, 0.6), 2), at, kit.roof === 'beams' ? 4 : 2) }];
     case 'wall':
-      if (kit.roof === 'open' && h > 3) return ruin(p.min, p.max, c, kit);
-      return [{ kind: 'wall', geo: tileUv(box(w, h, d, x, y, z, c, 1), Math.max(w, d), h) }, ...wallDetail(p.min, p.max, c, kit)];
+      if (kit.roof === 'open' && h > 3) return ruin(p.min, p.max, c, kit, at);
+      return [{ kind: 'wall', geo: worldUv(box(w, h, d, x, y, z, c, 1), at) }, ...wallDetail(p.min, p.max, c, kit, at)];
     default:
-      return [{ kind: 'wall', geo: tileUv(box(w, h, d, x, y, z, c, 1), Math.max(w, d), h) }];
+      return [{ kind: 'wall', geo: worldUv(box(w, h, d, x, y, z, c, 1), at) }];
   }
 }
 
 /** Merges geometry by material into meshes. */
-function meshes(groups: Map<KitTexture | 'glow', THREE.BufferGeometry[]>): THREE.Mesh[] {
+function meshes(groups: Map<Group, THREE.BufferGeometry[]>): THREE.Mesh[] {
   const merge = (g: THREE.BufferGeometry[]): THREE.BufferGeometry => mergeGeometries(g.some((x) => !x.index) ? g.map((x) => (x.index ? x.toNonIndexed() : x)) : g); // the shell's pieces carry no index
   return [...groups].filter(([, g]) => g.length).map(([t, g]) => new THREE.Mesh(merge(g), material(t)));
 }
 
-/** Builds a legacy dungeon; `done` receives its meshes and its sconces' flames as lights. */
-export function* dungeonJob(d: Dungeon, done: (meshes: THREE.Mesh[], lights: LightSpot[]) => void): Generator<void, void> {
+/** A dungeon's geometry by texture (no materials: the tests read it too), its sconces' flames pushed on `lights`; sliced, yielding between parts. */
+export function* dungeonPieces(d: Dungeon, lights: LightSpot[]): Generator<void, Map<Group, THREE.BufferGeometry[]>> {
   const ground = getRegion(d.layout.region)?.biome.tint ?? STONE;
   const colour = (kit: DungeonKit): Rgb => mixRgb(STONE, kit.tone ?? ground, kit.mix);
-  const groups = new Map<KitTexture | 'glow', THREE.BufferGeometry[]>();
-  const add = (t: KitTexture | 'glow', geo: THREE.BufferGeometry): void => void (groups.get(t)?.push(geo) ?? groups.set(t, [geo]));
-  const lights: LightSpot[] = [];
-  for (let k = 0; k < d.parts.length; k++) {
-    const kit = kitOfRoom(d.layout, d.layout.rooms[d.parts[k].room]); // each room its own kit (round 13)
-    for (const { kind, geo, light } of partGeometry(d.parts[k], colour(kit), kit)) {
+  const groups = new Map<Group, THREE.BufferGeometry[]>();
+  const add = (t: Group, geo: THREE.BufferGeometry): void => void (groups.get(t)?.push(geo) ?? groups.set(t, [geo]));
+  const at: Origin = { x: Math.round(d.layout.origin.x / 2) * 2, z: Math.round(d.layout.origin.z / 2) * 2 }; // on the texture's grid, so the bricks keep their places
+  const seen = drawn(d.layout, d.parts); // walls cut back where two kits meet (round 21: world/wallJoins.ts)
+  for (let k = 0; k < seen.length; k++) {
+    const { part, index } = seen[k];
+    const kit = kitOfRoom(d.layout, d.layout.rooms[part.room]); // each room its own kit (round 13)
+    for (const { kind, geo, light } of partGeometry(part, colour(kit), kit, at)) {
+      geo.userData.part = index; // which of the dungeon's parts it is (the depth audit names its finds by it)
       add(textureOf(kind, kit), geo);
       if (light) lights.push(light);
     }
     if (k % PER_STEP === PER_STEP - 1) yield;
   }
   for (const s of dungeonShell(d.layout, d.parts, colour)) add(s.texture, s.geo);
-  const built = meshes(groups);
+  return groups;
+}
+
+/** Builds a legacy dungeon; `done` receives its meshes and its sconces' flames as lights. */
+export function* dungeonJob(d: Dungeon, done: (meshes: THREE.Mesh[], lights: LightSpot[]) => void): Generator<void, void> {
+  const lights: LightSpot[] = [];
+  const built = meshes(yield* dungeonPieces(d, lights));
   const region = getRegion(d.layout.region);
   if (d.decor.length && region) yield* propJob(d.decor, region, (m, l) => void (built.push(...m), lights.push(...l))); // the boss room's heart and braziers (round 13)
   done(built, lights);

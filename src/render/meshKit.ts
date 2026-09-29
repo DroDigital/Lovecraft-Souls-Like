@@ -10,6 +10,25 @@ export function tileUv(geo: THREE.BufferGeometry, width: number, height: number,
   return geo;
 }
 
+/**
+ * UVs by where a face is in the world (round 21): the texture repeats every `metres` metres along
+ * whichever plane the face lies most in, counted from `origin`. Two pieces that meet or overlap then
+ * show the same bricks where they do (each piece's own UVs began afresh at its corner, so the bricks
+ * of a pilaster, a lintel and the wall beside them ran out of step, and a box's ends were stretched
+ * over its whole length). `origin` keeps the numbers small, for the affine mapping's precision.
+ */
+export function worldUv(geo: THREE.BufferGeometry, origin: { x: number; z: number }, metres = 2): THREE.BufferGeometry {
+  const [pos, normal, uv] = [geo.getAttribute('position'), geo.getAttribute('normal'), geo.getAttribute('uv')];
+  for (let i = 0; i < uv.count; i++) {
+    const [nx, ny, nz] = [Math.abs(normal.getX(i)), Math.abs(normal.getY(i)), Math.abs(normal.getZ(i))];
+    const [x, y, z] = [(pos.getX(i) - origin.x) / metres, pos.getY(i) / metres, (pos.getZ(i) - origin.z) / metres];
+    if (ny >= nx && ny >= nz) uv.setXY(i, x, z);
+    else if (nx >= nz) uv.setXY(i, z, y);
+    else uv.setXY(i, x, y);
+  }
+  return geo;
+}
+
 /** Paints every vertex one colour (multiplied into the texture by world materials with vertexColors). */
 export function tint(geo: THREE.BufferGeometry, c: Rgb): THREE.BufferGeometry {
   const n = geo.getAttribute('position').count;

@@ -70,6 +70,7 @@ export function createTexture(kind: TextureKind, seed: number): THREE.DataTextur
   const cached = textures.get(key);
   if (cached) return cached;
   const tex = new THREE.DataTexture(generateTexture(kind, seed), TEXTURE_SIZE, TEXTURE_SIZE);
+  tex.name = key; // the glitch hunts name what they find by it
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestMipmapNearestFilter;
   tex.wrapS = THREE.RepeatWrapping;

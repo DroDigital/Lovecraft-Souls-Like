@@ -7,16 +7,18 @@
  */
 
 import { DUNGEON } from '../data/tuning';
-import { roomAt, type DungeonLayout } from './dungeonKit';
+import { roomAt, type DungeonLayout, type RoomLayout } from './dungeonKit';
 import type { BoxPart, Part } from './dungeonParts';
 import { DIRS } from './worldMap';
 
 /**
  * 'corner': the dungeon ends past it (the bank sweeps round the corner); 'joined': the next outer
  * wall runs on in line (the two banks meet at the cells' edge, half a wall short of its end);
- * 'open': a doorway or another room's wall (the bank stops there, its end closed).
+ * 'neighbour': another room's wall stands there (the bank stops at its middle, its end closed and
+ * buried in it: round 21, it ended on that wall's face, in the plane of it, and the two fought);
+ * 'open': a doorway or a room on the diagonal (the bank stops there, its end closed).
  */
-export type BankEnd = 'corner' | 'joined' | 'open';
+export type BankEnd = 'corner' | 'joined' | 'neighbour' | 'open';
 
 /** The outer wall's outside face, on its axis across the wall. */
 export function outerFace(p: BoxPart): number {
@@ -41,7 +43,9 @@ export function bankEnds(d: DungeonLayout, parts: readonly Part[], p: BoxPart): 
     const past = a + dir;
     if (empty(past, inside)) return empty(past, out) ? 'corner' : 'open'; // a room on the diagonal: the bank stops short of it
     const probe = a + dir * 0.5 * DUNGEON.wall;
-    return line.some((q) => (alongX ? q.min.x < probe && probe < q.max.x : q.min.z < probe && probe < q.max.z)) ? 'joined' : 'open';
+    if (line.some((q) => (alongX ? q.min.x < probe && probe < q.max.x : q.min.z < probe && probe < q.max.z))) return 'joined';
+    const at = (across: number): RoomLayout | undefined => roomAt(d, alongX ? past : across, alongX ? across : past);
+    return at(out) || at(inside) !== d.rooms[p.room] ? 'neighbour' : 'open'; // another room past the end (outside it or in line), or else a doorway out
   };
   return alongX ? [end(p.min.x, -1), end(p.max.x, 1)] : [end(p.min.z, -1), end(p.max.z, 1)];
 }
