@@ -82,6 +82,14 @@ describe('cues', () => {
     expect(hit('hit', true)).toBeNull();
   });
 
+  it('the revolver’s bang is the investigator’s alone: a creature’s beam sounds as itself (round 20: a Mi-Go fired like a gun)', () => {
+    const from = { x: 1, y: 1, z: 2 };
+    const shot = (shooter: number) => cueFor(g, 'Shot', { shooter, from, to: { x: 5, y: 1, z: 2 }, target: null });
+    expect(shot(player)).toEqual({ sound: 'shot', at: from });
+    expect(shot(dummy)).toEqual({ sound: 'beam', at: from });
+    expect(STINGERS.beam).not.toEqual(STINGERS.shot);
+  });
+
   it('the mind sounds inside the head; a band change says which way it went', () => {
     expect(cueFor(g, 'SanityBandChanged', { from: 'lucid', to: 'uneasy', sanity: 69 })).toEqual({ sound: 'worse', at: null });
     expect(cueFor(g, 'SanityBandChanged', { from: 'fractured', to: 'uneasy', sanity: 44 })?.sound).toBe('better');

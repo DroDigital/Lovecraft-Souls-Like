@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { hash2 } from '../core/rng';
 import { ELDER_SIGN_SIZE } from '../world/arena';
-import { PLINTH, SHRINE } from '../world/shrine';
+import { ALL_STONES, PLINTH, SHRINE } from '../world/shrine';
 import { box, tileUv, tint } from './meshKit';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 
@@ -112,11 +112,18 @@ export interface ShrineGeometry {
   flames: THREE.BufferGeometry;
 }
 
-let shrine: ShrineGeometry | null = null;
+/** The shrine's pieces, each built once: the merged stone is put together per set of lesser stones. */
+interface ShrineParts extends Omit<ShrineGeometry, 'stone'> {
+  steps: THREE.BufferGeometry[];
+  standing: THREE.BufferGeometry;
+  lesser: THREE.BufferGeometry[];
+}
 
-/** The shrine's geometry, built once and shared by every Elder Sign. */
-export function shrineGeometry(): ShrineGeometry {
-  if (shrine) return shrine;
+let parts: ShrineParts | null = null;
+const stones = new Map<string, THREE.BufferGeometry>();
+
+function shrineParts(): ShrineParts {
+  if (parts) return parts;
   const { base, top, height, depth } = SHRINE.stone;
   let y = 0;
   const steps = SHRINE.steps.map(([w, h, d], i) => {
@@ -127,15 +134,28 @@ export function shrineGeometry(): ShrineGeometry {
   const lesser = SHRINE.lesser.map(([a, dist, r, h, lean], i) =>
     standingStone(r * 2, r * 1.3, h + 0.2, r * 1.5, -0.2, scaleRgb(ROCK, 0.72), 40 + i).rotateZ(lean).rotateY(a * 2.3).translate(Math.sin(a) * dist, 0, Math.cos(a) * dist));
   const face = depth / 2 + 0.025;
-  shrine = {
-    stone: mergeGeometries([...steps, standingStone(base, top, height, depth, PLINTH, ROCK, 7), ...lesser]),
+  return (parts = {
+    steps,
+    standing: standingStone(base, top, height, depth, PLINTH, ROCK, 7),
+    lesser,
     glyph: mergeGeometries([carved(1, PLINTH + GLYPH_FOOT, face), carved(-1, PLINTH + GLYPH_FOOT, face)]),
     glow: glowRibbons(PLINTH + GLYPH_FOOT, depth / 2 + 0.07), // just before the strokes
     runes: runeRing(),
     wax: mergeGeometries(CANDLES.map(([x, z, h]) => tint(new THREE.CylinderGeometry(0.03, 0.036, h, 6).translate(x, PLINTH + h / 2, z), WAX))),
     flames: mergeGeometries(CANDLES.map(([x, z, h]) => tint(new THREE.OctahedronGeometry(0.035, 0).scale(0.8, 1.6, 0.8).translate(x, PLINTH + h + 0.05, z), FLAME))),
-  };
-  return shrine;
+  });
+}
+
+/**
+ * The shrine's geometry, shared by every Elder Sign that raises the same lesser stones (`raised`,
+ * sign.stones: round 20, a ring the room cannot hold is broken where the walls are).
+ */
+export function shrineGeometry(raised: readonly number[] = ALL_STONES): ShrineGeometry {
+  const p = shrineParts();
+  const key = raised.join(',');
+  let stone = stones.get(key);
+  if (!stone) stones.set(key, (stone = mergeGeometries([...p.steps, p.standing, ...raised.map((i) => p.lesser[i])])));
+  return { stone, glyph: p.glyph, glow: p.glow, runes: p.runes, wax: p.wax, flames: p.flames };
 }
 
 /** The arena's Elder Sign (no plinth): a standing stone and the sign carved on one face (`side` 1: +z). */

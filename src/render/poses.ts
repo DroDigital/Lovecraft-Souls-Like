@@ -145,20 +145,33 @@ function slump(f: Figure, frame: number): void {
   f.elbowR.rotation.x = f.elbowL.rotation.x = -0.4 * t;
 }
 
-/** Resting at an Elder Sign: down on the right knee before the stone, head bowed, forearms on the raised knee (round 15). */
+/** Eases a joint toward a rotation by `t` (1: all the way there; 0: it stays as the walk left it). */
+function toward(j: Figure['legR'], t: number, x: number, y = 0, z = 0): void {
+  j.rotation.x += (x - j.rotation.x) * t;
+  j.rotation.y += (y - j.rotation.y) * t;
+  j.rotation.z += (z - j.rotation.z) * t;
+}
+
+/**
+ * Resting at an Elder Sign: down on the right knee before the stone, head bowed, forearms on the raised
+ * knee (round 15). The limbs ease toward the pose from whatever the stride left them at (round 19's
+ * last fault: they were set outright, and as the kneel eased out but never quite reached nothing, they
+ * stayed set to almost nothing, so the legs and arms never swung again until the game was restarted).
+ */
 function kneel(f: Figure, k: number): void {
   const t = ease(k);
   f.body.position.y -= 0.4 * t;
   f.body.rotation.x += 0.18 * t;
   f.torso.rotation.x += 0.12 * t;
   f.head.rotation.x += 0.45 * t; // bowed
-  f.legL.rotation.x = -1.3 * t; // the front leg: thigh forward, shin straight down
-  f.kneeL.rotation.x = 1.35 * t;
-  f.legR.rotation.x = 0.2 * t; // the back leg: its knee to the ground
-  f.kneeR.rotation.x = 1.55 * t;
-  f.armR.rotation.set(-0.5 * t, 0, -0.1 * t, 'YXZ');
-  f.armL.rotation.set(-0.6 * t, 0, 0.14 * t, 'YXZ');
-  f.elbowR.rotation.x = f.elbowL.rotation.x = -0.75 * t;
+  toward(f.legL, t, -1.3); // the front leg: thigh forward, shin straight down
+  toward(f.kneeL, t, 1.35);
+  toward(f.legR, t, 0.2); // the back leg: its knee to the ground
+  toward(f.kneeR, t, 1.55);
+  toward(f.armR, t, -0.5, 0, -0.1);
+  toward(f.armL, t, -0.6, 0, 0.14);
+  toward(f.elbowR, t, -0.75);
+  toward(f.elbowL, t, -0.75);
 }
 
 function fall(f: Figure, frame: number): void {

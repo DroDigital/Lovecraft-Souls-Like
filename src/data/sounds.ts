@@ -58,6 +58,7 @@ export const STINGERS = {
   kill: [tone('sine', 75, 1, 0.6, { to: 24 }), noise('lowpass', 400, 0.8, 0.4, { to: 60 }), tone('sawtooth', 110, 1.2, 0.08, { to: 55, at: 0.1, filter: lp(500) })],
   dodged: [noise('bandpass', 500, 0.26, 0.55, { to: 1800, q: 1.2 })],
   shot: [noise('highpass', 1500, 0.06, 0.8), noise('lowpass', 900, 0.45, 0.6, { to: 120 }), tone('sine', 100, 0.3, 0.55, { to: 32 }), noise('bandpass', 2400, 0.9, 0.05, { at: 0.08, q: 0.7 })],
+  beam: [tone('sawtooth', 1900, 0.5, 0.12, { to: 230, vibrato: [42, 120], filter: { type: 'bandpass', hz: 2600, to: 500, q: 4 } }), noise('bandpass', 4200, 0.45, 0.22, { to: 700, q: 3, attack: 0.02 }), tone('sine', 95, 0.6, 0.3, { to: 52, attack: 0.05 }), noise('highpass', 6500, 0.07, 0.28)], // a creature's beam (round 20: it was the revolver's shot)
   lock: [tone('square', 1760, 0.04, 0.04, { filter: { type: 'bandpass', hz: 2000 } })],
   death: [...chord('sawtooth', [55, 58.27, 82.41, 87.31], 3.5, 0.3, { attack: 0.05, filter: lp(900, 120) }), tone('sine', 41, 4, 0.4, { to: 30 }), noise('lowpass', 300, 2.5, 0.2)],
   rise: [noise('lowpass', 300, 2, 0.2, { to: 1200, attack: 1.2 }), tone('sine', 55, 2.2, 0.25, { to: 110, attack: 1 })],

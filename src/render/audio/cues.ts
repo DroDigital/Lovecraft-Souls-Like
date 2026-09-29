@@ -40,7 +40,7 @@ type Handlers = { [K in keyof GameEvents]?: (e: GameEvents[K], g: Game) => Cue |
 
 export const CUES: Handlers = {
   Hit: (e, g) => (e.lingering ? null : { sound: HIT[e.outcome], at: at(g, e.target), gain: e.attacker === g.player.id || e.target === g.player.id ? 1 : 0.6 }),
-  Shot: (e) => ({ sound: 'shot', at: { ...e.from } }),
+  Shot: (e, g) => ({ sound: e.shooter === g.player.id ? 'shot' : 'beam', at: { ...e.from } }), // the revolver's bang is the investigator's alone (round 20: a Mi-Go's beam went off like it)
   Died: (e, g) => (e.entity === g.player.id ? inside('death') : null),
   Respawned: (e, g) => (e.entity === g.player.id ? inside('rise') : null),
   Echoes: (e) => (e.change === 'recovered' ? inside('echoes') : null),

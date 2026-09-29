@@ -42,6 +42,7 @@ export const THEME = {
   sink: 7, // spawning in, it sinks away over this long: an equal-power fade...
   sinkTo: 280, // ...under a low-pass closing to this (Hz), as the world's ambience rises beneath it (AUDIO.fade)
   wait: 4, // the title opens by itself after this long if the theme has neither sounded nor been refused (a slow line)
+  wake: 0.35, // seconds it gives WebAudio to start running once the theme may play, before it counts as refused (round 20)
   leap: [1.1, 3.2] as const, // looping, it leaps from this long before the end, where the ending has decayed to about −20 dB, back to here, where the lead-in has swelled to the same...
   hit: 3.85, // ...a moment before the first hit (playtest round 9)
 };
