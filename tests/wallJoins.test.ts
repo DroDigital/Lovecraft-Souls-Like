@@ -13,10 +13,16 @@ describe('where walls of two kits meet (round 21: a timber parlour and a brick c
     expect(cut.max.x).toBeCloseTo(318);
   });
 
-  it("one that crosses another ends at that wall's middle, not on its far face", () => {
-    const cut = cutBack(wall(279.5, 296.5, 735.5, 736.5), wall(295.5, 296.5, 729.6, 736.5));
+  it("one that meets a wall passing through it ends at that wall's middle, not on its far face", () => {
+    const cut = cutBack(wall(279.5, 296.5, 735.5, 736.5), wall(295.5, 296.5, 729.6, 740));
     expect(cut.max.x).toBeCloseTo(296);
     expect(cut.min.x).toBeCloseTo(279.5);
+  });
+
+  it("one that meets a wall ending flush with its face is cut back to that wall's face, or their end and its face lie in one plane", () => {
+    const cut = cutBack(wall(295.5, 312.5, 703.5, 704.5, 8, 18), wall(311.5, 312.5, 697.6, 704.5, 8, 18));
+    expect(cut.max.x).toBeCloseTo(311.5);
+    expect(cut.min.x).toBeCloseTo(295.5);
   });
 
   it('a wall taller than the other, or meeting it in the middle, or not at all, is left as it is', () => {

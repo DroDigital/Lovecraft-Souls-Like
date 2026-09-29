@@ -5,7 +5,7 @@
  * brick cellar, a farmhouse and its mine tunnel) two walls lay one over the other in one plane, or an
  * end came out on another wall's far face, and the boards and the bricks fought for the corner. The
  * wall that lies within the other's height is cut back where its end runs into it (whole when they run
- * alike, to the other's middle when they cross), so that no face of one lies in the plane of a face of
+ * alike or the other ends flush with its face, to the other's middle when it passes through), so that no face of one lies in the plane of a face of
  * the other. What stands (colliders, banks, doorways) is unchanged: only what is drawn. Pure: no
  * Three.js.
  */
@@ -30,7 +30,9 @@ export function cutBack(q: BoxPart, p: BoxPart): BoxPart {
   if (oa[0] > q.min[across] + EPS || oa[1] < q.max[across] - EPS) return q; // it is not `q`'s whole thickness that lies in `p`
   const [atLow, atHigh] = [o[0] <= q.min[along] + EPS, o[1] >= q.max[along] - EPS];
   if (atLow === atHigh) return q; // in the middle of `q`, or all of it: no end
-  const cut = long(p) === along ? o[1] - o[0] : (o[1] - o[0]) / 2; // in line: the whole stub; across: to `p`'s middle
+  // in line, or across with `p`'s end flush with `q`'s face (their end and that face would lie in one plane): the whole stub; across, passing through: to `p`'s middle
+  const flush = p.max[across] <= q.max[across] + EPS || p.min[across] >= q.min[across] - EPS;
+  const cut = long(p) === along || flush ? o[1] - o[0] : (o[1] - o[0]) / 2;
   const out: BoxPart = { ...q, min: { ...q.min }, max: { ...q.max } };
   if (atLow) out.min[along] += cut;
   else out.max[along] -= cut;
