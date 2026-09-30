@@ -1,7 +1,7 @@
 /** The single fullscreen post pass: material, fullscreen triangle, per-frame uniform update. Round 16: it reads the scene's depth for the volumetric fog (shaders/fog.ts, volumetricFog.ts). */
 
 import * as THREE from 'three';
-import { FOG, FX, GRADE } from '../data/tuning';
+import { FOG, FX, GRADE, LIGHT } from '../data/tuning';
 import type { FxParams } from './fx';
 import { ANOMALY_HUES, buildPalette, COLD_TINT, WARM_TINT } from './palette';
 import { POST_FRAG, POST_VERT } from './shaders/post';
@@ -16,10 +16,14 @@ function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, pale
     uCamWorld: { value: new THREE.Matrix4() },
     uCamPos: { value: new THREE.Vector3() },
     uFog: { value: new THREE.Vector4(0, 1, 0, 0) }, // none until a frame sets it (volumetricFog.ts)
+    uFogAir: { value: new THREE.Vector4(0, 1, 0, 0) },
+    uMoonDir: { value: new THREE.Vector3(...LIGHT.nightMoonDir).normalize() }, // the sky's moon (sky.ts)
     uFogColor: { value: new THREE.Vector3() },
     uFogDrift: { value: new THREE.Vector3() },
     uFogFar: { value: FOG.far },
     uFogGlow: { value: FOG.glow },
+    uFogLantern: { value: FOG.lantern },
+    uFogStart: { value: new THREE.Vector2(FOG.start, FOG.full) },
     uLanternPos: w.uLanternPos,
     uLanternColor: w.uLanternColor,
     uLanternRange: w.uLanternRange,
@@ -40,9 +44,8 @@ function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, pale
     uWarm: { value: new THREE.Vector3(...WARM_TINT) },
     uSplit: { value: new THREE.Vector2(...GRADE.split) },
     uHurt: { value: new THREE.Vector4(0, 0, 0, 0) },
-    uTunnel: { value: 0 }, // a failing mind: the edges of sight close in and blur, and eyes open there (round 22)
-    uBlur: { value: 0 },
-    uWatch: { value: 0 },
+    uFaint: { value: new THREE.Vector2(0, 0) }, // near death (hurtFx.ts; round 23)
+    uBlur: { value: 0 }, // a failing mind: the edges of sight lose their focus (round 22)
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
     uQuantize: { value: 0 },
     uDither: { value: 0 },
@@ -89,7 +92,5 @@ export function updatePostUniforms(post: PostPass, fx: FxParams, time: number, r
   u.uAnomalyStress.value = fx.anomalyStress;
   u.uQuantize.value = fx.quantize ? 1 : 0;
   u.uDither.value = fx.ditherSpread;
-  u.uTunnel.value = fx.tunnel;
   u.uBlur.value = fx.blur;
-  u.uWatch.value = fx.watch;
 }

@@ -7,6 +7,8 @@
  * beneath; the recipes still play wherever a recording has not loaded.
  */
 
+import { HURT } from './tuning';
+
 export type Wave = 'sine' | 'triangle' | 'square' | 'sawtooth';
 export type FilterType = 'lowpass' | 'highpass' | 'bandpass';
 
@@ -101,7 +103,15 @@ export const STINGERS = {
   travel: [noise('bandpass', 200, 1.6, 0.25, { to: 3000, q: 1.5, attack: 0.8 }), tone('sine', 110, 1.6, 0.15, { to: 440, attack: 0.8 })],
   boss: [...chord('sawtooth', [36.7, 55, 58.3, 77.8], 3.2, 0.5, { attack: 0.5, filter: lp(300, 1400) }), tone('sine', 50, 0.5, 0.7, { to: 30 }), noise('lowpass', 200, 0.6, 0.4)],
   phase: [tone('sine', 60, 1.6, 0.6, { to: 22 }), ...chord('sawtooth', [110, 116.5], 1.6, 0.18, { filter: lp(800, 200) })],
-  heartbeat: [tone('sine', 62, 0.16, 0.55, { to: 40, attack: 0.004 }), tone('sine', 55, 0.2, 0.45, { to: 36, at: 0.26, attack: 0.004 }), noise('lowpass', 140, 0.12, 0.12)], // near death (round 14)
+  // Near death (round 14): a stroke and a softer one after it (HURT.dub). Round 23: a knock and a click on the low body of each, for the small speakers that cannot play 60 Hz.
+  heartbeat: [
+    tone('sine', 62, 0.18, 0.5, { to: 40, attack: 0.004 }),
+    tone('triangle', 150, 0.09, 0.22, { to: 70, attack: 0.003 }),
+    noise('lowpass', 420, 0.05, 0.14, { attack: 0.002 }),
+    tone('sine', 55, 0.2, 0.4, { to: 36, at: HURT.dub, attack: 0.004 }),
+    tone('triangle', 130, 0.08, 0.15, { to: 65, at: HURT.dub, attack: 0.003 }),
+    noise('lowpass', 380, 0.04, 0.08, { at: HURT.dub, attack: 0.002 }),
+  ],
   vanquished: [...chord('triangle', [98, 147, 196, 293.7], 4, 0.4, { attack: 0.4 }), tone('sine', 49, 4.5, 0.3, { attack: 0.3 })],
   teleport: [noise('bandpass', 3000, 0.5, 0.2, { to: 300, q: 2, attack: 0.4 }), tone('sine', 1200, 0.5, 0.06, { to: 200, attack: 0.3 })],
   summon: [tone('sawtooth', 45, 1.2, 0.25, { to: 90, attack: 0.3, filter: lp(400) }), noise('lowpass', 500, 1, 0.2, { attack: 0.4 })],

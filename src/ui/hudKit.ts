@@ -16,6 +16,13 @@ export function el(style: string, text = '', parent?: HTMLElement): HTMLDivEleme
   return d;
 }
 
+/** `a` turned toward `b` by share `k` (0–1), both '#rrggbb'. */
+export function blend(a: string, b: string, k: number): string {
+  const [x, y] = [parseInt(a.slice(1), 16), parseInt(b.slice(1), 16)];
+  const part = (shift: number): string => Math.round(((x >> shift) & 255) * (1 - k) + ((y >> shift) & 255) * k).toString(16).padStart(2, '0');
+  return `#${part(16)}${part(8)}${part(0)}`;
+}
+
 /** A thin framed bar; set the returned fill's width in percent. */
 export function bar(parent: HTMLElement, colour: string): HTMLDivElement {
   const frame = el(`position:relative;height:6px;margin:4px 0;border:1px solid ${BONE}55;background:#0008`, '', parent);

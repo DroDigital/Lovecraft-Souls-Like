@@ -34,6 +34,20 @@ describe('palette', () => {
     expect(light[0]).toBeGreaterThan(light[2]);
   });
 
+  it("has greys for the mist, and a mist's colour snaps to one of them, not to an olive of the graded ramp (round 23)", () => {
+    const grey = palette.filter((c) => Math.max(...c) - Math.min(...c) < 0.02 && c[1] > 0.04 && c[1] < 0.35);
+    expect(grey.length).toBeGreaterThanOrEqual(6);
+    const nearest = (c: readonly number[]): readonly number[] =>
+      palette.reduce((best, p) => {
+        const d = (q: readonly number[]): number => 0.3 * (c[0] - q[0]) ** 2 + 0.5 * (c[1] - q[1]) ** 2 + 0.2 * (c[2] - q[2]) ** 2; // the post shader's distance
+        return d(p) < d(best) ? p : best;
+      });
+    for (const mist of [[0.14, 0.15, 0.155], [0.1, 0.105, 0.11], [0.2, 0.21, 0.22]]) {
+      const n = nearest(mist);
+      expect(Math.max(...n) - Math.min(...n), mist.join(',')).toBeLessThan(0.02);
+    }
+  });
+
   it('knows the anomaly hues', () => {
     expect(ANOMALY_HUES[0] * 360).toBeCloseTo(328, 0);
     expect(ANOMALY_HUES[1] * 360).toBeCloseTo(275, 0);

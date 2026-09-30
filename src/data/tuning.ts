@@ -40,12 +40,11 @@ export const FX = {
   displaceSafe: 7, // metres from the camera with no displacement (keeps combat readable)
   displaceFull: 32, // metres from the camera where displacement is at full strength
   displaceTwist: 0.2, // radians of space-twist around the viewer at full strength
-  warpCap: 0.4, // the stress past which the picture warps no further: ripple, split, swimming walls, breathing lens and shear stop growing (round 22: they grew all the way to madness, and the screen tore; what a failing mind does past this is dread's)
-  tunnel: [0, 0.62] as Ramp, // the edges of sight darken, the mind narrowing to a tunnel, breathing slowly (round 22)...
-  tunnelFrom: 0.25, // ...from this stress on
-  blur: [0, 1.3] as Ramp, // the low-res pixels the edges blur by, with it
-  watchFrom: 0.5, // pale eyes open at the edge of sight from this stress on (one, then two, then three as it deepens to madness)
-  strange: [0, 1] as Ramp, // the stars: they crawl, crowd and flicker as the mind fails (render/shaders/sky.ts)
+  warpCap: 0.5, // the stress past which the picture warps only warpSlope as fast: ripple, split, swimming walls, breathing lens and shear (round 22: they had grown all the way to madness, and the screen tore; round 23: capped too hard at 0.4 of it, so a little more)
+  warpSlope: 0.3, // ...so at sanity 0 it warps 0.65 of what it did before round 22, and at the edge of Unmoored 0.6 (round 22 left it at 0.4)
+  dreadFrom: 0.25, // what a failing mind does besides begins at this stress and grows to madness: the edges of sight lose their focus...
+  blur: [0, 1.1] as Ramp, // ...by up to this many low-res pixels...
+  strange: [0, 1] as Ramp, // ...and the stars crawl, crowd and flicker (render/shaders/sky.ts)
   fovBreatheDeg: [0, 7] as Ramp,
   breatheHz: 0.23,
   skew: [0, 0.07] as Ramp, // horizontal shear per unit of screen height
@@ -151,8 +150,13 @@ export const SANITY = {
   muffled: 0.35, // share of a roar's toll that carries through a wall (round 12: whole, from 12 m)
   together: 240, // ...but of those first seen within this many frames of each other, only the greatest (round 12)
   volley: 75, // frames in which landed blows take the mind once: the greatest of them (a barrage's bolts, a swarm's bites; round 12)
-  dealt: [1, 1.1, 1.2, 1.35], // damage multipliers by band: a failing mind hits harder...
-  taken: [1, 1.1, 1.25, 1.5], // ...and is hit harder
+  dealt: [1, 1.1, 1.2, 0.85], // damage multipliers by band: a failing mind hits harder... until it is Unmoored, and can barely lift its arm (round 23: it was 1.35)
+  taken: [1, 1.1, 1.25, 1.35], // ...and is hit harder (round 23: Unmoored took 1.5, and now suffers more besides, so a little less of it here)
+  // What being Unmoored does to the body besides (round 23; kept modest, the game is hard enough):
+  unmoored: {
+    stamina: 0.65, // stamina comes back at this share of its pace...
+    bleed: 0.0025, // ...and the body wears away by this share of full health a second (never to death; a shot of Reagent holds it off, as it does a pool's tick)
+  },
   // The mind mends by itself while it is not in a fight (round 22): a real blow struck or taken, or a foe hunting them, holds it off; swinging at the air does not. Sanity regained a second in the dark, and standing at a lamp, fire or torch (not the Elder Signs' glow, an Echo's or the lantern's own).
   mend: {
     rate: 0.25, // in the dark: a full mind in under seven minutes

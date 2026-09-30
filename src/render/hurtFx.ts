@@ -1,7 +1,8 @@
 /**
  * How a blow taken reads, without making the investigator blink (render only): the screen's edge
  * darkens toward red on the side the blow came from (the post pass's uHurt), and the camera jolts.
- * Near death the whole edge pulses with the heartbeat the audio plays (round 14).
+ * Near death (round 14; round 23) the edge stays a dark red that swells with each stroke of the heart the
+ * audio plays, and the picture loses some of its colour (the post pass's uFaint): felt, not flashed.
  * The health bar's draining chip is the HUD's half (hud.ts).
  */
 
@@ -9,7 +10,7 @@ import * as THREE from 'three';
 import { HURT } from '../data/tuning';
 import type { Game } from '../systems/components';
 import type { PostPass } from './postPass';
-import { beatRate, FEEL } from './feel';
+import { FEEL, HEART } from './feel';
 
 export interface HurtFx {
   /** Sets the post pass's wound and jolts the camera; `time` is render seconds. */
@@ -42,11 +43,9 @@ export function createHurtFx(g: Game): HurtFx {
       if (pending) [at, pending] = [time, false];
       const fade = Math.max(0, 1 - (time - at) / HURT.seconds);
       const k = strength * fade * fade;
-      const h = g.ecs.c.health.get(g.player.id);
-      const rate = h ? beatRate(h.hp / h.max) : 0; // near death the edge pulses with the heart (round 14)
-      const pulse = rate > 0 ? HURT.lowPulse * Math.exp(-((time * rate) % 1) * 7) : 0;
-      if (pulse > k) post.uniforms.uHurt.value.set(pulse, 0, 0, 0); // all about the edge
-      else post.uniforms.uHurt.value.set(k, dir.x, dir.y, 0);
+      post.uniforms.uHurt.value.set(k, dir.x, dir.y, 0);
+      const need = HEART.need; // near death, the heart (feel.ts): red about the edge, and the colour draining
+      post.uniforms.uFaint.value.set(need * HURT.lowBase + HEART.swell * HURT.lowPulse * (0.35 + 0.65 * need), need * HURT.lowDrain);
       if (k > 0.01) {
         const j = HURT.shake * k * FEEL.shake;
         camera.position.x += (Math.random() - 0.5) * j;

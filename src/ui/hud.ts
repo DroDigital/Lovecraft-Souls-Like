@@ -21,7 +21,8 @@ import { REGIONS } from '../data/regions';
 import { creatureOf } from '../systems/creatures';
 import { createBanner } from './banner';
 import { DYING_MS } from './journeys';
-import { bar, BONE, el, percent, RUST, SEA, SERIF, setStyle, setText } from './hudKit';
+import { bar, blend, BONE, el, percent, RUST, SEA, SERIF, setStyle, setText } from './hudKit';
+import { HEART } from '../render/feel';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
 import { createHints } from './hints';
@@ -29,6 +30,7 @@ import { createMindHud } from './mindHud';
 import { createMinimap } from './minimap';
 import { PICTURE_LAYER, uiScale } from './uiScale';
 
+const HOT = '#c4553f'; // the health bar at a stroke of the heart
 const NOTICE_MS = 1100;
 const NOTICE_HOLD_MS = 700; // a notice stands at least this long before the next takes its place (round 19: two at once, the first was lost)
 
@@ -133,6 +135,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       const h = c.health.get(me)!;
       const s = c.stamina.get(me)!;
       setStyle(hp, 'width', percent(h.hp, h.max));
+      setStyle(hp, 'background', HEART.swell > 0.02 ? blend(RUST, HOT, Math.min(1, HEART.swell * (0.4 + 0.6 * HEART.need))) : RUST); // near death the bar throbs with the heart (round 23)
       const now0 = performance.now();
       const pct = (100 * h.hp) / h.max;
       if (pct >= chipPct) chipPct = pct;

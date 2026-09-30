@@ -1,7 +1,7 @@
 /**
  * The volumetric fog's frame (playtest round 16; the march is shaders/fog.ts, in the post pass): the
  * lens, so each pixel's ray can be rebuilt from the scene's depth; where the investigator's ground
- * lies (the mist pools there, eased as they climb or descend); and the mist of the place, the
+ * lies (the low mist pools there, eased as they climb or descend); and the mist of the place, the
  * region's or a dungeon room's (data/fogs.ts), turning from one to the next over a few seconds. A
  * failing mind thickens it, as it closes the far fog in; the Fog setting scales it (0: none).
  */
@@ -33,6 +33,8 @@ export function easeFog(from: FogDef, to: FogDef, k: number): FogDef {
   return {
     density: mix(from.density, to.density, k),
     height: mix(from.height, to.height, k),
+    haze: mix(from.haze, to.haze, k),
+    moon: mix(from.moon, to.moon, k),
     color: [mix(from.color[0], to.color[0], k), mix(from.color[1], to.color[1], k), mix(from.color[2], to.color[2], k)],
     patchy: mix(from.patchy, to.patchy, k),
     wind: [mix(from.wind[0], to.wind[0], k), mix(from.wind[1], to.wind[1], k)],
@@ -57,7 +59,9 @@ export function createVolumetricFog(post: PostPass): VolumetricFog {
       u.uProjInv.value.copy(camera.projectionMatrixInverse);
       u.uCamWorld.value.copy(camera.matrixWorld);
       u.uCamPos.value.setFromMatrixPosition(camera.matrixWorld);
-      u.uFog.value.set(now.density * f.setting * (1 + FOG.madness * f.stress), now.height, ground - 0.3, now.patchy);
+      const thick = f.setting * (1 + FOG.madness * f.stress); // a failing mind thickens it
+      u.uFog.value.set(now.density * thick, now.height, ground - 0.3, now.patchy);
+      u.uFogAir.value.set(now.haze * thick, FOG.hazeHeight, now.moon, 0);
       u.uFogColor.value.set(...now.color);
       u.uFogDrift.value.set(dx, dz, time);
     },

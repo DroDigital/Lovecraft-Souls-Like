@@ -9,6 +9,7 @@ import {
   lensAt,
   STEADY,
   sanityStress,
+  warpOf,
   type FxState,
 } from '../src/render/fx';
 
@@ -56,9 +57,7 @@ describe('computeFx', () => {
       displace: 0,
       fovBreatheDeg: 0,
       skew: 0,
-      tunnel: 0,
       blur: 0,
-      watch: 0,
       strange: 0,
     });
   });
@@ -100,46 +99,54 @@ describe('band pulse and audio', () => {
   });
 });
 
-describe('a failing mind warps the picture no further past a point, and dreads instead (round 22)', () => {
+describe('a failing mind warps the picture more slowly past a point, and loses its focus and its stars (rounds 22–23)', () => {
   const sanityOf = (stress: number): number => 100 * (1 - stress);
 
-  it('stops the ripple, split, swimming walls, breathing lens and shear at FX.warpCap of the stress', () => {
-    const [capped, mad] = [computeFx(state(sanityOf(FX.warpCap))), computeFx(state(0))];
-    for (const key of ['ripple', 'chroma', 'displace', 'affine', 'fovBreatheDeg', 'skew'] as const) expect(mad[key], key).toBeCloseTo(capped[key], 9);
-    expect(mad.ripple).toBeLessThan(FX.ripple[1] * 0.5); // where it was 0.012, and grew to madness
-    expect(mad.fovBreatheDeg).toBeLessThan(FX.fovBreatheDeg[1] * 0.5);
-    expect(mad.skew).toBeLessThan(FX.skew[1] * 0.5);
-    expect(computeFx(state(sanityOf(0.2))).ripple).toBeLessThan(capped.ripple); // below the cap it still grows
+  it('warps in step with the stress to FX.warpCap and only FX.warpSlope as fast past it', () => {
+    expect(warpOf(0)).toBe(0);
+    expect(warpOf(FX.warpCap)).toBeCloseTo(FX.warpCap, 9);
+    expect(warpOf(1)).toBeCloseTo(FX.warpCap + (1 - FX.warpCap) * FX.warpSlope, 9);
+    let last = -1;
+    for (let stress = 0; stress <= 1; stress += 0.05) {
+      expect(warpOf(stress)).toBeGreaterThan(last); // it never stops growing, and never falls
+      last = warpOf(stress);
+    }
+  });
+
+  it('warps the ripple, split, swimming walls, breathing lens and shear by that, less than they did before round 22 and more than the cap alone', () => {
+    const [calm, capped, mad] = [computeFx(state(100)), computeFx(state(sanityOf(FX.warpCap))), computeFx(state(0))];
+    for (const key of ['ripple', 'chroma', 'displace', 'affine', 'fovBreatheDeg', 'skew'] as const) {
+      expect(mad[key], key).toBeGreaterThan(capped[key]);
+      expect(mad[key] - capped[key], key).toBeLessThan(capped[key] - calm[key]); // past the cap it grows slower than up to it
+    }
+    expect(mad.ripple).toBeLessThan(FX.ripple[1] * 0.8); // where it was 0.012, and grew to madness
+    expect(mad.ripple).toBeGreaterThan(FX.ripple[1] * 0.5); // and where round 22 left it, at 0.4 of that
+    expect(mad.skew).toBeGreaterThan(FX.skew[1] * 0.5);
+    expect(computeFx(state(sanityOf(0.2))).ripple).toBeLessThan(capped.ripple);
     expect(computeFx(state(sanityOf(0.2))).ripple).toBeGreaterThan(0);
   });
 
-  it('closes the edges of sight in and opens eyes there only as the mind goes, none while it holds', () => {
+  it('softens the edges of sight and makes the stars strange only as the mind goes, none while it holds', () => {
     const lucid = computeFx(state(100));
-    expect([lucid.tunnel, lucid.blur, lucid.watch, lucid.strange]).toEqual([0, 0, 0, 0]);
-    expect(computeFx(state(sanityOf(FX.tunnelFrom - 0.01))).tunnel).toBe(0);
+    expect([lucid.blur, lucid.strange]).toEqual([0, 0]);
+    expect(computeFx(state(sanityOf(FX.dreadFrom - 0.01))).blur).toBe(0);
     let last = 0;
     for (let sanity = 100; sanity >= 0; sanity -= 5) {
       const fx = computeFx(state(sanity));
-      expect(fx.tunnel).toBeGreaterThanOrEqual(last);
-      last = fx.tunnel;
+      expect(fx.blur).toBeGreaterThanOrEqual(last);
+      last = fx.blur;
     }
     const mad = computeFx(state(0));
-    expect(mad.tunnel).toBeCloseTo(FX.tunnel[1], 9);
     expect(mad.blur).toBeCloseTo(FX.blur[1], 9);
     expect(mad.strange).toBeCloseTo(FX.strange[1], 9);
-    expect(computeFx(state(sanityOf(FX.watchFrom))).watch).toBe(0); // the eyes open from here
-    expect(computeFx(state(sanityOf(FX.watchFrom + 0.1))).watch).toBeGreaterThan(0);
-    expect(mad.watch).toBe(1);
-    expect(mad.tunnel).toBeLessThan(0.8); // the edges dim; they never close on the middle of the picture
   });
 
   it('keeps to the accessibility cap and its own toggle', () => {
-    expect(computeFx(state(0, 0)).tunnel).toBe(0);
-    expect(computeFx(state(0, 0)).watch).toBe(0);
+    expect(computeFx(state(0, 0)).blur).toBe(0);
+    expect(computeFx(state(0, 0)).strange).toBe(0);
     const s = state(0);
     s.enabled.dread = false;
-    expect(computeFx(s)).toMatchObject({ tunnel: 0, blur: 0, watch: 0, strange: 0 });
+    expect(computeFx(s)).toMatchObject({ blur: 0, strange: 0 });
     expect(computeFx(s).ripple).toBeGreaterThan(0); // the warp is its own toggle
   });
 });
-

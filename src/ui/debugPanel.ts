@@ -16,7 +16,7 @@ const LABELS: Record<EffectId, string> = {
   warp: 'sanity warp (ripple, split)',
   displace: 'vertex displacement',
   lens: 'FOV breathing + skew',
-  dread: 'dread (tunnel, watchers, wrong stars)',
+  dread: 'dread (soft edges, wrong stars)',
 };
 
 export interface DebugPanel {

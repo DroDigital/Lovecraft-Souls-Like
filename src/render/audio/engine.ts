@@ -9,6 +9,8 @@
  * everything stays silent and nothing fails.
  */
 
+import { AUDIO } from '../../data/tuning';
+
 export interface AudioEngine {
   readonly ctx: AudioContext | null;
   readonly sfx: AudioNode | null; // one-shots in
@@ -22,6 +24,8 @@ export interface AudioEngine {
   setLevels(l: Levels): void;
   /** The sanity waveshaper: 0 clean, 1 heavily driven. */
   setDistortion(amount: number): void;
+  /** Near death the world's sound dulls (round 23): 0 not at all, 1 as far as AUDIO.muffle goes. Not the title's theme. */
+  setMuffle(amount: number): void;
   /** Runs `fn` once WebAudio has started (at once if it has). */
   onStart(fn: (ctx: AudioContext) => void): void;
   /** Starts WebAudio now if it has not (a click or key press also starts it), or wakes it. */
@@ -56,6 +60,7 @@ interface Graph {
   score: GainNode;
   music: GainNode;
   shaper: WaveShaperNode;
+  muffle: BiquadFilterNode;
   master: GainNode;
 }
 
@@ -66,6 +71,10 @@ function build(volume: number, levels: Levels): Graph {
   const score = ctx.createGain();
   const shaper = ctx.createWaveShaper();
   shaper.curve = shaperCurve(0);
+  const muffle = ctx.createBiquadFilter(); // near death (round 23): the world's high end closes...
+  muffle.type = 'lowpass';
+  muffle.frequency.value = AUDIO.muffle[0];
+  muffle.Q.value = 0.5;
   const limiter = ctx.createDynamicsCompressor();
   limiter.threshold.value = -10;
   limiter.ratio.value = 8;
@@ -75,9 +84,9 @@ function build(volume: number, levels: Levels): Graph {
   sfx.connect(shaper);
   bed.connect(shaper);
   score.connect(shaper);
-  shaper.connect(limiter).connect(master).connect(ctx.destination);
+  shaper.connect(muffle).connect(limiter).connect(master).connect(ctx.destination);
   music.connect(master);
-  const graph = { ctx, sfx, bed, score, music, shaper, master };
+  const graph = { ctx, sfx, bed, score, music, shaper, muffle, master };
   setBusLevels(graph, levels);
   return graph;
 }
@@ -135,6 +144,10 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
       if (!graph || Math.abs(a - amount) <= 0.02) return;
       graph.shaper.curve = shaperCurve(a);
       amount = a;
+    },
+    setMuffle(a) {
+      const [open, shut] = AUDIO.muffle;
+      graph?.muffle.frequency.setTargetAtTime(open * Math.pow(shut / open, Math.min(1, Math.max(0, a))), graph.ctx.currentTime, 0.4);
     },
     onStart(fn) {
       if (graph) fn(graph.ctx);

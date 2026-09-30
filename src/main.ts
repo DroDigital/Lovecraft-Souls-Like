@@ -43,7 +43,7 @@ import { createPipeline } from './render/pipeline';
 import { updatePostUniforms } from './render/postPass';
 import { applyReality, lightReality } from './render/realityFx';
 import { updateWorldUniforms, worldUniforms } from './render/worldMaterial';
-import { FEEL } from './render/feel';
+import { FEEL, HEART } from './render/feel';
 import { createGame, createWorldGame, stepGame } from './systems/game';
 import { clearSave, loadSave } from './systems/save';
 import { haltAutosave, saveNow, startAutosave } from './ui/autosave';
@@ -174,7 +174,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
-  if (debug) Object.assign(window, { game, world, audio: shell.engine, life, cinema, pipeline, sky, scene, camera });
+  if (debug) Object.assign(window, { game, world, audio: shell.engine, life, cinema, pipeline, sky, scene, camera, settings });
   placeCamera(camera, game, 1);
   void pipeline.compile(scene, camera); // compiling while the chunks are built (in parallel, where the browser can)
   await made(0.55);
@@ -224,6 +224,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
         mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
+        const health = game.ecs.c.health.get(game.player.id);
+        HEART.update(time, health ? health.hp / health.max : 1); // near death: the sound, the picture's edge and the health bar keep to it (round 23)
         hurt.update(pipeline.post, camera, time);
         impactFx.update(camera, time);
         const at = game.ecs.c.transform.get(game.player.id)!.pos;
