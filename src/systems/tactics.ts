@@ -19,9 +19,14 @@ import { moveDef, startMove } from './actions';
 import { evade, holdInside, rimGap } from './bossArena';
 import { isAbsent, type ArenaCircle, type Brain, type Game, type Mover, type Transform } from './components';
 
-/** Weighted pick among the attacks whose range bracket contains `d`; null when none fits. */
-export function chooseAttack(def: BrainDef, d: number, rng: Rng): string | null {
-  const fits = def.attacks.filter((a) => d >= a.range[0] && d <= a.range[1]);
+/**
+ * Weighted pick among the attacks whose range bracket contains `d`; null when none fits. One that
+ * cannot move (`mobile` false) cannot get to the range of its blows, so what stands nearer than
+ * they like is in reach of them as much as what stands at it (round 24: the Whisperer, who sits, had
+ * nothing that wounds within three metres of its chair, and could be cut down to half untouched).
+ */
+export function chooseAttack(def: BrainDef, d: number, rng: Rng, mobile = true): string | null {
+  const fits = def.attacks.filter((a) => (!mobile || d >= a.range[0]) && d <= a.range[1]);
   let roll = rng() * fits.reduce((sum, a) => sum + a.weight, 0);
   for (const a of fits) if ((roll -= a.weight) < 0) return a.move;
   return null;
@@ -125,7 +130,7 @@ export function fight(g: Game, id: Entity, br: Brain, m: Mover, target: Entity, 
   const ready = br.cooldown === 0 || (!arena && target === g.player.id && br.cooldown <= hi * (1 - AI.punish) && opening(g));
   let dart = false;
   if (ready && !(waiting && d > p.range[1] + 1)) { // one waiting its turn strikes only what comes to it
-    const attack = chooseAttack(br.def, d, g.rng);
+    const attack = chooseAttack(br.def, d, g.rng, p.mobile);
     if (attack) {
       startMove(c.actor.get(id)!, attack);
       br.cooldown = lo + Math.floor(g.rng() * (hi - lo + 1));

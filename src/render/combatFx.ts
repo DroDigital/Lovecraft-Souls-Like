@@ -12,6 +12,7 @@ import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
 import { ANOMALY, BASE, mixRgb, scaleRgb, type Rgb } from './palette';
 import type { Particles } from './particles';
+import { woundPoint } from './wound';
 
 export interface CombatFx {
   update(): void;
@@ -51,17 +52,14 @@ export function createCombatFx(g: Game, fx: Particles, muzzle: () => V3 | null =
 
   g.events.on('Hit', (e) => {
     if (e.lingering) return;
-    const to = pos(e.target);
-    const from = pos(e.attacker);
-    if (!to) return;
-    const [dx, dz] = from ? [to.x - from.x, to.z - from.z] : [0, 0];
-    const len = Math.hypot(dx, dz) || 1;
-    const at = { x: to.x - (dx / len) * 0.3, y: to.y + height(e.target), z: to.z - (dz / len) * 0.3 };
-    if (e.outcome === 'blocked' || e.outcome === 'guardBreak') spray(at, -dx / len, -dz / len, 10, SPARK, 2.5, true);
-    else if (e.outcome === 'parried') spray(at, -dx / len, -dz / len, 18, SPARK, 4, true);
+    const wound = woundPoint(g, e.target, e.attacker, 0.3);
+    if (!wound) return;
+    const { at, dx, dz } = wound;
+    if (e.outcome === 'blocked' || e.outcome === 'guardBreak') spray(at, -dx, -dz, 10, SPARK, 2.5, true);
+    else if (e.outcome === 'parried') spray(at, -dx, -dz, 18, SPARK, 4, true);
     else if (e.outcome !== 'dodged' && e.damage > 0) {
       const flesh = e.target === g.player.id ? BLOOD : ICHOR;
-      spray(at, dx / len, dz / len, e.outcome === 'riposte' || e.outcome === 'kill' ? 22 : 10, flesh, 2.2);
+      spray(at, dx, dz, e.outcome === 'riposte' || e.outcome === 'kill' ? 22 : 10, flesh, 2.2);
     }
   });
   /** A shot's smoke, put out at the next frame drawn, when the muzzle is where the arm has it (round 22: it came out of the chest, at the point the ray starts): a puff curling forward off the barrel's mouth, and a thin drift after it. */

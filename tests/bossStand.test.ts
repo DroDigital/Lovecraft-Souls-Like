@@ -7,9 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import { getEntity } from '../src/data/registry';
 import { teleport } from '../src/systems/checkpoints';
-import { createWorldGame } from '../src/systems/game';
+import { createGame, createWorldGame } from '../src/systems/game';
 import { priorOf } from '../src/systems/sealCount';
-import { bodyOf } from '../src/systems/creatures';
+import { bodyOf, creatureModel } from '../src/systems/creatures';
 import { resolveCapsule } from '../src/world/colliders';
 import { worldLayout, type SpawnPoint } from '../src/world/placements';
 import { createWorldCollision } from '../src/world/worldCollision';
@@ -33,6 +33,16 @@ function meet(s: (typeof BOSSES)[number], dx: number, dz: number) {
 
 describe('every boss stands in its arena and can be reached (playtest round 24)', () => {
   it('has bosses to visit', () => expect(BOSSES.length).toBeGreaterThan(40));
+
+  it('every attack in a boss\'s script can be chosen somewhere in its arena (Yog-Sothoth\'s beam and teleport began 53 and 63 m off, in an arena 34 wide)', () => {
+    const never: string[] = [];
+    for (const s of BOSSES) {
+      const g = createGame({ creature: s.entity, variant: s.variant });
+      const boss = [...g.ecs.c.model].find(([, m]) => m === creatureModel(s.entity, s.variant))![0];
+      for (const a of g.ecs.c.brain.get(boss)!.def.attacks) if (a.range[0] > s.arena.radius) never.push(`${s.entity} ${a.move} from ${a.range[0].toFixed(0)} m, in an arena ${s.arena.radius} m across its heart`);
+    }
+    expect(never).toEqual([]);
+  });
 
   it('no creature of any spawn point is put where the world would push it out (Father Dagon and Mother Hydra were, by 24 m)', () => {
     const world = createWorldCollision();

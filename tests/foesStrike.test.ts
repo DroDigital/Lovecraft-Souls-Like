@@ -30,6 +30,19 @@ describe('every foe strikes (round 19: skirmishers held a ring their own blows c
     expect(hits).toBeGreaterThan(0);
   });
 
+  it.each(foes)('%s lands a blow on an investigator standing at the edge of its body (round 24: the Whisperer, who cannot move, had no blow that reached one who stood at its chair)', (id) => {
+    const g = createGame({ creature: id });
+    const foe = foeIn(g, id);
+    const at = g.ecs.c.transform.get(foe)!.pos;
+    place(g, g.player.id, at.x, at.z - (g.ecs.c.body.get(foe)!.radius + 1.2), 0);
+    const h = g.ecs.c.health.get(g.player.id)!;
+    h.max = h.hp = 1e7;
+    let hits = 0;
+    g.events.on('Hit', (e) => void (e.target === g.player.id && e.attacker === foe && hits++));
+    for (let s = 0; s < 20 && !hits; s++) steps(g, 60);
+    expect(hits).toBeGreaterThan(0);
+  });
+
   it('the Light-Being from Algol, and every ally, never turns on the investigator: it falls in beside them, once said', () => {
     for (const id of ENTITIES.filter((d) => d.tier === 'ally').map((d) => d.id)) {
       const g = createGame({ creature: id });

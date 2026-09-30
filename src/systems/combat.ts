@@ -184,7 +184,7 @@ export function meleeSystem(g: Game): void {
     const k = a.frame - hit.window[0];
     const s0 = hitCentre(tr.pos, tr.yaw, hit, k / n);
     const s1 = hitCentre(tr.pos, tr.yaw, hit, (k + 1) / n);
-    const root = hit.reach > COMBAT.limb ? { x: tr.pos.x, y: s1.y, z: tr.pos.z } : null; // a long limb, swept from the body out
+    const root = hit.reach > COMBAT.limb || hit.thrust ? { x: tr.pos.x, y: s1.y, z: tr.pos.z } : null; // a long limb, or a thrust's whole line, swept from the body out
     for (const t of live(g, targetsOf(g, id))) {
       if (a.hits.has(t)) continue;
       const tip = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
