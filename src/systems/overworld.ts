@@ -6,11 +6,12 @@
  */
 
 import { newTally } from './tally';
+import { newWeather } from './weather';
 import { isUnique } from '../world/placements';
 import type { Game, Overworld } from './components';
 
 export function createOverworld(sign: string): Overworld {
-  return { sign, discovered: new Set([sign]), slain: new Set(), killed: new Set(), wounds: new Map(), read: new Set(), named: 0, called: new Set(), watched: new Set(), ending: null, alive: new Map(), region: null, chunk: -1, dirty: true, explored: new Map(), lookedFrom: -1, quests: new Map(), met: new Set(), sold: new Map(), tally: newTally(), said: new Set(), places: new Set(), told: new Set() };
+  return { sign, discovered: new Set([sign]), slain: new Set(), killed: new Set(), wounds: new Map(), read: new Set(), named: 0, called: new Set(), watched: new Set(), ending: null, alive: new Map(), region: null, chunk: -1, dirty: true, explored: new Map(), lookedFrom: -1, quests: new Map(), met: new Set(), sold: new Map(), tally: newTally(), said: new Set(), places: new Set(), told: new Set(), weather: newWeather() };
 }
 
 /** Foes killed since the last rest come back (population.ts respawns them), and every foe is whole again. */

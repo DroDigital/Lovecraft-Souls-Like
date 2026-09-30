@@ -61,7 +61,7 @@ export function startle(l: Life, from: V3): boolean {
 }
 
 /** Where a looping, circling or drifting critter is at `time`. */
-function wander(l: Life, time: number, dt: number): void {
+function wander(l: Life, time: number, dt: number, me?: V3): void {
   const [n, R, p, t] = [l.nest, l.def.reach, l.phase, time];
   let [x, y, z] = [n.x, n.y, n.z];
   if (l.def.habit === 'flit') {
@@ -70,7 +70,9 @@ function wander(l: Life, time: number, dt: number): void {
     z += R * (0.72 * Math.sin(w * 0.8 * t + p * 0.7 + 1.2) + 0.28 * Math.cos(w * 2.2 * t + p));
     y += 0.3 + 1.1 * Math.sin(w * 1.3 * t + p * 0.5);
   } else if (l.def.habit === 'orbit') {
-    const [a, r] = [t * (2.4 + (p % 1) * 1.6) + p, R * (0.6 + 0.4 * Math.sin(t * 1.7 + p))];
+    // Round 26: moths are drawn to a lantern borne through the dark: those of the near lamps that the lantern passes join it, each about its own round.
+    if (me && l.def.size < 0.5 && p % 1 < 0.55 && Math.hypot(me.x - n.x, me.z - n.z) < 14) [x, y, z] = [me.x, me.y + 1.05, me.z];
+    const [a, r] = [t * (2.4 + (p % 1) * 1.6) + p, (x === n.x ? R : 0.55) * (0.6 + 0.4 * Math.sin(t * 1.7 + p))];
     x += Math.cos(a) * r + 0.06 * Math.sin(t * 23 + p);
     z += Math.sin(a) * r;
     y += 0.25 * Math.sin(t * 2.3 + p) + 0.05 * Math.sin(t * 31 + p);
@@ -136,7 +138,7 @@ function idle(l: Life, dt: number): void {
 export function live(l: Life, dt: number, time: number, me: V3, pace: number): boolean {
   l.t += dt;
   const habit = l.def.habit;
-  if (habit === 'flit' || habit === 'orbit' || habit === 'drift') return wander(l, time, dt), false;
+  if (habit === 'flit' || habit === 'orbit' || habit === 'drift') return wander(l, time, dt, me), false;
   if (l.mode === 'gone') {
     if ((l.wait -= dt) <= 0 && Math.hypot(me.x - l.nest.x, me.z - l.nest.z) > FAUNA.backBeyond) {
       Object.assign(l, { x: l.nest.x, y: l.nest.y, z: l.nest.z, vx: 0, vy: 0, vz: 0, mode: 'rest', t: 0, wait: between(l.rng, [2, 6]), to: null, seen: 0 });

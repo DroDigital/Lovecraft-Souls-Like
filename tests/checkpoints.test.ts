@@ -171,7 +171,8 @@ describe('E takes what the investigator faces (playtest round 12)', () => {
     stepGame(g, { ...emptyInput(), moveY: 1 });
     expect(g.player.listening).toBeNull();
     run(g, 120);
-    expect(Math.abs(wrapAngle(them.yaw - at.yaw))).toBeLessThan(0.05); // back to where they look
+    const now = g.ecs.c.transform.get(g.player.id)!.pos;
+    expect(Math.abs(wrapAngle(them.yaw - yawOf(now.x - them.pos.x, now.z - them.pos.z)))).toBeLessThan(0.3); // and still to whoever stands by them (round 26: the people have rounds of their own once the investigator has gone: npcLife.test.ts)
   });
 });
 

@@ -13,6 +13,7 @@ import { NPCS, npcDef, type NpcDef, type Topic, type When } from '../data/npcs';
 import { worldLayout } from '../world/placements';
 import { DIRS } from '../world/worldMap';
 import type { Game } from './components';
+import { managed } from './npcLife';
 import { rumorFor } from './omens';
 import { stageOf, startQuest, talked, UNSTARTED } from './quests';
 import { QUESTS } from '../data/quests';
@@ -85,6 +86,7 @@ export function npcSystem(g: Game, dt: number): void {
     const tr = g.ecs.c.transform.get(e)!;
     const n = npcDef(id);
     if (n?.creature && e !== g.player.listening) continue; // a creature's own brain turns it
+    if (e !== g.player.listening && managed(g, e)) continue; // and one who lives a round turns as it walks (npcLife.ts; round 26)
     const want = e === g.player.listening ? yawOf(me.x - tr.pos.x, me.z - tr.pos.z) : n && npcPlace(n)?.yaw;
     tr.prevYaw = tr.yaw;
     if (want !== undefined) tr.yaw = turnToward(tr.yaw, want, TURN * dt);

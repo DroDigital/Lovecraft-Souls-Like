@@ -7,16 +7,20 @@
 
 import type * as THREE from 'three';
 import type { Game } from '../systems/components';
+import { madnessOf } from '../systems/sanity';
 import type { GameAudio } from './audio/gameAudio';
 import { createFauna, type Fauna } from './fauna';
 import { createGlints } from './glints';
+import { LIGHT_NERVES } from './worldLights';
 import { createLightning } from './lightning';
 import type { Particles } from './particles';
+import { createNightFx } from './nightFx';
 import { createOmenFx } from './omenFx';
 import { createPresence } from './presence';
 import type { PostPass } from './postPass';
 import { createSkyLife } from './skyLife';
 import { createWatchers } from './watchers';
+import { createWeatherFx } from './weather';
 import type { Skyline } from './skyline';
 import type { SpriteAtlas } from './sprites/atlas';
 
@@ -42,6 +46,8 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
   const watchers = createWatchers(scene, g);
   const omens = createOmenFx(g, parts.sky, parts.post, audio);
   const presence = createPresence(g, parts.particles, audio); // round 26: what a colossus does to the ground and the air
+  const night = createNightFx(g, parts.sky, parts.post); // round 26: the moon's course, and the grey of the last hour
+  const weather = createWeatherFx(scene, g, parts.particles); // round 26: rain, gale and motes
   return {
     fauna,
     update(camera, time, enclosed) {
@@ -49,6 +55,9 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
       fauna.update(camera, time, !outside);
       sky.update(camera, time, !outside);
       lightning.update(time, g.overworld?.region ?? null, !outside);
+      night.update(time);
+      LIGHT_NERVES.madness = madnessOf(g.mind.sanity); // the flames waver harder in a failing mind's world
+      weather.update(camera, time, !outside);
       glints.update(camera.position, time, !g.overworld);
       presence.update(camera, time);
       omens.update(time);

@@ -6,10 +6,10 @@
  */
 
 import { hash2 } from '../core/rng';
-import { SANITY } from '../data/tuning';
+import { madnessOf } from '../systems/sanity';
 
 /** How wrong the map is at `sanity`: 0 from the Uneasy's floor up, 1 at none. */
-export const madness = (sanity: number): number => Math.min(1, Math.max(0, (SANITY.bands[1] - sanity) / SANITY.bands[1]));
+export const madness = madnessOf;
 
 /** The seconds a slide lasts before the marks settle somewhere else. */
 export const SLIDE = 7;

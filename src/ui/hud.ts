@@ -117,6 +117,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   g.events.on('Travelled', (e) => show(e.name.toUpperCase()));
   g.events.on('Vanquished', (e) => great.show('HORROR VANQUISHED', 'victory', e.name.toUpperCase(), EPITAPHS[creatureOf(g, e.entity)?.id ?? '']));
   g.events.on('Exhaled', (e) => setTimeout(() => great.show('THE DREAM BREATHES OUT', 'place', e.name.toUpperCase(), 'What lay on it has gone.'), 7500)); // after the fall's own words (round 26)
+  g.events.on('Wandered', (e) => void (e.words && say(e.words))); // the first time one is seen (round 26)
   g.events.on('Discovered', (e) => say(`ELDER SIGN FOUND · ${e.name.toUpperCase()}`));
   g.events.on('PlaceFound', (e) => great.show(e.name.toUpperCase(), 'place', `${e.found} OF ${e.of} PLACES · ${(REGIONS.find((r) => r.id === e.region)?.name ?? '').toUpperCase()}`)); // round 18
   g.events.on('QuestChanged', (e) => say(e.done ? `DONE · ${e.title.toUpperCase()}` : e.stage === 0 ? `JOURNAL · ${e.title.toUpperCase()}` : `${e.title.toUpperCase()} · UPDATED`));

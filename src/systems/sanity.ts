@@ -31,6 +31,9 @@ export function bandOf(sanity: number): Band {
 }
 
 /** The top of a band: 100 for Lucid, else the floor of the band above. */
+/** How far a mind has gone past the Uneasy's floor (round 26: what reshapes the world, the lamps and the map): 0 from there up, 1 at no sanity at all. */
+export const madnessOf = (sanity: number): number => Math.min(1, Math.max(0, (SANITY.bands[1] - sanity) / SANITY.bands[1]));
+
 export const bandCeiling = (b: Band): number => (b === 'lucid' ? SANITY.max : SANITY.bands[bandIndex(b) - 1]);
 
 /** The band once sanity reaches `sanity` from band `current`: it falls at a floor at once, but climbs back only 3 points past it. */

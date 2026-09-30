@@ -27,6 +27,7 @@ import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
 import { createDread } from './dread';
+import { createWeatherBed } from './weatherBed';
 import { CUES, cueFor, dullness, nextCall, placeSound, type Cue } from './cues';
 import { impactLayers, landedBlow } from './impact';
 import type { Drones } from './drones';
@@ -65,6 +66,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   void sampler.load(setFiles(Object.values(SAMPLE_SETS)));
   const ambience = createAmbience(e, sampler);
   const foley = createFoley(g, sampler);
+  const weatherBed = createWeatherBed(e);
   const dread = createDread(e, g, (set, gain, pitch) => void sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.6, lowpass: 700 + 3000 * gain, pitch })); // round 26: the ground goes quiet, and far off it is heard
   const place = (at: V3 | null, range: number): { gain: number; pan: number } => placeSound(listener, right, at, range);
   /** One of a set's takes where `at` is; false when none has loaded. */
@@ -129,6 +131,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     const where = g.ecs.c.transform.get(ev.target)?.pos ?? null;
     for (const l of impactLayers(landed)) recorded(l.set, where, AUDIO.eventRange, { gain: l.gain, pitch: l.pitch, delay: l.delay });
   });
+  g.events.on('Wandered', ({ at, sound }) => void (sound && recorded(sound, at, 170, { gain: 0.9, pitch: 0.9 }))); // a file comes out of the dark, heard from afar (round 26)
   g.events.on('Vanished', ({ at, struck }) => {
     if (!struck) return;
     play({ sound: 'vanish', at });
@@ -221,7 +224,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       const [fight] = engagedFights(g);
       drones.set(region, !!fight);
       const at = g.ecs.c.transform.get(g.player.id)?.pos;
-      ambience.set((g.overworld && at && inside(at)) || (AMBIENCE[region ?? ''] ?? null));
+      const roofed = (g.overworld && at && inside(at)) || null;
+      ambience.set(roofed || (AMBIENCE[region ?? ''] ?? null));
+      weatherBed.set(g.overworld?.weather.kind ?? 'clear', g.overworld?.weather.amount ?? 0, !!roofed); // round 26
       ambience.update(seconds);
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
       dread.update(seconds, paused);
