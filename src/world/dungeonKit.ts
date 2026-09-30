@@ -7,7 +7,7 @@
 
 import type { XZ } from '../core/geom';
 import type { Dir, DungeonDef, RoomDef, Veil } from '../data/dungeons';
-import { roomKit, type DungeonKit } from '../data/kits';
+import { roomKit, roomKitId, type DungeonKit, type KitId } from '../data/kits';
 import { DUNGEON, WORLD } from '../data/tuning';
 import { DIRS, OPPOSITE, type Rect } from './worldMap';
 
@@ -157,5 +157,8 @@ export function roomPoint(r: RoomLayout, u: number, v: number): XZ {
   return { x: r.x + a.x * v + a.z * u, z: r.z + a.z * v - a.x * u };
 }
 
-/** A room's kit (data/kits.ts): a room sunk below the entrance takes the kit of what lies below. */
+/** The id of a room's kit (data/kits.ts): a room sunk below the entrance takes the kit of what lies below. */
+export const kitIdOfRoom = (d: DungeonLayout, r: RoomLayout): KitId => roomKitId(d.def.id, { kit: r.def.kit, sunk: floorRange(r)[0] < d.base - 1.5 });
+
+/** A room's kit (data/kits.ts). */
 export const kitOfRoom = (d: DungeonLayout, r: RoomLayout): DungeonKit => roomKit(d.def.id, { kit: r.def.kit, sunk: floorRange(r)[0] < d.base - 1.5 });
