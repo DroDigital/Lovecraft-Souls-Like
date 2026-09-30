@@ -3,7 +3,8 @@
  * darkens toward red on the side the blow came from (the post pass's uHurt), and the camera jolts.
  * Near death (round 14; round 23) the edge stays a dark red that swells with each stroke of the heart the
  * audio plays, and the picture loses some of its colour (the post pass's uFaint): felt, not flashed.
- * The health bar's draining chip is the HUD's half (hud.ts).
+ * The health bar's draining chip is the HUD's half (hud.ts). Round 25: a petrifying gaze drains the colour to stone, closes the
+ * edges in grey and, past half, cracks the picture (the post pass's uStone).
  */
 
 import * as THREE from 'three';
@@ -46,6 +47,7 @@ export function createHurtFx(g: Game): HurtFx {
       post.uniforms.uHurt.value.set(k, dir.x, dir.y, 0);
       const need = HEART.need; // near death, the heart (feel.ts): red about the edge, and the colour draining
       post.uniforms.uFaint.value.set(need * HURT.lowBase + HEART.swell * HURT.lowPulse * (0.35 + 0.65 * need), need * HURT.lowDrain);
+      post.uniforms.uStone.value = g.reality.petrify; // turning to stone (the bar on the boss's HUD is the other half)
       if (k > 0.01) {
         const j = HURT.shake * k * FEEL.shake;
         camera.position.x += (Math.random() - 0.5) * j;

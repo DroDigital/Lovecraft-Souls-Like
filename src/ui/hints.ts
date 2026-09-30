@@ -1,12 +1,14 @@
 /**
  * Hints for a new investigator (playtest round 1): a line at the upper left the first time each
  * thing comes up — moving, where the story leads, a fight, a wound, a failing mind, an Elder Sign, dropped Echoes, the map,
- * a level within reach, a quest, a boss (and blind Azathoth), insight, a flask of oil bought, a grab, a hallucination — then never again (remembered in this browser, not in the save).
+ * a level within reach, a quest, a boss (and what each asks besides striking: blind Azathoth, Cthulhu's ship, the Dunwich Horror's powder, Ghatanothoa's stone, Shub-Niggurath's roots, Yog-Sothoth's spheres, a colossus's stoop; round 25), insight, a flask of oil bought, a grab, a hallucination — then never again (remembered in this browser, not in the save).
  * Round 14: a journey taken up again from a save first says where the story had led (the lead's line).
  */
 
+import type { Entity } from '../core/ecs';
 import { moveDef } from '../systems/actions';
 import type { Game } from '../systems/components';
+import { zonesOf } from '../systems/hurt';
 import { mainLead } from '../systems/lead';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { fill } from './glyphs';
@@ -27,6 +29,12 @@ const HINTS = {
   map: '{map} opens the map. Ground you have seen stays drawn on it.',
   quest: 'The pause menu ({pause}) has a Journal with what you have been asked to do.',
   boss: 'Watch the ground: a boss shows where its blows will land. Roll through rings and beams.',
+  stoop: 'A colossus stoops after each blow of its own: its head comes down within reach, and a strike there hurts it several times over. Stand before its face. The revolver ({shoot}) aims for a head it can reach.',
+  ship: "No blade finishes Cthulhu. Wound it until the Alert comes, then take her helm ({interact}) and drive her at it.",
+  powder: "The Dunwich Horror cannot be seen. Near it, {interact} scatters the Powder of Ibn Ghazi, three doses, and shows it for a while. At the last no blade finishes it: chant the incantation ({interact}) near it.",
+  cover: "Ghatanothoa's gaze turns flesh to stone: four seconds in its sight and you are lost, the colour draining and the picture cracking as it takes hold. Stand behind a monolith and it wears off.",
+  roots: 'While the spawning roots stand, Shub-Niggurath takes only a fifth of each blow, and they bring forth its young. Cut the roots down.',
+  spheres: 'The iridescent spheres are gates: touch one and you come out of the next, and now and then the whole arena leaps. Yog-Sothoth is struck where its own spheres rest.',
   blind: 'Azathoth cannot see you, and nothing you strike it with matters. It hears: running, rolling, swinging and shots carry far, walking less, and walking with {block} held or standing still not at all. Outlast the piping.',
   insight: 'Insight buys strength when you rest at an Elder Sign.',
   gun: '{shoot} fires the revolver: six rounds, and the spare ones you carry. {reload} loads it. It strikes hard up close and little from afar, and misses small things at range. Rounds lie in boxes about the dream and are sold by merchants.',
@@ -36,6 +44,15 @@ const HINTS = {
   phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum ({item}) or rest steadies it.',
 } as const;
 type HintId = keyof typeof HINTS;
+
+/** What a boss asks of the investigator besides striking (round 25: only Azathoth's was said before the fight). */
+const BOSS_HINTS: Readonly<Record<string, HintId>> = { azathoth: 'blind', cthulhu: 'ship', dunwich_horror: 'powder', ghatanothoa: 'cover', shub_niggurath: 'roots', yog_sothoth: 'spheres' };
+
+/** The hints that belong to a boss that has just been engaged: its own mechanic's, and the colossi's stooping. */
+export function bossHints(g: Game, boss: Entity): HintId[] {
+  const own = BOSS_HINTS[g.ecs.c.fight.get(boss)?.id ?? ''];
+  return [...(own ? [own] : []), ...(zonesOf(g, boss)?.some((z) => z.weak) ? (['stoop'] as const) : [])];
+}
 
 export interface Hints {
   update(): void;
@@ -78,7 +95,10 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   });
   g.events.on('RegionEntered', () => hint('map'));
   g.events.on('QuestChanged', () => hint('quest'));
-  g.events.on('BossEngaged', (e) => (hint('boss'), g.ecs.c.fight.get(e.entity)?.id === 'azathoth' && hint('blind')));
+  g.events.on('BossEngaged', (e) => {
+    hint('boss');
+    for (const id of bossHints(g, e.entity)) hint(id);
+  });
   g.events.on('InsightChanged', (e) => e.change > 0 && e.cause !== 'load' && hint('insight'));
   hint('move');
   hint('lead');
