@@ -58,7 +58,10 @@ export function movementSystem(g: Game, dt: number): void {
   separate(g);
 }
 
-/** Pushes overlapping bodies apart; fixed bodies never move. */
+/** What a body weighs in a shove (round 24): by its footprint, so a colossus is not pushed about at half the pace of the man who bumps it. */
+const mass = (radius: number): number => Math.max(radius, 0.3) ** 2;
+
+/** Pushes overlapping bodies apart, each by the share the other weighs; fixed bodies never move. */
 function separate(g: Game): void {
   const { transform, body } = g.ecs.c;
   const ids = [...body.keys()].filter((id) => !isAbsent(g, id) && transform.has(id));
@@ -75,7 +78,7 @@ function separate(g: Game): void {
       const push = ba.radius + bb.radius - d;
       if (push <= 0) continue;
       const [nx, nz] = d > 1e-6 ? [dx / d, dz / d] : [1, 0];
-      const wa = ba.fixed ? 0 : bb.fixed ? 1 : 0.5;
+      const wa = ba.fixed ? 0 : bb.fixed ? 1 : mass(bb.radius) / (mass(ba.radius) + mass(bb.radius)); // the share A gives way by
       pa.x -= nx * push * wa;
       pa.z -= nz * push * wa;
       pb.x += nx * push * (1 - wa);

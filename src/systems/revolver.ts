@@ -15,6 +15,7 @@ import { raycast } from '../world/colliders';
 import { moveDef } from './actions';
 import { capsuleGap2, strike, targetsOf } from './combat';
 import { isAbsent, type Game } from './components';
+import { weakSpot } from './hurt';
 import { falloff, scatterAt, shotDamage } from './gun';
 
 const AIMED = 0.8; // metres either side of the line a foe may stand and still be the one a shot is aimed at
@@ -25,7 +26,8 @@ function aimDir(g: Game, shooter: Entity, from: V3, yaw: number): V3 {
   const p = target === null ? undefined : g.ecs.c.transform.get(target)?.pos;
   const body = target === null ? undefined : g.ecs.c.body.get(target);
   if (p && body) {
-    const d = { x: p.x - from.x, y: p.y + body.aimHeight - from.y, z: p.z - from.z };
+    const weak = target === null ? null : weakSpot(g, target); // a colossus's head, where it can be reached (hurt.ts)
+    const d = weak ? { x: weak.x - from.x, y: weak.y - from.y, z: weak.z - from.z } : { x: p.x - from.x, y: p.y + body.aimHeight - from.y, z: p.z - from.z };
     const len = Math.hypot(d.x, d.y, d.z);
     if (len > 1e-6) return { x: d.x / len, y: d.y / len, z: d.z / len };
   }
@@ -38,10 +40,10 @@ function firstHit(g: Game, shooter: Entity, from: V3, dir: V3, range: number, sl
   let along = raycast(g.world, from, to); // walls stop the bullet
   let target: Entity | null = null;
   for (const t of targetsOf(g, shooter)) {
-    const { gap2, radius } = capsuleGap2(g, t, from, to);
+    const { gap2, radius, edge } = capsuleGap2(g, t, from, to, COMBAT.shotRadius + slack);
     if (gap2 > (radius + COMBAT.shotRadius + slack) ** 2) continue;
     const p = g.ecs.c.transform.get(t)!.pos;
-    const at = ((p.x - from.x) * dir.x + (p.z - from.z) * dir.z - radius) / range; // to its near side, not its middle (round 24: a colossus's whole width was counted in the range)
+    const at = ((p.x - from.x) * dir.x + (p.z - from.z) * dir.z - edge) / range; // to its near side, not its middle (round 24: a colossus's whole width was counted in the range)
     if (at < along) {
       along = Math.max(0, at);
       target = t;

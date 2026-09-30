@@ -5,6 +5,7 @@
 
 import { brainOf, type BrainDef } from './archetypes';
 import { REACTIONS, type MoveSet } from './moves';
+import type { AssemblyRecipe } from './schema';
 
 export interface CombatantDef {
   name: string;
@@ -18,6 +19,7 @@ export interface CombatantDef {
   bounty: number; // Echoes for the kill
   immortal?: boolean; // hp never drops below 1 and refills when left alone
   fixed?: boolean; // never moves or gets pushed
+  assembly?: AssemblyRecipe; // a colossus's shape: what its hurt zones follow (round 24)
   brain?: BrainDef;
   moves: MoveSet;
 }

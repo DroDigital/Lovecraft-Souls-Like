@@ -137,6 +137,7 @@ export interface MoveDef {
   barrage?: BarrageDef;
   pull?: { window: Window; speed: number; range: number }; // draws hostiles in range toward the attacker (m/s)
   then?: string; // a creature's chain: the move it runs straight into as this one ends
+  open?: number; // from this frame a colossus recovers, stooped, its head down within a blade's reach (hurt.ts; round 24)
 }
 
 /** Distinct swings, so a chain of blows never looks the same twice. */

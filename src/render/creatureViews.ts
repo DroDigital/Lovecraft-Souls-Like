@@ -18,6 +18,7 @@ import { FEEDBACK, LIGHT, SIM } from '../data/tuning';
 import { moveDef } from '../systems/actions';
 import { isAbsent, isUnseen, type Game } from '../systems/components';
 import { MODEL_PREFIX, resolveCreature } from '../systems/creatures';
+import { stooped } from '../systems/hurt';
 import { strikeFrame } from '../systems/realityTricks';
 import { buildAssembly, type Assembly } from './assemblies';
 import { beyond, ECHOES, WRONGNESS } from './eldritch';
@@ -119,8 +120,9 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
     if (gain > 0.01) glows.put(px, py, pz, LIGHT.eyeGlow.radius + (atlas.eyes[k + 2] / CELL) * size, rgb, gain);
   };
 
-  const assemblies = new Map<Entity, Assembly & { model: string; echoes: Assembly[] }>();
-  const drop = (asm: Assembly & { echoes: Assembly[] }): void => void scene.remove(asm.root, ...asm.echoes.map((e) => e.root));
+  const STOOP_LEAN = 1.5; // how far a stooped colossus bends (assemblies.ts tips the body a quarter of it, in radians)
+  const assemblies = new Map<Entity, Assembly & { model: string; echoes: Assembly[]; lean: number }>();
+  const drop = (asm: Assembly & { echoes: Assembly[]; lean: number }): void => void scene.remove(asm.root, ...asm.echoes.map((e) => e.root));
   const hitAt = new Map<Entity, number>();
   g.events.on('Hit', (e) => void (e.outcome !== 'dodged' && hitAt.set(e.target, g.frame / SIM.hz)));
   const m4 = new THREE.Matrix4();
@@ -158,14 +160,15 @@ export function createCreatureViews(scene: THREE.Scene, g: Game, atlas: SpriteAt
             if (asm) drop(asm);
             const w = WRONGNESS[def.tier];
             const echoes = beyond(w) ? ECHOES.map((e) => ghost(buildAssembly(def.assembly!, id, w), e.ghost)) : [];
-            assemblies.set(id, (asm = { ...buildAssembly(def.assembly, id, w), model, echoes }));
+            assemblies.set(id, (asm = { ...buildAssembly(def.assembly, id, w), model, echoes, lean: 0 }));
           }
           if (!asm.root.parent) scene.add(asm.root, ...asm.echoes.map((e) => e.root));
           for (const r of [asm.root, ...asm.echoes.map((e) => e.root)]) r.visible = look !== null;
           if (!look) continue;
           const h = def.assembly.scale;
           const yaw = tr.prevYaw + wrapAngle(tr.yaw - tr.prevYaw) * alpha;
-          const lean = look.state === 'attack' ? look.lash : look.state === 'hurt' ? -0.3 : 0;
+          const aim = stooped(g, id) ? STOOP_LEAN : look.state === 'attack' ? look.lash : look.state === 'hurt' ? -0.3 : 0; // a colossus stooped after its blow bends to its prey (hurt.ts)
+          const lean = (asm.lean += (aim - asm.lean) * 0.25);
           asm.root.position.set(x, y - look.sink * h * 0.6, z);
           asm.root.rotation.y = yaw;
           asm.animate(time, look.lash, lean);

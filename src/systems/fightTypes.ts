@@ -28,6 +28,7 @@ export interface Fight {
   decoyIn: number; // frames to its next decoy
   sig: Record<string, number>; // its signature mechanic's counters
   form: string; // the model its brain was built for: a variant swap rebuilds it
+  stoopUntil: number; // a colossus is stooped, its head within reach, until this frame (hurt.ts; round 24)
 }
 
 /** What a boss's arena change puts up (spec §3E): its colliders stand in the world while it does. */
@@ -119,4 +120,5 @@ export const newFight = (id: string, script: BossScript, arena: ArenaCircle): Fi
   decoyIn: 0,
   sig: {},
   form: '',
+  stoopUntil: 0,
 });
