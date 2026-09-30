@@ -66,6 +66,10 @@ export function gradeTint(l: number): Rgb {
   return mixRgb(COLD_TINT, WARM_TINT, t * t * (3 - 2 * t));
 }
 
+/** The mist's greys (round 23), a cool neutral: the graded ramp turns everything of a mist's brightness sepia, and the mist was never grey. Normalised to luma 1. */
+export const MIST_TINT: Rgb = unitLuma([0.97, 1, 1.03]);
+const MIST_LEVELS = [0.055, 0.085, 0.12, 0.16, 0.21, 0.28] as const;
+
 /** Hues of the three anomaly colours, for colour isolation. */
 export const ANOMALY_HUES: Rgb = [
   rgbToHsv(ANOMALY.magenta)[0],
@@ -73,7 +77,7 @@ export const ANOMALY_HUES: Rgb = [
   rgbToHsv(ANOMALY.green)[0],
 ];
 
-/** Quantisation palette (at most 64 colours): the graded ramp (cold darks to warm lights), sea-grey, rust, anomaly ramps. */
+/** Quantisation palette (at most 64 colours): the graded ramp (cold darks to warm lights), sea-grey, rust, anomaly ramps, and the mist's greys. */
 export function buildPalette(): Rgb[] {
   const out: Rgb[] = [];
   for (let i = 0; i < 24; i++) {
@@ -90,6 +94,7 @@ export function buildPalette(): Rgb[] {
     out.push(scaleRgb(a, 0.25), scaleRgb(a, 0.5), scaleRgb(a, 0.75), a);
     out.push(mixRgb(a, WHITE, 0.35), mixRgb(a, WHITE, 0.65));
   }
+  for (const l of MIST_LEVELS) out.push(scaleRgb(MIST_TINT, l));
   return out;
 }
 

@@ -1,10 +1,13 @@
 /**
  * Volumetric fog (playtest round 16), a chunk of the post pass: each pixel's ray is marched from the
- * lens to what it struck (the scene's depth) or FOG.far metres, through a mist that pools about the
- * investigator's ground and thins with height, gathered in drifts of slow noise carried by the wind.
- * The mist carries the moon's grey; the world's own lights, the lantern and the nearest lamps, glow
- * in it, each in closed form along the whole ray (a few samples would miss a lamp's halo). The march's
- * start is jittered by the picture's own ordered dither, which hides the steps.
+ * lens to what it struck (the scene's depth) or FOG.far metres, through a low mist that pools about the
+ * investigator's ground and clears above it, gathered in drifts of slow noise carried by the wind, and
+ * a thin haze that reaches the lamps' height. Round 23: the mist is grey, with a hint of its realm,
+ * brighter in the moon's quarter of the sky (as the sky's own haze is), and low, so the sky and the
+ * upper parts of things keep their dark; the picture was washed all over in an olive haze before. The
+ * world's own lights, the lantern and the nearest lamps, glow in it, each in closed form along the
+ * whole ray (a few samples would miss a lamp's halo). The march's start is jittered by the picture's
+ * own ordered dither, which hides the steps.
  */
 
 import { LAMP_SLOTS } from './world';
@@ -14,10 +17,14 @@ uniform sampler2D tDepth;
 uniform mat4 uProjInv;
 uniform mat4 uCamWorld;
 uniform vec3 uCamPos;
-uniform vec4 uFog; // density per metre at the ground (0: none), metres it thins over, the ground's height, patchiness
-uniform vec3 uFogColor; // the mist's own moonlit tint
+uniform vec4 uFog; // the low mist: density per metre at the ground (0: none), metres it thins over, the ground's height, patchiness
+uniform vec4 uFogAir; // the thin haze: density per metre, metres it thins over; how much brighter the mist is in the moon's quarter (0..1)
+uniform vec3 uFogColor; // the mist's own tint
+uniform vec3 uMoonDir; // toward the moon
 uniform vec3 uFogDrift; // how far the wind has carried it (x, z metres), and time
 uniform float uFogFar; // metres the march reaches
+uniform vec2 uFogStart; // metres from the lens where the mist begins to gather, and where it is whole: the ground about the investigator stays crisp
+uniform float uFogLantern; // how strongly the investigator's own lantern shines in it (the lamps' is uFogGlow)
 uniform float uFogGlow; // how strongly the lights shine in it
 uniform vec3 uLanternPos;
 uniform vec3 uLanternColor;
@@ -43,10 +50,20 @@ float fogNoise(vec3 p) {
 }
 
 float fogDensity(vec3 p) {
-  float h = exp(-max(p.y - uFog.z, 0.0) / uFog.y);
-  vec3 q = (p - vec3(uFogDrift.x, 0.0, uFogDrift.y)) * 0.085 + vec3(0.0, uFogDrift.z * 0.015, 0.0);
-  float n = fogNoise(q) * 0.62 + fogNoise(q * 2.6 + 7.3) * 0.38;
-  return uFog.x * h * mix(1.0, smoothstep(0.28, 0.78, n) * 1.8, uFog.w);
+  float up = max(p.y - uFog.z, 0.0);
+  float low = uFog.x * exp(-up / uFog.y);
+  if (low > 1e-4) {
+    vec3 q = (p - vec3(uFogDrift.x, 0.0, uFogDrift.y)) * 0.085 + vec3(0.0, uFogDrift.z * 0.015, 0.0);
+    float n = fogNoise(q) * 0.62 + fogNoise(q * 2.6 + 7.3) * 0.38;
+    low *= mix(1.0, smoothstep(0.28, 0.78, n) * 1.8, uFog.w);
+  }
+  return low + uFogAir.x * exp(-up / uFogAir.y);
+}
+
+// The mist's own light toward a direction: its tint, and more of it in the moon's quarter, less in the far one.
+vec3 fogTint(vec3 dir) {
+  float side = 0.5 + 0.5 * dot(normalize(dir.xz + vec2(1e-4)), normalize(uMoonDir.xz + vec2(1e-4)));
+  return uFogColor * mix(1.0, 0.75 + 0.65 * side * side, uFogAir.z);
 }
 
 // The glow a light at c (colour col, reach range) casts into the mist along the ray o + d·t, t in
@@ -64,8 +81,9 @@ vec3 glowAlong(vec3 o, vec3 d, float len, vec3 c, vec3 col, float range, float k
   float q = sqrt(k / a);
   float along = (atan(s1 * q) - atan(s0 * q)) / sqrt(k * a);
   vec3 near = o + d * clamp(t0, 0.0, len);
-  float thick = uFog.x * exp(-max(near.y - uFog.z, 0.0) / uFog.y);
-  return col * along * thick * (1.0 - h2 / (range * range)) * exp(-uFog.x * 0.6 * clamp(t0, 0.0, len));
+  float up = max(near.y - uFog.z, 0.0);
+  float thick = uFog.x * exp(-up / uFog.y) + uFogAir.x * exp(-up / uFogAir.y);
+  return col * along * thick * (1.0 - h2 / (range * range)) * exp(-(uFogAir.x + uFog.x * 0.2) * 0.6 * clamp(t0, 0.0, len));
 }
 
 // rgb: the light the mist adds along the ray; a: the share of what lies behind that shows through.
@@ -79,18 +97,19 @@ vec4 fogAlong(vec2 uv, float jitter) {
   float stepLen = reach / float(FOG_STEPS);
   float t = stepLen * jitter;
   float through = 1.0;
+  vec3 tint = fogTint(dir);
   vec3 light = vec3(0.0);
   for (int i = 0; i < FOG_STEPS; i++) {
-    float s = fogDensity(uCamPos + dir * t);
+    float s = fogDensity(uCamPos + dir * t) * smoothstep(uFogStart.x, uFogStart.y, t);
     if (s > 1e-4) {
       float keep = exp(-s * stepLen);
-      light += through * (1.0 - keep) * uFogColor; // the moonlit mist
+      light += through * (1.0 - keep) * tint; // the mist's own light
       through *= keep;
     }
     t += stepLen;
   }
   float k = uLanternDecay * 2.0;
-  light += glowAlong(uCamPos, dir, len, uLanternPos, uLanternColor * uFogGlow, uLanternRange * 1.2, k);
+  light += glowAlong(uCamPos, dir, len, uLanternPos, uLanternColor * uFogLantern, uLanternRange * 1.2, k);
   for (int i = 0; i < ${LAMP_SLOTS}; i++) {
     vec4 l = uLamps[i];
     if (l.w > 0.0) light += glowAlong(uCamPos, dir, len, l.xyz, uLampColors[i] * uFogGlow, l.w, k);

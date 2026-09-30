@@ -32,6 +32,7 @@ const HINTS = {
   gun: '{shoot} fires the revolver: six rounds, and the spare ones you carry. {reload} loads it. It strikes hard up close and little from afar, and misses small things at range. Rounds lie in boxes about the dream and are sold by merchants.',
   oil: '{throw} throws a flask of lamp oil; it bursts and burns where it lands. Lock on first to throw it at a foe.',
   grab: 'A crimson flare means a grab: no guard stops it. Roll away ({dodge}).',
+  unmoored: 'Unmoored: you strike weaker and are struck harder, your breath comes back slower, and the body wears away a little. Laudanum ({item}), a lamp or a fire, or rest brings the mind back.',
   phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum ({item}) or rest steadies it.',
 } as const;
 type HintId = keyof typeof HINTS;
@@ -67,7 +68,7 @@ export function createHints(g: Game, root: HTMLElement): Hints {
   });
   g.events.on('Shot', (e) => e.shooter === g.player.id && hint('gun'));
   g.events.on('DryFire', () => hint('gun'));
-  g.events.on('SanityBandChanged', () => hint('mind'));
+  g.events.on('SanityBandChanged', (e) => (hint('mind'), e.to === 'unmoored' && hint('unmoored')));
   g.events.on('Vanished', (e) => e.struck && hint('phantom'));
   g.events.on('Discovered', () => hint('sign'));
   g.events.on('Echoes', (e) => {

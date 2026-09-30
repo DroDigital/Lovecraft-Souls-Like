@@ -67,7 +67,7 @@ export function loseSanity(g: Pick<Game, 'mind' | 'events'>, amount: number): vo
 
 export const restoreSanity = (g: Pick<Game, 'mind' | 'events'>, amount: number): void => setSanity(g, g.mind.sanity + amount);
 
-/** A failing mind hits harder and is hit harder (spec §3A): the multiplier on a blow from `attacker` to `target`. */
+/** A failing mind hits harder and is hit harder (spec §3A), until it is Unmoored and hits weaker (round 23): the multiplier on a blow from `attacker` to `target`. */
 export function damageScale(g: Pick<Game, 'mind' | 'player'>, attacker: Entity, target: Entity): number {
   const i = bandIndex(g.mind.band);
   return (attacker === g.player.id ? SANITY.dealt[i] : 1) * (target === g.player.id ? SANITY.taken[i] : 1);
@@ -124,6 +124,13 @@ export function mendRate(g: Game): number {
   return SANITY.mend.rate + (SANITY.mend.lit - SANITY.mend.rate) * lit;
 }
 
+/** Unmoored, the body wears away as well (round 23): a little of full health a second, never to death, and none while a shot of Reagent holds the body. */
+export function bleed(g: Game, dt: number): void {
+  const h = g.ecs.c.health.get(g.player.id);
+  if (!h || g.mind.band !== 'unmoored' || h.hp <= 1 || g.player.mended > 0) return; // (a fallen body, at 0, has nothing to lose)
+  h.hp = Math.max(1, h.hp - h.max * SANITY.unmoored.bleed * dt);
+}
+
 /**
  * One step: drains, or (with nothing pressing on the mind) mends, and a swallow of Laudanum on its move's `item` frame. The swallow also steadies
  * the mind for LAUDANUM.steady seconds: auras, roars and gazes take nothing while it holds (playtest
@@ -135,6 +142,7 @@ export function sanitySystem(g: Game, dt: number): void {
   else loseSanity(g, (loss = drain(g, dt)));
   g.mind.mending = loss > 0 ? 0 : mendRate(g);
   if (g.mind.mending > 0) restoreSanity(g, g.mind.mending * dt);
+  bleed(g, dt);
   const a = g.ecs.c.actor.get(g.player.id)!;
   const def = moveDef(a);
   if (a.frozen || a.frame !== def?.item || (def.use ?? 'laudanum') !== 'laudanum') return;

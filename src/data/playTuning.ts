@@ -33,6 +33,7 @@ export const AUDIO = {
   eventRange: 40, // the range of event stingers (blows, shots) away from the investigator
   callGap: 2.5, // a creature calls at most this often, even when it turns on the investigator
   pan: 0.8, // the widest stereo placement
+  muffle: [16000, 2400] as readonly [number, number], // near death the world's sound dulls: the low-pass on it (Hz), at the line and at death's door (the heart itself is low, and stays)
   whisper: { from: 0.6, every: [22, 9] as readonly [number, number], gain: [0.22, 0.45] as readonly [number, number] }, // a failing mind hears a whisper at one ear (round 22): from this stress on, every so many seconds (the slow end at that stress, the quick at madness), this loud; nothing else is added to the sound
 };
 
@@ -211,8 +212,12 @@ export const REAGENT = {
 /** Volumetric fog (round 16; render/volumetricFog.ts, the regions' mists in data/fogs.ts). */
 export const FOG = {
   steps: 10, // samples along each pixel's ray (their start dithered, as the picture is)
-  far: 48, // metres the march reaches; the far fog (FX.fogFar) takes over past it
-  glow: 0.55, // how strongly the lantern and the lamps shine in the mist
+  far: 56, // metres the march reaches; the far fog (FX.fogFar) takes over past it
+  hazeHeight: 9, // metres over which the thin haze (FogDef.haze) thins to a third: the lamps' height and above (round 23)
+  glow: 1, // how strongly the lamps shine in the mist (round 23: the mist is lower, so they meet less of it)...
+  lantern: 0.35, // ...and the investigator's own lantern, that is in the low mist itself, and would wash the stones about them
+  start: 5, // metres from the lens where the mist begins to gather...
+  full: 24, // ...and where it is whole: the ground about the investigator, where a fight is, keeps its contrast (round 23)
   madness: 0.6, // a failing mind thickens it: this much more at full stress
   ease: 0.5, // share a second by which it turns to a new place's mist
 };
@@ -223,9 +228,13 @@ export const HURT = {
   shake: 0.07, // metres the camera jitters at full strength
   chipDelay: 0.6, // seconds before the lost health drains away from the bar
   chipRate: 45, // percent of the bar per second
-  low: 0.3, // below this share of health the heart is heard and the edge pulses red (round 14)...
-  lowPulse: 0.6, // ...this strong at each beat...
-  beats: [1, 1.45] as const, // ...beating this often a second, and faster below half of it
+  low: 0.3, // below this share of health the heart is heard, and the edge of the picture stays a dark red that swells with it (round 14; round 23: it was a flash, and rarely seen)...
+  beats: [0.95, 1.6] as const, // ...beating this often a second at that line and at death's door, quickening between (round 23: it was 1, then 1.45 below half of it)...
+  dub: 0.26, // ...a second, softer stroke this long after each (the sound's own gap, data/sounds.ts), each fading over...
+  fade: 0.14, // ...this long...
+  lowBase: 0.16, // ...the red that stays about the edge at death's door...
+  lowPulse: 0.34, // ...how much it swells at a full stroke (less nearer the line)...
+  lowDrain: 0.3, // ...and the share of its colour the picture has lost by then
 };
 
 /** How a loss of sanity reads on its bar (ui/mindHud.ts), as a wound does on health's. */

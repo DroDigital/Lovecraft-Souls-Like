@@ -3,9 +3,9 @@
  * per-effect parameters out. Every effect intensifies as sanity falls (spec §2, Phase 0), and so
  * does the audio's detune and distortion (the FX controller's audio half, spec §3A), but for the
  * low resolution and its vertex snap, which hold (playtest round 7: madness warps, it does not
- * coarsen the pixels). Round 22: the warping stops growing at FX.warpCap of the stress (the picture
- * stayed torn all the way to madness); what a failing mind does past it is dread's: the edges of sight
- * darken and blur, pale eyes open in the dark there, and the stars go wrong.
+ * coarsen the pixels). Round 22: the warping slows past FX.warpCap of the stress (the picture stayed
+ * torn all the way to madness: `warpOf`); what a failing mind does besides is dread's: the edges of
+ * sight lose their focus and the stars go wrong (round 23: no darkened edges and no eyes).
  */
 
 import { FX, RENDER, type Ramp } from '../data/tuning';
@@ -49,9 +49,7 @@ export interface FxParams {
   ripple: number;
   chroma: number;
   displace: number;
-  tunnel: number; // 0..1: how far the edges of sight close in and dim
   blur: number; // low-res pixels the edges blur by
-  watch: number; // 0..1: how many pale eyes open at the edge of sight
   strange: number; // 0..1: how wrong the stars are
   fovBreatheDeg: number;
   skew: number;
@@ -71,7 +69,7 @@ export const EFFECT_PARAMS: Record<EffectId, readonly (keyof FxParams)[]> = {
   warp: ['ripple', 'chroma'],
   displace: ['displace'],
   lens: ['fovBreatheDeg', 'skew'],
-  dread: ['tunnel', 'blur', 'watch', 'strange'],
+  dread: ['blur', 'strange'],
 };
 
 /** The effects that hold at every sanity. */
@@ -93,9 +91,12 @@ export function sanityStress(sanity: number, cap: number): number {
   return Math.min(clamp01(1 - sanity / 100), clamp01(cap));
 }
 
+/** How much the picture warps at `stress`: in step with it up to FX.warpCap, past it only FX.warpSlope as fast (round 23). */
+export const warpOf = (stress: number): number => Math.min(stress, FX.warpCap) + Math.max(0, stress - FX.warpCap) * FX.warpSlope;
+
 export function computeFx(s: FxState): FxParams {
   const t = sanityStress(s.sanity, s.cap);
-  const w = Math.min(t, FX.warpCap); // the picture warps no further past this
+  const w = warpOf(t);
   const on = s.enabled;
   const pulse = clamp01(s.pulse ?? 0) * clamp01(s.cap);
   return {
@@ -115,10 +116,8 @@ export function computeFx(s: FxState): FxParams {
     ripple: on.warp ? at(FX.ripple, w) + FX.pulseRipple * pulse : 0,
     chroma: on.warp ? at(FX.chroma, w) + FX.pulseChroma * pulse : 0,
     displace: on.displace ? at(FX.displace, w) : 0,
-    tunnel: on.dread ? at(FX.tunnel, smooth(FX.tunnelFrom, 1, t)) : 0,
-    blur: on.dread ? at(FX.blur, smooth(FX.tunnelFrom, 1, t)) : 0,
-    watch: on.dread ? clamp01((t - FX.watchFrom) / (1 - FX.watchFrom)) : 0,
-    strange: on.dread ? at(FX.strange, smooth(FX.tunnelFrom, 1, t)) : 0,
+    blur: on.dread ? at(FX.blur, smooth(FX.dreadFrom, 1, t)) : 0,
+    strange: on.dread ? at(FX.strange, smooth(FX.dreadFrom, 1, t)) : 0,
     fovBreatheDeg: on.lens ? at(FX.fovBreatheDeg, w) : 0,
     skew: on.lens ? at(FX.skew, w) : 0,
     detune: at(FX.detune, t),

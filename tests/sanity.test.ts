@@ -200,18 +200,23 @@ describe('sudden losses', () => {
 });
 
 describe('what sanity does, and what restores it', () => {
-  it('a failing mind deals and takes more damage', () => {
+  it('a failing mind deals and takes more damage, until it is Unmoored: then it deals less, and takes more still', () => {
     const { g, player, deepOne } = scriptedGame();
     const hp = (id: Entity): number => g.ecs.c.health.get(id)!.hp;
     strike(g, player, deepOne, blow(20));
     expect(DEEP_ONE.hp - hp(deepOne)).toBe(20);
-    setSanity(g, 10);
-    const foe = hp(deepOne);
-    strike(g, player, deepOne, blow(20));
-    expect(foe - hp(deepOne)).toBe(Math.round(20 * SANITY.dealt[3]));
-    const me = hp(player);
-    strike(g, deepOne, player, blow(20));
-    expect(me - hp(player)).toBe(Math.round(20 * SANITY.taken[3]));
+    for (const [sanity, band] of [[30, 2], [10, 3]] as const) {
+      setSanity(g, sanity);
+      const foe = hp(deepOne);
+      strike(g, player, deepOne, blow(20));
+      expect(foe - hp(deepOne), `dealt at ${sanity}`).toBe(Math.round(20 * SANITY.dealt[band]));
+      const me = hp(player);
+      strike(g, deepOne, player, blow(20));
+      expect(me - hp(player), `taken at ${sanity}`).toBe(Math.round(20 * SANITY.taken[band]));
+    }
+    expect(SANITY.dealt[2]).toBeGreaterThan(1); // (round 23) the fractured still have the strength of the desperate...
+    expect(SANITY.dealt[3]).toBeLessThan(1); // ...and the Unmoored none
+    expect(SANITY.taken[3]).toBeGreaterThan(1);
   });
 
   it('a dose of Laudanum restores sanity on its item frame; with none left nothing happens', () => {
@@ -366,6 +371,65 @@ describe('the mind mends by itself, apart from a fight (round 22)', () => {
     expect(log.map(([from, to]) => [from, to])).toEqual([['fractured', 'uneasy'], ['uneasy', 'lucid']]);
     expect(log[0][2]).toBeGreaterThanOrEqual(SANITY.bands[1] + SANITY.hysteresis); // not at the floor: three points past it
     expect(log[1][2]).toBeGreaterThanOrEqual(SANITY.bands[0] + SANITY.hysteresis);
+  });
+});
+
+describe('Unmoored (round 23): the body suffers with the mind, a little', () => {
+  const seconds = (g: Game, n: number): void => steps(g, Math.round(n * SIM.hz));
+  /** A game with the mind at `sanity`, held there: far from the foe's aura, and in a fight as far as mending goes. */
+  function held(sanity: number) {
+    const s = scriptedGame();
+    place(s.g, s.player, 0, 20, Math.PI);
+    place(s.g, s.deepOne, 0, -15, 0);
+    s.g.mind.fought = Infinity;
+    setSanity(s.g, sanity);
+    return s;
+  }
+
+  it('gets its stamina back at a share of the pace, and only in the fourth band', () => {
+    const regained = (sanity: number): number => {
+      const { g, player } = held(sanity);
+      const st = g.ecs.c.stamina.get(player)!;
+      [st.value, st.delay] = [0, 0];
+      seconds(g, 2);
+      return st.value;
+    };
+    const whole = regained(100);
+    expect(whole).toBeGreaterThan(0);
+    expect(regained(30)).toBeCloseTo(whole, 6); // fractured
+    expect(regained(5)).toBeCloseTo(whole * SANITY.unmoored.stamina, 6);
+    expect(SANITY.unmoored.stamina).toBeLessThan(1);
+  });
+
+  it('wears the body away by a little of full health a second, and nothing in the bands above', () => {
+    const lost = (sanity: number): number => {
+      const { g, player } = held(sanity);
+      const h = g.ecs.c.health.get(player)!;
+      seconds(g, 10);
+      return h.max - h.hp;
+    };
+    expect(lost(100)).toBe(0);
+    expect(lost(30)).toBe(0);
+    const { g, player } = held(5);
+    expect(lost(5)).toBeCloseTo(g.ecs.c.health.get(player)!.max * SANITY.unmoored.bleed * 10, 3);
+    expect(SANITY.unmoored.bleed).toBeLessThan(0.005); // (it is a wearing, not a wound: under a whole life in three minutes)
+  });
+
+  it('never wears it to death, and a shot of Reagent holds it off', () => {
+    const { g, player } = held(5);
+    const h = g.ecs.c.health.get(player)!;
+    h.hp = 1.2;
+    seconds(g, 20);
+    expect(h.hp).toBe(1);
+    h.hp = 100;
+    g.player.mended = SIM.hz * 3;
+    seconds(g, 2);
+    expect(h.hp).toBe(100);
+    seconds(g, 2); // (the hold runs out a second in)
+    expect(h.hp).toBeLessThan(100);
+    h.hp = 0; // fallen
+    seconds(g, 2);
+    expect(h.hp).toBe(0);
   });
 });
 

@@ -70,7 +70,7 @@ The look is Doom's billboarded sprites plus PS1-era low-poly worlds, with a thir
   - being near an entity with a `sanityAura`
   - specific attacks
   - the first sight of any greater-tier or higher entity
-- Sanity is restored at checkpoints and by consumables. Low sanity raises both damage dealt and damage taken.
+- Sanity is restored at checkpoints and by consumables, and (round 22) mends by itself away from a fight, faster by lamplight. Falling sanity raises both damage dealt and damage taken, until the mind is Unmoored (round 23): then the body suffers, with weaker blows, more damage taken, slower stamina and a slow bleed that never kills.
 - Insight is gained from the first sight of named or boss entities, and from tomes. It can be spent on upgrades, but spending it re-hides whatever it revealed.
 - World hooks are components that listen to the event bus:
   1. `HiddenLayer {minInsight?, maxSanity?}`: eldritch geometry, bridges, and doors that exist only for the enlightened.
