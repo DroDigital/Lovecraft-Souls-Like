@@ -1,5 +1,5 @@
 /**
- * Debug overlay: sanity and FX-cap sliders, effect toggles on keys 1–9, H hides it, plus the page's
+ * Debug overlay: sanity and FX-cap sliders, effect toggles on keys 1–0, H hides it, plus the page's
  * control hints. In the arena the sanity slider drives (and follows) the game's sanity, and the
  * panel adds an insight slider and buttons that spend insight on upgrades.
  */
@@ -16,6 +16,7 @@ const LABELS: Record<EffectId, string> = {
   warp: 'sanity warp (ripple, split)',
   displace: 'vertex displacement',
   lens: 'FOV breathing + skew',
+  dread: 'dread (tunnel, watchers, wrong stars)',
 };
 
 export interface DebugPanel {
@@ -106,16 +107,16 @@ export function createDebugPanel(state: FxState, hints: readonly string[], opts:
   });
   const paint = (): void =>
     EFFECTS.forEach((id, i) => {
-      rows[i].textContent = `${i + 1} ${state.enabled[id] ? '■' : '□'} ${LABELS[id]}`;
+      rows[i].textContent = `${(i + 1) % 10} ${state.enabled[id] ? '■' : '□'} ${LABELS[id]}`;
       rows[i].style.opacity = state.enabled[id] ? '1' : '0.5';
     });
   paint();
   const stats = div('opacity:.7;white-space:pre-line');
-  root.append(...rows, stats, ...['1–9 toggle · H hide', ...hints].map((h) => div('opacity:.5', h)));
+  root.append(...rows, stats, ...['1–0 toggle · H hide', ...hints].map((h) => div('opacity:.5', h)));
   document.body.append(root);
 
   addEventListener('keydown', (e) => {
-    const i = e.key.length === 1 ? '123456789'.indexOf(e.key) : -1;
+    const i = e.key.length === 1 ? '1234567890'.indexOf(e.key) : -1;
     if (i >= 0 && i < EFFECTS.length) toggle(EFFECTS[i]);
     else if (e.key === 'h' || e.key === 'H') root.hidden = !root.hidden;
   });

@@ -33,6 +33,7 @@ export const AUDIO = {
   eventRange: 40, // the range of event stingers (blows, shots) away from the investigator
   callGap: 2.5, // a creature calls at most this often, even when it turns on the investigator
   pan: 0.8, // the widest stereo placement
+  whisper: { from: 0.6, every: [22, 9] as readonly [number, number], gain: [0.22, 0.45] as readonly [number, number] }, // a failing mind hears a whisper at one ear (round 22): from this stress on, every so many seconds (the slow end at that stress, the quick at madness), this loud; nothing else is added to the sound
 };
 
 /** The title's theme (render/audio/music.ts; playtest rounds 5 and 6). Times in seconds. */

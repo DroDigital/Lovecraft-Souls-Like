@@ -26,6 +26,7 @@ uniform float uStars; // density
 uniform float uClouds; // cover
 uniform float uHaze; // the horizon's moonlit glow
 uniform float uOpen; // 0 under a roof or in a dungeon: the fog's colour alone
+uniform float uWrong; // 0..1: a failing mind's stars, which crawl, crowd and flicker
 
 float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -62,11 +63,14 @@ void main() {
   vec2 cp = d.xz / (rise + 0.12) * 0.9 + vec2(uTime * 0.006, uTime * 0.0025);
   float cloud = smoothstep(0.42, 0.78, fbm(cp)) * uClouds * lift;
 
-  vec3 cell = floor(d * 230.0);
+  float turn = uTime * 0.035 * uWrong; // the stars crawl about the sky, and are not where they were
+  vec3 sd = vec3(d.x * cos(turn) - d.z * sin(turn), d.y, d.x * sin(turn) + d.z * cos(turn));
+  vec3 cell = floor(sd * 230.0);
   float s = hash(cell);
-  float star = step(1.0 - 0.006 * uStars, s) * (0.35 + 0.65 * hash(cell + 3.1));
-  float twinkle = 0.6 + 0.4 * sin(uTime * (1.3 + 2.5 * hash(cell + 7.7)) + s * 60.0);
-  col += vec3(0.78, 0.8, 0.82) * star * twinkle * lift * (1.0 - cloud);
+  float star = step(1.0 - 0.006 * uStars * (1.0 + 2.2 * uWrong), s) * (0.35 + 0.65 * hash(cell + 3.1));
+  float twinkle = 0.6 + 0.4 * sin(uTime * (1.3 + 2.5 * hash(cell + 7.7) + 4.0 * uWrong) + s * 60.0);
+  vec3 starColor = mix(vec3(0.78, 0.8, 0.82), vec3(0.86, 0.7, 0.95), step(0.85, hash(cell + 9.3)) * uWrong); // and some are the wrong colour
+  col += starColor * star * twinkle * lift * (1.0 - cloud);
 
   float a = acos(clamp(dot(d, m), -1.0, 1.0));
   if (uMoon > 0.0) {

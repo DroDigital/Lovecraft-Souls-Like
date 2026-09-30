@@ -20,7 +20,7 @@ const HINTS = {
   lead: 'The ◇ on the minimap marks where the story leads. The Journal ({pause}) says what to do there.',
   fight: '{light} strikes ({heavy}: a heavy blow). {block} blocks, and calls off a swing that has not landed; {parry} parries. {lock} locks on.',
   hurt: "{heal} injects West's Reagent and closes wounds. Its doses come back when you rest.",
-  mind: '{item} takes a swallow of Laudanum and steadies the mind.',
+  mind: '{item} takes a swallow of Laudanum and steadies the mind. Away from a fight it mends by itself (▲), faster by lamplight and firelight (▲▲); the Elder Signs, Echoes and your own lantern do not count.',
   sign: 'Rest at an Elder Sign with {interact}. You rise at the last one you rested at, and the creatures you killed come back.',
   echoes: 'You dropped your Echoes where you fell. Reach the spot again to take them back.',
   level: 'You carry Echoes enough for a level (▲). Rest at an Elder Sign to grow stronger, before you fall and drop them.',

@@ -228,6 +228,7 @@ describe('the cylinder holds six, and rounds are spent (round 22)', () => {
     const g = createGame();
     g.player.ammo = 0;
     g.mind.sanity = 50;
+    g.mind.fought = Infinity; // in a fight: the mind does not mend, so any rise would be a swallow's
     steps(g, 1, press('reload'));
     steps(g, RELOAD.frames);
     expect(g.mind.sanity).toBeLessThanOrEqual(50);

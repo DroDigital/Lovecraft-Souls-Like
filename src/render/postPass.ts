@@ -40,6 +40,9 @@ function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, pale
     uWarm: { value: new THREE.Vector3(...WARM_TINT) },
     uSplit: { value: new THREE.Vector2(...GRADE.split) },
     uHurt: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uTunnel: { value: 0 }, // a failing mind: the edges of sight close in and blur, and eyes open there (round 22)
+    uBlur: { value: 0 },
+    uWatch: { value: 0 },
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
     uQuantize: { value: 0 },
     uDither: { value: 0 },
@@ -86,4 +89,7 @@ export function updatePostUniforms(post: PostPass, fx: FxParams, time: number, r
   u.uAnomalyStress.value = fx.anomalyStress;
   u.uQuantize.value = fx.quantize ? 1 : 0;
   u.uDither.value = fx.ditherSpread;
+  u.uTunnel.value = fx.tunnel;
+  u.uBlur.value = fx.blur;
+  u.uWatch.value = fx.watch;
 }

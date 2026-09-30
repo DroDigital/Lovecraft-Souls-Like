@@ -265,6 +265,8 @@ export interface Mind {
   seen: Set<string>; // roster ids already beheld: first sight counts once
   upgrades: Record<UpgradeId, number>; // levels bought with insight
   phantomIn: number; // frames until the next hallucination may appear
+  fought: number; // the frame of the last real blow struck or taken (sanity.ts: the mind mends only apart from a fight)
+  mending: number; // sanity being regained a second now (0: not mending), for the HUD
   struck: Toll; // the last landed blow's toll on the mind (sanity.ts)...
   beheld: Toll; // ...and the last first sight's (insight.ts)
 }
@@ -287,4 +289,6 @@ export interface Game {
   frame: number;
   reality: Reality;
   overworld?: Overworld;
+  /** How well lit the ground at a point is by the world's lamps, fires and torches, 0..1 (handed in by the renderer, which knows where they are; the dark when absent: sanity.ts mends faster in it). */
+  lit?: (at: V3) => number;
 }

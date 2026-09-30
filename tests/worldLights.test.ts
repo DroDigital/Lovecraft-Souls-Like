@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { REGIONS } from '../src/data/regions';
-import { LIGHTS } from '../src/data/tuning';
+import { LIGHTS, SANITY } from '../src/data/tuning';
 import { housePieces } from '../src/render/houseMesh';
 import { propJob } from '../src/render/propMeshes';
 import { LAMP_SLOTS } from '../src/render/shaders/world';
@@ -21,6 +21,46 @@ const centre = (g: THREE.BufferGeometry): THREE.Vector3 => (g.computeBoundingBox
 const finish = (job: Generator<void, void>): void => {
   while (!job.next().done);
 };
+
+describe('how well lit the ground is, for the mind to mend by (round 22)', () => {
+  it('is whole at the foot of a lamp, falls away with distance, and counts a fire, a torch and a window less or more', () => {
+    const lights = createWorldLights();
+    const spot = (kind: LightSpot['kind'], x = 0): LightSpot => ({ x, y: 3.5, z: 0, kind });
+    lights.add(1, [spot('lamp')]);
+    expect(lights.lightAt(0, 0, 0, 0)).toBeCloseTo(SANITY.mend.light.lamp, 1);
+    let last = 2;
+    for (const d of [0, 1, 2, 3, 4, 5, 6, 7]) {
+      const lit = lights.lightAt(d, 0, 0, 0);
+      expect(lit).toBeLessThanOrEqual(last);
+      last = lit;
+    }
+    expect(lights.lightAt(LIGHTS.kinds.lamp.range * SANITY.mend.reach + 0.5, 0, 0, 0)).toBe(0);
+    for (const kind of ['fire', 'torch', 'window'] as const) {
+      const one = createWorldLights();
+      one.add(1, [spot(kind)]);
+      expect(one.lightAt(0, 0, 0, 0), kind).toBeCloseTo(SANITY.mend.light[kind], 1);
+    }
+    expect(SANITY.mend.light.window).toBeLessThan(SANITY.mend.light.lamp);
+  });
+
+  it("does not count an Elder Sign's glow, and lights add up but never past whole", () => {
+    const lights = createWorldLights();
+    lights.add(1, [{ x: 0, y: 1, z: 0, kind: 'sigil' }]);
+    expect(lights.lightAt(0, 0, 0, 0)).toBe(0);
+    lights.add(2, row(6, 'lamp', 0.5));
+    expect(lights.lightAt(1, 0, 0, 0)).toBe(1);
+    lights.remove(2);
+    expect(lights.lightAt(0.5, 0, 0, 0)).toBe(0); // a chunk's lights go with it
+  });
+
+  it('follows a window as it is put out', () => {
+    const lights = createWorldLights();
+    lights.add(1, [{ x: 0, y: 1.5, z: 0, kind: 'window', pane: 3 }]);
+    const seen = new Set<number>();
+    for (let t = 0; t < 400; t += 3) seen.add(Math.round(lights.lightAt(0, 0, 0, t) * 100));
+    expect(seen.size).toBeGreaterThan(1); // it is not always lit
+  });
+});
 
 describe("the world's lights (render/worldLights.ts)", () => {
   it('the nearest spots light the world, the last of them fading out as the next comes into line', () => {

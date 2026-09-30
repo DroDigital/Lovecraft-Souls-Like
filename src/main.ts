@@ -186,6 +186,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   addEventListener('resize', resize);
 
   let simTime = 0;
+  game.lit = (p) => lights.lightAt(p.x, p.y, p.z, simTime); // the mind mends faster in lamplight (round 22: sanity.ts)
   let frames = 0;
   let statsAt = performance.now();
 
@@ -242,6 +243,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         particles.update(time, camera);
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
+        sky.strange(fx.strange);
         applyReality(fx, game.reality);
         lightReality(game.reality);
         life.update(camera, time, enclosed); // after the night's light: the lightning adds to it
