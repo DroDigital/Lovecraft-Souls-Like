@@ -1,7 +1,8 @@
 /**
  * The keyboard's layout (playtest round 12): every key the investigator acts with can be rebound
  * from the Controls page and is kept apart from the save. The mouse keeps its buttons (strikes,
- * guard, lock-on); Esc, the arrows and Enter stay fixed so the menus can always be reached. A key
+ * guard, lock-on); Esc, the arrows and Enter stay fixed so the menus can always be reached, and Shift
+ * stays the modifier of the heavy blow and the parry. A key
  * given to one action is taken from any other that had it, which gets the first one's old key.
  */
 
@@ -25,8 +26,8 @@ export const DEFAULT_KEYS: Readonly<KeyLayout> = {
   map: 'KeyM',
 };
 
-/** Keys no action may take: the menus' own. */
-export const FIXED_KEYS: ReadonlySet<string> = new Set(['Escape', 'Enter', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+/** Keys no action may take: the menus' own, and Shift (the heavy blow's and the parry's modifier: "move back" on Shift made every step back a heavy blow; round 24). */
+export const FIXED_KEYS: ReadonlySet<string> = new Set(['Escape', 'Enter', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight']);
 
 export const KEYS_KEY = 'lovecraft-souls-like/keys';
 

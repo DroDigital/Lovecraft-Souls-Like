@@ -29,6 +29,14 @@ export function hasRoom(g: Game, id: WareId): boolean {
   return true;
 }
 
+/** How many of a ware are carried, and the most that can be: "Oil 5 of 5" (round 24). Undefined for what is not carried by the count (a Star-stone is set in an arm). */
+export function carried(g: Game, id: WareId): { have: number; most: number; unit: string } | undefined {
+  if (id === 'oil') return { have: g.player.oil, most: OIL.carry, unit: 'flasks' };
+  if (id === 'rounds') return { have: g.player.rounds, most: GUN.carry, unit: 'spare rounds' };
+  if (id === 'vial') return { have: g.player.reagentMax, most: REAGENT.maxDoses, unit: 'doses' };
+  return undefined;
+}
+
 export const canBuy = (g: Game, id: WareId): boolean => !!g.overworld && g.player.echoes >= WARES[id].price && stockLeft(g, id) !== 0 && hasRoom(g, id);
 
 /** Buys one: the Echoes go, the ware is theirs. False when refused. */

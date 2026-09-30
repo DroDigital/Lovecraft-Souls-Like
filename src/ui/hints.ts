@@ -11,8 +11,8 @@ import { mainLead } from '../systems/lead';
 import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { fill } from './glyphs';
 import { BONE, el, setStyle, setText } from './hudKit';
+import { HINTS_KEY as KEY } from './loreLine';
 
-const KEY = 'lovecraft-souls-like/hints';
 const SHOW_MS = 9000;
 
 const HINTS = {

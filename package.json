@@ -13,7 +13,9 @@
     "preview": "vite preview",
     "desktop": "npm run build && electron .",
     "desktop:dev": "electron . --dev",
-    "icon": "node desktop/makeIcon.js"
+    "icon": "node desktop/makeIcon.js",
+    "audit": "vitest run --mode audit",
+    "check:all": "tsc --noEmit && vitest run --mode all"
   },
   "dependencies": {
     "three": "^0.186.0"

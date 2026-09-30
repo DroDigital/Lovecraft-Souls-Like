@@ -6,7 +6,7 @@
 
 import { SHOPS, WARES } from '../data/wares';
 import type { Game } from '../systems/components';
-import { buy, canBuy, hasRoom, stockLeft } from '../systems/trade';
+import { buy, canBuy, carried, hasRoom, stockLeft } from '../systems/trade';
 import { fill, glyph } from './glyphs';
 import { button, createScreen, el, heading, type Page } from './menuKit';
 
@@ -28,7 +28,8 @@ export function createShopMenu(g: Game): ShopMenu {
           const left = stockLeft(g, id);
           const tail = left === 0 ? 'sold out' : !hasRoom(g, id) ? 'no room to carry it' : `${w.price} Echoes${left === undefined ? '' : `  ·  ${left} left`}`; // (a full pocket said nothing, round 24)
           button(panel, `${w.name}  ·  ${tail}`, () => (buy(g, id), page.redraw?.()), canBuy(g, id));
-          el(panel, 'div', fill(w.note), 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 8px 10px');
+          const c = carried(g, id);
+          el(panel, 'div', `${fill(w.note)}${c ? `  (Carried: ${c.have} of ${c.most} ${c.unit}.)` : ''}`, 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 8px 10px'); // what a pocket holds, before it is asked (round 24)
         }
         heading(panel, '');
         button(panel, `Leave  (${glyph('back')})`, () => screen.close());

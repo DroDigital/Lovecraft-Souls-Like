@@ -99,18 +99,21 @@ export const FIXED_CONTROLS: readonly (readonly [string, string, string])[] = [
 /** The controls, the keyboard's rebindable: choose an action, then press its new key. `save` keeps the layout. */
 export function controlsPage(back: () => void, save: () => void = () => undefined): Page {
   let waiting: Action | null = null;
+  let refused = false; // the last key pressed was one that cannot be taken
   const page: Page = {
-    back: () => ((waiting = null), back()),
+    back: () => ((waiting = null), (refused = false), back()),
     keys(e) {
       if (!waiting || e.repeat || e.code === 'Escape') return;
       e.preventDefault();
-      if (rebind(keyLayout, waiting, e.code)) save();
+      refused = !rebind(keyLayout, waiting, e.code);
+      if (!refused) save();
       waiting = null;
       page.redraw?.();
     },
     build(panel) {
       el(panel, 'div', 'CONTROLS', 'font-size:18px;letter-spacing:4px');
-      el(panel, 'div', 'Choose a key to rebind it, then press the new one.', 'opacity:.6;margin:4px 0 10px');
+      el(panel, 'div', 'Choose a key to rebind it, then press the new one. Shift, Tab, Enter, Esc and the arrows are kept.', 'opacity:.6;margin:4px 0 10px');
+      if (refused) el(panel, 'div', 'That key is kept: Shift is the heavy blow and the parry, and the rest are the menus\u2019. Choose another.', 'color:#d9a066;margin:0 0 8px');
       const table = el(panel, 'div', '', 'display:grid;grid-template-columns:1fr auto auto;gap:2px 12px;align-items:center');
       for (const cell of ['', 'KEY', 'PAD']) el(table, 'div', cell, 'opacity:.55;letter-spacing:2px;font-size:11px');
       for (const a of ACTIONS) {
