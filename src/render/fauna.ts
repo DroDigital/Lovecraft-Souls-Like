@@ -13,6 +13,7 @@ import type { CritterId } from '../data/fauna';
 import { FAUNA } from '../data/tuning';
 import type { VoiceId } from '../data/voices';
 import type { Game } from '../systems/components';
+import { calmOf } from '../systems/omens';
 import { nestsOf } from '../world/haunts';
 import { chunkKey, chunkOf } from '../world/worldMap';
 import { birth, gait, live, passing, startle, type Life } from './critterLife';
@@ -70,6 +71,13 @@ export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, a
     if (at) disturb(at, FAUNA.blow);
   });
 
+  /** A chunk's small lives: its nests', and, where the horrors of the region are gone, more (round 26: life comes back as they fall). */
+  const lived = (cx: number, cz: number): Life[] => {
+    const nests = nestsOf(cx, cz);
+    const more = Math.round(nests.length * 0.7 * calmOf(g, g.overworld?.region ?? null));
+    return [...nests, ...nests.slice(0, more).map((n) => ({ ...n, seed: n.seed + 7919 }))].map(birth);
+  };
+
   /** The chunks about the investigator's own: those that come into it are peopled, those left behind emptied. */
   const gather = (cx: number, cz: number): void => {
     const keep = new Set<number>();
@@ -77,7 +85,7 @@ export function createFauna(scene: THREE.Scene, g: Game, cry: (voice: VoiceId, a
       for (let dz = -FAUNA.near; dz <= FAUNA.near; dz++) {
         const key = chunkKey(cx + dx, cz + dz);
         keep.add(key);
-        if (!lives.has(key)) lives.set(key, nestsOf(cx + dx, cz + dz).map(birth));
+        if (!lives.has(key)) lives.set(key, lived(cx + dx, cz + dz));
       }
     }
     for (const key of [...lives.keys()]) if (!keep.has(key) && !Number.isNaN(key)) lives.delete(key);

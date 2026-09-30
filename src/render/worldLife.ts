@@ -12,9 +12,12 @@ import { createFauna, type Fauna } from './fauna';
 import { createGlints } from './glints';
 import { createLightning } from './lightning';
 import type { Particles } from './particles';
+import { createOmenFx } from './omenFx';
 import { createPresence } from './presence';
 import type { PostPass } from './postPass';
 import { createSkyLife } from './skyLife';
+import { createWatchers } from './watchers';
+import type { Skyline } from './skyline';
 import type { SpriteAtlas } from './sprites/atlas';
 
 export interface WorldLife {
@@ -27,6 +30,7 @@ export interface LifeParts {
   sky: THREE.Mesh; // the sky dome, whose haze the lightning brightens
   post: PostPass; // the post pass, whose mist it lights
   sheet: { atlas: SpriteAtlas; texture: THREE.Texture }; // the creatures' sprites, for the great winged things
+  skyline: Skyline; // the far silhouettes, given a false one by a failing mind (round 26)
   particles: Particles; // dust and grit (round 26: what a colossus throws up)
 }
 
@@ -35,6 +39,8 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
   const sky = createSkyLife(scene, g, fauna, parts.sheet, (voice, at) => audio.cry(voice, at, 1.4));
   const lightning = createLightning(parts.sky, parts.post, (gain) => audio.far('thunder', gain));
   const glints = createGlints(scene, g);
+  const watchers = createWatchers(scene, g);
+  const omens = createOmenFx(g, parts.sky, parts.post, audio);
   const presence = createPresence(g, parts.particles, audio); // round 26: what a colossus does to the ground and the air
   return {
     fauna,
@@ -45,6 +51,9 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
       lightning.update(time, g.overworld?.region ?? null, !outside);
       glints.update(camera.position, time, !g.overworld);
       presence.update(camera, time);
+      omens.update(time);
+      parts.skyline.wrong(Math.min(1, Math.max(0, 1 - g.mind.sanity / 100)));
+      watchers.update(camera, time, !outside, () => audio.sample('whisper', { gain: 0.5, pitch: 0.8 })); // round 26: what a failing mind makes of the dark
     },
   };
 }

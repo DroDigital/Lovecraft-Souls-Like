@@ -13,6 +13,7 @@ import { NPCS, npcDef, type NpcDef, type Topic, type When } from '../data/npcs';
 import { worldLayout } from '../world/placements';
 import { DIRS } from '../world/worldMap';
 import type { Game } from './components';
+import { rumorFor } from './omens';
 import { stageOf, startQuest, talked, UNSTARTED } from './quests';
 import { QUESTS } from '../data/quests';
 
@@ -73,7 +74,8 @@ export function talk(g: Game, id: string): void {
   if (topic.starts) startQuest(g, topic.starts);
   g.overworld?.met.add(id);
   g.player.listening = npcEntity(g, id) ?? null; // turned to them, the camera framing them (round 12)
-  g.events.emit('Talked', { npc: id, name: n.name, title: n.title, lines: topic.lines, ...(n.shop && { shop: n.shop }) });
+  const rumor = rumorFor(g, id); // what they have heard of the latest horror to fall (round 26)
+  g.events.emit('Talked', { npc: id, name: n.name, title: n.title, lines: rumor ? [...topic.lines, rumor] : topic.lines, ...(n.shop && { shop: n.shop }) });
 }
 
 /** Each step: the one talked with turns to the investigator, the others back toward where they rise (round 12). */

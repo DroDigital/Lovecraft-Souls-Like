@@ -158,9 +158,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   const mist = createVolumetricFog(pipeline.post); // round 16
-  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet, particles }); // round 18: the world's own life
-  scene.add(sky.mesh);
   const skyline = createSkyline(scene);
+  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet, skyline, particles }); // round 18: the world's own life
+  scene.add(sky.mesh);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);

@@ -42,6 +42,7 @@ export interface GameEvents {
   Travelled: { via: 'sign' | 'gate' | 'dream'; to: string; name: string };
   RegionEntered: { region: string; name: string };
   Vanquished: { entity: Entity; name: string }; // a boss or optional boss, slain for good
+  Exhaled: { region: string; name: string }; // the last horror of a region has fallen, and it breathes out (omens.ts; round 26)
   BossEngaged: { entity: Entity; name: string };
   BossPhase: { entity: Entity; phase: number };
   Teleported: { entity: Entity; from: V3; to: V3 };

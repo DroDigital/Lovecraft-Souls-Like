@@ -121,7 +121,12 @@ interface Far {
 
 export interface Skyline {
   update(camera: THREE.Camera, time: number, region: string | null, enclosed: boolean): void;
+  /** How wrong the mind is, 0..1 (round 26): past 0.6, now and then, something stands on the horizon where nothing does, and is gone when looked for. */
+  wrong(amount: number): void;
 }
+
+/** How much of the false landmark shows at `amount` of madness `since` seconds into its turn (it comes up slowly and goes at once). */
+export const falseShown = (amount: number, since: number): number => Math.max(0, Math.min(1, (amount - 0.55) / 0.3)) * (since < 0 ? 0 : since < 6 ? since / 6 : since < 14 ? 1 : 0);
 
 export function createSkyline(scene: THREE.Scene): Skyline {
   const tone = new THREE.Vector3(...FX.fogColor).multiplyScalar(0.5);
@@ -163,13 +168,37 @@ export function createSkyline(scene: THREE.Scene): Skyline {
   }
   const cam = new THREE.Vector3();
   let last = -1;
+  // The false landmark: a city of towers where there is none, risen for a while at a bearing of its own.
+  const fake = { value: 0 };
+  const fakeDef: Silhouette = { kind: 'towers', at: [0, 0], width: 700, height: 240, seed: 97 };
+  const fakeMesh = new THREE.Mesh(shape(fakeDef), new THREE.ShaderMaterial({ uniforms: { uColor: { value: tone }, uAlpha: fake }, vertexShader: VERT, fragmentShader: FRAG, blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
+  fakeMesh.renderOrder = -999;
+  fakeMesh.frustumCulled = false;
+  fakeMesh.visible = false;
+  scene.add(fakeMesh);
+  let [madness, turnAt, bearing] = [0, -Infinity, 0];
   return {
+    wrong(amount) {
+      madness = amount;
+    },
     update(camera, time, region, enclosed) {
       const dt = last < 0 ? 1 : Math.min(0.1, Math.max(0, time - last));
       last = time;
       const k = Math.min(1, dt / SKY.fade);
       for (const [id, a] of alpha) a.value += ((!enclosed && id === region ? 1 : 0) - a.value) * k;
       camera.getWorldPosition(cam);
+      if (madness < 0.55 || enclosed) fake.value = 0;
+      else {
+        if (time - turnAt > 14 + 10 * Math.random() && time - turnAt > 14) [turnAt, bearing] = [time, Math.random() * Math.PI * 2]; // a new one, somewhere else
+        fake.value = falseShown(madness, time - turnAt);
+      }
+      fakeMesh.visible = fake.value > 0.01;
+      if (fakeMesh.visible) {
+        const s = R / 2500;
+        fakeMesh.position.set(cam.x + Math.sin(bearing) * R, cam.y - 6, cam.z + Math.cos(bearing) * R);
+        fakeMesh.scale.set(fakeDef.width * s * 6, fakeDef.height * s * 6, 1);
+        fakeMesh.rotation.set(0, Math.atan2(-Math.sin(bearing), -Math.cos(bearing)), 0);
+      }
       for (const f of fars) {
         const [dx, dz] = [f.x - cam.x, f.z - cam.z];
         const d = Math.hypot(dx, dz);

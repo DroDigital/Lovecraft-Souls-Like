@@ -28,4 +28,5 @@ export interface Overworld {
   tally: Tally; // the run's numbers (tally.ts; round 12)
   said: Set<string>; // dungeon rooms that have said their words since the last rest or death (roomWords.ts)
   places: Set<string>; // the named places found (places.ts; round 18)
+  told: Set<string>; // what has been told or shown once, and is not again: a rumour of a horror's fall, a wandering sight, a hint of what a second journey changes (round 26)
 }

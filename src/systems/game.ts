@@ -48,6 +48,7 @@ import { npcSystem, spawnNpcs } from './npcs';
 import { populationSystem } from './population';
 import { boltSystem } from './projectiles';
 import { questSystem } from './quests';
+import { registerOmens } from './omens';
 import { refreshSeals, registerSeals, sealSystem } from './seals';
 import { createReality, realitySystem, registerReality } from './reality';
 import { reagentSystem, registerReagent } from './reagent';
@@ -110,6 +111,7 @@ export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: num
   registerHastur(g);
   registerNyarlathotep(g);
   registerSeals(g);
+  registerOmens(g);
   if (save) g.overworld.read = new Set(save.read); // unread tomes only
   furnishWorld(g);
   spawnNpcs(g);
