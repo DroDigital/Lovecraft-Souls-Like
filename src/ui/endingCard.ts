@@ -20,6 +20,7 @@ import { levelsBought } from '../systems/levels';
 import { isDone } from '../systems/quests';
 import { noteEnding, storeCarry, type Records } from '../systems/records';
 import type { SaveStore } from '../systems/save';
+import { runCard, savePng } from './keepsake';
 import { bossesSlain, playTime } from '../systems/tally';
 import { placesOf } from '../world/namedPlaces';
 import type { Music } from '../render/audio/music';
@@ -121,6 +122,7 @@ export function createEndingCard(g: Game, store: SaveStore | null, theme?: () =>
         const table = el('display:grid;grid-template-columns:1fr auto;gap:0 24px;max-width:340px;margin:0 auto;text-align:left;font-size:14px', '', page);
         for (const [k, v] of numbers(g, records)) (el('opacity:.6', k, table), el('', v, table));
         const buttons = el('', '', page);
+        button(buttons, 'Keep the card', () => savePng(runCard(e.title, numbers(g, records)), `dream-${g.player.cycle + 1}-${e.title.toLowerCase().replace(/\W+/g, '-')}`)).style.cssText = BUTTON; // round 26: a plate to show
         button(buttons, 'Walk on', walkOn).style.cssText = BUTTON;
         button(buttons, 'Begin anew', () => screen.show(confirm)).style.cssText = BUTTON;
       },
