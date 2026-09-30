@@ -41,7 +41,7 @@ function firstHit(g: Game, shooter: Entity, from: V3, dir: V3, range: number, sl
     const { gap2, radius } = capsuleGap2(g, t, from, to);
     if (gap2 > (radius + COMBAT.shotRadius + slack) ** 2) continue;
     const p = g.ecs.c.transform.get(t)!.pos;
-    const at = ((p.x - from.x) * dir.x + (p.z - from.z) * dir.z) / range;
+    const at = ((p.x - from.x) * dir.x + (p.z - from.z) * dir.z - radius) / range; // to its near side, not its middle (round 24: a colossus's whole width was counted in the range)
     if (at < along) {
       along = Math.max(0, at);
       target = t;

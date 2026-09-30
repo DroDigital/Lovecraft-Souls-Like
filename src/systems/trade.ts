@@ -22,14 +22,14 @@ export const stockLeft = (g: Game, id: WareId): number | undefined => {
 };
 
 /** Whether they could take one more (their pockets, not their purse). */
-function room(g: Game, id: WareId): boolean {
+export function hasRoom(g: Game, id: WareId): boolean {
   if (id === 'oil') return g.player.oil < OIL.carry;
   if (id === 'rounds') return roomFor(g, GUN.box);
   if (id === 'vial') return g.player.reagentMax < REAGENT.maxDoses;
   return true;
 }
 
-export const canBuy = (g: Game, id: WareId): boolean => !!g.overworld && g.player.echoes >= WARES[id].price && stockLeft(g, id) !== 0 && room(g, id);
+export const canBuy = (g: Game, id: WareId): boolean => !!g.overworld && g.player.echoes >= WARES[id].price && stockLeft(g, id) !== 0 && hasRoom(g, id);
 
 /** Buys one: the Echoes go, the ware is theirs. False when refused. */
 export function buy(g: Game, id: WareId): boolean {

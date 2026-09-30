@@ -4,9 +4,10 @@ import { compileAttack } from '../src/data/attacks';
 import { ph, phases } from '../src/data/entities/kit';
 import { getEntity } from '../src/data/registry';
 import { setSanity } from '../src/systems/sanity';
+import { summon } from '../src/systems/specials';
 import { worldLayout } from '../src/world/placements';
 import { bossGame, calm, engage } from './bossHelpers';
-import { steps } from './helpers';
+import { press, steps } from './helpers';
 import { deathblow, kill, record } from './worldHelpers';
 import { strike } from '../src/systems/combat';
 
@@ -141,5 +142,35 @@ describe('boss fights (spec §3E)', () => {
       expect(distXZ(s.at, s.arena!), s.id).toBeLessThan(s.arena!.radius);
       expect(s.arena!.radius, s.id).toBeGreaterThan(5);
     }
+  });
+});
+
+describe("a boss's fall clears its summons (playtest round 24)", () => {
+  it('the blow that kills it does not go on to reach for the summons its fall has just cleared', () => {
+    const b = bossGame('the_outsider', undefined, 1.2);
+    const { g, boss } = b;
+    engage(b);
+    calm(b);
+    const servant = summon(g, boss, 'zoog', g.ecs.c.transform.get(boss)!.pos)!; // later in the list of targets than the boss: it is walked after it
+    expect(servant).toBeDefined();
+    g.ecs.c.health.get(boss)!.hp = 1;
+    steps(g, 1, press('light'));
+    expect(() => steps(g, 40)).not.toThrow(); // it read a body the fall had already taken away
+    expect(g.ecs.c.health.get(boss)!.hp).toBe(0);
+    expect(g.ecs.c.transform.has(servant)).toBe(false);
+  });
+
+  it('nor does a boss\'s own blow, sweep, burst or pool, on a body gone by its turn', () => {
+    const b = bossGame('the_outsider', undefined, 1.2);
+    const { g, boss } = b;
+    engage(b);
+    calm(b);
+    const c = g.ecs.c;
+    const [me, ally] = [g.player.id, summon(g, boss, 'zoog')!];
+    c.combatant.get(ally)!.faction = 'player'; // a body on the investigator's side, walked after them
+    const gone = ally;
+    c.health.get(me)!.hp = 1;
+    g.ecs.despawn(gone); // (a stale list: whoever was in it before the step)
+    expect(() => steps(g, 30)).not.toThrow();
   });
 });

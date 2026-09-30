@@ -57,7 +57,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     const ow = g.overworld!;
     const here = signPlace(ow.sign);
     el(panel, 'div', (here?.name ?? 'Elder Sign').toUpperCase(), 'font-size:18px;letter-spacing:4px');
-    el(panel, 'div', 'You rest. Your health, sanity, Laudanum and Reagent are restored, and the creatures you killed are back.', 'opacity:.6;margin-top:2px');
+    el(panel, 'div', 'You rest. Your health, sanity, Laudanum and Reagent are restored, the revolver is loaded from your spare rounds, and the creatures you killed are back.', 'opacity:.6;margin-top:2px');
     const endings = courtEndings(g, ow.sign); // the choice the whole dream led to comes first (round 12)
     if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');
     for (const id of endings) button(panel, ENDINGS[id].choice, () => void (close(), endGame(g, id)));

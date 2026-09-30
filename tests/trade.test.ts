@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { OIL, REAGENT } from '../src/data/tuning';
 import { WARES } from '../src/data/wares';
 import { createGame, createWorldGame } from '../src/systems/game';
-import { buy, canBuy, stockLeft } from '../src/systems/trade';
+import { buy, canBuy, hasRoom, stockLeft } from '../src/systems/trade';
 import { talk } from '../src/systems/npcs';
 import { parseSave, snapshot } from '../src/systems/save';
 import { place, press, scriptedGame, steps } from './helpers';
@@ -23,6 +23,17 @@ describe('Dr. Morgan trades (round 12)', () => {
     expect(g.player.oil).toBe(OIL.carry);
     expect(canBuy(g, 'oil')).toBe(false);
     expect(g.player.echoes).toBe(WARES.oil.price * 2);
+  });
+
+  it('says whether the pocket has room, apart from the purse (the shop names a full one, round 24)', () => {
+    const g = createWorldGame();
+    g.player.echoes = 0;
+    expect(hasRoom(g, 'oil')).toBe(true);
+    expect(canBuy(g, 'oil')).toBe(false); // no purse
+    g.player.oil = OIL.carry;
+    g.player.echoes = 1e6;
+    expect(hasRoom(g, 'oil')).toBe(false);
+    expect(canBuy(g, 'oil')).toBe(false); // no room
   });
 
   it('a star-stone sells only so often in a dream, and the count is saved', () => {

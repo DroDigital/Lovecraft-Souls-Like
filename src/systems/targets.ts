@@ -16,3 +16,13 @@ export function hostiles(g: Game, faction: Combatant['faction'] | undefined, con
 }
 
 export const targetsOf = (g: Game, id: Entity): Entity[] => hostiles(g, g.ecs.c.combatant.get(id)?.faction, g.ecs.c.phantom.has(id), id === g.player.id);
+
+/**
+ * `list` walked one by one, skipping whoever has gone by the time their turn comes (playtest round 24): a blow
+ * that kills a boss clears its decoys and summons at once (bossFight.ts), and a loop that strikes
+ * several bodies in a step came to one of them with no body left to read.
+ */
+export function* live(g: Game, list: readonly Entity[]): Generator<Entity, void, undefined> {
+  const { transform, body } = g.ecs.c;
+  for (const t of list) if (transform.has(t) && body.has(t)) yield t;
+}

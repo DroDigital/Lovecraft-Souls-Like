@@ -13,6 +13,7 @@ import { SIM } from '../data/tuning';
 import { raycast } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
 import { capsuleGap2, hostiles, strike, targetsOf, type Blow } from './combat';
+import { live } from './targets';
 import { isAbsent, type Actor, type Game, type Mark, type Wave } from './components';
 import { loose } from './projectiles';
 import { groundNear, targetOf } from './specials';
@@ -55,7 +56,7 @@ function burst(g: Game, e: Entity, mk: Mark): void {
   const at = c.transform.get(e)!.pos;
   const alive = c.transform.has(mk.owner) && !c.dead.has(mk.owner) && (c.health.get(mk.owner)?.hp ?? 0) > 0;
   if (alive) {
-    for (const t of hostiles(g, mk.faction, false, false)) {
+    for (const t of live(g, hostiles(g, mk.faction, false, false))) {
       const p = c.transform.get(t)!.pos;
       if (distXZ(p, at) > mk.radius + (c.body.get(t)?.radius ?? 0.4) * 0.5 || Math.abs(p.y - at.y) > 2) continue;
       strike(g, mk.owner, t, blow(mk.damage, mk.poise, false), at);
@@ -79,7 +80,7 @@ function spread(g: Game, e: Entity, w: Wave): void {
   const c = g.ecs.c;
   const at = c.transform.get(e)!.pos;
   w.r += w.speed;
-  for (const t of hostiles(g, w.faction, false, false)) {
+  for (const t of live(g, hostiles(g, w.faction, false, false))) {
     if (w.struck.includes(t)) continue;
     const p = c.transform.get(t)!.pos;
     const d = distXZ(p, at);
@@ -104,7 +105,7 @@ export function beamLine(g: Game, id: Entity, sw: SweepDef, frame: number): { fr
 
 function sweep(g: Game, id: Entity, a: Actor, sw: SweepDef): void {
   const { from, to } = beamLine(g, id, sw, a.frame);
-  for (const t of targetsOf(g, id)) {
+  for (const t of live(g, targetsOf(g, id))) {
     if (a.hits.has(t)) continue;
     const { gap2, radius } = capsuleGap2(g, t, from, to);
     if (gap2 > (sw.width + radius) ** 2) continue;
