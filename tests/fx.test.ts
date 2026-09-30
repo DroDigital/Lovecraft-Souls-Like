@@ -56,6 +56,10 @@ describe('computeFx', () => {
       displace: 0,
       fovBreatheDeg: 0,
       skew: 0,
+      tunnel: 0,
+      blur: 0,
+      watch: 0,
+      strange: 0,
     });
   });
 
@@ -95,3 +99,47 @@ describe('band pulse and audio', () => {
     expect(computeFx(state(0, 0)).distortion).toBe(0);
   });
 });
+
+describe('a failing mind warps the picture no further past a point, and dreads instead (round 22)', () => {
+  const sanityOf = (stress: number): number => 100 * (1 - stress);
+
+  it('stops the ripple, split, swimming walls, breathing lens and shear at FX.warpCap of the stress', () => {
+    const [capped, mad] = [computeFx(state(sanityOf(FX.warpCap))), computeFx(state(0))];
+    for (const key of ['ripple', 'chroma', 'displace', 'affine', 'fovBreatheDeg', 'skew'] as const) expect(mad[key], key).toBeCloseTo(capped[key], 9);
+    expect(mad.ripple).toBeLessThan(FX.ripple[1] * 0.5); // where it was 0.012, and grew to madness
+    expect(mad.fovBreatheDeg).toBeLessThan(FX.fovBreatheDeg[1] * 0.5);
+    expect(mad.skew).toBeLessThan(FX.skew[1] * 0.5);
+    expect(computeFx(state(sanityOf(0.2))).ripple).toBeLessThan(capped.ripple); // below the cap it still grows
+    expect(computeFx(state(sanityOf(0.2))).ripple).toBeGreaterThan(0);
+  });
+
+  it('closes the edges of sight in and opens eyes there only as the mind goes, none while it holds', () => {
+    const lucid = computeFx(state(100));
+    expect([lucid.tunnel, lucid.blur, lucid.watch, lucid.strange]).toEqual([0, 0, 0, 0]);
+    expect(computeFx(state(sanityOf(FX.tunnelFrom - 0.01))).tunnel).toBe(0);
+    let last = 0;
+    for (let sanity = 100; sanity >= 0; sanity -= 5) {
+      const fx = computeFx(state(sanity));
+      expect(fx.tunnel).toBeGreaterThanOrEqual(last);
+      last = fx.tunnel;
+    }
+    const mad = computeFx(state(0));
+    expect(mad.tunnel).toBeCloseTo(FX.tunnel[1], 9);
+    expect(mad.blur).toBeCloseTo(FX.blur[1], 9);
+    expect(mad.strange).toBeCloseTo(FX.strange[1], 9);
+    expect(computeFx(state(sanityOf(FX.watchFrom))).watch).toBe(0); // the eyes open from here
+    expect(computeFx(state(sanityOf(FX.watchFrom + 0.1))).watch).toBeGreaterThan(0);
+    expect(mad.watch).toBe(1);
+    expect(mad.tunnel).toBeLessThan(0.8); // the edges dim; they never close on the middle of the picture
+  });
+
+  it('keeps to the accessibility cap and its own toggle', () => {
+    expect(computeFx(state(0, 0)).tunnel).toBe(0);
+    expect(computeFx(state(0, 0)).watch).toBe(0);
+    const s = state(0);
+    s.enabled.dread = false;
+    expect(computeFx(s)).toMatchObject({ tunnel: 0, blur: 0, watch: 0, strange: 0 });
+    expect(computeFx(s).ripple).toBeGreaterThan(0); // the warp is its own toggle
+  });
+});
+

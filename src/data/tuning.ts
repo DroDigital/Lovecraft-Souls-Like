@@ -40,6 +40,12 @@ export const FX = {
   displaceSafe: 7, // metres from the camera with no displacement (keeps combat readable)
   displaceFull: 32, // metres from the camera where displacement is at full strength
   displaceTwist: 0.2, // radians of space-twist around the viewer at full strength
+  warpCap: 0.4, // the stress past which the picture warps no further: ripple, split, swimming walls, breathing lens and shear stop growing (round 22: they grew all the way to madness, and the screen tore; what a failing mind does past this is dread's)
+  tunnel: [0, 0.62] as Ramp, // the edges of sight darken, the mind narrowing to a tunnel, breathing slowly (round 22)...
+  tunnelFrom: 0.25, // ...from this stress on
+  blur: [0, 1.3] as Ramp, // the low-res pixels the edges blur by, with it
+  watchFrom: 0.5, // pale eyes open at the edge of sight from this stress on (one, then two, then three as it deepens to madness)
+  strange: [0, 1] as Ramp, // the stars: they crawl, crowd and flicker as the mind fails (render/shaders/sky.ts)
   fovBreatheDeg: [0, 7] as Ramp,
   breatheHz: 0.23,
   skew: [0, 0.07] as Ramp, // horizontal shear per unit of screen height
@@ -108,8 +114,8 @@ export const PLAYER = {
 };
 
 export const STAMINA = {
-  regen: 40, // per second
-  regenDelay: 36, // frames of no regen after any spending
+  regen: 24, // per second at the start; each Endurance level adds LEVELS.endurance.regen (round 22: it was 40 for all, and a bar refilled so soon that rolling on and on cost nothing)
+  regenDelay: 48, // frames of no regen after any spending: longer than a roll, so a chain of rolls draws on the bar alone
   guardRegen: 0.35, // regen multiplier while guarding
   sprintDrain: 18, // per second
 };
@@ -147,6 +153,16 @@ export const SANITY = {
   volley: 75, // frames in which landed blows take the mind once: the greatest of them (a barrage's bolts, a swarm's bites; round 12)
   dealt: [1, 1.1, 1.2, 1.35], // damage multipliers by band: a failing mind hits harder...
   taken: [1, 1.1, 1.25, 1.5], // ...and is hit harder
+  // The mind mends by itself while it is not in a fight (round 22): a real blow struck or taken, or a foe hunting them, holds it off; swinging at the air does not. Sanity regained a second in the dark, and standing at a lamp, fire or torch (not the Elder Signs' glow, an Echo's or the lantern's own).
+  mend: {
+    rate: 0.25, // in the dark: a full mind in under seven minutes
+    lit: 1.6, // in the light of a lamp: a dose of Laudanum's worth in twenty seconds
+    delay: 6, // seconds after the last real blow before it begins
+    foes: 45, // metres: a hunting foe this close is a fight (aggro)
+    reach: 0.6, // the share of a light's range (LIGHTS.kinds) its mending reaches; it falls off as 1 − distance/reach, to this power
+    curve: 1.3,
+    light: { lamp: 1, fire: 1, torch: 0.85, window: 0.4, sigil: 0 } as Readonly<Record<'lamp' | 'window' | 'fire' | 'torch' | 'sigil', number>>, // how much of the mending each kind of light gives at its foot: the Elder Signs' violet light none
+  },
 };
 
 /** The investigator's sanity tonic, refilled at the Elder Sign. */

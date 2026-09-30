@@ -4,11 +4,12 @@
  * nearest become the shader's point lights (LAMPS_GLSL), easing to nothing toward the edge of the
  * chosen set so none pops as another takes its place; flames waver. Every spot within reach also
  * wears a soft additive halo (halos.ts), so lights glow through the dark as lights should. The
- * investigator's lantern wears one too.
+ * investigator's lantern wears one too. Round 22: `lightAt` tells the simulation how well lit the
+ * ground is at a point (the mind mends faster in lamplight; sanity.ts), by the same spots.
  */
 
 import * as THREE from 'three';
-import { LIGHTS, type LightDef, type LightKind } from '../data/tuning';
+import { LIGHTS, SANITY, type LightDef, type LightKind } from '../data/tuning';
 import { createHalos } from './halos';
 import { paneLit } from './paneLife';
 import { LAMP_SLOTS } from './shaders/world';
@@ -38,6 +39,8 @@ export interface WorldLights {
   readonly halos: THREE.Mesh;
   add(key: number, spots: readonly LightSpot[]): void;
   remove(key: number): void;
+  /** How well lit the ground at a point is by lamps, fires, torches and windows (0..1) at `time`: each counts within its share of its light's range, and the Elder Signs' glow, an Echo's and the lantern's own do not. */
+  lightAt(x: number, y: number, z: number, time: number): number;
   /** Lights the world about the camera at `eye`; `lantern` (the investigator's flame, as drawn) wears its halo (null: none). */
   update(eye: THREE.Vector3, time: number, lantern: THREE.Vector3 | null): void;
 }
@@ -63,6 +66,19 @@ export function createWorldLights(): WorldLights {
     },
     remove(key) {
       spots.delete(key);
+    },
+    lightAt(x, y, z, time) {
+      let sum = 0;
+      for (const list of spots.values()) {
+        for (const s of list) {
+          const share = SANITY.mend.light[s.kind];
+          if (share <= 0) continue;
+          const reach = LIGHTS.kinds[s.kind].range * SANITY.mend.reach;
+          const d = Math.hypot(s.x - x, s.z - z); // along the ground: a lamp's pool lies under it, whatever height it hangs at (but not a floor above or below)
+          if (d < reach && Math.abs(s.y - y) < 6) sum += share * (1 - d / reach) ** SANITY.mend.curve * (s.pane === undefined ? 1 : paneLit(s.pane, time));
+        }
+      }
+      return Math.min(1, sum);
     },
     update(eye, time, lantern) {
       near.length = 0;

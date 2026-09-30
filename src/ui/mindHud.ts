@@ -4,7 +4,8 @@
  * drains after a moment (as a wound does on health's bar), and a sudden loss (SanityLost) jolts the
  * bar and lights its frame. Once the mind has Fractured, the Laudanum count becomes the call to drink
  * it, and the band's notice says so too (or to rest, when none is left). No new screen effect: the
- * sanity FX say enough already.
+ * sanity FX say enough already. Round 22: an arrow after the band says the mind is mending by itself
+ * (▲), two of them in the light of a lamp or a fire (▲▲).
  */
 
 import { MIND_HUD, SANITY } from '../data/tuning';
@@ -66,7 +67,7 @@ export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) 
         frame.style.boxShadow = jolt > 0 ? `0 0 ${Math.round(8 * jolt)}px ${MAGENTA}` : '';
         jolted = jolt > 0;
       }
-      setText(band, `${m.band.toUpperCase()} ${Math.ceil(m.sanity)}`);
+      setText(band, `${m.band.toUpperCase()} ${Math.ceil(m.sanity)}${m.mending > SANITY.mend.rate * 1.5 ? ' ▲▲' : m.mending > 0 ? ' ▲' : ''}`);
       const call = callsForLaudanum(g);
       setText(laudanum, `${call ? `${glyph('item').toUpperCase()} · ` : ''}LAUDANUM ×${g.player.laudanum}`);
       setStyle(laudanum, 'color', call ? '#ff5aa8' : BONE);

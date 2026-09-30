@@ -7,11 +7,12 @@
 
 import type { Entity } from '../core/ecs';
 import { dist3, distXZ } from '../core/geom';
-import { PLAYER, SANITY, UPGRADES, type UpgradeId } from '../data/tuning';
+import { PLAYER, SANITY, SIM, UPGRADES, type UpgradeId } from '../data/tuning';
 import { hasLineOfSight } from '../world/colliders';
 import { isAbsent, isConcealed, isUnseen, type Game, type GameEvents } from './components';
 import { aimPoint, playerEye, viewAngle } from './lockOn';
 import { takeUp } from './arms';
+import { giveRounds } from './gun';
 import { addVial } from './reagent';
 import { loseSanity, tollOnce } from './sanity';
 
@@ -59,9 +60,12 @@ export function insightSystem(g: Game): void {
   const pp = transform.get(g.player.id)!.pos;
   for (const [id, t] of tome) {
     if (distXZ(transform.get(id)!.pos, pp) > PLAYER.pickupRadius) continue;
+    if (t.rounds && !takeRounds(g, t)) continue; // more than they can carry: it lies where it is
     g.ecs.despawn(id);
     if (t.weapon) {
       takeUp(g, t.weapon);
+      g.overworld?.read.add(t.name); // taken for good
+    } else if (t.rounds) {
       g.overworld?.read.add(t.name); // taken for good
     } else if (t.echoes) {
       g.player.echoes += t.echoes;
@@ -93,12 +97,22 @@ export function buyUpgrade(g: Game, id: UpgradeId): boolean {
   return true;
 }
 
+/** A box of cartridges taken up if all its rounds can be carried; else it stays, and says so now and then. */
+function takeRounds(g: Game, t: { rounds?: number; warned?: number }): boolean {
+  if (giveRounds(g, t.rounds ?? 0)) return true;
+  if (g.frame - (t.warned ?? -Infinity) > 3 * SIM.hz) {
+    t.warned = g.frame;
+    g.events.emit('Notice', { text: 'YOU CARRY ALL THE ROUNDS YOU CAN' });
+  }
+  return false;
+}
+
 /** Puts a tome in the world. */
-export function spawnTome(g: Pick<Game, 'ecs' | 'world'>, t: { x: number; z: number; yaw: number; name: string; insight: number; vial?: boolean; note?: boolean; echoes?: number; weapon?: string }): Entity {
+export function spawnTome(g: Pick<Game, 'ecs' | 'world'>, t: { x: number; z: number; yaw: number; name: string; insight: number; vial?: boolean; note?: boolean; echoes?: number; weapon?: string; rounds?: number }): Entity {
   const e = g.ecs.spawn();
   const pos = { x: t.x, y: g.world.ground(t.x, t.z), z: t.z };
   g.ecs.c.transform.set(e, { pos, prev: { ...pos }, yaw: t.yaw, prevYaw: t.yaw });
-  g.ecs.c.tome.set(e, { name: t.name, insight: t.insight, vial: t.vial, note: t.note, echoes: t.echoes, weapon: t.weapon });
-  g.ecs.c.model.set(e, t.vial ? 'vial' : t.echoes ? 'cache' : t.weapon ? `arm:${t.weapon}` : t.note ? 'note' : 'tome');
+  g.ecs.c.tome.set(e, { name: t.name, insight: t.insight, vial: t.vial, note: t.note, echoes: t.echoes, weapon: t.weapon, rounds: t.rounds });
+  g.ecs.c.model.set(e, t.vial ? 'vial' : t.echoes ? 'cache' : t.rounds ? 'ammo' : t.weapon ? `arm:${t.weapon}` : t.note ? 'note' : 'tome');
   return e;
 }

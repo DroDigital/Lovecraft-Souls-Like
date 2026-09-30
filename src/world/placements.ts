@@ -12,11 +12,11 @@ import { DUNGEONS, type Dir } from '../data/dungeons';
 import { isWeapon, WEAPONS } from '../data/weapons';
 import { REGIONS, type RegionDef } from '../data/regions';
 import { DREAM_DESCENT, SITES } from '../data/sites';
-import { DUNGEON, WORLD } from '../data/tuning';
+import { DUNGEON, GUN, WORLD } from '../data/tuning';
 import { arenaStyle } from '../data/arenaStyles';
 import { roomProps } from './arenaDecor';
 import { placeArena, propCollide } from './arenaPlace';
-import { echoCaches } from './caches';
+import { echoCaches, roundCaches } from './caches';
 import type { Prop } from './props';
 import { colliderBounds, type Collider } from './colliders';
 import { floorAt, layoutDungeon, roomPoint, type DungeonLayout, type RoomLayout } from './dungeonKit';
@@ -57,6 +57,7 @@ export interface TomePlace {
   note?: boolean; // a letter, clipping or report (documents.ts)
   echoes?: number; // an Echo cache, not a tome (caches.ts)
   weapon?: string; // a weapon lying where it was left (data/weapons.ts)
+  rounds?: number; // a box of cartridges for the revolver (round 22)
   region: string;
   at: Place;
 }
@@ -195,6 +196,17 @@ function build(): WorldLayout {
       pad(p.x, p.z, PAD.tome);
       w.tomes.push({ name, insight: 0, note: true, region: region.id, at: { x: p.x, z: p.z, yaw: 0 } });
     }
+    // Boxes of cartridges lie about the open world (round 22): one beside each note, and in a region with none by its first Elder Sign.
+    const boxes = (NOTE_SITES[region.id] ?? []).map(([, x, z]) => at([x + 4, z - 3]));
+    if (!boxes.length && sites.signs.length) {
+      const [s, f] = [sites.signs[0], DIRS[sites.signs[0].face]];
+      const [p, sd] = [at(s.at), side(s.face)];
+      boxes.push({ x: p.x + f.x * 9 + sd.x * 3, z: p.z + f.z * 9 + sd.z * 3 });
+    }
+    boxes.forEach((p, k) => {
+      pad(p.x, p.z, PAD.tome);
+      w.tomes.push({ name: `Cartridges: ${region.id} ${k + 1}`, insight: 0, rounds: GUN.find, region: region.id, at: { x: p.x, z: p.z, yaw: 0 } });
+    });
     for (const a of sites.allies) {
       const p = at(a.at);
       pad(p.x, p.z, PAD.ally);
@@ -225,8 +237,8 @@ function build(): WorldLayout {
       const b = PAD.dungeon;
       bucket({ x0: layout.rect.x0 - b, z0: layout.rect.z0 - b, x1: layout.rect.x1 + b, z1: layout.rect.z1 + b }, (k) => k.pads.push(rp));
       bucket(layout.rect, (k) => k.dungeons.push(layout));
-      const caches = echoCaches(def);
-      for (const r of layout.rooms) decor.push(...furnish(w, region, def.id, r, sign, gate, spawn, caches.get(r.def.id)));
+      const [caches, boxed] = [echoCaches(def), roundCaches(def)];
+      for (const r of layout.rooms) decor.push(...furnish(w, region, def.id, r, sign, gate, spawn, caches.get(r.def.id), boxed.get(r.def.id)));
       for (const d of decor) propCollide(d, collide);
       const first = layout.rooms[0];
       const on = first && layout.rooms.find((r) => r.def.from === first.def.id); // the way on: a sealed entrance's own axis faced its back wall (round 12)
@@ -241,7 +253,7 @@ type SignFn = (region: string, x: number, z: number, y: number, id: string, name
 type GateFn = (region: string, x: number, z: number, y: number, id: string, name: string, to: string, face: Dir) => void;
 
 /** What stands in a dungeon room: its Elder Sign, gate, tome or Echo cache, a weapon, bosses, allies and spawns. */
-function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void, cache?: number): Prop[] {
+function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayout, sign: SignFn, gate: GateFn, spawn: (s: SpawnPoint) => void, cache?: number, boxed?: number): Prop[] {
   const s = roomSpots(r);
   const pt = ([u, v]: readonly [number, number]) => {
     const p = roomPoint(r, u, v);
@@ -264,6 +276,10 @@ function furnish(w: WorldLayout, region: RegionDef, dungeon: string, r: RoomLayo
   if (cache) {
     const p = pt(s.tome);
     w.tomes.push({ name: `Echoes: ${dungeon}/${d.id}`, insight: 0, echoes: cache, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
+  }
+  if (boxed) {
+    const p = pt([s.tome[0], -s.tome[1]]);
+    w.tomes.push({ name: `Cartridges: ${dungeon}/${d.id}`, insight: 0, rounds: boxed, region: region.id, at: { x: p.x, z: p.z, yaw: face } });
   }
   if (d.weapon && isWeapon(d.weapon)) {
     const p = pt([s.tome[0], -s.tome[1]]);

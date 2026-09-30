@@ -22,6 +22,9 @@ export type Band = (typeof BANDS)[number];
 export interface GameEvents {
   Hit: { attacker: Entity; target: Entity; outcome: HitOutcome; damage: number; lingering?: boolean }; // lingering: a pool's or the void's tick
   Shot: { shooter: Entity; from: V3; to: V3; target: Entity | null };
+  Reloading: { entity: Entity }; // a reload begun: the cylinder swings out (gun.ts; round 22)
+  Reloaded: { entity: Entity; loaded: number }; // the revolver's cylinder filled from the spare rounds
+  DryFire: { entity: Entity }; // the trigger pulled on an empty cylinder with nothing to load it from
   Died: { entity: Entity; killer: Entity | null; at: V3 };
   Vanished: { entity: Entity; at: V3; struck: boolean }; // a hallucination gone: struck, or faded
   Respawned: { entity: Entity };

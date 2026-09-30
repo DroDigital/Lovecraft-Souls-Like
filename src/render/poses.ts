@@ -101,6 +101,23 @@ function inject(f: Figure, d: MoveDef, frame: number): void {
   f.torso.rotation.x = 0.12 * t * clamp01((frame - at + 4) / 6); // it stings
 }
 
+/**
+ * A reload (round 22): the revolver drawn up before the chest, its muzzle tipped high, the head bent to it; six
+ * rounds dropped in one by one, the hand ticking with each; the cylinder snapped shut on the item frame, a
+ * jerk of the wrist, and the arm let down again.
+ */
+function reload(f: Figure, d: MoveDef, frame: number): void {
+  const at = d.item!;
+  const up = ease(frame / 14) * (1 - ease((frame - at - 4) / Math.max(1, d.frames - at - 16)));
+  const tick = frame >= 16 && frame < at - 2 ? 0.09 * Math.sin(((frame - 16) / 5) * Math.PI) ** 2 : 0;
+  const snap = frame >= at ? 0.4 * Math.exp(-(frame - at) / 3) : 0;
+  f.armL.rotation.set(-0.95 * up - snap, 0, 0.15 * up, 'YXZ');
+  f.elbowL.rotation.x = -1.45 * up;
+  f.handL.rotation.x = -0.5 * up + tick;
+  f.torso.rotation.y = -0.18 * up;
+  f.head.rotation.x += 0.28 * up;
+}
+
 /** A flask of lamp oil, lobbed with the off-hand (round 12): up and back, over as it leaves, then down. */
 function lob(f: Figure, d: MoveDef, frame: number): void {
   const at = d.volley!.frame;
@@ -152,26 +169,32 @@ function toward(j: Figure['legR'], t: number, x: number, y = 0, z = 0): void {
   j.rotation.z += (z - j.rotation.z) * t;
 }
 
+/** `k` on its own stretch `[a, b]` of the way, eased: 0 at and below `a`, 1 at and above `b`. */
+const stage = (k: number, a: number, b: number): number => ease((k - a) / (b - a));
+
 /**
  * Resting at an Elder Sign: down on the right knee before the stone, head bowed, forearms on the raised
  * knee (round 15). The limbs ease toward the pose from whatever the stride left them at (round 19's
  * last fault: they were set outright, and as the kneel eased out but never quite reached nothing, they
  * stayed set to almost nothing, so the legs and arms never swung again until the game was restarted).
+ * The parts have stretches of their own (round 22, for a slow rise): the head lifts first, the hands
+ * push on the knee until half way up and then let go, and the legs and body unfold the whole way; the
+ * body and legs run together, so the feet stay on the ground.
  */
 function kneel(f: Figure, k: number): void {
-  const t = ease(k);
-  f.body.position.y -= 0.4 * t;
-  f.body.rotation.x += 0.18 * t;
-  f.torso.rotation.x += 0.12 * t;
-  f.head.rotation.x += 0.45 * t; // bowed
-  toward(f.legL, t, -1.3); // the front leg: thigh forward, shin straight down
-  toward(f.kneeL, t, 1.35);
-  toward(f.legR, t, 0.2); // the back leg: its knee to the ground
-  toward(f.kneeR, t, 1.55);
-  toward(f.armR, t, -0.5, 0, -0.1);
-  toward(f.armL, t, -0.6, 0, 0.14);
-  toward(f.elbowR, t, -0.75);
-  toward(f.elbowL, t, -0.75);
+  const [low, hands, bow] = [stage(k, 0, 0.8), stage(k, 0, 0.5), stage(k, 0.3, 1)];
+  f.body.position.y -= 0.4 * low;
+  f.body.rotation.x += 0.18 * low;
+  f.torso.rotation.x += 0.12 * low;
+  f.head.rotation.x += 0.45 * bow; // bowed
+  toward(f.legL, low, -1.3); // the front leg: thigh forward, shin straight down
+  toward(f.kneeL, low, 1.35);
+  toward(f.legR, low, 0.2); // the back leg: its knee to the ground
+  toward(f.kneeR, low, 1.55);
+  toward(f.armR, hands, -0.5, 0, -0.1);
+  toward(f.armL, hands, -0.6, 0, 0.14);
+  toward(f.elbowR, hands, -0.75);
+  toward(f.elbowL, hands, -0.75);
 }
 
 function fall(f: Figure, frame: number): void {
@@ -213,7 +236,7 @@ export function pose(f: Figure, p: PoseInput): void {
   else if (d.volley) lob(f, d, p.frame);
   else if (d.item !== undefined) {
     stride(f, p.speed, p.stride, p.time, false); // walking on beneath it
-    (d.use === 'reagent' ? inject : drink)(f, d, p.frame);
+    (d.use === 'rounds' ? reload : d.use === 'reagent' ? inject : drink)(f, d, p.frame);
   }
   f.body.rotation.x -= 0.18 * p.flinch;
   f.head.rotation.x -= 0.25 * p.flinch;

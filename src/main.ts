@@ -148,10 +148,10 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const fxController = createFxController(game);
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
-  const combatFx = createCombatFx(game, particles);
+  const combatFx = createCombatFx(game, particles, () => views.muzzle);
   const impactFx = createImpactFx(game, particles); // round 20: the weight of the investigator's blows
   const echoFx = createEchoFx(game, particles, audio); // round 20: a slain foe's Echoes leave the body and are drawn into the investigator
-  const cinema = createCinema(game, createCinemaUi(), audio, particles, { enabled: () => settings.cutscenes > 0.5 }); // round 20: wake, arrivals, falls, endings
+  const cinema = createCinema(game, createCinemaUi(), audio, particles, { enabled: () => settings.cutscenes > 0.5, rise: views.rise }); // round 20: wake, arrivals, falls, endings
   const director = createDirector(game, cinema, (id) => ending.show(id));
   const signs = createSignViews(scene, game, particles, lights);
   const bossFx = createBossFx(scene, game, particles);
@@ -186,6 +186,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   addEventListener('resize', resize);
 
   let simTime = 0;
+  game.lit = (p) => lights.lightAt(p.x, p.y, p.z, simTime); // the mind mends faster in lamplight (round 22: sanity.ts)
   let frames = 0;
   let statsAt = performance.now();
 
@@ -242,6 +243,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         particles.update(time, camera);
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
+        sky.strange(fx.strange);
         applyReality(fx, game.reality);
         lightReality(game.reality);
         life.update(camera, time, enclosed); // after the night's light: the lightning adds to it

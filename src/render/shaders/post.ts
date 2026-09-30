@@ -1,7 +1,8 @@
 /**
  * The single fullscreen post pass (spec §2): sanity warp (UV ripple + chromatic split),
  * split-tone grade with colour isolation, palette quantisation with 4×4 Bayer dithering, and a red
- * vignette on the side a blow came from. It renders at the low-res size; the browser upscales the
+ * vignette on the side a blow came from, and (round 22) a failing mind's dread: the edges of sight
+ * dark and blurred, breathing slowly, and pale eyes that open and close in the dark there. It renders at the low-res size; the browser upscales the
  * canvas nearest-neighbour. Scene alpha below 0.5 marks a hue outside the palette (the Colour Out of
  * Space), which is neither graded nor quantised. Round 16: volumetric fog (fog.ts) lies between the lens
  * and the scene, marched against the scene's depth.
@@ -31,6 +32,9 @@ uniform vec3 uCold;
 uniform vec3 uWarm;
 uniform vec2 uSplit;
 uniform vec4 uHurt; // the investigator's recent wound: x strength, yz the screen direction it came from
+uniform float uTunnel; // 0..1: how far the edges of sight close in and dim
+uniform float uBlur; // low-res pixels the edges blur by
+uniform float uWatch; // 0..1: how many pale eyes open at the edge of sight
 uniform vec3 uAnomalyHues;
 uniform float uQuantize;
 uniform float uDither;
@@ -78,6 +82,44 @@ vec3 hurt(vec3 col, vec2 uv) {
   return mix(col, vec3(0.28, 0.02, 0.03) * (0.5 + dot(col, LUMA)), k);
 }
 
+// 2b. A failing mind (round 22): the edges of sight close in and go dark, breathing, and pale eyes open in
+// the dark there, watching, and close (never in the middle of the picture: turning to look, they are gone).
+float hash11(float p) {
+  p = fract(p * 0.1031);
+  p *= p + 33.33;
+  p *= p + p;
+  return fract(p);
+}
+
+float edgeOf(vec2 uv) {
+  return smoothstep(0.28, 0.78, length((uv - 0.5) * vec2(1.0, 0.82)) * 1.45);
+}
+
+vec3 dread(vec3 col, vec2 uv) {
+  if (uTunnel <= 0.0 && uWatch <= 0.0) return col;
+  float breath = 0.88 + 0.12 * sin(uTime * 1.0);
+  float dark = clamp(uTunnel * edgeOf(uv) * breath, 0.0, 0.92);
+  col = mix(col, col * vec3(0.3, 0.38, 0.36), dark);
+  float px = uRes.y / 225.0; // the picture's own pixels, at any resolution setting
+  for (int i = 0; i < 3; i++) {
+    if (float(i) * 0.34 + 0.12 > uWatch) break;
+    float p = uTime / (6.5 + 2.7 * float(i)) + 0.29 * float(i);
+    float cyc = floor(p);
+    float f = fract(p);
+    float h1 = hash11(cyc * 13.7 + float(i) * 5.3);
+    float h2 = hash11(cyc * 7.1 + float(i) * 9.1 + 2.0);
+    float ang = h1 * 6.2832;
+    vec2 pos = 0.5 + vec2(cos(ang) * 0.44, sin(ang) * 0.4);
+    float open = smoothstep(0.0, 0.16, f) * (1.0 - smoothstep(0.66, 0.84, f)) * step(0.05, fract(p * 3.7 + h2)); // fades in, watches, blinks, fades out
+    vec2 q = (uv - pos) * uRes / px;
+    float d = min(length(q - vec2(2.6 + 1.6 * h2, 0.0)), length(q + vec2(2.6 + 1.6 * h2, 0.0)));
+    vec2 body = q / vec2(11.0, 15.0);
+    col *= 1.0 - 0.6 * exp(-dot(body, body)) * open; // something stands there: the dark thickens about them
+    col = mix(col, vec3(0.86, 0.95, 0.74), (1.0 - smoothstep(0.5, 1.35, d)) * open);
+  }
+  return col;
+}
+
 // 3. Palette quantisation with 4x4 Bayer dithering.
 float bayer4(vec2 p) {
   const float m[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0,
@@ -120,13 +162,22 @@ void main() {
   vec3 a = texture(tScene, uv + split).rgb;
   vec3 b = centre.rgb;
   vec3 e = texture(tScene, uv - split).rgb;
+  float soft = uBlur * edgeOf(uv); // the edges of sight lose their focus
+  if (soft > 0.05) {
+    vec2 o = vec2(soft) / uRes;
+    vec3 s = 0.25 * (texture(tScene, uv + vec2(o.x, 0.0)).rgb + texture(tScene, uv - vec2(o.x, 0.0)).rgb + texture(tScene, uv + vec2(0.0, o.y)).rgb + texture(tScene, uv - vec2(0.0, o.y)).rgb);
+    float k = min(1.0, soft);
+    b = mix(b, s, k * 0.7);
+    a = mix(a, b, k);
+    e = mix(e, b, k);
+  }
   if (uIsolate > 0.5) {
     a = isolate(a);
     b = isolate(b);
     e = isolate(e);
   }
   vec4 fog = fogAlong(uv, bayer4(cell) + 0.5); // the mist between the lens and the scene (round 16)
-  vec3 col = pow(hurt(vec3(a.r, b.g, e.b) * fog.a + fog.rgb, uv), vec3(uGamma));
+  vec3 col = pow(hurt(dread(vec3(a.r, b.g, e.b) * fog.a + fog.rgb, uv), uv), vec3(uGamma));
   if (uQuantize > 0.5) col = quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }

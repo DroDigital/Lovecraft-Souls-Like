@@ -3,7 +3,7 @@
  * Presses and releases between two steps are latched, so a quick tap is never lost.
  * Mouse: LMB light, Shift+LMB heavy, RMB block, Shift+RMB parry, MMB lock-on, move to look
  * (click to capture) or flick to switch targets. Keys: WASD move, Space dodge (hold: sprint),
- * F revolver, Q lock-on, R West's Reagent (heal), T Laudanum, E interact (rest at an Elder Sign, pass a gate), arrows look
+ * F revolver (V reloads it), Q lock-on, R West's Reagent (heal), T Laudanum, E interact (rest at an Elder Sign, pass a gate), arrows look
  * (←/→ switch targets). Pad: standard mapping, Souls layout. The keys are the player's to rebind
  * (bindings.ts); whichever device was used last is the one the prompts name (device.ts); look may
  * be inverted (playtest round 12).
@@ -14,7 +14,7 @@ import { keyLayout, type Action } from './bindings';
 import { useDevice } from './device';
 import { activePad, takeResync } from './pads';
 
-export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'lock', 'item', 'heal', 'throw', 'interact'] as const;
+export const BUTTONS = ['light', 'heavy', 'dodge', 'block', 'parry', 'shoot', 'reload', 'lock', 'item', 'heal', 'throw', 'interact'] as const;
 export type Button = (typeof BUTTONS)[number];
 export type Buttons = Record<Button, boolean>;
 
@@ -36,6 +36,7 @@ export const noButtons = (): Buttons => ({
   block: false,
   parry: false,
   shoot: false,
+  reload: false,
   lock: false,
   item: false,
   heal: false,
@@ -48,10 +49,10 @@ export function emptyInput(): InputFrame {
 }
 
 /** The buttons the keyboard presses, by the action whose key presses them. */
-const KEYED: readonly (readonly [Action, Button])[] = [['dodge', 'dodge'], ['shoot', 'shoot'], ['lock', 'lock'], ['heal', 'heal'], ['item', 'item'], ['throw', 'throw'], ['interact', 'interact']];
+const KEYED: readonly (readonly [Action, Button])[] = [['dodge', 'dodge'], ['shoot', 'shoot'], ['reload', 'reload'], ['lock', 'lock'], ['heal', 'heal'], ['item', 'item'], ['throw', 'throw'], ['interact', 'interact']];
 const keyButton = (code: string): Button | undefined => KEYED.find(([a]) => keyLayout[a] === code)?.[1];
-/** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, Y Reagent, d-pad down Laudanum, d-pad up a flask of oil, R3 lock-on, A interact. */
-const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, lock: 11, heal: 3, item: 13, throw: 12, interact: 0 };
+/** Standard-mapping pad: RB light, RT heavy, LB block, LT parry, B dodge, X revolver, d-pad left its reload, Y Reagent, d-pad down Laudanum, d-pad up a flask of oil, R3 lock-on, A interact. */
+const PAD: Readonly<Record<Button, number>> = { light: 5, heavy: 7, block: 4, parry: 6, dodge: 1, shoot: 2, reload: 14, lock: 11, heal: 3, item: 13, throw: 12, interact: 0 };
 
 interface PadState {
   lx: number;

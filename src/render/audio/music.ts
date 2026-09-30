@@ -4,12 +4,15 @@
  * sound, whatever the page does), which the title's opening asks for (main.ts); the desktop shell
  * lets it sound on opening (desktop/main.js), so there it plays as the game boots. It is buffered while
  * it waits and begins where the track first swells rather than in its near-silent lead-in.
- * It loops by a leap (playtest round 9): one element throughout, since a browser may refuse to start
- * a second one without a key press or click (Safari does, so a second pass never sounded and the
- * theme stopped at its end). Near its end, where the ending has all but decayed, it leaps back to
- * where the lead-in has swelled to the same level a moment before the first hit (THEME.leap), under a
- * dip of a few hundredths of a second so the jump cannot click: no cut and no silence. Should the
- * leap be missed (a throttled timer), the file loops by itself, and the leap skips its lead-in.
+ * It loops by a crossfade (round 22, themeLoop.ts): near its end, where the last hit has rung, the whole
+ * track, decoded by then, comes in from its lead-in under the ending's decay, and plays on by itself,
+ * pass after pass, on the audio clock. Until it is decoded (or where the graph cannot make it), the
+ * one element leaps (playtest round 9): near its end, where the ending has all but decayed, it jumps
+ * back to where the lead-in has swelled to the same level a moment before the first hit (THEME.leap),
+ * under a dip of a few hundredths of a second so the jump cannot click. It is one element throughout,
+ * since a browser may refuse to start a second one without a key press or click (Safari does, so a
+ * second pass never sounded and the theme stopped at its end). Should either be missed (a throttled
+ * timer), the file loops by itself, and a leap then skips its lead-in.
  * Round 20: it counts as sounding only once WebAudio runs. After a reload (Quit to title) a browser may
  * let the element play but keep WebAudio suspended (no key press or click on the new page yet): the
  * element, routed into that silent graph, stalled, and the title opened by itself over no music at all.
@@ -23,6 +26,7 @@
 
 import { THEME } from '../../data/tuning';
 import type { AudioEngine } from './engine';
+import { createThemeLoop, decodeTheme, FADE_OUT, seamAt, type ThemeLoop } from './themeLoop';
 
 export interface Music {
   /** Resolves once the theme sounds. */
@@ -104,13 +108,34 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
     seam.gain.setValueAtTime(seam.gain.value, now);
     seam.gain.linearRampToValueAtTime(to, now + DIP);
   };
+  let buffer: AudioBuffer | null = null; // the whole track, decoded for the crossfade
+  let decoding = false;
+  let loop: ThemeLoop | null = null; // once it has the theme, the element is done: passes of the whole track, crossfaded
+  /** The loop comes in under the element's ending, which fades out beneath it. */
+  const cross = (): void => {
+    if (!route || !buffer) return;
+    const { ctx, seam } = route;
+    const at = ctx.currentTime + 0.03;
+    loop = createThemeLoop(ctx, route.tone, buffer);
+    loop.begin(at);
+    seam.gain.cancelScheduledValues(at);
+    seam.gain.setValueCurveAtTime(FADE_OUT, at, THEME.overlap);
+    setTimeout(() => audio.pause(), (THEME.overlap + 0.3) * 1000);
+  };
   let leaping = false;
   let last = 0; // where it was at the last look
   const leap = setInterval(() => {
+    if (state === 'playing') loop?.tick();
     const [t, duration] = [audio.currentTime, audio.duration];
     const looped = t < last - 1 && t < THEME.leap[1]; // it looped by itself: skip the lead-in
     last = t;
-    if (state !== 'playing' || leaping || !(duration > 0) || (t < leapAt(duration) && !looped)) return;
+    if (state !== 'playing' || loop || leaping || !(duration > 0)) return;
+    if (route && !decoding && t > seamAt(duration) - THEME.prepare) {
+      decoding = true;
+      void decodeTheme(route.ctx, MENU_MUSIC).then((b) => (buffer = b), () => undefined); // undecoded, the leap serves
+    }
+    if (buffer && t >= seamAt(duration) && t < leapAt(duration)) return cross();
+    if (t < leapAt(duration) && !looped) return;
     leaping = true;
     dip(0);
     setTimeout(() => {
@@ -178,6 +203,8 @@ export function playMenuMusic(engine: AudioEngine, volume: number): Music {
   tryPlay();
   const stop = (): void => {
     clearInterval(leap);
+    loop?.stop();
+    buffer = null;
     audio.pause();
   };
 

@@ -39,3 +39,32 @@ describe('kneeling at an Elder Sign (round 15) leaves the walk alone once it is 
     expect(swing(1e-4)).toBeGreaterThan(swing(0) * 0.9); // a hair of kneel left: the swing is still there
   });
 });
+
+describe('getting up from the knee (round 22: a slow rise stages its parts)', () => {
+  it('lifts the head first, holds the hands on the knee to half way, and stands the body last', () => {
+    const f = buildFigure('player');
+    pose(f, walking(0));
+    const [head0, drop0, hand0] = [f.head.rotation.x, f.body.position.y, f.elbowR.rotation.x];
+    pose(f, walking(1));
+    const [bowed, low, held] = [f.head.rotation.x - head0, drop0 - f.body.position.y, f.elbowR.rotation.x - hand0];
+    pose(f, walking(0.6));
+    const share = (now: number, was: number, whole: number): number => (now - was) / whole; // how much of its way down a joint still is
+    expect(share(f.head.rotation.x, head0, bowed)).toBeLessThan(0.6); // the head is well on its way up...
+    expect(share(drop0 - f.body.position.y, 0, low)).toBeGreaterThan(0.75); // ...while the body has hardly begun
+    expect(share(f.elbowR.rotation.x, hand0, held)).toBeGreaterThan(0.99); // and the hands still rest on the knee
+    pose(f, walking(0.1));
+    expect(share(f.elbowR.rotation.x, hand0, held)).toBeLessThan(0.2); // gone from it by the end
+  });
+
+  it('moves every part smoothly through the rise, none of them jumping between one frame and the next', () => {
+    const f = buildFigure('player');
+    let last: number[] | undefined;
+    for (let k = 1; k >= 0.1; k -= 0.01) { // (the last hair of it, a knee giving where the foot would sink, is settle's: a sharp bend for a millimetre)
+      pose(f, walking(k));
+      const now = joints(f);
+      if (last) expect(Math.max(...now.map((v, i) => Math.abs(v - last![i]))), `at ${k.toFixed(2)}`).toBeLessThan(0.08);
+      last = now;
+    }
+  });
+});
+

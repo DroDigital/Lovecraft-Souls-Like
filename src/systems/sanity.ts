@@ -3,7 +3,11 @@
  * landed blows (once a volley) and roar/gaze moves take chunks (first sight is in insight.ts), respawning at the
  * Elder Sign and Laudanum restore it, and the band scales the damage the investigator deals and
  * takes. A band change is announced as `SanityBandChanged`, which the world hooks listen to, and a
- * sudden loss as `SanityLost`, which the HUD and the audio answer. Pure.
+ * sudden loss as `SanityLost`, which the HUD and the audio answer. Round 22: the mind also mends by
+ * itself, slowly, while it is not in a fight (a real blow struck or taken lately, or a foe hunting them:
+ * swinging at the air is neither) and nothing presses on it (an aura, a roar); the faster the nearer
+ * a lamp, a fire or a torch (`Game.lit`: the Elder Signs' glow, an Echo's and the lantern's do not
+ * count). Pure.
  */
 
 import type { Entity } from '../core/ecs';
@@ -37,7 +41,7 @@ export function nextBand(current: Band, sanity: number): Band {
 }
 
 export function createMind(): Mind {
-  return { sanity: SANITY.max, band: 'lucid', insight: 0, seen: new Set(), upgrades: { resolve: 0, draught: 0 }, phantomIn: 0, struck: { at: -Infinity, amount: 0 }, beheld: { at: -Infinity, amount: 0 } };
+  return { sanity: SANITY.max, band: 'lucid', insight: 0, seen: new Set(), upgrades: { resolve: 0, draught: 0 }, phantomIn: 0, fought: -Infinity, mending: 0, struck: { at: -Infinity, amount: 0 }, beheld: { at: -Infinity, amount: 0 } };
 }
 
 /** Sets sanity (clamped to 0–100) and moves the band, announcing a change. */
@@ -98,16 +102,42 @@ function drain(g: Game, dt: number): number {
 }
 
 /**
- * One step: drains, and a swallow of Laudanum on its move's `item` frame. The swallow also steadies
+ * Whether the investigator is in a fight: a real blow struck or taken within SANITY.mend.delay seconds, or a foe
+ * hunting them (engaged, or searching for them) within SANITY.mend.foes metres. A swing at the air is
+ * none, and nor is a shot that misses, or what a hallucination does.
+ */
+export function fighting(g: Game): boolean {
+  if (g.frame - g.mind.fought < SANITY.mend.delay * SIM.hz) return true;
+  const { brain, transform, phantom } = g.ecs.c;
+  const pp = transform.get(g.player.id)!.pos;
+  for (const [id, b] of brain) {
+    if (b.target !== g.player.id || (b.state !== 'engage' && b.state !== 'search') || phantom.has(id) || isAbsent(g, id)) continue;
+    if (distXZ(transform.get(id)!.pos, pp) <= SANITY.mend.foes) return true;
+  }
+  return false;
+}
+
+/** Sanity mended a second now: none in a fight, or fallen, or whole; else the dark's rate, more the better lit the ground they stand on. */
+export function mendRate(g: Game): number {
+  if (g.mind.sanity >= SANITY.max || g.ecs.c.actor.get(g.player.id)?.move === 'death' || fighting(g)) return 0;
+  const lit = Math.min(1, Math.max(0, g.lit?.(g.ecs.c.transform.get(g.player.id)!.pos) ?? 0));
+  return SANITY.mend.rate + (SANITY.mend.lit - SANITY.mend.rate) * lit;
+}
+
+/**
+ * One step: drains, or (with nothing pressing on the mind) mends, and a swallow of Laudanum on its move's `item` frame. The swallow also steadies
  * the mind for LAUDANUM.steady seconds: auras, roars and gazes take nothing while it holds (playtest
  * round 7: a dose should stop the drain, not only refill what it took).
  */
 export function sanitySystem(g: Game, dt: number): void {
+  let loss = 0;
   if (g.player.steady > 0) g.player.steady--;
-  else loseSanity(g, drain(g, dt));
+  else loseSanity(g, (loss = drain(g, dt)));
+  g.mind.mending = loss > 0 ? 0 : mendRate(g);
+  if (g.mind.mending > 0) restoreSanity(g, g.mind.mending * dt);
   const a = g.ecs.c.actor.get(g.player.id)!;
   const def = moveDef(a);
-  if (a.frozen || a.frame !== def?.item || def.use === 'reagent') return;
+  if (a.frozen || a.frame !== def?.item || (def.use ?? 'laudanum') !== 'laudanum') return;
   restoreSanity(g, LAUDANUM.sanity);
   g.player.steady = Math.round(LAUDANUM.steady * SIM.hz);
 }
@@ -132,6 +162,9 @@ export function registerSanity(g: Game): void {
   g.events.on('Hit', ({ attacker, target, damage, lingering }) => {
     const blow = g.ecs.c.dread.get(attacker)?.blow ?? 0;
     if (target === g.player.id && damage > 0 && !lingering && blow > 0) loseSanity(g, tollOnce(g.mind.struck, g.frame, blow, SANITY.volley));
+    const me = g.player.id;
+    const other = attacker === me ? target : target === me ? attacker : null; // a real blow between the investigator and a real foe (a hallucination's, a pool's and a swing at the air are none) is a fight
+    if (!lingering && other !== null && !g.ecs.c.phantom.has(other) && g.ecs.c.combatant.get(other)?.faction === 'enemy') g.mind.fought = g.frame;
   });
   g.events.on('Respawned', () => {
     g.player.laudanum = laudanumMax(g);

@@ -14,6 +14,7 @@ import type { MoveDef, MoveSet, Window } from '../data/moves';
 import { COMBAT } from '../data/tuning';
 import { isAbsent, type Actor, type Game } from './components';
 import { ageBuffer, takeBuffered, type ActionId } from './inputBuffer';
+import { gunAction } from './gun';
 import { canAfford, spend } from './stamina';
 import { targetsOf } from './targets';
 
@@ -125,7 +126,9 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   const speed = Math.hypot(m.vx, m.vz);
   const moving = speed > 0.1;
   const dodge = moving ? 'roll' : 'backstep';
-  const move = action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? dodge : action === 'item' ? 'drink' : action === 'heal' ? 'inject' : action;
+  const gun = action === 'shoot' || action === 'reload' ? gunAction(g, action) : undefined; // a shot needs a round; an empty cylinder reloads, or clicks (gun.ts)
+  if (gun === null) return;
+  const move = action === 'light' || action === 'heavy' ? comboMove(a, action) : action === 'dodge' ? dodge : action === 'item' ? 'drink' : action === 'heal' ? 'inject' : gun ?? action;
   const def = a.moves[move];
   if (!def) return;
   if (def.rest !== undefined && (a.move === move || (a.move === null && a.last === move && a.idle < def.rest))) return; // not again until it has rested
@@ -143,6 +146,7 @@ function startAction(g: Game, a: Actor, action: ActionId): void {
   }
   if (st && def.stamina) spend(st, def.stamina);
   startMove(a, move);
+  if (move === 'reload') g.events.emit('Reloading', { entity: id });
   g.player.blockRaised = false; // a blow struck from behind a raised guard plays out
 
   const tr = transform.get(id)!;

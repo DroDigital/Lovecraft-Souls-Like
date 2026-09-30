@@ -5,7 +5,7 @@
 
 import { COMBAT, SIM } from '../data/tuning';
 
-export type ActionId = 'light' | 'heavy' | 'dodge' | 'parry' | 'shoot' | 'item' | 'heal' | 'throw';
+export type ActionId = 'light' | 'heavy' | 'dodge' | 'parry' | 'shoot' | 'reload' | 'item' | 'heal' | 'throw';
 
 export interface InputBuffer {
   action: ActionId | null;

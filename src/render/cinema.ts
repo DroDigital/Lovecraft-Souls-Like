@@ -72,6 +72,8 @@ interface Run {
 
 export interface CinemaOptions {
   enabled: () => boolean;
+  /** The investigator gets up from the knee over this many seconds (0: at once); the view draws the slow rise (actorViews.ts). */
+  rise?: (seconds: number) => void;
 }
 
 const [m, q, spin, eye, aim, up] = [new Matrix4(), new Quaternion(), new Quaternion(), new Vector3(), new Vector3(), new Vector3(0, 1, 0)]; // scratch, so a frame allocates nothing
@@ -116,7 +118,10 @@ export function createCinema(g: Game, ui: CinemaUi, audio: GameAudio, particles:
     if (b.sound) audio.stinger(b.sound, { gain: b.gain, pitch: b.pitch });
     if (b.set) audio.sample(b.set, { gain: b.gain, pitch: b.pitch });
     if (b.shake) r.shakes.push({ at: r.t, amount: b.shake, hold: b.hold ?? 1 });
-    if (b.rise) g.player.kneeling = null;
+    if (b.rise !== undefined) {
+      g.player.kneeling = null;
+      o.rise?.(b.rise);
+    }
     if (b.burst) {
       const at = anchorOf(b.burst.on, 1);
       if (at) burst(particles, b.burst.kind, at, at.height, b.burst.count);
@@ -136,6 +141,7 @@ export function createCinema(g: Game, ui: CinemaUi, audio: GameAudio, particles:
     if (!r) return;
     run = undefined;
     hold = 0;
+    if (skipped && r.scene.beats.some((b) => b.rise !== undefined && b.at > r.t)) g.player.kneeling = null; // skipped before they got up: up now, under the fade
     ui.hint(false);
     ui.clear(0.8);
     if (skipped && !r.scene.shut) ui.fade('clear', 0.5);

@@ -33,6 +33,7 @@ export const AUDIO = {
   eventRange: 40, // the range of event stingers (blows, shots) away from the investigator
   callGap: 2.5, // a creature calls at most this often, even when it turns on the investigator
   pan: 0.8, // the widest stereo placement
+  whisper: { from: 0.6, every: [22, 9] as readonly [number, number], gain: [0.22, 0.45] as readonly [number, number] }, // a failing mind hears a whisper at one ear (round 22): from this stress on, every so many seconds (the slow end at that stress, the quick at madness), this loud; nothing else is added to the sound
 };
 
 /** The title's theme (render/audio/music.ts; playtest rounds 5 and 6). Times in seconds. */
@@ -43,8 +44,11 @@ export const THEME = {
   sinkTo: 280, // ...under a low-pass closing to this (Hz), as the world's ambience rises beneath it (AUDIO.fade)
   wait: 4, // the title opens by itself after this long if the theme has neither sounded nor been refused (a slow line)
   wake: 0.35, // seconds it gives WebAudio to start running once the theme may play, before it counts as refused (round 20)
-  leap: [1.1, 3.2] as const, // looping, it leaps from this long before the end, where the ending has decayed to about −20 dB, back to here, where the lead-in has swelled to the same...
-  hit: 3.85, // ...a moment before the first hit (playtest round 9)
+  hit: 3.85, // where the first hit lands (playtest round 9)
+  overlap: 3.6, // looping, each pass gives way to the next over this long: the ending's decay fades out as the lead-in, from `hit − overlap`, fades in, and the first hit lands as it ends (round 22, themeLoop.ts)
+  trim: 0.25, // the last of the file, its encoder's padding, is left out of the crossfade
+  prepare: 30, // the whole track is decoded this long before its ending, for the crossfade to play from (never, if the title is left sooner)
+  leap: [1.1, 3.2] as const, // where a pass not yet decoded leaps, as a last resort (round 9): from this long before the end, where the ending has decayed to about −20 dB, back to here, where the lead-in has swelled to the same
 };
 
 /** Boss music (playtest round 4, render/audio/bossMusic.ts; the scores are data/music.ts). Times in seconds. */
@@ -76,9 +80,9 @@ export const SETTINGS = {
 export const UI = { baseHeight: 720, least: 1, most: 2.5 };
 
 /** Levels bought with Echoes at an Elder Sign (playtest round 4): what one level of each attribute adds, and the most levels. */
-export const LEVELS: Record<'vigour' | 'endurance' | 'might', { max: number; hp?: number; stamina?: number; damage?: number }> = {
+export const LEVELS: Record<'vigour' | 'endurance' | 'might', { max: number; hp?: number; stamina?: number; regen?: number; damage?: number }> = {
   vigour: { max: 20, hp: 12 },
-  endurance: { max: 20, stamina: 8 },
+  endurance: { max: 20, stamina: 8, regen: 0.8 }, // a bigger bar, and stamina regained faster (per second): all twenty levels bring it back to the 40 a second it once was
   might: { max: 20, damage: 0.04 }, // share added to the investigator's blows and shots
 };
 export type LevelId = keyof typeof LEVELS;
@@ -94,6 +98,25 @@ export const NEW_GAME_PLUS = { health: 0.6, damage: 0.35, echoes: 0.5, most: 7 }
 
 /** Flasks of lamp oil (round 12): the most carried. What one does is its move (data/moves.ts `throw`). */
 export const OIL = { carry: 5 };
+
+/**
+ * The revolver (round 22: it had no limit, seven damage and twenty-two metres, and was spammed from
+ * afar). A cylinder of six and spare rounds carried, found in caches and boxes or bought from the
+ * merchants; a shot (its damage is the move's, data/moves.ts `shoot`) is whole up close and falls away with
+ * distance in damage and in aim, so it hits what stands near, and far off only by luck, the small foes
+ * least of all. Levels set into it at an Elder Sign, in star-stones, put that fall-off further off.
+ */
+export const GUN = {
+  chamber: 6, // rounds the cylinder holds
+  carry: 24, // spare rounds carried
+  start: 6, // spare rounds a new investigator carries (and the cylinder starts full)
+  box: 6, // rounds in a box bought
+  find: 4, // rounds in a box lying about the open world...
+  cache: 4, // ...and in each dungeon's caches
+  reach: { near: 3, far: 15, floor: 0.12, curve: 1.6 }, // damage: whole to `near` metres, then falling to `floor` of it at `far`, by this power of the way there (1 is evenly; more, sooner)
+  scatter: { base: 0.6, perMetre: 0.9 }, // aim: the cone the bullet may stray in, in degrees, `base` up to `near` metres and the more for each metre past it
+  level: { max: 5, damage: 0.15, reach: 1.5, scatter: 0.1, cost: [1, 1, 2, 2, 3] as readonly number[] }, // each level set in: its share of damage, the metres it puts `near` and `far` off, its share less scatter; the star-stones each costs
+};
 
 /** Star-stones a boss or optional boss leaves when it falls for good, by tier (round 12). */
 export const STAR_STONES: Partial<Record<Tier, number>> = { greater: 1, named: 1, great_old_one: 2, outer_god: 3 };

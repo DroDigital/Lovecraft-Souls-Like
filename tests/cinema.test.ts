@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { EPITHETS } from '../src/data/bossCards';
-import { arrival, ARRIVAL, ENDING_SCENES, fall, FALL, scaleOf, WAKE, type Scale, type Scene } from '../src/data/cutscenes';
+import { arrival, ARRIVAL, ENDING_SCENES, fall, FALL, scaleOf, WAKE, WAKE_RISE, type Scale, type Scene } from '../src/data/cutscenes';
 import { getEntity } from '../src/data/registry';
 import { ROSTER_IDS } from '../src/data/roster';
 import { SAMPLE_SETS } from '../src/data/samples';
@@ -115,6 +115,19 @@ describe('beats', () => {
     expect(tremor(1, 1, 2)).toBeLessThan(0.3);
     expect(tremor(1, 2.1, 2)).toBe(0);
     expect(tremor(1, -1, 2)).toBe(0);
+  });
+});
+
+describe('the wake (round 22)', () => {
+  it('gets the investigator up slowly, the camera with them, and ends on no title', () => {
+    expect(WAKE.beats.some((b) => b.title)).toBe(false);
+    const rise = WAKE.beats.find((b) => b.rise !== undefined)!;
+    expect(rise.rise).toBe(WAKE_RISE);
+    expect(WAKE_RISE).toBeGreaterThanOrEqual(3);
+    expect(rise.at + WAKE_RISE).toBeLessThan(sceneLength(WAKE) - 1); // standing a moment before the scene lets go
+    expect(rise.at).toBeGreaterThan(shotAt(WAKE, 0).shot.dur - 1); // kneeling for the shot that opens it
+    const captions = WAKE.beats.filter((b) => b.caption);
+    for (const c of captions) expect(c.at + (c.hold ?? 3)).toBeLessThan(sceneLength(WAKE)); // each said in full before the end
   });
 });
 

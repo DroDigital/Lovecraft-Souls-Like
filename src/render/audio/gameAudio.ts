@@ -6,7 +6,8 @@
  * where that gives it weight); until they have loaded, the recipes play. The investigator grunts as
  * blows land on them, and a creature cries out as it dies. A creature calls at random within its
  * voice's interval while it is in the world and not lying hidden, and at once when it turns on the
- * investigator (a snarl, for some); the listener is the camera. Read-only on the simulation.
+ * investigator (a snarl, for some); the listener is the camera. A failing mind (round 22) hears a
+ * whisper now and then at one ear, and nothing else is added to the sound. Read-only on the simulation.
  */
 
 import type * as THREE from 'three';
@@ -174,6 +175,21 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   };
 
   let lastBeat = -1;
+  let whisperAt = Infinity; // seconds of the next whisper a failing mind hears
+  /** Whispers, from the Fractured on: every so often, hard to one side, low, in a room where nobody speaks. */
+  function whispers(stress: number, seconds: number): void {
+    const k = (stress - AUDIO.whisper.from) / (1 - AUDIO.whisper.from);
+    if (k < 0) {
+      whisperAt = Infinity;
+      return;
+    }
+    const [slow, quick] = AUDIO.whisper.every;
+    if (!Number.isFinite(whisperAt)) whisperAt = seconds + slow * (0.5 + Math.random());
+    if (seconds < whisperAt) return;
+    whisperAt = seconds + (slow + (quick - slow) * Math.min(1, k)) * (0.6 + 0.8 * Math.random());
+    const [lo, hi] = AUDIO.whisper.gain;
+    sampler.play(SAMPLE_SETS.whisper, { gain: lo + (hi - lo) * Math.min(1, k), pan: Math.random() < 0.5 ? -0.9 : 0.9, pitch: 0.78 + 0.22 * Math.random() });
+  }
   return {
     far(set, gain = 1) {
       sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, bus: e.bed ?? undefined });
@@ -212,6 +228,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       const beat = Math.floor(seconds * rate);
       if (rate > 0 && beat !== lastBeat && lastBeat >= 0) playSound(e, STINGERS.heartbeat, { gain: 0.9 });
       lastBeat = rate > 0 ? beat : -1;
+      whispers(fx.stress, seconds);
       calls(seconds);
       foley.update(seconds, place, (at) => play({ sound: 'danger', at: { ...at } }));
     },

@@ -2,8 +2,9 @@
  * The investigator (spec §3B), in detail: a 1920s field coat with lapels, shoulders and a flared
  * skirt in two panels that swing with the legs, shirt and tie under a rust scarf, a belt with its
  * buckle and a satchel on a strap; a fedora with its band over short hair and a face with brow,
- * nose and ears; leather gloves; the sword-cane with its silver grip and ferrule; the revolver;
- * trousers and shoes; and the lantern in its cage at the belt. Arms bend at the elbow and legs at
+ * nose and ears; leather gloves; the sword-cane with its silver grip and ferrule; the revolver, in its
+ * holster at the belt until it is drawn (round 22); trousers and shoes; and the lantern in its cage,
+ * hung from the belt by a strap through its ring. Arms bend at the elbow and legs at
  * the knee. Large value blocks still carry the read: dark coat, lighter sleeves, pale face.
  */
 
@@ -87,12 +88,15 @@ export function investigator(): Figure {
     box(0.17, 0.15, 0.08, -0.2, -0.06, 0.04, leather), // satchel, on the right hip
   ]), 'cloth');
   const cage = shade(BASE.charcoal, 1.6);
-  const [lx, ly, lz] = [0.285, -0.14, 0.02]; // the lantern hangs low at the left side of the belt, clear of the coat and the swinging arm
+  const [lx, ly, lz] = [0.29, -0.235, 0.02]; // the lantern hangs low at the left side of the belt, clear of the coat and the swinging arm
   part(f, f.torso, mergeGeometries([ // its cage
     box(0.13, 0.025, 0.13, lx, ly + 0.08, lz, cage),
     box(0.13, 0.025, 0.13, lx, ly - 0.08, lz, cage),
     ...[-1, 1].flatMap((sx) => [-1, 1].map((sz) => box(0.015, 0.16, 0.015, lx + sx * 0.055, ly, lz + sz * 0.055, cage))),
-    tint(new THREE.TorusGeometry(0.035, 0.008, 4, 8).translate(lx, ly + 0.12, lz), cage),
+    tint(new THREE.TorusGeometry(0.035, 0.008, 4, 8).translate(lx, ly + 0.12, lz), cage), // the bail ring...
+    box(0.03, 0.075, 0.05, 0.225, -0.03, lz, leather), // ...and, round 22, what it hangs from: a loop on the belt's end...
+    slab(0.022, 0.09, 0.024, (0.225 + lx) / 2, ly + 0.15, lz, leather, Math.atan2(lx - 0.225, 0.055)), // ...a strap down and out to the ring
+    box(0.026, 0.026, 0.03, 0.225, -0.07, lz, brass), // a brass clip where they meet
   ]), 'cloth');
   part(f, f.torso, box(0.09, 0.12, 0.09, lx, ly, lz, LANTERN.color), 'cloth', 1); // its flame (its light: lantern.ts)
   f.flame = new THREE.Object3D();
@@ -134,10 +138,22 @@ export function investigator(): Figure {
   ]), 'wood');
   f.arms = { cane }; // and the found weapons (armsMeshes.ts), each shown when in hand
   for (const [id, [geo, texture]] of Object.entries(ARMS)) (f.arms[id] = part(f, f.handR, geo(), texture)).visible = false;
-  part(f, f.handL, mergeGeometries([ // the revolver, its barrel along the arm
+  f.gun = part(f, f.handL, mergeGeometries([ // the revolver in the hand, its barrel along the arm: drawn only for a shot or a reload
     box(0.045, 0.1, 0.06, 0, -0.08, 0.035, shade(BASE.rust, 0.9)),
     box(0.055, 0.07, 0.08, 0, -0.14, 0.03, dark),
     box(0.028, 0.14, 0.028, 0, -0.22, 0.03, dark),
+  ]), 'cloth');
+  f.gun.visible = false;
+  // Its holster (round 22), on the belt at the front of the left hip, outside the coat's skirt, the grip standing out of it.
+  const [hx, hz] = [0.15, 0.185];
+  part(f, f.torso, mergeGeometries([
+    box(0.066, 0.15, 0.076, hx, -0.12, hz, leather), // the pouch
+    box(0.036, 0.095, 0.022, hx, -0.005, 0.146, leather), // its tab over the belt
+    box(0.07, 0.02, 0.08, hx, -0.045, hz, shade(leather, 0.8)), // the welt at its mouth
+  ]), 'cloth');
+  f.holstered = part(f, f.torso, mergeGeometries([
+    slab(0.044, 0.075, 0.052, hx, -0.01, hz - 0.006, shade(BASE.rust, 0.9), 0, 0.3), // the grip, leaning back from the mouth
+    box(0.024, 0.026, 0.05, hx, 0.032, hz - 0.03, dark), // the hammer
   ]), 'cloth');
   f.flash = part(f, f.handL, box(0.16, 0.16, 0.16, 0, -0.32, 0.03, BASE.bone), 'flesh', 1);
   f.flash.visible = false;

@@ -43,7 +43,7 @@ export interface Beat {
   pitch?: number;
   burst?: { kind: 'ash' | 'motes' | 'embers' | 'stars'; on: Subject; count: number };
   shake?: number; // the camera trembles this hard (metres) for `hold` seconds
-  rise?: boolean; // the investigator gets up from the knee
+  rise?: number; // the investigator gets up from the knee, over this many seconds (0: as fast as they would in play)
 }
 
 export interface Scene {
@@ -131,22 +131,28 @@ export function fall(scale: Scale): Scene {
   };
 }
 
-/** A new game's wake (playtest round 20): out of black, a bell, the investigator rising in a strange town. */
+/** Seconds the wake's investigator takes to get up from the knee (round 22: it was a second, and read as a snap). */
+export const WAKE_RISE = 3.4;
+
+/**
+ * A new game's wake (playtest round 20; round 22: the rise is slow, the camera cranes up with it, and
+ * no title follows): out of black, a bell, the investigator getting up from the knee in a strange town.
+ */
 export const WAKE: Scene = {
   id: 'wake',
   sim: 'frozen',
   blend: [0, 1.6],
   shots: [
-    shot({ dur: 4.6, on: 'player', yaw: to(200, 178), dist: to(3.2, 3.6), up: to(0.25, 1.9), look: to(0.28, 0.83), fov: to(50, 58), body: false, ease: 'out', sway: 0.35 }),
-    shot({ dur: 3.4, on: 'player', yaw: to(178, 176), dist: to(3.6, 4.2), up: to(1.9, 2.1), look: to(0.83, 0.89), fov: to(58, 60), body: false, sway: 0.3 }),
+    shot({ dur: 2.8, on: 'player', yaw: to(206, 194), dist: to(3, 2.7), up: to(0.2, 0.4), look: to(0.3, 0.42), fov: to(46, 48), body: false, ease: 'out', sway: 0.35 }),
+    shot({ dur: 3.8, on: 'player', yaw: to(194, 180), dist: to(2.7, 3.7), up: to(0.4, 1.7), look: to(0.42, 0.76), fov: to(48, 57), body: false, sway: 0.3 }),
+    shot({ dur: 2.2, on: 'player', yaw: to(180, 176), dist: to(3.7, 4.3), up: to(1.7, 2.1), look: to(0.76, 0.89), fov: to(57, 60), body: false, ease: 'out', sway: 0.3 }),
   ],
   beats: [
     { at: 0.3, sound: 'found', gain: 0.85 },
     { at: 0.6, burst: { kind: 'motes', on: 'player', count: 14 } },
-    { at: 3.4, rise: true },
-    { at: 1.2, caption: 'A stair going down.', hold: 2.6 },
-    { at: 3.6, caption: 'A key. A tall man in a good coat.', hold: 3 },
-    { at: 6.6, title: ['THE SLEEPERS', 'Somewhere in this dream, eleven of them wait'], hold: 3 },
+    { at: 1, caption: 'A stair going down.', hold: 2.4 },
+    { at: 2.7, rise: WAKE_RISE },
+    { at: 3.9, caption: 'A key. A tall man in a good coat.', hold: 2.8 },
   ],
 };
 

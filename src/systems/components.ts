@@ -66,6 +66,7 @@ export interface Stamina {
   value: number;
   max: number;
   delay: number; // frames before regen resumes
+  regen?: number; // regained per second (the investigator's, from Endurance: levels.ts); STAMINA.regen without
 }
 
 export interface Actor {
@@ -162,6 +163,8 @@ export interface Tome {
   note?: boolean; // a letter, clipping or report (documents.ts), not a tome
   echoes?: number; // an Echo cache (world/caches.ts), not a tome
   weapon?: string; // a weapon lying where it was left (arms.ts), not a tome
+  rounds?: number; // a box of cartridges (data/ammoSites.ts, world/caches.ts): rounds for the revolver, not a tome (gun.ts)
+  warned?: number; // the frame it last said they carry all the rounds they can
 }
 
 /** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */
@@ -244,6 +247,9 @@ export interface Pilot {
   reagent: number; // West's Reagent: doses left...
   reagentMax: number; // ...and the most it holds (Silver Vials add to it)
   oil: number; // flasks of lamp oil to throw (round 12; bought from Dr. Morgan)
+  ammo: number; // rounds in the revolver's cylinder (round 22)...
+  rounds: number; // ...and the spare rounds carried (gun.ts)
+  gun: number; // levels of star-stones set into the revolver (gun.ts)
   cycle: number; // the journey through the dream, 0 the first (NG+, cycles.ts; round 12)
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
@@ -259,6 +265,8 @@ export interface Mind {
   seen: Set<string>; // roster ids already beheld: first sight counts once
   upgrades: Record<UpgradeId, number>; // levels bought with insight
   phantomIn: number; // frames until the next hallucination may appear
+  fought: number; // the frame of the last real blow struck or taken (sanity.ts: the mind mends only apart from a fight)
+  mending: number; // sanity being regained a second now (0: not mending), for the HUD
   struck: Toll; // the last landed blow's toll on the mind (sanity.ts)...
   beheld: Toll; // ...and the last first sight's (insight.ts)
 }
@@ -281,4 +289,6 @@ export interface Game {
   frame: number;
   reality: Reality;
   overworld?: Overworld;
+  /** How well lit the ground at a point is by the world's lamps, fires and torches, 0..1 (handed in by the renderer, which knows where they are; the dark when absent: sanity.ts mends faster in it). */
+  lit?: (at: V3) => number;
 }

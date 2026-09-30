@@ -10,12 +10,14 @@
 
 import { getRegion } from '../data/regions';
 import { DESCENT_LINE } from '../data/loreLines';
-import { LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { PLAYER_MOVES } from '../data/moves';
+import { GUN, LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { WEAPONS } from '../data/weapons';
 import { canReinforce, edgeAt, reinforce, reinforceCost } from '../systems/arms';
 import { ENDINGS } from '../data/endings';
 import { descentOpen, dream, signPlace, travel } from '../systems/checkpoints';
 import { courtEndings, endGame } from '../systems/endings';
+import { canUpgradeGun, gunCost, gunEdge, upgradeGun } from '../systems/gun';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
 import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLevelCost } from '../systems/levels';
@@ -27,7 +29,7 @@ import { glyph } from './glyphs';
 /** What one more level of each gives, in words. */
 const GAINS: Record<LevelId | UpgradeId, string> = {
   vigour: `+${LEVELS.vigour.hp} health`,
-  endurance: `+${LEVELS.endurance.stamina} stamina`,
+  endurance: `+${LEVELS.endurance.stamina} stamina, and it returns faster`,
   might: `+${Math.round(LEVELS.might.damage! * 100)}% damage`,
   resolve: `sanity losses −${Math.round(UPGRADES.resolve.resist! * 100)}%`,
   draught: `+${UPGRADES.draught.doses} Laudanum`,
@@ -97,7 +99,12 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     back: () => screen.show(main),
     build(panel) {
       el(panel, 'div', 'REINFORCE', 'font-size:18px;letter-spacing:4px');
-      el(panel, 'div', `Star-stones: ${g.player.stones}. The horrors slain for good leave them; each level set into a weapon adds ${Math.round(REINFORCE.damage * 100)}% to its blows.`, 'opacity:.6;margin:2px 0 8px');
+      el(panel, 'div', `Star-stones: ${g.player.stones}. The horrors slain for good leave them; each level set into a weapon adds ${Math.round(REINFORCE.damage * 100)}% to its blows, and into the revolver ${Math.round(GUN.level.damage * 100)}% to its shots, with a truer aim and a longer reach.`, 'opacity:.6;margin:2px 0 8px');
+      const [level, price] = [g.player.gun, gunCost(g)];
+      const shot = (n: number): number => Math.round(PLAYER_MOVES.shoot.shot.damage * might(g, g.player.id) * gunEdge(n));
+      const whole = (n: number): number => GUN.reach.near + n * GUN.level.reach;
+      const gunName = `Revolver +${level}`;
+      button(panel, price === undefined ? `${gunName}  ·  fully set` : `${gunName} → +${level + 1}  ·  ${price} star-stone${price === 1 ? '' : 's'}  ·  shot ${shot(level)} → ${shot(level + 1)}  ·  whole to ${whole(level)} → ${whole(level + 1)} m`, () => (upgradeGun(g), reinforcePage.redraw?.()), canUpgradeGun(g));
       for (const id of g.player.arms) {
         const level = g.player.reinforced[id];
         const cost = reinforceCost(g, id);

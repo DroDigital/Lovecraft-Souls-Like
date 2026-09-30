@@ -3,7 +3,9 @@
  * per-effect parameters out. Every effect intensifies as sanity falls (spec §2, Phase 0), and so
  * does the audio's detune and distortion (the FX controller's audio half, spec §3A), but for the
  * low resolution and its vertex snap, which hold (playtest round 7: madness warps, it does not
- * coarsen the pixels).
+ * coarsen the pixels). Round 22: the warping stops growing at FX.warpCap of the stress (the picture
+ * stayed torn all the way to madness); what a failing mind does past it is dread's: the edges of sight
+ * darken and blur, pale eyes open in the dark there, and the stars go wrong.
  */
 
 import { FX, RENDER, type Ramp } from '../data/tuning';
@@ -18,6 +20,7 @@ export const EFFECTS = [
   'warp',
   'displace',
   'lens',
+  'dread',
 ] as const;
 export type EffectId = (typeof EFFECTS)[number];
 
@@ -46,6 +49,10 @@ export interface FxParams {
   ripple: number;
   chroma: number;
   displace: number;
+  tunnel: number; // 0..1: how far the edges of sight close in and dim
+  blur: number; // low-res pixels the edges blur by
+  watch: number; // 0..1: how many pale eyes open at the edge of sight
+  strange: number; // 0..1: how wrong the stars are
   fovBreatheDeg: number;
   skew: number;
   detune: number; // cents
@@ -64,6 +71,7 @@ export const EFFECT_PARAMS: Record<EffectId, readonly (keyof FxParams)[]> = {
   warp: ['ripple', 'chroma'],
   displace: ['displace'],
   lens: ['fovBreatheDeg', 'skew'],
+  dread: ['tunnel', 'blur', 'watch', 'strange'],
 };
 
 /** The effects that hold at every sanity. */
@@ -71,6 +79,10 @@ export const STEADY: readonly EffectId[] = ['pixelate', 'snap'];
 
 const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
 const at = (r: Ramp, t: number): number => r[0] + (r[1] - r[0]) * t;
+const smooth = (a: number, b: number, x: number): number => {
+  const k = clamp01((x - a) / (b - a));
+  return k * k * (3 - 2 * k);
+};
 
 export function allEffectsOn(): Record<EffectId, boolean> {
   return Object.fromEntries(EFFECTS.map((id) => [id, true])) as Record<EffectId, boolean>;
@@ -83,13 +95,14 @@ export function sanityStress(sanity: number, cap: number): number {
 
 export function computeFx(s: FxState): FxParams {
   const t = sanityStress(s.sanity, s.cap);
+  const w = Math.min(t, FX.warpCap); // the picture warps no further past this
   const on = s.enabled;
   const pulse = clamp01(s.pulse ?? 0) * clamp01(s.cap);
   return {
     stress: t,
     lowRes: on.pixelate,
     snapPixels: on.snap ? FX.snapPixels : 0,
-    affine: on.affine ? at(FX.affine, t) : 0,
+    affine: on.affine ? at(FX.affine, w) : 0,
     fogNear: at(FX.fogNear, t),
     fogFar: at(FX.fogFar, t),
     fogAmount: on.fog ? 1 : 0,
@@ -99,11 +112,15 @@ export function computeFx(s: FxState): FxParams {
     anomalyStress: at(FX.anomalyStress, t),
     quantize: on.quantize,
     ditherSpread: at(FX.ditherSpread, t),
-    ripple: on.warp ? at(FX.ripple, t) + FX.pulseRipple * pulse : 0,
-    chroma: on.warp ? at(FX.chroma, t) + FX.pulseChroma * pulse : 0,
-    displace: on.displace ? at(FX.displace, t) : 0,
-    fovBreatheDeg: on.lens ? at(FX.fovBreatheDeg, t) : 0,
-    skew: on.lens ? at(FX.skew, t) : 0,
+    ripple: on.warp ? at(FX.ripple, w) + FX.pulseRipple * pulse : 0,
+    chroma: on.warp ? at(FX.chroma, w) + FX.pulseChroma * pulse : 0,
+    displace: on.displace ? at(FX.displace, w) : 0,
+    tunnel: on.dread ? at(FX.tunnel, smooth(FX.tunnelFrom, 1, t)) : 0,
+    blur: on.dread ? at(FX.blur, smooth(FX.tunnelFrom, 1, t)) : 0,
+    watch: on.dread ? clamp01((t - FX.watchFrom) / (1 - FX.watchFrom)) : 0,
+    strange: on.dread ? at(FX.strange, smooth(FX.tunnelFrom, 1, t)) : 0,
+    fovBreatheDeg: on.lens ? at(FX.fovBreatheDeg, w) : 0,
+    skew: on.lens ? at(FX.skew, w) : 0,
     detune: at(FX.detune, t),
     wobble: at(FX.wobble, t),
     distortion: at(FX.distortion, t),

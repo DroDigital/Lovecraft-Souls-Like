@@ -78,9 +78,10 @@ describe('playtest round 7: combat feel', () => {
     const after = g.mind.sanity;
     expect(g.player.steady).toBeGreaterThan(0);
     steps(g, Math.round(LAUDANUM.steady * SIM.hz) - 10);
-    expect(g.mind.sanity).toBeCloseTo(after); // held
+    const held = g.mind.sanity;
+    expect(held).toBeGreaterThanOrEqual(after - 1e-9); // nothing taken (a mind apart from a fight may even mend meanwhile: round 22)
     steps(g, 60);
-    expect(g.mind.sanity).toBeLessThan(after); // and then it drains again
+    expect(g.mind.sanity).toBeLessThan(held); // and then it drains again
   });
 
   it('the Reagent mends: a pool does no harm for a while after a shot', () => {
