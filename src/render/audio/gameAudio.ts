@@ -26,6 +26,7 @@ import { dungeonRoomAt } from '../../world/terrain';
 import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
+import { createDread } from './dread';
 import { CUES, cueFor, dullness, nextCall, placeSound, type Cue } from './cues';
 import { impactLayers, landedBlow } from './impact';
 import type { Drones } from './drones';
@@ -41,7 +42,7 @@ export interface GameAudio {
   /** A voice where `at` is, recorded if it can be (round 18: the small lives' cries as they take fright). */
   cry(id: VoiceId, at: V3, gain?: number): void;
   /** A recording from afar: panned anywhere, duller the quieter (round 18: the thunder after lightning). */
-  far(set: SampleSetId, gain?: number): void;
+  far(set: SampleSetId, gain?: number, pitch?: number): void;
   /** A stinger heard without place, recorded if it can be (round 20: an Echo drawn into the investigator). */
   stinger(sound: StingerId, o?: { gain?: number; pitch?: number }): void;
   /** A recording heard without place (round 20: a cutscene's laugh, its choir). */
@@ -64,6 +65,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   void sampler.load(setFiles(Object.values(SAMPLE_SETS)));
   const ambience = createAmbience(e, sampler);
   const foley = createFoley(g, sampler);
+  const dread = createDread(e, g, (set, gain, pitch) => void sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.6, lowpass: 700 + 3000 * gain, pitch })); // round 26: the ground goes quiet, and far off it is heard
   const place = (at: V3 | null, range: number): { gain: number; pan: number } => placeSound(listener, right, at, range);
   /** One of a set's takes where `at` is; false when none has loaded. */
   const recorded = (id: SampleSetId, at: V3 | null, range: number, o: { gain?: number; pitch?: number; delay?: number } = {}): boolean => {
@@ -191,8 +193,8 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     sampler.play(SAMPLE_SETS.whisper, { gain: lo + (hi - lo) * Math.min(1, k), pan: Math.random() < 0.5 ? -0.9 : 0.9, pitch: 0.78 + 0.22 * Math.random() });
   }
   return {
-    far(set, gain = 1) {
-      sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, bus: e.bed ?? undefined });
+    far(set, gain = 1, pitch) {
+      sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, pitch, bus: e.bed ?? undefined });
     },
     stinger(sound, o = {}) {
       play({ sound, at: null, ...o });
@@ -222,6 +224,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       ambience.set((g.overworld && at && inside(at)) || (AMBIENCE[region ?? ''] ?? null));
       ambience.update(seconds);
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
+      dread.update(seconds, paused);
       drones.update(fx, seconds);
       if (paused) return;
       if (HEART.beats !== lastBeat) { // near death, the heart (round 14; hurtFx.ts and the health bar keep to it), louder as it nears the end (round 23)

@@ -11,6 +11,8 @@ import type { GameAudio } from './audio/gameAudio';
 import { createFauna, type Fauna } from './fauna';
 import { createGlints } from './glints';
 import { createLightning } from './lightning';
+import type { Particles } from './particles';
+import { createPresence } from './presence';
 import type { PostPass } from './postPass';
 import { createSkyLife } from './skyLife';
 import type { SpriteAtlas } from './sprites/atlas';
@@ -25,6 +27,7 @@ export interface LifeParts {
   sky: THREE.Mesh; // the sky dome, whose haze the lightning brightens
   post: PostPass; // the post pass, whose mist it lights
   sheet: { atlas: SpriteAtlas; texture: THREE.Texture }; // the creatures' sprites, for the great winged things
+  particles: Particles; // dust and grit (round 26: what a colossus throws up)
 }
 
 export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, parts: LifeParts): WorldLife {
@@ -32,6 +35,7 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
   const sky = createSkyLife(scene, g, fauna, parts.sheet, (voice, at) => audio.cry(voice, at, 1.4));
   const lightning = createLightning(parts.sky, parts.post, (gain) => audio.far('thunder', gain));
   const glints = createGlints(scene, g);
+  const presence = createPresence(g, parts.particles, audio); // round 26: what a colossus does to the ground and the air
   return {
     fauna,
     update(camera, time, enclosed) {
@@ -40,6 +44,7 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
       sky.update(camera, time, !outside);
       lightning.update(time, g.overworld?.region ?? null, !outside);
       glints.update(camera.position, time, !g.overworld);
+      presence.update(camera, time);
     },
   };
 }

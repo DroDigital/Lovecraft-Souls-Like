@@ -158,7 +158,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   const mist = createVolumetricFog(pipeline.post); // round 16
-  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet }); // round 18: the world's own life
+  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet, particles }); // round 18: the world's own life
   scene.add(sky.mesh);
   const skyline = createSkyline(scene);
   const hurt = createHurtFx(game);
