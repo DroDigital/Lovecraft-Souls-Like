@@ -4,7 +4,7 @@
  * systems in their fixed order each step.
  */
 
-import { createEcs } from '../core/ecs';
+import { createEcs, type Entity } from '../core/ecs';
 import { createEventBus } from '../core/events';
 import type { InputFrame } from '../core/input';
 import { yawOf, type V3 } from '../core/geom';
@@ -128,12 +128,26 @@ export function createGame({ seed = ARENA.seed, creature, variant }: GameOptions
   const def = creature === undefined ? undefined : resolveCreature(creature, variant);
   if (def?.tier === 'ally') spawnCreature(g, creature!, ARENA.ally, variant);
   const foe = def && def.tier !== 'ally' ? spawnCreature(g, creature!, ARENA.deepOne, variant) : undefined;
-  if (foe !== undefined) setArena(g, foe, { x: 0, z: 0, radius: ARENA.radius }); // a boss holds the whole arena
+  if (foe !== undefined) {
+    setArena(g, foe, { x: 0, z: 0, radius: ARENA.radius }); // a boss holds the whole arena
+    standAtEdge(g, foe);
+  }
   else g.ecs.c.dread.set(spawnCombatant(g, DEEP_ONE, ARENA.deepOne, 'enemy'), dreadOf(getEntity('deep_one')!)); // it weighs on the mind like the roster's Deep One
   spawnTome(g, ARENA.tome);
   for (const piece of ARENA.hidden) spawnPiece(g, piece);
   cameraSystem(g, 0, 0, 0);
   return g;
+}
+
+/** A body wider than a man's is not stood inside (round 24: `?spawn=cthulhu` began with the investigator within it): they stand a few metres off its near edge, facing it. */
+function standAtEdge(g: Game, foe: Entity): void {
+  const [at, body, me] = [g.ecs.c.transform.get(foe)!.pos, g.ecs.c.body.get(foe)!, g.ecs.c.transform.get(g.player.id)!];
+  const gap = body.radius + 4;
+  if (Math.hypot(me.pos.x - at.x, me.pos.z - at.z) >= gap) return;
+  const z = at.z + gap;
+  me.pos = { x: at.x, y: g.world.ground(at.x, z), z };
+  me.prev = { ...me.pos };
+  me.yaw = me.prevYaw = Math.PI; // toward -z, where the body stands
 }
 
 /** Where the camera looks while someone talks: at them, turned a little left so they stand clear of the investigator. */

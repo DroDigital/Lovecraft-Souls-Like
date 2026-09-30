@@ -16,7 +16,7 @@ export const GREAT_OLD_ONES = tier('great_old_one', [
       ph(0.66, { tentacle_burst: 2, slam: 2, wind_push: 2, roar: 1, quake: 1, eruption: 2 }, { summons: ['star_spawn', 'star_spawn'], hooks: ['camera_warp', 'flood'] }),
       ph(0.33, { slam: 2, tentacle_burst: 2, grab: 2, wind_push: 1, roar: 1, eruption: 1, vortex: 1, quake: 1 }, { hooks: ['flood', 'camera_warp'], arena: 'ship' }),
     )),
-    stats: st(6700, 5000, 120, 2, 10, 20), drops: { echoes: 30000 }, insightOnSight: 4,
+    stats: st(4300, 5000, 35, 2, 10, 20), drops: { echoes: 30000 }, insightOnSight: 4, // (round 25: health 6700 and damage 120; the balance table had it at 188 s and 9.3 lives)
   },
   {
     id: 'father_dagon', name: 'Father Dagon', source: 'Dagon', regions: ['innsmouth'], canonLooks: true,
@@ -48,7 +48,7 @@ export const GREAT_OLD_ONES = tier('great_old_one', [
       ph(0.5, { spit: 2, pool: 2, bite: 1, eruption: 1 }, { summons: ['formless_spawn', 'formless_spawn'], hooks: ['darkness'] }),
       ph(0.2, { slam: 2, bite: 2, roar: 1, quake: 1, vortex: 1 }, { hooks: ['darkness'] }),
     )),
-    stats: st(3250, 1500, 70, 1.8, 6, 12), drops: { echoes: 12000 }, insightOnSight: 3,
+    stats: st(3250, 1500, 52, 1.8, 6, 12), drops: { echoes: 12000 }, insightOnSight: 3, // (round 25: damage was 70; the balance table had it at 3.3 lives)
   },
   {
     id: 'ghatanothoa', name: 'Ghatanothoa', source: 'Out of the Aeons', regions: ['rlyeh'], canonLooks: true,

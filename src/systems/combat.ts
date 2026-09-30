@@ -20,6 +20,7 @@ import { foeDamage } from './cycles';
 import { might } from './levels';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
+import { refreshStoops, zoneGap } from './hurt';
 import { live, targetsOf } from './targets';
 
 /** What a blow carries into resolution; melee hits and revolver shots both fit. */
@@ -115,14 +116,17 @@ export { hostiles, targetsOf } from './targets';
  * Distance² from a segment to a body's hurt capsule, and the capsule radius. A wide body's capsule
  * stands on a flat foot (COMBAT.foot): its lower cap was centred a radius up, so a colossus was a
  * sphere touching the ground at a point, a few metres across at the height of a blade, while its
- * body kept the investigator a whole radius away (round 24: nothing that size could be struck).
+ * body kept the investigator a whole radius away (round 24: nothing that size could be struck). A colossus
+ * has zones instead (hurt.ts), and `reach` (the blow's own radius) says which it touches; `damage` is the share of the blow the place takes.
  */
-export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3): { gap2: number; radius: number } {
+export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3, reach = 0): { gap2: number; radius: number; edge: number; damage: number } {
   const p = g.ecs.c.transform.get(target)!.pos;
   const { radius, height } = g.ecs.c.body.get(target)!;
+  const zone = zoneGap(g, target, a, b, reach); // a colossus is struck where its legs, body and head are (hurt.ts; round 24)
+  if (zone) return { gap2: zone.gap2, radius: 0, edge: radius, damage: zone.damage };
   const bottom = { x: p.x, y: p.y + Math.min(radius, COMBAT.foot), z: p.z };
   const top = { x: p.x, y: p.y + height - radius, z: p.z };
-  return { gap2: segSegDist2(a, b, bottom, top), radius };
+  return { gap2: segSegDist2(a, b, bottom, top), radius, edge: radius, damage: 1 };
 }
 
 /**
@@ -176,6 +180,7 @@ export function aimAt(g: Game, target: Entity, feet: number, s: V3): V3 {
 
 export function meleeSystem(g: Game): void {
   const { actor, transform } = g.ecs.c;
+  refreshStoops(g);
   for (const [id, a] of actor) {
     const hit = moveDef(a)?.hit;
     if (!hit || a.frozen || isAbsent(g, id) || !inWindow(hit.window, a.frame)) continue;
@@ -187,13 +192,13 @@ export function meleeSystem(g: Game): void {
     const root = hit.reach > COMBAT.limb || hit.thrust ? { x: tr.pos.x, y: s1.y, z: tr.pos.z } : null; // a long limb, or a thrust's whole line, swept from the body out
     for (const t of live(g, targetsOf(g, id))) {
       if (a.hits.has(t)) continue;
-      const tip = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
-      const gap2 = root ? Math.min(tip.gap2, capsuleGap2(g, t, aimAt(g, t, tr.pos.y, root), aimAt(g, t, tr.pos.y, s1)).gap2) : tip.gap2;
-      const radius = tip.radius;
-      if (gap2 > (hit.radius + radius) ** 2) continue;
+      const tip = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1), hit.radius);
+      const swept = root ? capsuleGap2(g, t, aimAt(g, t, tr.pos.y, root), aimAt(g, t, tr.pos.y, s1), hit.radius) : tip;
+      const best = swept.gap2 < tip.gap2 ? swept : tip;
+      if (best.gap2 > (hit.radius + best.radius) ** 2) continue;
       a.hits.add(t);
       const crit = backstab(g, id, t);
-      const outcome = strike(g, id, t, { ...hit, damage: hit.damage * edge(g, id), parryable: !hit.unblockable, interrupts: false, ...(crit && { critical: true }) });
+      const outcome = strike(g, id, t, { ...hit, damage: hit.damage * edge(g, id) * best.damage, parryable: !hit.unblockable, interrupts: false, ...(crit && { critical: true }) });
       if (hit.push && outcome !== 'dodged' && outcome !== 'parried') shove(g, t, tr.pos, hit.push);
       if (a.move === 'parried') break; // recoiled off a parry
     }

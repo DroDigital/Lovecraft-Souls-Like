@@ -113,6 +113,7 @@ export function compileAttack(id: AttackId, stats: Stats, height: number): MoveD
   }
   if (a.effect) move.effect = { window: [a.windup, a.windup + a.active], kind: a.effect, range: a.range[1] * k };
   if (a.follow) move.then = a.follow;
+  else if (a.kind !== 'special') move.open = a.windup + a.active; // it recovers, stooped, after the blow (hurt.ts)
   if (a.pull) move.pull = { window: [a.windup, a.windup + a.active], speed: a.pull.speed, range: a.pull.range * k };
   if (a.kind === 'special' || stats.damage <= 0 || (damage <= 0 && !pool)) return move;
   move.interrupt = [Math.round(a.windup * 0.3), a.windup];
