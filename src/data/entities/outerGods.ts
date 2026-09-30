@@ -39,7 +39,7 @@ export const OUTER_GODS = tier('outer_god', [
       ph(0.6, { beam: 2, projectile_fan: 1, teleport: 1, summon: 1, sweep_beam: 1, barrage: 1 }, { summons: ['dhole'], hooks: ['arena_reconnect', 'camera_warp'] }),
       ph(0.25, { beam: 3, aoe_ring: 1, teleport: 1, sweep_beam: 2, vortex: 1 }, { hooks: ['arena_reconnect', 'camera_warp', 'time_skip'] }),
     ), { mobile: false, range: [0, 40] }),
-    stats: st(6100, 5000, 120, 1, 10, 25), drops: { echoes: 40000 }, insightOnSight: 5,
+    stats: st(6100, 5000, 62, 1, 10, 25), drops: { echoes: 40000 }, insightOnSight: 5, // (round 25: damage was 120; the balance table had it at 7.6 lives)
   },
   {
     id: 'umr_at_tawil', name: "'Umr at-Tawil", source: 'Through the Gates of the Silver Key', regions: ['beyond'], canonLooks: true,
