@@ -29,6 +29,7 @@ const HINTS = {
   boss: 'Watch the ground: a boss shows where its blows will land. Roll through rings and beams.',
   blind: 'Azathoth cannot see you, and nothing you strike it with matters. It hears: running, rolling, swinging and shots carry far, walking less, and walking with {block} held or standing still not at all. Outlast the piping.',
   insight: 'Insight buys strength when you rest at an Elder Sign.',
+  gun: '{shoot} fires the revolver: six rounds, and the spare ones you carry. {reload} loads it. It strikes hard up close and little from afar, and misses small things at range. Rounds lie in boxes about the dream and are sold by merchants.',
   oil: '{throw} throws a flask of lamp oil; it bursts and burns where it lands. Lock on first to throw it at a foe.',
   grab: 'A crimson flare means a grab: no guard stops it. Roll away ({dodge}).',
   phantom: 'It was never there. At the edge of madness the mind conjures horrors: they vanish when struck, and their blows wound only the mind. Laudanum ({item}) or rest steadies it.',
@@ -64,6 +65,8 @@ export function createHints(g: Game, root: HTMLElement): Hints {
     const h = g.ecs.c.health.get(g.player.id);
     if (e.target === g.player.id && h && h.hp < h.max * 0.6) hint('hurt');
   });
+  g.events.on('Shot', (e) => e.shooter === g.player.id && hint('gun'));
+  g.events.on('DryFire', () => hint('gun'));
   g.events.on('SanityBandChanged', () => hint('mind'));
   g.events.on('Vanished', (e) => e.struck && hint('phantom'));
   g.events.on('Discovered', () => hint('sign'));

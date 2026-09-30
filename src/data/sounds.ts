@@ -59,6 +59,14 @@ export const STINGERS = {
   dodged: [noise('bandpass', 500, 0.26, 0.55, { to: 1800, q: 1.2 })],
   shot: [noise('highpass', 1500, 0.06, 0.8), noise('lowpass', 900, 0.45, 0.6, { to: 120 }), tone('sine', 100, 0.3, 0.55, { to: 32 }), noise('bandpass', 2400, 0.9, 0.05, { at: 0.08, q: 0.7 })],
   beam: [tone('sawtooth', 1900, 0.5, 0.12, { to: 230, vibrato: [42, 120], filter: { type: 'bandpass', hz: 2600, to: 500, q: 4 } }), noise('bandpass', 4200, 0.45, 0.22, { to: 700, q: 3, attack: 0.02 }), tone('sine', 95, 0.6, 0.3, { to: 52, attack: 0.05 }), noise('highpass', 6500, 0.07, 0.28)], // a creature's beam (round 20: it was the revolver's shot)
+  // The revolver reloaded (round 22): the cylinder swung out, six rounds dropped in one by one, and, as it closes (on the reload's item frame), a snap.
+  reload: [
+    noise('bandpass', 3400, 0.03, 0.3, { q: 4 }),
+    ...[0.3, 0.38, 0.46, 0.54, 0.62, 0.7].map((at, k) => noise('bandpass', 2300 + 110 * k, 0.03, 0.28, { at, q: 5 })),
+    ...[0.3, 0.46, 0.62].map((at) => tone('triangle', 1250, 0.05, 0.04, { at, to: 900 })),
+  ],
+  cylinder: [noise('bandpass', 3000, 0.05, 0.42, { q: 3 }), tone('square', 1400, 0.04, 0.05, { filter: { type: 'bandpass', hz: 1700 } }), tone('sine', 140, 0.09, 0.2, { to: 70 })],
+  dry: [noise('bandpass', 2800, 0.03, 0.3, { q: 4 }), tone('square', 950, 0.03, 0.04, { filter: { type: 'bandpass', hz: 1500 } })], // the trigger pulled on nothing
   lock: [tone('square', 1760, 0.04, 0.04, { filter: { type: 'bandpass', hz: 2000 } })],
   death: [...chord('sawtooth', [55, 58.27, 82.41, 87.31], 3.5, 0.3, { attack: 0.05, filter: lp(900, 120) }), tone('sine', 41, 4, 0.4, { to: 30 }), noise('lowpass', 300, 2.5, 0.2)],
   rise: [noise('lowpass', 300, 2, 0.2, { to: 1200, attack: 1.2 }), tone('sine', 55, 2.2, 0.25, { to: 110, attack: 1 })],

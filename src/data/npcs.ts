@@ -161,7 +161,7 @@ const NEAR_NPCS: readonly NpcDef[] = [
     ],
   },
   {
-    id: 'curtis', name: 'Curtis Whateley', title: 'Of the undecayed Whateleys', sign: 'dunwich_village', side: 1,
+    id: 'curtis', name: 'Curtis Whateley', title: 'Of the undecayed Whateleys', sign: 'dunwich_village', side: 1, shop: 'curtis',
     look: { coat: 'rust', hat: 'fedora', hair: 'dark', beard: true },
     topics: [
       { when: [at('dunwich', 'unstarted')], starts: 'dunwich', lines: [
@@ -172,11 +172,11 @@ const NEAR_NPCS: readonly NpcDef[] = [
       ] },
       { when: [at('dunwich', 0)], lines: ["Sentinel Hill's to the east. Listen for the whippoorwills. When they all start up at once, it's close."] },
       { when: [at('dunwich', 'done')], lines: ['The whippoorwills stopped. They do that when they miss what they come for.', 'Take this. Ma kept it for bad times. I reckon these are bad times.'] },
-      { lines: ["Folks in the village won't open their doors. Can't say I blame 'em."] },
+      { lines: ["Folks in the village won't open their doors. Can't say I blame 'em.", "Shells I've got, if you've the Echoes for 'em. Cartridges for that pistol of yours. Ain't much else worth spendin' on."] },
     ],
   },
   {
-    id: 'dyer', name: 'William Dyer', title: 'Professor of Geology', sign: 'mountains_camp', side: -1,
+    id: 'dyer', name: 'William Dyer', title: 'Professor of Geology', sign: 'mountains_camp', side: -1, shop: 'dyer',
     look: { coat: 'grey', hat: 'fedora', hair: 'grey', glasses: true },
     topics: [
       { when: [at('elder_city', 'unstarted')], starts: 'elder_city', lines: [
@@ -186,7 +186,7 @@ const NEAR_NPCS: readonly NpcDef[] = [
       ] },
       { when: [at('elder_city', 0)], lines: ['Tekeli-li. That\'s the sound it makes. If you hear it, it\'s already close.'] },
       { when: [at('elder_city', 'done')], lines: ["You came back. Danforth didn't, not all of him.", "I've been drawing the murals from memory. Take the pages. They show where the builders came from."] },
-      { lines: ['The wind comes down off the plateau every afternoon, and it sounds like piping.'] },
+      { lines: ['The wind comes down off the plateau every afternoon, and it sounds like piping.', 'The expedition stores are open to anyone who has come this far: cartridges, lamp oil. I will not say what I want for them.'] },
     ],
   },
 ];

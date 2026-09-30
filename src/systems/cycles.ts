@@ -1,13 +1,13 @@
 /**
  * A new journey through the dream (playtest round 12: there was no NG+). After an ending, beginning
  * anew may carry the investigator's strength into a new dream: levels, arms and how far each is
- * reinforced, star-stones, the mind's upgrades, Silver Vials and Echoes. Everything else (the
+ * reinforced, star-stones, the mind's upgrades, Silver Vials, the revolver's levels and Echoes. Everything else (the
  * world, its quests and bosses) begins again, and each journey's foes are hardier, strike harder
  * and leave more Echoes (NEW_GAME_PLUS). Pure: no Three.js.
  */
 
 import type { Entity } from '../core/ecs';
-import { LEVELS, NEW_GAME_PLUS, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { GUN, LEVELS, NEW_GAME_PLUS, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { isWeapon, WEAPON_IDS, type WeaponId } from '../data/weapons';
 import { equip } from './arms';
 import type { Game } from './components';
@@ -20,6 +20,7 @@ export interface Carry {
   weapon: WeaponId;
   reinforced: Record<WeaponId, number>;
   stones: number;
+  gun: number; // the revolver's levels (its rounds start again)
   upgrades: Record<UpgradeId, number>;
   reagentMax: number;
   echoes: number;
@@ -33,6 +34,7 @@ export const carryOf = (g: Game): Carry => ({
   weapon: g.player.weapon,
   reinforced: { ...g.player.reinforced },
   stones: g.player.stones,
+  gun: g.player.gun,
   upgrades: { ...g.mind.upgrades },
   reagentMax: g.player.reagentMax,
   echoes: g.player.echoes,
@@ -55,6 +57,7 @@ export function parseCarry(raw: unknown): Carry | null {
     weapon,
     reinforced: counts(o.reinforced, WEAPON_IDS, () => REINFORCE.max),
     stones: num(o.stones, 0, 999),
+    gun: num(o.gun, 0, GUN.level.max),
     upgrades: counts(o.upgrades, Object.keys(UPGRADES) as UpgradeId[], (k) => UPGRADES[k].max),
     reagentMax: num(o.reagentMax, REAGENT.doses, REAGENT.maxDoses),
     echoes: num(o.echoes, 0, 1e9),
@@ -64,7 +67,7 @@ export function parseCarry(raw: unknown): Carry | null {
 /** Puts a carried strength into a new dream's investigator. */
 export function applyCarry(g: Game, c: Carry): void {
   const p = g.player;
-  Object.assign(p, { cycle: c.cycle, levels: { ...c.levels }, arms: [...c.arms], reinforced: { ...c.reinforced }, stones: c.stones, echoes: c.echoes });
+  Object.assign(p, { cycle: c.cycle, levels: { ...c.levels }, arms: [...c.arms], reinforced: { ...c.reinforced }, stones: c.stones, gun: c.gun, echoes: c.echoes });
   Object.assign(g.mind.upgrades, c.upgrades);
   [p.reagentMax, p.reagent] = [c.reagentMax, c.reagentMax];
   applyLevels(g);

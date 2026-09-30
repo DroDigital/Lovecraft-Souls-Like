@@ -148,7 +148,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const fxController = createFxController(game);
   const audio = createGameAudio(shell.engine, shell.drones, game);
   const particles = createParticles(scene);
-  const combatFx = createCombatFx(game, particles);
+  const combatFx = createCombatFx(game, particles, () => views.muzzle);
   const impactFx = createImpactFx(game, particles); // round 20: the weight of the investigator's blows
   const echoFx = createEchoFx(game, particles, audio); // round 20: a slain foe's Echoes leave the body and are drawn into the investigator
   const cinema = createCinema(game, createCinemaUi(), audio, particles, { enabled: () => settings.cutscenes > 0.5, rise: views.rise }); // round 20: wake, arrivals, falls, endings

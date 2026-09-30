@@ -75,6 +75,7 @@ const KEYED: Readonly<Record<Action, string>> = {
   right: 'Move right',
   dodge: 'Dodge (hold: sprint)',
   shoot: 'Revolver',
+  reload: 'Reload the revolver',
   lock: 'Lock on',
   heal: "West's Reagent (heal)",
   item: 'Laudanum (sanity)',
@@ -84,7 +85,7 @@ const KEYED: Readonly<Record<Action, string>> = {
 };
 const PAD_OF: Readonly<Record<Action, string>> = {
   forward: 'left stick', back: 'left stick', left: 'left stick', right: 'left stick',
-  dodge: 'B', shoot: 'X', lock: 'R3', heal: 'Y', item: 'D-pad ↓', throw: 'D-pad ↑', interact: 'A', map: 'View',
+  dodge: 'B', shoot: 'X', reload: 'D-pad ←', lock: 'R3', heal: 'Y', item: 'D-pad ↓', throw: 'D-pad ↑', interact: 'A', map: 'View',
 };
 /** What cannot be rebound: the mouse's buttons, looking, and the menus' own keys. */
 export const FIXED_CONTROLS: readonly (readonly [string, string, string])[] = [

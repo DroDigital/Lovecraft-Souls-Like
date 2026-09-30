@@ -122,7 +122,7 @@ describe('revolver', () => {
     ] as const) {
       const { g, player, deepOne: foe } = scriptedGame();
       const seen = hits(g);
-      place(g, player, 0, 8, Math.PI);
+      place(g, player, 0, 3, Math.PI); // close: a shot is whole (round 22: it falls away with distance, gun.ts)
       place(g, foe, 0, 0, 0);
       startMove(g.ecs.c.actor.get(foe)!, 'claw');
       const shots: GameEvents['Shot'][] = [];

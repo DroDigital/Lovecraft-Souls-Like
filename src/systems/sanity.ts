@@ -107,7 +107,7 @@ export function sanitySystem(g: Game, dt: number): void {
   else loseSanity(g, drain(g, dt));
   const a = g.ecs.c.actor.get(g.player.id)!;
   const def = moveDef(a);
-  if (a.frozen || a.frame !== def?.item || def.use === 'reagent') return;
+  if (a.frozen || a.frame !== def?.item || (def.use ?? 'laudanum') !== 'laudanum') return;
   restoreSanity(g, LAUDANUM.sanity);
   g.player.steady = Math.round(LAUDANUM.steady * SIM.hz);
 }

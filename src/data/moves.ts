@@ -127,7 +127,7 @@ export interface MoveDef {
   track?: { window: Window; rate: number }; // turn toward the target during these frames (rad/s)
   sanity?: SanityDef;
   item?: number; // the frame a consumable takes effect
-  use?: 'laudanum' | 'reagent'; // which consumable (default Laudanum)
+  use?: 'laudanum' | 'reagent' | 'rounds'; // which consumable (default Laudanum); rounds: the revolver's cylinder is loaded
   anim?: SwingAnim; // how the weapon arm moves (poses.ts); by default it follows the hit arc
   hold?: boolean; // stays on its last frame until the game ends it (death)
   marks?: MarksDef;
@@ -207,14 +207,15 @@ export const PLAYER_MOVES = {
   roll: { frames: 48, stamina: 18, cancel: 36, release: 34, iframes: [2, 24], motion: { window: [0, 34], distance: 4.2, dir: 'input' } }, // a full tumble takes the better part of a second; running on, it flows into the stride as it lands
   backstep: { frames: 22, stamina: 12, cancel: 16, release: 14, rest: 10, iframes: [1, 7], motion: { window: [0, 12], distance: 2.4, dir: 'back' } }, // never twice in a row: spammed, it outran a sprint with i-frames a third of the time
   parry: { frames: 36, stamina: 10, parry: [3, 11] },
-  shoot: {
-    frames: 28,
-    stamina: 8,
-    cancel: 18,
-    release: 20,
+  shoot: { // the revolver (round 22): one round, a shot that strikes like a heavy blow up close, and a beat before the next (systems/gun.ts: the cylinder, the fall-off with distance)
+    frames: 32,
+    stamina: 10,
+    cancel: 24,
+    release: 24,
     track: { window: [0, 6], rate: 10 },
-    shot: { frame: 7, damage: 7, poise: 4, range: 22, hitstop: 2 },
+    shot: { frame: 7, damage: 30, poise: 16, range: 22, hitstop: 3 },
   },
+  reload: { frames: 80, stamina: 6, cancel: 66, release: 56, item: 48, use: 'rounds', walk: 0.35 }, // the spare rounds go in on the item frame; walked out of after it, a blow cuts it short, and nothing loaded is lost
   drink: { frames: 60, cancel: 48, release: 44, item: 34, use: 'laudanum', walk: 0.4 }, // walking on slowly as they drink (playtest round 7)
   inject: { frames: 64, cancel: 50, release: 46, item: 36, use: 'reagent', walk: 0.4 },
   throw: { // a flask of lamp oil, lobbed at the foe locked on (else ahead) to burst and burn where it lands (round 12)

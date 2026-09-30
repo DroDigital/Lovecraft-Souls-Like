@@ -101,6 +101,23 @@ function inject(f: Figure, d: MoveDef, frame: number): void {
   f.torso.rotation.x = 0.12 * t * clamp01((frame - at + 4) / 6); // it stings
 }
 
+/**
+ * A reload (round 22): the revolver drawn up before the chest, its muzzle tipped high, the head bent to it; six
+ * rounds dropped in one by one, the hand ticking with each; the cylinder snapped shut on the item frame, a
+ * jerk of the wrist, and the arm let down again.
+ */
+function reload(f: Figure, d: MoveDef, frame: number): void {
+  const at = d.item!;
+  const up = ease(frame / 14) * (1 - ease((frame - at - 4) / Math.max(1, d.frames - at - 16)));
+  const tick = frame >= 16 && frame < at - 2 ? 0.09 * Math.sin(((frame - 16) / 5) * Math.PI) ** 2 : 0;
+  const snap = frame >= at ? 0.4 * Math.exp(-(frame - at) / 3) : 0;
+  f.armL.rotation.set(-0.95 * up - snap, 0, 0.15 * up, 'YXZ');
+  f.elbowL.rotation.x = -1.45 * up;
+  f.handL.rotation.x = -0.5 * up + tick;
+  f.torso.rotation.y = -0.18 * up;
+  f.head.rotation.x += 0.28 * up;
+}
+
 /** A flask of lamp oil, lobbed with the off-hand (round 12): up and back, over as it leaves, then down. */
 function lob(f: Figure, d: MoveDef, frame: number): void {
   const at = d.volley!.frame;
@@ -219,7 +236,7 @@ export function pose(f: Figure, p: PoseInput): void {
   else if (d.volley) lob(f, d, p.frame);
   else if (d.item !== undefined) {
     stride(f, p.speed, p.stride, p.time, false); // walking on beneath it
-    (d.use === 'reagent' ? inject : drink)(f, d, p.frame);
+    (d.use === 'rounds' ? reload : d.use === 'reagent' ? inject : drink)(f, d, p.frame);
   }
   f.body.rotation.x -= 0.18 * p.flinch;
   f.head.rotation.x -= 0.25 * p.flinch;

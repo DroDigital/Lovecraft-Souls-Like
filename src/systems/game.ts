@@ -14,7 +14,7 @@ import { getEntity, type Variant } from '../data/registry';
 import { DEEP_ONE, TRAINING_DUMMY } from '../data/placeholders';
 import type { Place } from '../data/arena';
 import { START_SIGN } from '../data/sites';
-import { CAMERA, LAUDANUM, REAGENT, SIM, WORLD } from '../data/tuning';
+import { CAMERA, GUN, LAUDANUM, REAGENT, SIM, WORLD } from '../data/tuning';
 import { createArenaWorld } from '../world/arena';
 import type { CollisionWorld } from '../world/colliders';
 import { createWorldCollision } from '../world/worldCollision';
@@ -54,6 +54,7 @@ import { reagentSystem, registerReagent } from './reagent';
 import { registerHastur } from './signatures/hastur';
 import { registerNyarlathotep } from './signatures/nyarlathotep';
 import { shotSystem } from './revolver';
+import { gunSystem, registerGun } from './gun';
 import { createMind, registerSanity, sanitySystem } from './sanity';
 import { applySave, type SaveData } from './save';
 import { spawnCombatant, spawnPlayer } from './spawn';
@@ -77,7 +78,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, oil: 0, cycle: 0, steady: 0, mended: 0, listening: null, kneeling: null },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, oil: 0, ammo: GUN.chamber, rounds: GUN.start, gun: 0, cycle: 0, steady: 0, mended: 0, listening: null, kneeling: null },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -93,6 +94,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
   registerFights(g);
   registerReality(g);
   registerReagent(g);
+  registerGun(g);
   registerPerception(g);
   return g;
 }
@@ -121,6 +123,7 @@ export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: num
 
 export function createGame({ seed = ARENA.seed, creature, variant }: GameOptions = {}): Game {
   const g = baseGame(createArenaWorld(), ARENA.spawn, seed);
+  g.player.rounds = GUN.carry; // the arena has no boxes to find and no merchant
   spawnCombatant(g, TRAINING_DUMMY, ARENA.dummy, 'enemy');
   const def = creature === undefined ? undefined : resolveCreature(creature, variant);
   if (def?.tier === 'ally') spawnCreature(g, creature!, ARENA.ally, variant);
@@ -171,6 +174,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   vitalsSystem(g, dt);
   sanitySystem(g, dt);
   reagentSystem(g);
+  gunSystem(g);
   fightSystem(g);
   realitySystem(g);
   lockSystem(g);

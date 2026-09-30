@@ -7,7 +7,7 @@
  */
 
 import { Vector3, type Camera } from 'three';
-import { HURT } from '../data/tuning';
+import { GUN, HURT } from '../data/tuning';
 import type { Game, HitOutcome } from '../systems/components';
 import { interactable } from '../systems/checkpoints';
 import { aimPoint } from '../systems/lockOn';
@@ -63,6 +63,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   const stamina = bar(vitals, SEA);
   const mind = createMindHud(g, vitals, (text: string) => say(text));
   const reagent = el(`opacity:.85;margin-top:2px;letter-spacing:2px;font-size:11px`, '', vitals);
+  const gun = el(`opacity:.85;margin-top:2px;letter-spacing:2px;font-size:11px`, '', vitals); // the revolver's cylinder and its spare rounds (round 22)
   const counters = el('position:absolute;right:16px;bottom:16px;font-size:14px;letter-spacing:2px;text-align:right', '', root);
   const insight = el('', '', counters);
   const echoes = el('', '', counters);
@@ -142,6 +143,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setStyle(stamina, 'width', percent(s.value, s.max));
       mind.update(now0);
       setText(reagent, `REAGENT ×${g.player.reagent}${g.player.oil > 0 ? `   OIL ×${g.player.oil}` : ''}`); // flasks once any are carried (round 12)
+      setText(gun, `REVOLVER ${g.player.ammo}/${GUN.chamber}  ·  ${g.player.rounds}`);
+      setStyle(gun, 'color', g.player.ammo === 0 ? '#c8503c' : BONE); // dry: it reddens
       setText(insight, `INSIGHT ${g.mind.insight}`);
       const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
       setText(echoes, `ECHOES ${Math.max(0, g.player.echoes - held())}${ready ? '  ▲' : ''}`);

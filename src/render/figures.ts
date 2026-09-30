@@ -40,6 +40,8 @@ export interface Figure {
   footL: THREE.Group;
   skirt: THREE.Group[]; // coat panels hung at the hips, right then left, swinging with the thighs (poses.ts)
   flash: THREE.Object3D | null; // muzzle flash
+  gun?: THREE.Object3D; // the investigator's revolver in the hand, shown only while it is drawn (shot or reload)...
+  holstered?: THREE.Object3D; // ...and its grip in the holster the rest of the time (actorViews.ts; round 22)
   arms?: Record<string, THREE.Object3D>; // the investigator's weapons in hand, one shown at a time (actorViews.ts)
   flame?: THREE.Object3D; // the investigator's lantern flame: its halo hangs here (worldLights.ts)
   hip: number; // pelvis height
@@ -216,6 +218,18 @@ function cache(): Figure {
   return f;
 }
 
+/** A box of cartridges on the ground (round 22): a paper-labelled box, its lid up on two rows of brass rounds that catch the light, so it reads in the dark. */
+function ammo(): Figure {
+  const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
+  const card = shade(mixRgb(BASE.rust, BASE.bone, 0.35), 1.3);
+  const brass = shade(mixRgb(BASE.bone, BASE.rust, 0.4), 1.9);
+  const lid = box(0.34, 0.03, 0.22, 0, 0, 0.11, shade(card, 0.85)).rotateX(-1.9).translate(0, 0.12, -0.11); // hinged at the back, thrown up
+  part(f, f.body, mergeGeometries([box(0.34, 0.12, 0.22, 0, 0.06, 0, card), box(0.26, 0.06, 0.02, 0, 0.09, 0.115, shade(BASE.charcoal, 1.4)), lid]), 'cloth');
+  const rounds = [-1, 1].flatMap((row) => [0, 1, 2, 3, 4].map((k) => tint(new THREE.CylinderGeometry(0.02, 0.02, 0.07, 6).translate(-0.12 + k * 0.06, 0.155, row * 0.045), brass)));
+  part(f, f.body, mergeGeometries(rounds), 'cloth', 0.6);
+  return f;
+}
+
 /** A found weapon on a low trestle, its steel catching the light so it reads in the dark. */
 function armRack(geo: () => THREE.BufferGeometry): Figure {
   const f = skeleton('prop', { hip: 0, shoulder: [0, 0], hipX: 0, neck: [0, 0] });
@@ -226,7 +240,7 @@ function armRack(geo: () => THREE.BufferGeometry): Figure {
 }
 
 const BUILDERS: Record<string, () => Figure> = {
-  player: investigator, deepOne, dummy, echo, tome, vial, gate, note, cache,
+  player: investigator, deepOne, dummy, echo, tome, vial, gate, note, cache, ammo,
   ...Object.fromEntries(Object.entries(ARMS).map(([id, [geo]]) => [`arm:${id}`, () => armRack(geo)])),
 };
 

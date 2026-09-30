@@ -3,17 +3,16 @@
  * room nothing opens off, holding no Elder Sign, gate, boss, tome, vial, weapon or ally — so searching a
  * dungeon to its corners pays; a dungeon without such a room keeps one in its deepest free room
  * (a lair: the room before its master). It holds a few times the richest bounty among the
- * dungeon's creatures, so deeper places pay more. Pure data math.
+ * dungeon's creatures, so deeper places pay more. Round 22: a box of cartridges lies in each of those
+ * rooms too, beside the casket (the revolver's rounds are few). Pure data math.
  */
 
 import type { DungeonDef } from '../data/dungeons';
 import { getEntity } from '../data/registry';
-import { CACHE } from '../data/tuning';
+import { CACHE, GUN } from '../data/tuning';
 
-/** The Echoes cached in `def`, by room id. */
-export function echoCaches(def: DungeonDef): Map<string, number> {
-  const bounty = Math.max(0, ...def.rooms.flatMap((r) => r.spawns ?? []).map((id) => getEntity(id)?.drops.echoes ?? 0));
-  const amount = Math.min(CACHE.most, Math.max(CACHE.least, Math.round((bounty * CACHE.bounties) / 10) * 10));
+/** The rooms of `def` that keep a cache: its dead ends, or its deepest free room when it has none. */
+function cacheRooms(def: DungeonDef): string[] {
   const opened = new Set(def.rooms.map((r) => r.from));
   const free = def.rooms.filter((r) => r.from && !r.sign && !r.gate && !r.boss && !r.tome && !r.vial && !r.ally && !r.weapon);
   const ends = free.filter((r) => !opened.has(r.id));
@@ -22,5 +21,15 @@ export function echoCaches(def: DungeonDef): Map<string, number> {
     return r?.from ? 1 + depth(r.from) : 0;
   };
   const deepest = [...free].sort((a, b) => depth(b.id) - depth(a.id)).slice(0, 1);
-  return new Map((ends.length ? ends : deepest).map((r) => [r.id, amount]));
+  return (ends.length ? ends : deepest).map((r) => r.id);
 }
+
+/** The Echoes cached in `def`, by room id. */
+export function echoCaches(def: DungeonDef): Map<string, number> {
+  const bounty = Math.max(0, ...def.rooms.flatMap((r) => r.spawns ?? []).map((id) => getEntity(id)?.drops.echoes ?? 0));
+  const amount = Math.min(CACHE.most, Math.max(CACHE.least, Math.round((bounty * CACHE.bounties) / 10) * 10));
+  return new Map(cacheRooms(def).map((id) => [id, amount]));
+}
+
+/** The rounds boxed in `def`, by room id: a few in each room that keeps a cache. */
+export const roundCaches = (def: DungeonDef): Map<string, number> => new Map(cacheRooms(def).map((id) => [id, GUN.cache]));

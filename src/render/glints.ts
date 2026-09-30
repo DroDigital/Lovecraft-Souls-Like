@@ -28,7 +28,7 @@ export function createGlints(scene: THREE.Scene, g: Game): Glints {
         const phase = ((e * 0.618) % 1) * Math.PI * 2;
         const breath = 0.5 + 0.5 * Math.sin(time * 2 + phase);
         const twinkle = Math.max(0, Math.sin(time * 0.9 + phase * 3)) ** 24; // a brief bright glint now and then
-        const lift = t.note || t.echoes || t.vial ? 0.45 : 1.15; // over a note or a cache on the ground; over a tome on its lectern
+        const lift = t.note || t.echoes || t.vial || t.rounds ? 0.45 : 1.15; // over a note or a cache on the ground; over a tome on its lectern
         halos.put(p.x, p.y + lift, p.z, 0.3 + 0.35 * twinkle, GLINT, 0.35 + 0.3 * breath + 1.2 * twinkle);
       }
       halos.end();

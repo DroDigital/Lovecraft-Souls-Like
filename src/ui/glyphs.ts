@@ -8,7 +8,7 @@
 import { keyLayout, keyName } from '../core/bindings';
 import { deviceInUse } from '../core/device';
 
-export type Act = 'move' | 'look' | 'light' | 'heavy' | 'block' | 'parry' | 'dodge' | 'shoot' | 'lock' | 'heal' | 'item' | 'throw' | 'interact' | 'map' | 'pause' | 'back';
+export type Act = 'move' | 'look' | 'light' | 'heavy' | 'block' | 'parry' | 'dodge' | 'shoot' | 'reload' | 'lock' | 'heal' | 'item' | 'throw' | 'interact' | 'map' | 'pause' | 'back';
 
 const PAD: Readonly<Record<Act, string>> = {
   move: 'the left stick',
@@ -19,6 +19,7 @@ const PAD: Readonly<Record<Act, string>> = {
   parry: 'LT',
   dodge: 'B',
   shoot: 'X',
+  reload: 'D-pad ←',
   lock: 'R3',
   heal: 'Y',
   item: 'D-pad ↓',

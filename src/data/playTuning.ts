@@ -98,6 +98,25 @@ export const NEW_GAME_PLUS = { health: 0.6, damage: 0.35, echoes: 0.5, most: 7 }
 /** Flasks of lamp oil (round 12): the most carried. What one does is its move (data/moves.ts `throw`). */
 export const OIL = { carry: 5 };
 
+/**
+ * The revolver (round 22: it had no limit, seven damage and twenty-two metres, and was spammed from
+ * afar). A cylinder of six and spare rounds carried, found in caches and boxes or bought from the
+ * merchants; a shot (its damage is the move's, data/moves.ts `shoot`) is whole up close and falls away with
+ * distance in damage and in aim, so it hits what stands near, and far off only by luck, the small foes
+ * least of all. Levels set into it at an Elder Sign, in star-stones, put that fall-off further off.
+ */
+export const GUN = {
+  chamber: 6, // rounds the cylinder holds
+  carry: 24, // spare rounds carried
+  start: 6, // spare rounds a new investigator carries (and the cylinder starts full)
+  box: 6, // rounds in a box bought
+  find: 4, // rounds in a box lying about the open world...
+  cache: 4, // ...and in each dungeon's caches
+  reach: { near: 3, far: 15, floor: 0.12, curve: 1.6 }, // damage: whole to `near` metres, then falling to `floor` of it at `far`, by this power of the way there (1 is evenly; more, sooner)
+  scatter: { base: 0.6, perMetre: 0.9 }, // aim: the cone the bullet may stray in, in degrees, `base` up to `near` metres and the more for each metre past it
+  level: { max: 5, damage: 0.15, reach: 1.5, scatter: 0.1, cost: [1, 1, 2, 2, 3] as readonly number[] }, // each level set in: its share of damage, the metres it puts `near` and `far` off, its share less scatter; the star-stones each costs
+};
+
 /** Star-stones a boss or optional boss leaves when it falls for good, by tier (round 12). */
 export const STAR_STONES: Partial<Record<Tier, number>> = { greater: 1, named: 1, great_old_one: 2, outer_god: 3 };
 

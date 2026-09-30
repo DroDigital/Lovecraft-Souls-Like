@@ -163,6 +163,8 @@ export interface Tome {
   note?: boolean; // a letter, clipping or report (documents.ts), not a tome
   echoes?: number; // an Echo cache (world/caches.ts), not a tome
   weapon?: string; // a weapon lying where it was left (arms.ts), not a tome
+  rounds?: number; // a box of cartridges (data/ammoSites.ts, world/caches.ts): rounds for the revolver, not a tome (gun.ts)
+  warned?: number; // the frame it last said they carry all the rounds they can
 }
 
 /** An Elder Sign (spec §3D): a checkpoint to rest at, found by coming near. */
@@ -245,6 +247,9 @@ export interface Pilot {
   reagent: number; // West's Reagent: doses left...
   reagentMax: number; // ...and the most it holds (Silver Vials add to it)
   oil: number; // flasks of lamp oil to throw (round 12; bought from Dr. Morgan)
+  ammo: number; // rounds in the revolver's cylinder (round 22)...
+  rounds: number; // ...and the spare rounds carried (gun.ts)
+  gun: number; // levels of star-stones set into the revolver (gun.ts)
   cycle: number; // the journey through the dream, 0 the first (NG+, cycles.ts; round 12)
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm

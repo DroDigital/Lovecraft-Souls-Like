@@ -40,6 +40,8 @@ export interface ActorViews {
   readonly glow: THREE.Vector3 | null;
   /** Where the investigator's lantern flame is drawn this frame, or null while they are not. */
   readonly flame: THREE.Vector3 | null;
+  /** Where the muzzle of the investigator's revolver is this frame (posed, drawn or not), or null while they are not drawn. */
+  readonly muzzle: THREE.Vector3 | null;
 }
 
 function dispose(f: Figure): void {
@@ -63,13 +65,16 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
   let glow: THREE.Vector3 | null = null;
   const flameAt = new THREE.Vector3();
   let flame: THREE.Vector3 | null = null;
+  const muzzleAt = new THREE.Vector3();
+  let muzzle: THREE.Vector3 | null = null;
   let rising: { seconds: number; at: number | null } | null = null; // a cutscene's slow rise from the knee: when it began (set by the first frame drawn)
 
   g.events.on('Hit', (e) => {
     const v = views.get(e.target);
     if (v && e.outcome !== 'dodged') v.hitAt = simTime();
   });
-  g.events.on('Shot', ({ from, to }) => {
+  g.events.on('Shot', ({ shooter, from: body, to }) => {
+    const from = shooter === g.player.id && muzzle ? muzzle : body; // the investigator's bullet leaves the muzzle, not their chest (round 22)
     tracer.position.set(from.x, from.y, from.z);
     tracer.lookAt(to.x, to.y, to.z);
     tracer.scale.set(1, 1, Math.max(0.01, Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z)));
@@ -137,10 +142,16 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     pose(f, { move, def, frame, speed, stride: v.stride, guard, flinch, rollYaw, time, ground: groundAbout(f.root), kneel: v.kneel });
     v.blend.apply(time);
     if (f.arms && id === g.player.id) for (const [w, m] of Object.entries(f.arms)) m.visible = w === g.player.weapon; // the weapon in hand
+    if (f.gun && id === g.player.id) {
+      const drawn = move === 'shoot' || move === 'reload'; // the revolver comes out of its holster for a shot or a reload, and goes back (round 22)
+      f.gun.visible = drawn;
+      if (f.holstered) f.holstered.visible = !drawn;
+    }
     const flash = id === g.player.id ? 0 : FEEDBACK.flashLevel * Math.max(0, 1 - since / FEEDBACK.flashSeconds); // the investigator never blinks (hurtFx.ts)
     for (const m of f.materials) m.uniforms.uEmissive.value = (m.userData.emissive as number) + flash;
     if (f.rig === 'echo') glow = glowAt.set(f.root.position.x, f.root.position.y + FEEDBACK.echoGlowHeight, f.root.position.z);
     if (f.flame && id === g.player.id) flame = f.flame.getWorldPosition(flameAt); // posed: it tumbles with a roll
+    if (f.flash && id === g.player.id) muzzle = f.flash.getWorldPosition(muzzleAt); // the barrel's tip, wherever the arm has it
   }
 
   return {
@@ -153,10 +164,14 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     get flame() {
       return flame;
     },
+    get muzzle() {
+      return muzzle;
+    },
     update(alpha, time) {
       sync();
       glow = null;
       flame = null;
+      muzzle = null;
       for (const [id, v] of views) draw(id, v, alpha, time);
       tracer.visible = time < tracerUntil;
     },

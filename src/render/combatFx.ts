@@ -26,7 +26,8 @@ const SMOKE: Rgb = scaleRgb(BASE.charcoal, 0.8);
 
 const rand = (a: number, b: number): number => a + (b - a) * Math.random();
 
-export function createCombatFx(g: Game, fx: Particles): CombatFx {
+/** `muzzle`: where the investigator's revolver points from this frame (actorViews.ts), for the smoke of a shot. */
+export function createCombatFx(g: Game, fx: Particles, muzzle: () => V3 | null = () => null): CombatFx {
   const c = g.ecs.c;
   const pos = (id: Entity): V3 | undefined => c.transform.get(id)?.pos;
   const height = (id: Entity): number => (c.body.get(id)?.aimHeight ?? 1.2) * 0.9;
@@ -63,9 +64,21 @@ export function createCombatFx(g: Game, fx: Particles): CombatFx {
       spray(at, dx / len, dz / len, e.outcome === 'riposte' || e.outcome === 'kill' ? 22 : 10, flesh, 2.2);
     }
   });
-  g.events.on('Shot', ({ from }) => {
-    for (let i = 0; i < 5; i++) fx.spawn({ x: from.x, y: from.y, z: from.z, vy: rand(0.2, 0.7), vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.3), life: rand(0.5, 1), size: 0.12, grow: 3, color: DUST, alpha: 0.5, drag: 2 });
+  /** A shot's smoke, put out at the next frame drawn, when the muzzle is where the arm has it (round 22: it came out of the chest, at the point the ray starts): a puff curling forward off the barrel's mouth, and a thin drift after it. */
+  let smoke: { dx: number; dz: number; tail: boolean } | null = null;
+  g.events.on('Shot', ({ shooter, from, to }) => {
+    const [dx, dz] = [to.x - from.x, to.z - from.z];
+    const len = Math.hypot(dx, dz) || 1;
+    if (shooter === g.player.id) smoke = { dx: dx / len, dz: dz / len, tail: true };
+    else for (let i = 0; i < 5; i++) fx.spawn({ x: from.x + (dx / len) * 0.6, y: from.y, z: from.z + (dz / len) * 0.6, vy: rand(0.2, 0.7), vx: rand(-0.3, 0.3), vz: rand(-0.3, 0.3), life: rand(0.5, 1), size: 0.12, grow: 3, color: DUST, alpha: 0.5, drag: 2 }); // a creature's, out ahead of it
   });
+  const puff = (m: V3, { dx, dz }: { dx: number; dz: number }): void => {
+    for (let i = 0; i < 7; i++) {
+      const k = rand(0.6, 2.2); // forward, off the muzzle: fast at first, and slowed by the air (drag)
+      fx.spawn({ x: m.x + dx * 0.04, y: m.y, z: m.z + dz * 0.04, vx: dx * k + rand(-0.25, 0.25), vy: rand(0.1, 0.55), vz: dz * k + rand(-0.25, 0.25), life: rand(0.6, 1.3), size: rand(0.07, 0.12), grow: 3.2, color: DUST, alpha: 0.5, drag: 2.4 });
+    }
+    for (let i = 0; i < 3; i++) fx.spawn({ x: m.x, y: m.y, z: m.z, vx: dx * rand(0.2, 0.7) + rand(-0.1, 0.1), vy: rand(0.35, 0.8), vz: dz * rand(0.2, 0.7) + rand(-0.1, 0.1), life: rand(1.2, 2), size: 0.08, grow: 2.4, color: SMOKE, alpha: 0.35, drag: 1.4 }); // a thin grey wisp that hangs and climbs
+  };
   g.events.on('Healed', ({ entity }) => {
     const p = pos(entity);
     if (!p) return;
@@ -116,6 +129,9 @@ export function createCombatFx(g: Game, fx: Particles): CombatFx {
   return {
     update() {
       warn();
+      const m = muzzle();
+      if (smoke && m) puff(m, smoke);
+      if (m || !c.actor.has(g.player.id)) smoke = null;
       const a = c.actor.get(g.player.id);
       const p = pos(g.player.id);
       if (!a || !p) return;
