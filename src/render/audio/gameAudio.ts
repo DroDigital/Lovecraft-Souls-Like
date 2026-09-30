@@ -131,6 +131,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     const where = g.ecs.c.transform.get(ev.target)?.pos ?? null;
     for (const l of impactLayers(landed)) recorded(l.set, where, AUDIO.eventRange, { gain: l.gain, pitch: l.pitch, delay: l.delay });
   });
+  g.events.on('Foreboding', ({ sound, pitch }) => void recorded(sound, null, 1, { gain: 0.95, pitch })); // round 26: something vast, far off
   g.events.on('Wandered', ({ at, sound }) => void (sound && recorded(sound, at, 170, { gain: 0.9, pitch: 0.9 }))); // a file comes out of the dark, heard from afar (round 26)
   g.events.on('Vanished', ({ at, struck }) => {
     if (!struck) return;

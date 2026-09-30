@@ -50,6 +50,9 @@ import { boltSystem } from './projectiles';
 import { questSystem } from './quests';
 import { npcLife } from './npcLife';
 import { registerOmens } from './omens';
+import { registerDeathNotes } from './deathNotes';
+import { hookSystem } from './hook';
+import { registerSurvey } from './survey';
 import { wanderSystem } from './wanderers';
 import { weatherSystem } from './weather';
 import { refreshSeals, registerSeals, sealSystem } from './seals';
@@ -115,6 +118,8 @@ export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: num
   registerNyarlathotep(g);
   registerSeals(g);
   registerOmens(g);
+  registerSurvey(g);
+  registerDeathNotes(g);
   if (save) g.overworld.read = new Set(save.read); // unread tomes only
   furnishWorld(g);
   spawnNpcs(g);
@@ -186,6 +191,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   actionSystem(g);
   brainSystem(g);
   wanderSystem(g);
+  hookSystem(g);
   movementSystem(g, dt);
   meleeSystem(g);
   shotSystem(g);

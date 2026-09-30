@@ -56,6 +56,7 @@ export function createPresence(g: Game, particles: Particles, audio: GameAudio):
     }
     audio.sample('boom', { gain: 0.35 + 0.65 * k, pitch: 0.55 + 0.15 * Math.random() });
   }
+  g.events.on('Foreboding', ({ shake }) => void ([jolted, at] = [Math.max(jolted, shake), clock])); // the ground answers, far off
   g.events.on('Quaked', ({ by }) => void (g.ecs.c.transform.has(by) && land(by, clock, 0.3)));
   return {
     update(camera, time) {

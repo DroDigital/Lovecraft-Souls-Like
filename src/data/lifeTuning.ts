@@ -91,3 +91,13 @@ export const WANDER = {
   leave: 150, // metres the investigator may be off before it is gone
   stay: 300, // seconds it lasts at the most
 };
+
+/** The first hour's hook (round 26; systems/hook.ts): seconds of play before something vast is first heard, and again. */
+export const HOOK = { first: 150, second: 780 };
+
+/** What a page sketches (round 26; systems/survey.ts) and the pale columns over Elder Signs not yet found (render/beacons.ts). */
+export const SURVEY = {
+  reach: 900, // metres: how far off the nearest unfound sign may be for a page to sketch the way to it
+  radius: 70, // metres of ground drawn in about it
+  beacon: { see: 340, near: 30, height: 60, width: 1.6 }, // how far a column shows, how near it fades, how tall and broad it is
+};

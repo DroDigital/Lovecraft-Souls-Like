@@ -44,6 +44,7 @@ export interface GameEvents {
   RegionEntered: { region: string; name: string };
   Vanquished: { entity: Entity; name: string }; // a boss or optional boss, slain for good
   Wandered: { id: string; at: V3; sound?: SampleSetId; words?: string }; // a file of creatures has come out of the dark (wanderers.ts; round 26); `words` the first time one is seen
+  Foreboding: { words: string; sound: SampleSetId; shake: number; pitch: number }; // something vast is heard, far off (hook.ts; round 26)
   Exhaled: { region: string; name: string }; // the last horror of a region has fallen, and it breathes out (omens.ts; round 26)
   BossEngaged: { entity: Entity; name: string };
   BossPhase: { entity: Entity; phase: number };
