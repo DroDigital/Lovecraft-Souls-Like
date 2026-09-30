@@ -20,7 +20,7 @@ import { foeDamage } from './cycles';
 import { might } from './levels';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
-import { targetsOf } from './targets';
+import { live, targetsOf } from './targets';
 
 /** What a blow carries into resolution; melee hits and revolver shots both fit. */
 export interface Blow {
@@ -111,11 +111,16 @@ export function hitCentre(pos: V3, yaw: number, hit: HitDef, p: number): V3 {
 
 export { hostiles, targetsOf } from './targets';
 
-/** Distance² from a segment to a body's hurt capsule, and the capsule radius. */
+/**
+ * Distance² from a segment to a body's hurt capsule, and the capsule radius. A wide body's capsule
+ * stands on a flat foot (COMBAT.foot): its lower cap was centred a radius up, so a colossus was a
+ * sphere touching the ground at a point, a few metres across at the height of a blade, while its
+ * body kept the investigator a whole radius away (round 24: nothing that size could be struck).
+ */
 export function capsuleGap2(g: Game, target: Entity, a: V3, b: V3): { gap2: number; radius: number } {
   const p = g.ecs.c.transform.get(target)!.pos;
   const { radius, height } = g.ecs.c.body.get(target)!;
-  const bottom = { x: p.x, y: p.y + radius, z: p.z };
+  const bottom = { x: p.x, y: p.y + Math.min(radius, COMBAT.foot), z: p.z };
   const top = { x: p.x, y: p.y + height - radius, z: p.z };
   return { gap2: segSegDist2(a, b, bottom, top), radius };
 }
@@ -179,8 +184,8 @@ export function meleeSystem(g: Game): void {
     const k = a.frame - hit.window[0];
     const s0 = hitCentre(tr.pos, tr.yaw, hit, k / n);
     const s1 = hitCentre(tr.pos, tr.yaw, hit, (k + 1) / n);
-    const root = hit.reach > COMBAT.limb ? { x: tr.pos.x, y: s1.y, z: tr.pos.z } : null; // a long limb, swept from the body out
-    for (const t of targetsOf(g, id)) {
+    const root = hit.reach > COMBAT.limb || hit.thrust ? { x: tr.pos.x, y: s1.y, z: tr.pos.z } : null; // a long limb, or a thrust's whole line, swept from the body out
+    for (const t of live(g, targetsOf(g, id))) {
       if (a.hits.has(t)) continue;
       const tip = capsuleGap2(g, t, aimAt(g, t, tr.pos.y, s0), aimAt(g, t, tr.pos.y, s1));
       const gap2 = root ? Math.min(tip.gap2, capsuleGap2(g, t, aimAt(g, t, tr.pos.y, root), aimAt(g, t, tr.pos.y, s1)).gap2) : tip.gap2;

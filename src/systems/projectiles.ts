@@ -13,6 +13,7 @@ import { BOSS, SIM } from '../data/tuning';
 import { raycast } from '../world/colliders';
 import { moveDef } from './actions';
 import { capsuleGap2, hostiles, strike } from './combat';
+import { live } from './targets';
 import { isAbsent, type Game } from './components';
 import { spawnPool } from './hazards';
 import { targetOf } from './specials';
@@ -89,7 +90,7 @@ export function boltSystem(g: Game): void {
     if (b.lob) b.vel.y -= BOSS.gravity * dt;
     tr.prev = { ...from };
     let struck = false;
-    for (const t of hostiles(g, b.faction, b.conjured, false)) {
+    for (const t of live(g, hostiles(g, b.faction, b.conjured, false))) {
       const { gap2, radius } = capsuleGap2(g, t, from, to);
       if (b.passed.includes(t) || gap2 > (radius + b.radius) ** 2) continue;
       if (t === g.player.id && g.frame - (landed.get(b.owner) ?? -Infinity) < BOSS.boltGrace) {

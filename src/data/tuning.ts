@@ -132,6 +132,7 @@ export const COMBAT = {
   muzzleHeight: 1.35,
   shotRadius: 0.2, // revolver bullet radius for the hit test
   limb: 2.5, // metres: a blow reaching further sweeps all it passes over, from the body out (round 19: a colossus's tentacle swept over one who stood close in)
+  foot: 0.5, // metres: a hurt capsule's lower cap is centred no higher than this, so a wide body stands on a flat foot and is struck along its whole base (round 24: a colossus's was a sphere touching the ground at a point, and no blade reached it)
 };
 
 /** Sanity & Insight (spec §3A). Band arrays run Lucid, Uneasy, Fractured, Unmoored. */
@@ -287,4 +288,5 @@ export const DUNGEON = {
 
 export * from './bossTuning';
 export * from './fxTuning';
+export * from './lifeTuning';
 export * from './playTuning';

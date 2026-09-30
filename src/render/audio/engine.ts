@@ -99,6 +99,7 @@ function setBusLevels(g: Graph, l: Levels): void {
 export function createAudioEngine(volume: number, levels: Levels = { music: 1, sfx: 1, ambience: 1 }): AudioEngine {
   let graph: Graph | null = null;
   let amount = 0;
+  let muffled = 0; // how far the world's sound is dulled (setMuffle)
   const waiting: ((ctx: AudioContext) => void)[] = [];
   const start = (): void => {
     if (graph) {
@@ -146,8 +147,11 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
       amount = a;
     },
     setMuffle(a) {
+      const k = Math.min(1, Math.max(0, a));
+      if (!graph || (Math.abs(k - muffled) < 0.01 && !(k === 0 && muffled !== 0))) return; // asked every frame: the filter is told only of a change
       const [open, shut] = AUDIO.muffle;
-      graph?.muffle.frequency.setTargetAtTime(open * Math.pow(shut / open, Math.min(1, Math.max(0, a))), graph.ctx.currentTime, 0.4);
+      graph.muffle.frequency.setTargetAtTime(open * Math.pow(shut / open, k), graph.ctx.currentTime, 0.4);
+      muffled = k;
     },
     onStart(fn) {
       if (graph) fn(graph.ctx);

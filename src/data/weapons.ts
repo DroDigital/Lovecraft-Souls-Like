@@ -63,7 +63,7 @@ const pierce = (light: string, anim: SwingAnim, damage: number, windup: number):
   combo: { light, heavy: 'heavy1' },
   track: { window: [0, windup - 2], rate: 9 },
   motion: { window: [windup - 6, windup + 1], distance: 0.6, dir: 'facing' },
-  hit: { window: [windup, windup + 3], damage, poise: 10, guard: 14, hitstop: 2, reach: 1.75, radius: 0.32, height: 1.2, arc: [0, 0] },
+  hit: { window: [windup, windup + 3], damage, poise: 10, guard: 14, hitstop: 2, reach: 1.75, radius: 0.32, height: 1.2, arc: [0, 0], thrust: true },
 });
 
 /** A cutlass's cut: wide, and a little slower than the cane's. */
@@ -162,7 +162,7 @@ export const WEAPONS = {
         stamina: 22,
         combo: { light: 'light1', heavy: 'heavy1' },
         motion: { window: [14, 24], distance: 2.8, dir: 'facing' }, // the lunge
-        hit: { window: [22, 26], damage: 46, poise: 22, guard: 26, hitstop: 3, reach: 1.8, radius: 0.34, height: 1.2, arc: [0, 0] },
+        hit: { window: [22, 26], damage: 46, poise: 22, guard: 26, hitstop: 3, reach: 1.8, radius: 0.34, height: 1.2, arc: [0, 0], thrust: true },
       },
     },
   },

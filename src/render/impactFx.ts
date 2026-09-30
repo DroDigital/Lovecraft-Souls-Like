@@ -14,6 +14,7 @@ import { blowWeight, landedBlow, LANDS } from './audio/impact';
 import { FEEL } from './feel';
 import { BASE, mixRgb, type Rgb } from './palette';
 import type { Particles } from './particles';
+import { woundPoint } from './wound';
 
 export interface ImpactFx {
   /** Punches and shakes the camera for the blow just landed; `time` is render seconds. */
@@ -63,14 +64,11 @@ export function createImpactFx(g: Game, fx: Particles): ImpactFx {
   g.events.on('Hit', (e) => {
     const landed = landedBlow(g, e);
     if (!landed || !LANDS.includes(landed.outcome)) return;
-    const [to, from] = [c.transform.get(e.target)?.pos, c.transform.get(e.attacker)?.pos];
-    if (!to || !from) return;
-    const [dx, dz] = [to.x - from.x, to.z - from.z];
-    const len = Math.hypot(dx, dz) || 1;
-    const d = { x: dx / len, z: dz / len };
+    const wound = c.transform.has(e.attacker) ? woundPoint(g, e.target, e.attacker, 0.25) : undefined;
+    if (!wound) return;
+    const d = { x: wound.dx, z: wound.dz };
     const w = blowWeight(landed);
-    const aim = (c.body.get(e.target)?.aimHeight ?? 1.2) * 0.9;
-    burst({ x: to.x - d.x * 0.25, y: to.y + aim, z: to.z - d.z * 0.25 }, d, w, landed.outcome === 'kill' || landed.outcome === 'riposte');
+    burst(wound.at, d, w, landed.outcome === 'kill' || landed.outcome === 'riposte');
     [weight, dir, pending] = [Math.max(weight * 0.5, w), d, true];
   });
 

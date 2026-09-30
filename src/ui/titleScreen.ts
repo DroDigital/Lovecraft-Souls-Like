@@ -31,7 +31,7 @@ export interface TitleOptions {
 }
 
 export function showTitle(o: TitleOptions): void {
-  const screen = createScreen(5, '#000', 'left:50%;top:47%;transform:translate(-50%,-50%);width:min(560px,94vw);text-align:center');
+  const screen = createScreen(5, '#000', 'left:50%;top:47%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:86vh;overflow-x:hidden;overflow-y:auto;text-align:center'); // (a short window scrolls Settings and Controls, which were cut off at the top: playtest round 24)
   const logo = wordmark(); // the name cut in stone over its seventy treads (round 20), made once
   let begun = false;
   const begin = (fresh: boolean): void => {

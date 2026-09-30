@@ -6,7 +6,7 @@
 
 import { SHOPS, WARES } from '../data/wares';
 import type { Game } from '../systems/components';
-import { buy, canBuy, stockLeft } from '../systems/trade';
+import { buy, canBuy, hasRoom, stockLeft } from '../systems/trade';
 import { fill, glyph } from './glyphs';
 import { button, createScreen, el, heading, type Page } from './menuKit';
 
@@ -26,7 +26,7 @@ export function createShopMenu(g: Game): ShopMenu {
         for (const id of wares) {
           const w = WARES[id];
           const left = stockLeft(g, id);
-          const tail = left === 0 ? 'sold out' : `${w.price} Echoes${left === undefined ? '' : `  ·  ${left} left`}`;
+          const tail = left === 0 ? 'sold out' : !hasRoom(g, id) ? 'no room to carry it' : `${w.price} Echoes${left === undefined ? '' : `  ·  ${left} left`}`; // (a full pocket said nothing, round 24)
           button(panel, `${w.name}  ·  ${tail}`, () => (buy(g, id), page.redraw?.()), canBuy(g, id));
           el(panel, 'div', fill(w.note), 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 8px 10px');
         }

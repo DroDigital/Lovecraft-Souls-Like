@@ -17,6 +17,8 @@ export const LORE_LINES: readonly string[] = [
   'A parry timed as the blow lands leaves a foe open to the riposte.',
   'A blow to a foe’s back lands as a riposte.',
   'Laudanum steadies the mind a while; West’s Reagent closes wounds.',
+  'The revolver holds six and hits hardest up close; spare cartridges lie about the world, and some merchants sell them.',
+  'A mind come unmoored wounds less and is wounded more. Rest, lamplight and Laudanum mend it.',
   'Star-stones, set into a weapon at an Elder Sign, make it keener.',
   'Insight shows what a sound mind cannot see.',
   'Before a horror the fog closes: no one leaves until one of you falls.',

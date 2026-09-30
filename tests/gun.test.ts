@@ -1,60 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { PLAYER_MOVES } from '../src/data/moves';
-import { NPCS } from '../src/data/npcs';
-import { DUNGEONS } from '../src/data/dungeons';
-import { REGIONS } from '../src/data/regions';
-import { GUN, LEVELS, PLAYER } from '../src/data/tuning';
-import { SHOPS, WARES } from '../src/data/wares';
+import { GUN, PLAYER } from '../src/data/tuning';
 import { startMove } from '../src/systems/actions';
-import { carryOf, parseCarry } from '../src/systems/cycles';
 import { rest, signPlace } from '../src/systems/checkpoints';
 import type { GameEvents } from '../src/systems/components';
-import { emptyInput } from '../src/core/input';
 import { createGame, createWorldGame, stepGame } from '../src/systems/game';
-import { canUpgradeGun, falloff, gunCost, gunEdge, giveRounds, loadRounds, scatterAt, shotDamage, upgradeGun } from '../src/systems/gun';
-import { spawnTome } from '../src/systems/insight';
-import { parseSave, snapshot } from '../src/systems/save';
-import { buy, canBuy } from '../src/systems/trade';
-import { roundCaches } from '../src/world/caches';
-import { worldLayout } from '../src/world/placements';
+import { falloff, gunEdge, loadRounds, scatterAt, shotDamage } from '../src/systems/gun';
+import { setLock } from '../src/systems/lockOn';
 import { place, press, scriptedGame, steps } from './helpers';
+import { bossGame } from './bossHelpers';
+import { range, SHOT } from './gunHelpers';
 
-const SHOT = PLAYER_MOVES.shoot.shot;
 const RELOAD = PLAYER_MOVES.reload;
-
-/** A game with the investigator `d` metres from a Deep One that cannot be killed, and a record of what the revolver does to it. */
-function range(d: number) {
-  const { g, player, deepOne } = scriptedGame();
-  place(g, player, 0, d, Math.PI);
-  place(g, deepOne, 0, 0, 0);
-  g.lock.target = deepOne;
-  g.ecs.c.health.get(deepOne)!.hp = g.ecs.c.health.get(deepOne)!.max = 1e6;
-  const hits: GameEvents['Hit'][] = [];
-  g.events.on('Hit', (e) => e.attacker === player && hits.push(e));
-  const shots: GameEvents['Shot'][] = [];
-  g.events.on('Shot', (e) => shots.push(e));
-  /** Fires `n` shots, each with a full cylinder and a full bar, so neither ammunition nor breath limits them. */
-  const fire = (n: number): void => {
-    for (let i = 0; i < n; i++) {
-      g.player.ammo = GUN.chamber;
-      g.ecs.c.stamina.get(player)!.value = PLAYER.stamina;
-      steps(g, 1, press('shoot'));
-      steps(g, PLAYER_MOVES.shoot.frames);
-    }
-  };
-  /** `n` shots in as many steps: each begins on the step before its shot frame, for a count of hits over many. */
-  const volley = (n: number): void => {
-    const a = g.ecs.c.actor.get(player)!;
-    for (let i = 0; i < n; i++) {
-      g.player.ammo = GUN.chamber;
-      startMove(a, 'shoot');
-      a.frame = SHOT.frame - 1;
-      a.hitstop = 0;
-      stepGame(g, emptyInput());
-    }
-  };
-  return { g, player, deepOne, hits, shots, fire, volley };
-}
 
 describe('a shot falls away with distance (round 22: it was seven damage from twenty-two metres, and spammed)', () => {
   it('is whole up close and falls away to a floor, sooner the further it goes, monotonously', () => {
@@ -69,6 +26,24 @@ describe('a shot falls away with distance (round 22: it was seven damage from tw
     }
     expect(falloff(9)).toBeLessThan(0.4); // a third at nine metres...
     expect(falloff(12)).toBeLessThan(0.2); // ...a tenth by twelve
+  });
+
+  it("measures its range to the near side of a big body, not to the middle of it (round 24: a colossus's whole width was counted)", () => {
+    const { g, boss } = bossGame('ghatanothoa', undefined, 8); // its axis eight metres off, its near side two
+    g.ecs.c.brain.delete(boss);
+    g.ecs.c.body.get(boss)!.fixed = true;
+    setLock(g, boss);
+    const shots: GameEvents['Shot'][] = [];
+    const hits: GameEvents['Hit'][] = [];
+    g.events.on('Shot', (e) => shots.push(e));
+    g.events.on('Hit', (e) => e.attacker === g.player.id && hits.push(e));
+    g.player.ammo = GUN.chamber;
+    steps(g, 1, press('shoot'));
+    steps(g, PLAYER_MOVES.shoot.frames);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].damage).toBe(SHOT.damage); // whole: two metres to it, not eight
+    const [s] = shots;
+    expect(Math.hypot(s.to.x - s.from.x, s.to.z - s.from.z)).toBeLessThan(GUN.reach.near + 1); // and the bullet ends on its side
   });
 
   it('strays in a wider cone the further off it is aimed, and less with each level of the gun', () => {
@@ -246,121 +221,5 @@ describe('the cylinder holds six, and rounds are spent (round 22)', () => {
     g.events.emit('Respawned', { entity: g.player.id });
     expect(g.player).toMatchObject({ ammo: GUN.chamber, rounds: 14 });
     expect(loadRounds(g)).toBe(0);
-  });
-});
-
-describe('rounds are found and bought (round 22)', () => {
-  const at = (g: ReturnType<typeof createGame>) => ({ ...g.ecs.c.transform.get(g.player.id)!.pos, yaw: 0 });
-
-  it('a box lying about is taken on touch, and taken for good', () => {
-    const g = createWorldGame();
-    g.player.rounds = 2;
-    spawnTome(g, { ...at(g), name: 'Cartridges: test', insight: 0, rounds: 6 });
-    steps(g, 1);
-    expect(g.player.rounds).toBe(8);
-    expect(g.overworld!.read.has('Cartridges: test')).toBe(true);
-    expect([...g.ecs.c.tome.values()].some((t) => t.name === 'Cartridges: test')).toBe(false);
-  });
-
-  it('is left where it lies when they cannot carry it all, with a word now and then, until they can', () => {
-    const g = createWorldGame();
-    g.player.rounds = GUN.carry - 2;
-    const said: string[] = [];
-    g.events.on('Notice', (e) => said.push(e.text));
-    spawnTome(g, { ...at(g), name: 'Cartridges: full', insight: 0, rounds: 6 });
-    steps(g, 200);
-    expect([...g.ecs.c.tome.values()].some((t) => t.name === 'Cartridges: full')).toBe(true);
-    expect(g.player.rounds).toBe(GUN.carry - 2);
-    expect(said.filter((s) => s === 'YOU CARRY ALL THE ROUNDS YOU CAN').length).toBeGreaterThan(0);
-    expect(said.length).toBeLessThan(200 / 60 / 3 + 3); // not every step
-    g.player.rounds = 0;
-    steps(g, 1);
-    expect(g.player.rounds).toBe(6);
-    expect(giveRounds(g, GUN.carry)).toBe(false);
-  });
-
-  it('a merchant sells a box for Echoes, and refuses when the pocket is full or the purse empty', () => {
-    const g = createWorldGame();
-    g.player.echoes = WARES.rounds.price * 3;
-    g.player.rounds = 0;
-    expect(buy(g, 'rounds')).toBe(true);
-    expect(g.player.rounds).toBe(GUN.box);
-    expect(g.player.echoes).toBe(WARES.rounds.price * 2);
-    g.player.rounds = GUN.carry - GUN.box + 1;
-    expect(canBuy(g, 'rounds')).toBe(false); // it would not fit
-    expect(buy(g, 'rounds')).toBe(false);
-    g.player.rounds = 0;
-    g.player.echoes = WARES.rounds.price - 1;
-    expect(buy(g, 'rounds')).toBe(false);
-    expect(WARES.rounds.stock).toBeUndefined(); // the pocket is the limit, not the stock
-  });
-
-  it('three people trade in them, each a real person with a real shop', () => {
-    const sellers = NPCS.filter((n) => n.shop && SHOPS[n.shop]?.includes('rounds')).map((n) => n.id);
-    expect(sellers.sort()).toEqual(['curtis', 'dyer', 'morgan']);
-    for (const n of NPCS) if (n.shop) expect(SHOPS, n.id).toHaveProperty(n.shop);
-  });
-
-  it('lie in every dungeon that keeps a cache, and about the open world of every region', () => {
-    const w = worldLayout();
-    const boxes = w.tomes.filter((t) => t.rounds);
-    for (const d of DUNGEONS) expect(roundCaches(d).size, d.id).toBeGreaterThan(0);
-    for (const d of DUNGEONS) {
-      for (const room of roundCaches(d).keys()) expect(boxes.some((b) => b.name === `Cartridges: ${d.id}/${room}`), `${d.id}/${room}`).toBe(true);
-    }
-    for (const r of REGIONS) expect(boxes.filter((b) => b.region === r.id && b.name.startsWith(`Cartridges: ${r.id} `)).length, r.id).toBeGreaterThan(0);
-    for (const b of boxes) expect(b.rounds).toBeGreaterThanOrEqual(GUN.find);
-    expect(new Set(boxes.map((b) => b.name)).size).toBe(boxes.length);
-    const total = boxes.reduce((n, b) => n + b.rounds!, 0);
-    expect(total).toBeGreaterThan(100); // enough to be found around the map...
-    expect(total).toBeLessThan(350); // ...and few enough to be spent wisely
-  });
-});
-
-describe('the gun is upgraded with star-stones at an Elder Sign (round 22)', () => {
-  it('each level costs its stones, adds to the damage and puts the fall-off off, up to the most', () => {
-    const g = createWorldGame();
-    g.player.stones = 0;
-    expect(canUpgradeGun(g)).toBe(false);
-    expect(upgradeGun(g)).toBe(false);
-    for (let l = 0; l < GUN.level.max; l++) {
-      const cost = GUN.level.cost[l];
-      expect(gunCost(g)).toBe(cost);
-      g.player.stones = cost - 1;
-      expect(upgradeGun(g)).toBe(false);
-      g.player.stones = cost + 2;
-      expect(upgradeGun(g)).toBe(true);
-      expect(g.player.stones).toBe(2);
-      expect(g.player.gun).toBe(l + 1);
-    }
-    g.player.stones = 99;
-    expect(gunCost(g)).toBeUndefined();
-    expect(upgradeGun(g)).toBe(false);
-    expect(g.player.gun).toBe(GUN.level.max);
-  });
-
-  it('a levelled gun hits harder and more often from afar', () => {
-    const [plain, tuned] = [range(9), range(9)];
-    tuned.g.player.gun = GUN.level.max;
-    plain.volley(300);
-    tuned.volley(300);
-    expect(tuned.hits.length).toBeGreaterThan(plain.hits.length);
-    const mean = (hs: GameEvents['Hit'][]): number => hs.reduce((n, h) => n + h.damage, 0) / Math.max(1, hs.length);
-    expect(mean(tuned.hits)).toBeGreaterThan(mean(plain.hits) * 2);
-    expect(LEVELS.might.damage).toBeGreaterThan(0); // (Might still scales it: strike())
-  });
-
-  it('is kept in a save, and carried into a new journey with the rounds started again', () => {
-    const g = createWorldGame();
-    Object.assign(g.player, { ammo: 3, rounds: 11, gun: 2 });
-    const back = createWorldGame({ save: parseSave(JSON.stringify(snapshot(g)))! });
-    expect(back.player).toMatchObject({ ammo: 3, rounds: 11, gun: 2 });
-    const old = JSON.parse(JSON.stringify(snapshot(g))) as Record<string, unknown>;
-    for (const k of ['ammo', 'rounds', 'gun']) delete old[k];
-    const before = createWorldGame({ save: parseSave(JSON.stringify(old))! });
-    expect(before.player).toMatchObject({ ammo: GUN.chamber, rounds: GUN.start, gun: 0 }); // a save from before the limits
-    const next = createWorldGame({ carry: parseCarry(JSON.parse(JSON.stringify(carryOf(g))))! });
-    expect(next.player).toMatchObject({ gun: 2, ammo: GUN.chamber, rounds: GUN.start });
-    expect(parseSave(JSON.stringify({ ...snapshot(g), ammo: 'many' }))).toBeNull();
   });
 });

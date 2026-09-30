@@ -4,11 +4,8 @@
  * Reagent) or a tome for whoever gets that far. Placed by sites.ts like the legacy dungeons.
  */
 
-import type { Dir, DungeonDef, RoomDef, RoomKind } from './dungeons';
-
-type Extras = Omit<RoomDef, 'id' | 'kind' | 'from' | 'dir'>;
-const room = (id: string, kind: RoomKind, from: string | undefined, dir: Dir, x: Extras = {}): RoomDef => ({ id, kind, from, dir, ...x });
-const stair = (id: string, from: string, dir: Dir, rise: number, x: Extras = {}): RoomDef => room(id, 'stair', from, dir, { rise, ...x });
+import type { DungeonDef } from './dungeons';
+import { room, stair } from './roomBuild';
 
 // Round 13: the lairs were two to four rooms; each now has a side way or two, a cellar or a secret.
 export const LAIRS: readonly DungeonDef[] = [

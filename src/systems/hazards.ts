@@ -8,6 +8,7 @@ import type { Entity } from '../core/ecs';
 import { distXZ, type XZ } from '../core/geom';
 import type { PoolDef } from '../data/moves';
 import { hostiles, strike } from './combat';
+import { live } from './targets';
 import type { Combatant, Game } from './components';
 
 export function spawnPool(g: Game, owner: Entity, faction: Combatant['faction'], at: XZ, pool: PoolDef): Entity {
@@ -29,7 +30,7 @@ export function hazardSystem(g: Game): void {
     if (--h.next > 0) continue;
     h.next = h.tick;
     const at = transform.get(id)!.pos;
-    for (const t of hostiles(g, h.faction, false, false)) {
+    for (const t of live(g, hostiles(g, h.faction, false, false))) {
       const p = transform.get(t)!.pos;
       if (distXZ(p, at) > h.radius + (body.get(t)?.radius ?? 0) * 0.5 || Math.abs(p.y - at.y) > 1.5) continue;
       strike(g, h.owner, t, { damage: h.damage, poise: 0, guard: 0, hitstop: 0, parryable: false, interrupts: false, unblockable: true, lingering: true }, at);

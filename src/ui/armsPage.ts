@@ -44,7 +44,7 @@ export function armsPage(g: Game, back: () => void, show: (p: Page) => void): Pa
       el(p, 'div', fill('Six rounds and no more, loaded with {reload}. Found in boxes and caches, sold by those who trade.'), 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 2px 10px');
       el(p, 'div', `shot ${shot}  ·  ${left(6)}% at 6 m  ·  ${left(9)}% at 9 m  ·  ${left(12)}% at 12 m  ·  the smaller the foe and the further, the likelier a miss`, 'opacity:.75;font-size:12px;line-height:1.4;font-variant-numeric:lining-nums tabular-nums;margin:0 0 10px 10px');
       const unfound = WEAPON_IDS.length - g.player.arms.length;
-      if (unfound > 0) el(p, 'div', `${unfound === 1 ? 'One more lies' : `${unfound} more lie`} somewhere in the dream.`, 'opacity:.4;font-style:italic;margin-top:6px');
+      if (unfound > 0) el(p, 'div', `${unfound === 1 ? 'One more weapon lies' : `${unfound} more weapons lie`} somewhere in the dream.`, 'opacity:.4;font-style:italic;margin-top:6px');
       heading(p, '');
       button(p, `Back  (${glyph('back')})`, back);
     },

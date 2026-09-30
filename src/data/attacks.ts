@@ -78,11 +78,20 @@ export const ATTACKS: Readonly<Record<AttackId, AttackDef>> = {
 /** Body size relative to a human (1.9 m); big bodies reach further. */
 export const sizeFactor = (height: number): number => Math.max(1, height / 1.9);
 
-/** The distance bracket in which a creature of this height uses the attack. */
+/** The farthest a scaled minimum may stand from a colossus: its arena is no wider (round 24). */
+const LEAST_CAP = 20;
+
+/**
+ * The distance bracket in which a creature of this height uses the attack: the reach of a big body
+ * is longer, and so is the least it keeps from what it strikes, up to a colossus's arena. A
+ * minimum scaled with the height alone put Yog-Sothoth's beam and teleport 53 and 63 metres off, in
+ * an arena 34 wide, and Shub-Niggurath's summons and Azathoth's darkness beyond theirs: attacks in
+ * a boss's script that no fight could ever choose.
+ */
 export function attackRange(id: AttackId, height: number): readonly [number, number] {
   const [lo, hi] = ATTACKS[id].range;
   const k = sizeFactor(height);
-  return [lo * k, hi * k];
+  return [Math.min(lo * k, Math.max(lo, LEAST_CAP)), hi * k];
 }
 
 /** A MoveDef for this attack on a body `height` metres tall with these stats. */

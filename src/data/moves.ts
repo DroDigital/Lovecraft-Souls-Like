@@ -18,6 +18,7 @@ export interface HitDef {
   arc: readonly [from: number, to: number]; // degrees swept over the window: 0 = ahead, + = attacker's right
   push?: number; // metres the victim is shoved away (wind), even through a guard
   unblockable?: boolean; // a grab: no guard or parry stops it, only i-frames
+  thrust?: boolean; // a point at the end of a blade: the line from the hand to it wounds too, so what stands close is struck as well as what stands at its reach (round 24)
 }
 
 export interface ShotDef {
