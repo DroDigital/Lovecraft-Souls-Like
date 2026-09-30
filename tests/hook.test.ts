@@ -49,3 +49,16 @@ describe("the first hour's hook (round 26)", () => {
     expect(nextOmen(g)?.id).toBe('nearer');
   });
 });
+
+describe('a second journey (round 26)', () => {
+  it('is told once what has changed', () => {
+    const g = createWorldGame();
+    g.player.cycle = 1;
+    const said: string[] = [];
+    g.events.on('Notice', (e) => said.push(e.text));
+    g.frame = 60 * 30;
+    hookSystem(g);
+    hookSystem(g);
+    expect(said.filter((t) => t.startsWith('JOURNEY 2')).length).toBe(1);
+  });
+});

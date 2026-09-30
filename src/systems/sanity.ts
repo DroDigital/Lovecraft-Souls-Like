@@ -10,6 +10,7 @@
  * count). Pure.
  */
 
+import { boon } from './relics';
 import type { Entity } from '../core/ecs';
 import { distXZ } from '../core/geom';
 import { LAUDANUM, SANITY, SIM, UPGRADES } from '../data/tuning';
@@ -124,7 +125,7 @@ export function fighting(g: Game): boolean {
 export function mendRate(g: Game): number {
   if (g.mind.sanity >= SANITY.max || g.ecs.c.actor.get(g.player.id)?.move === 'death' || fighting(g)) return 0;
   const lit = Math.min(1, Math.max(0, g.lit?.(g.ecs.c.transform.get(g.player.id)!.pos) ?? 0));
-  return SANITY.mend.rate + (SANITY.mend.lit - SANITY.mend.rate) * lit;
+  return (SANITY.mend.rate + (SANITY.mend.lit - SANITY.mend.rate) * lit) * boon(g, 'mend');
 }
 
 /** Unmoored, the body wears away as well (round 23): a little of full health a second, never to death, and none while a shot of Reagent holds the body. */

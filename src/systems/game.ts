@@ -39,6 +39,7 @@ import { aimPoint, lockSystem } from './lockOn';
 import { movementSystem } from './movement';
 import { createOverworld, registerOverworld } from './overworld';
 import { registerArms, unreinforced } from './arms';
+import { registerRelics } from './relics';
 import { applyCarry, type Carry } from './cycles';
 import { registerTally, tallySystem } from './tally';
 import { registerRoomWords, roomWordsSystem } from './roomWords';
@@ -112,6 +113,7 @@ export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: num
   g.overworld = createOverworld(START_SIGN);
   registerOverworld(g);
   registerArms(g);
+  registerRelics(g);
   registerTally(g);
   registerRoomWords(g);
   registerHastur(g);

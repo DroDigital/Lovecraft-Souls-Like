@@ -18,6 +18,7 @@ import { isAbsent, type Actor, type Game, type Health, type HitOutcome, type Poi
 import { edge } from './arms';
 import { foeDamage } from './cycles';
 import { might } from './levels';
+import { relicScale } from './relics';
 import { damageScale } from './sanity';
 import { absorb } from './stamina';
 import { refreshStoops, zoneGap } from './hurt';
@@ -144,7 +145,7 @@ export function strike(g: Game, attacker: Entity, target: Entity, blow: Blow, fr
   const defender = { actor: ta, health: h, poise: poise.get(target)!, stamina: stamina.get(target) };
   const felt = g.ecs.c.phantom.has(attacker)
     ? { ...blow, damage: 0, poise: 0, guard: 0 }
-    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * might(g, attacker) * foeDamage(g, attacker) * (h.ward ?? 1)) };
+    : { ...blow, damage: Math.round(blow.damage * damageScale(g, attacker, target) * relicScale(g, attacker, target) * might(g, attacker) * foeDamage(g, attacker) * (h.ward ?? 1)) };
   const { outcome, damage } = resolveHit(defender, felt, frontal);
   if (outcome === 'parried' && aa) startMove(aa, 'parried');
   if (outcome !== 'dodged' && blow.hitstop > 0) {

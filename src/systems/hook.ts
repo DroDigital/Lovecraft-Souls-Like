@@ -34,6 +34,10 @@ export const nextOmen = (g: Game): Omen | undefined => OMENS.find((o) => !g.over
 export function hookSystem(g: Game): void {
   const ow = g.overworld;
   if (!ow || g.frame % 60 !== 0) return;
+  if (g.player.cycle > 0 && g.frame / SIM.hz > 20 && !ow.told.has('ng:hint')) { // a second journey: what is changed, said once
+    ow.told.add('ng:hint');
+    g.events.emit('Notice', { text: `JOURNEY ${g.player.cycle + 1} · THE HORRORS ARE HARDIER, AND PAY MORE. THE ARMS YOU EARNED ARE YOURS` });
+  }
   const o = nextOmen(g);
   if (!o || g.frame / SIM.hz < o.after || !['hub', 'arkham', 'dunwich', 'innsmouth', 'providence', 'vermont'].includes(ow.region ?? '')) return;
   const me = g.ecs.c.transform.get(g.player.id)!.pos;
