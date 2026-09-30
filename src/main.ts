@@ -54,6 +54,7 @@ import { createCinemaUi } from './ui/cinemaUi';
 import { createDebugPanel } from './ui/debugPanel';
 import { createEndingCard, NEW_GAME_FLAG } from './ui/endingCard';
 import { createHud } from './ui/hud';
+import { createPhoto } from './ui/photo';
 import { startLookTest } from './ui/lookTest';
 import { nextFrame, spriteAtlas } from './ui/loading';
 import { createMapPainter } from './ui/mapPainter';
@@ -158,9 +159,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shadows = createShadows(scene, game);
   const sky = createSky();
   const mist = createVolumetricFog(pipeline.post); // round 16
-  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet }); // round 18: the world's own life
-  scene.add(sky.mesh);
   const skyline = createSkyline(scene);
+  const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet, skyline, particles }); // round 18: the world's own life
+  scene.add(sky.mesh);
   const hurt = createHurtFx(game);
   const camera = new PerspectiveCamera(RENDER.fovDeg, RENDER.width / RENDER.height, RENDER.near, RENDER.far);
   const input = createInput(canvas);
@@ -168,6 +169,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const shop = createShopMenu(game);
   const painter = createMapPainter(game);
   const hud = createHud(game, canvas, painter, echoFx.pending);
+  const photo = createPhoto(game, canvas, () => audio.sample('clang', { gain: 0.4, pitch: 1.6 })); // round 26: P keeps a picture
   const map = createMapScreen(game, painter, capture, journeys.go);
   const panel = debug || opts.arena ? createDebugPanel(state, [...HINTS, ...(opts.arena ? spawnHint(creature, variant) : [])], panelOptions(game, settings, shell.change)) : null;
   lightNight();
@@ -254,7 +256,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         applyLens(camera, cinema.lensFov(lens.fovDeg), lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
         updatePostUniforms(pipeline.post, fx, time, pipeline.size);
-        if (!veil.covered) pipeline.render(scene, camera); // nothing shows under the veil: its frames go to the making
+        if (!veil.covered) (pipeline.render(scene, camera), photo.after()); // nothing shows under the veil: its frames go to the making
         hud.update(camera);
         if (!panel) return;
         panel.refresh();

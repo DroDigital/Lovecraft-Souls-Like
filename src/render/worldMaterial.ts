@@ -22,6 +22,7 @@ export const worldUniforms = {
   uDispSafe: { value: FX.displaceSafe },
   uDispFull: { value: FX.displaceFull },
   uTwist: { value: FX.displaceTwist },
+  uLean: { value: FX.displaceLean },
   uLightDir: { value: v3(LIGHT.dir).normalize() },
   uLightColor: { value: v3(LIGHT.color) },
   uAmbient: { value: v3(LIGHT.ambient) },

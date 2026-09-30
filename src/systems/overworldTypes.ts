@@ -3,6 +3,7 @@
 import type { Entity } from '../core/ecs';
 import type { Explored } from './exploration';
 import type { Tally } from './tally';
+import type { Weather } from './weather';
 
 /** Open-world state (spec §3D); absent in the arena. */
 export interface Overworld {
@@ -28,4 +29,6 @@ export interface Overworld {
   tally: Tally; // the run's numbers (tally.ts; round 12)
   said: Set<string>; // dungeon rooms that have said their words since the last rest or death (roomWords.ts)
   places: Set<string>; // the named places found (places.ts; round 18)
+  weather: Weather; // what the sky is doing and how much (weather.ts; round 26; not kept in a save: a load opens on clear skies)
+  told: Set<string>; // what has been told or shown once, and is not again: a rumour of a horror's fall, a wandering sight, a hint of what a second journey changes (round 26)
 }

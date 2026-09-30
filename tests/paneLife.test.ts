@@ -24,4 +24,15 @@ describe('lit windows lived behind (round 18: render/paneLife.ts)', () => {
     expect(out).toBeGreaterThan(seeds.length * 0.2); // put out, and lit again
     expect(passed).toBeGreaterThan(seeds.length * 0.1); // someone passes the lamp
   });
+
+  it("the night puts the windows out as it wears on, the last seeds first, and lights them all again as it turns (round 26)", () => {
+    const seeds = Array.from({ length: 100 }, (_, i) => i / 100 + 0.004);
+    const litAt = (t: number): number => seeds.filter((s) => paneLit(s, t) > 0.5).length;
+    const night = 1080;
+    expect(litAt(0)).toBeGreaterThan(seeds.length * 0.7); // the gloaming: all but those put out for a spell
+    expect(litAt(night * 0.9)).toBeLessThan(litAt(0) * 0.55); // the hour before the dawn that does not come
+    expect(litAt(night * 0.98)).toBeGreaterThan(litAt(night * 0.9)); // and it turns
+    expect(paneLit(0.97, night * 0.9)).toBe(0);
+    expect(paneLit(0.05, night * 0.9)).toBeGreaterThanOrEqual(0);
+  });
 });

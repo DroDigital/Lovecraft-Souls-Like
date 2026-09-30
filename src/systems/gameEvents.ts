@@ -2,6 +2,7 @@
 
 import type { Entity } from '../core/ecs';
 import type { V3 } from '../core/geom';
+import type { SampleSetId } from '../data/samples';
 import type { LevelId } from '../data/tuning';
 
 export type HitOutcome =
@@ -42,6 +43,9 @@ export interface GameEvents {
   Travelled: { via: 'sign' | 'gate' | 'dream'; to: string; name: string };
   RegionEntered: { region: string; name: string };
   Vanquished: { entity: Entity; name: string }; // a boss or optional boss, slain for good
+  Wandered: { id: string; at: V3; sound?: SampleSetId; words?: string }; // a file of creatures has come out of the dark (wanderers.ts; round 26); `words` the first time one is seen
+  Foreboding: { words: string; sound: SampleSetId; shake: number; pitch: number }; // something vast is heard, far off (hook.ts; round 26)
+  Exhaled: { region: string; name: string }; // the last horror of a region has fallen, and it breathes out (omens.ts; round 26)
   BossEngaged: { entity: Entity; name: string };
   BossPhase: { entity: Entity; phase: number };
   Teleported: { entity: Entity; from: V3; to: V3 };

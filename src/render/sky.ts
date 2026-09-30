@@ -56,7 +56,8 @@ export function createSky(): Sky {
       const want = skyOf(region);
       const k = jumped ? 1 : Math.min(1, dt / SKY.fade);
       ease(u.uMoon, want.moon, k);
-      ease(u.uStars, want.stars, k);
+      const clear = (mesh.userData.clear as number | undefined) ?? 0; // where the horrors are gone the stars come up (omenFx.ts; round 26)
+      ease(u.uStars, want.stars * (1 + clear * 0.9), k);
       ease(u.uClouds, want.clouds, k);
       ease(u.uHaze, want.haze, k);
       ease(u.uOpen, enclosed ? 0 : 1, Math.min(1, dt / SKY.close));

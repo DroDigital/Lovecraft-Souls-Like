@@ -55,7 +55,7 @@ describe('how well lit the ground is, for the mind to mend by (round 22)', () =>
 
   it('follows a window as it is put out', () => {
     const lights = createWorldLights();
-    lights.add(1, [{ x: 0, y: 1.5, z: 0, kind: 'window', pane: 3 }]);
+    lights.add(1, [{ x: 0, y: 1.5, z: 0, kind: 'window', pane: 0.13 }]);
     const seen = new Set<number>();
     for (let t = 0; t < 400; t += 3) seen.add(Math.round(lights.lightAt(0, 0, 0, t) * 100));
     expect(seen.size).toBeGreaterThan(1); // it is not always lit

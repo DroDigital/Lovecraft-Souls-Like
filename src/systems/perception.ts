@@ -17,6 +17,7 @@ import { hasLineOfSight } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
 import { isAbsent, type Game } from './components';
 import { targetsOf } from './targets';
+import { quietOf } from './weather';
 
 const DEG = Math.PI / 180;
 
@@ -54,7 +55,7 @@ export function noiseOf(g: Game): number {
   if (a.move === 'roll' || a.move === 'backstep') r = Math.max(r, AI.noise.roll);
   if (def?.hit && inWindow(def.hit.window, a.frame)) r = Math.max(r, AI.noise.blow);
   if (def?.shot && a.frame >= def.shot.frame && a.frame < def.shot.frame + 3) r = Math.max(r, AI.noise.shot);
-  return r;
+  return r * quietOf(g); // lost in rain and in a gale (round 26)
 }
 
 /** Whether `self` hears a sound from `at` that carries `radius` metres (a wall between halves it). */

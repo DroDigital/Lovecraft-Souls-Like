@@ -5,6 +5,7 @@
  * recovering it loses the old one. Kills pay the foe's bounty.
  */
 
+import { bountyOf } from './relics';
 import type { Entity } from '../core/ecs';
 import { distXZ, type V3 } from '../core/geom';
 import type { Place } from '../data/arena';
@@ -36,8 +37,9 @@ export function registerDeath(g: Game): void {
     if (entity === g.player.id) return dropEchoes(g, at);
     const bounty = g.ecs.c.combatant.get(entity)?.bounty ?? 0;
     if (killer !== g.player.id || bounty <= 0) return;
-    g.player.echoes += bounty;
-    echoes(g, 'earned', bounty);
+    const earned = bountyOf(g, bounty);
+    g.player.echoes += earned;
+    echoes(g, 'earned', earned);
   });
 }
 

@@ -88,6 +88,7 @@ uniform float uDispFreq;
 uniform float uDispSafe;
 uniform float uDispFull;
 uniform float uTwist;
+uniform float uLean;
 
 // Non-Euclidean distortion. Nothing moves near the camera, so combat stays readable.
 vec3 displace(vec3 wp) {
@@ -100,6 +101,8 @@ vec3 displace(vec3 wp) {
     sin(wp.y * f * 1.7 + wp.z * f + uTime * 1.3),
     0.5 * sin(wp.x * f + wp.z * f * 0.8 + uTime * 0.9),
     sin(wp.x * f * 1.3 + wp.y * f * 1.9 + uTime * 1.1));
+  float h = max(0.0, wp.y - (uCamPos.y - 1.6)); // round 26: what stands tall leans in toward whoever is losing their mind, its top the most
+  wp.xz -= normalize(rel.xz + vec2(1e-4)) * w * uLean * h * h;
   float a = w * uTwist * sin(uTime * 0.21 + d * 0.05);
   rel = wp - uCamPos;
   wp.xz = uCamPos.xz + mat2(cos(a), sin(a), -sin(a), cos(a)) * rel.xz;
