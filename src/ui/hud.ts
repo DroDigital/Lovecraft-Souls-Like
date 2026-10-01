@@ -7,7 +7,7 @@
  */
 
 import { Vector3, type Camera } from 'three';
-import { GUN, HURT } from '../data/tuning';
+import { GUN, HEARD, HURT } from '../data/tuning';
 import type { Game, HitOutcome } from '../systems/components';
 import { interactable } from '../systems/checkpoints';
 import { aimPoint } from '../systems/lockOn';
@@ -74,6 +74,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   const reticle = el(`position:absolute;width:8px;height:8px;margin:-5px 0 0 -5px;border:1px solid ${BONE};transform:rotate(45deg)`, '', root);
   const notice = el('position:absolute;left:0;right:0;top:64%;text-align:center;font-size:16px;letter-spacing:4px', '', root);
   const prompt = el('position:absolute;left:0;right:0;bottom:64px;text-align:center;letter-spacing:2px;opacity:.85', '', root);
+  const heard = el('position:absolute;left:0;right:0;bottom:96px;padding:0 14%;text-align:center;font-style:italic;line-height:1.5;letter-spacing:1px;opacity:0;text-shadow:0 0 6px #000,0 0 2px #000', '', root); // what someone near says to themselves (round 34)
+  let heardAt = -Infinity;
   document.body.append(root);
 
   let noticeUntil = 0;
@@ -125,6 +127,10 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   g.events.on('PlaceFound', (e) => great.show(e.name.toUpperCase(), 'place', `${e.found} OF ${e.of} PLACES · ${(REGIONS.find((r) => r.id === e.region)?.name ?? '').toUpperCase()}`)); // round 18
   g.events.on('QuestChanged', (e) => say(e.done ? `DONE · ${e.title.toUpperCase()}` : e.stage === 0 ? `JOURNAL · ${e.title.toUpperCase()}` : `${e.title.toUpperCase()} · UPDATED`));
   g.events.on('RestRefused', () => say('SOMETHING HUNTS YOU · NO REST'));
+  g.events.on('Overheard', (e) => {
+    heard.replaceChildren(el('display:inline;font-style:normal;font-size:10px;letter-spacing:3px;color:#c9a45c;margin-right:10px', e.name.toUpperCase()), `“${e.text}”`);
+    heardAt = performance.now();
+  });
 
   const v = new Vector3();
   root.style.transition = 'opacity .6s';
@@ -136,6 +142,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       const busy = menuOpen() ? 'hidden' : 'visible'; // a dialogue or menu has the screen
       setStyle(prompt, 'visibility', busy);
       setStyle(notice, 'visibility', busy);
+      setStyle(heard, 'visibility', busy);
       const c = g.ecs.c;
       const h = c.health.get(me)!;
       const s = c.stamina.get(me)!;
@@ -161,6 +168,8 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       const now = performance.now();
       if (waiting.length && now - noticeAt >= NOTICE_HOLD_MS) put(waiting.shift()!);
       setStyle(notice, 'opacity', String(Math.min(1, Math.max(0, (noticeUntil - now) / 300)).toFixed(2)));
+      const [age, left] = [now - heardAt, HEARD.shown * 1000 - (now - heardAt)]; // in over half a second, out over the last second and a half
+      setStyle(heard, 'opacity', String(Math.min(1, Math.max(0, Math.min(age / 500, left / 1500))).toFixed(2)));
       const act = fightAction(g);
       const near = interactable(g);
       const verb = near?.kind === 'npc' ? 'talk to' : near?.kind === 'sign' ? 'rest at' : 'pass through';

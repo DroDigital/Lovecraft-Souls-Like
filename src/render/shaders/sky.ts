@@ -3,7 +3,9 @@
  * Round 32: the realm's own colours (data/looks.ts): its horizon, which the land's far edge melts
  * into, rising to its zenith, a moonlit glow along the horizon, strongest on the moon's side (so far
  * roofs, trees and hills stand against it as silhouettes), stars that twinkle, slow cloud, and the
- * moon itself with its maria and halo. The post pass grades and dithers it like everything else.
+ * moon itself with its maria and halo. Round 34: the Milky Way, a band of star-dust across it; over
+ * the cold realms the aurora, curtains of pale light low in the north; and now and then a falling
+ * star. The post pass grades and dithers it like everything else.
  */
 
 export const SKY_VERT = /* glsl */ `
@@ -29,6 +31,9 @@ uniform float uHaze; // the horizon's moonlit glow
 uniform float uOpen; // 0 under a roof or in a dungeon: the fog's colour alone
 uniform float uWrong; // 0..1: a failing mind's stars, which crawl, crowd and flicker
 uniform float uFlash; // a lightning stroke's light on the sky (lightning.ts)
+uniform float uMilky; // the Milky Way's strength
+uniform float uAurora; // the aurora's
+uniform float uMeteors; // the share of turns (eleven seconds each) that have a falling star
 
 float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -50,6 +55,38 @@ float fbm(vec2 p) {
     a *= 0.5;
   }
   return s;
+}
+
+// The Milky Way: a soft band across the sky, broken by lanes of dust.
+float milkyWay(vec3 d) {
+  float off = dot(d, normalize(vec3(0.35, 0.78, -0.52))); // across the plane of the band
+  float dust = fbm(vec2(d.x * 5.0 + d.y * 2.0, d.z * 5.0 - d.y * 3.0) * 1.6);
+  return exp(-off * off / 0.04) * (0.3 + 0.9 * smoothstep(0.3, 0.8, dust));
+}
+
+// The aurora: curtains of cold light hung low in the north, swaying, brighter toward their tops.
+vec3 aurora(vec3 d, float t) {
+  float az = atan(d.x, d.z);
+  float band = smoothstep(0.04, 0.22, d.y) * (1.0 - smoothstep(0.42, 0.75, d.y)) * (0.5 + 0.5 * cos(az - 0.5));
+  float rays = fbm(vec2(az * 7.0 + t * 0.05, t * 0.03));
+  float sway = sin(az * 3.0 + t * 0.22 + 3.0 * fbm(vec2(az * 2.0, t * 0.07)));
+  float curtain = smoothstep(0.4, 0.95, rays * 0.8 + 0.3 * sway + 0.25) * band;
+  return mix(vec3(0.25, 0.78, 0.95), vec3(0.78, 0.9, 1.0), smoothstep(0.1, 0.55, d.y)) * curtain;
+}
+
+// A falling star: a bright head and a tail across the upper sky, once in a while (a turn of eleven seconds, a share of them).
+float meteor(vec3 d, float t) {
+  float id = floor(t / 11.0);
+  float k = (t - id * 11.0) / 0.9; // 0..1 over the streak
+  if (k > 1.0 || hash(vec3(id, 7.0, 3.0)) > 0.5 * uMeteors) return 0.0;
+  vec3 s = normalize(vec3(hash(vec3(id, 1.0, 2.0)) * 2.0 - 1.0, 0.5 + 0.4 * hash(vec3(id, 2.0, 5.0)), hash(vec3(id, 3.0, 1.0)) * 2.0 - 1.0));
+  vec3 v = normalize(vec3(hash(vec3(id, 4.0, 2.0)) - 0.5, -0.3, hash(vec3(id, 5.0, 4.0)) - 0.5));
+  vec3 head = normalize(s + v * (0.4 * k));
+  vec3 tail = normalize(s + v * (0.4 * max(k - 0.4, 0.0)));
+  vec3 e = head - tail;
+  float u = clamp(dot(d - tail, e) / max(dot(e, e), 1e-6), 0.0, 1.0);
+  float line = 1.0 - smoothstep(0.0008, 0.0035, length(d - (tail + e * u)));
+  return line * mix(0.2, 1.0, u) * sin(3.14159 * k);
 }
 
 void main() {
@@ -76,6 +113,10 @@ void main() {
   col += starColor * star * twinkle * lift * (1.0 - cloud);
 
   float a = acos(clamp(dot(d, m), -1.0, 1.0));
+  float clear = lift * (1.0 - cloud) * smoothstep(0.0, 0.2, h);
+  col += vec3(0.55, 0.6, 0.78) * milkyWay(d) * 0.14 * uMilky * clear * (1.0 - 0.8 * exp(-a * 2.5)); // the moon washes it out near itself
+  col += aurora(d, uTime) * 0.42 * uAurora * clear;
+  col += vec3(1.0, 0.97, 0.9) * meteor(d, uTime) * 0.95 * clear;
   if (uMoon > 0.0) {
     vec3 t1 = normalize(cross(m, vec3(0.0, 1.0, 0.0)));
     vec3 t2 = cross(t1, m);

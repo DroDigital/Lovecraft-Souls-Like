@@ -3,7 +3,7 @@
  * investigator (remembered in the save: it is not shown again after a death); its fall, slowed; the
  * wake of a new game; an ending's, and then its card. Nothing plays in the arena test or while
  * another scene has the screen, except an ending, which waits its turn. Its size, from its body,
- * chooses how the camera treats it (data/cutscenes.ts). A horror that speaks
+ * chooses how the camera treats it (data/cutscenes.ts), unless it has an arrival of its own (data/cutscenesBoss.ts). A horror that speaks
  * (data/speechBosses.ts) says its line as it arrives and its last as it falls, the words low on the
  * screen, the last shot held until it is said; one with no scene says its last line as it falls, as a notice.
  */
@@ -12,6 +12,7 @@ import type { Entity } from '../core/ecs';
 import { yawOf } from '../core/geom';
 import { EPITHETS } from '../data/bossCards';
 import { arrival, ENDING_SCENES, fall, scaleOf, WAKE, type Scene } from '../data/cutscenes';
+import { bespokeArrival } from '../data/cutscenesBoss';
 import { bossLine, spokenFor, type Moment } from '../data/speechLines';
 import { signPlace } from '../systems/checkpoints';
 import type { Game } from '../systems/components';
@@ -68,7 +69,7 @@ export function createDirector(g: Game, cinema: Cinema, opens: (endingId: string
     const seen = g.overworld?.watched ?? memory;
     if (!f || !worth(entity) || seen.has(f.id) || cinema.active) return;
     seen.add(f.id);
-    void cinema.play(speaking(arrival(scaleOf(height(entity)), name, EPITHETS[f.id]), f.id, 'arrive'), { target: entity });
+    void cinema.play(speaking(bespokeArrival(f.id, name, EPITHETS[f.id]) ?? arrival(scaleOf(height(entity)), name, EPITHETS[f.id]), f.id, 'arrive'), { target: entity }); // the great horrors of the story each come their own way (round 34)
   });
   g.events.on('Vanquished', ({ entity }) => {
     const id = g.ecs.c.fight.get(entity)?.id;

@@ -36,6 +36,7 @@ uniform vec2 uFaint; // near death: x how red the edge of the picture is, y how 
 uniform float uStone; // a petrifying gaze (round 25): 0..1 to stone, which the colour drains to, the edges close in grey, and past half the picture cracks
 uniform float uBlur; // low-res pixels the edges blur by
 uniform vec3 uAnomalyHues;
+uniform vec2 uChar; // a character (alpha 0.75: render/shaders/world.ts and sprite.ts; round 34) keeps its own colours: x the share of the realm's grade it takes, y the levels each colour is quantised to
 uniform float uQuantize;
 uniform float uDither;
 uniform float uGamma; // 1 / the brightness setting: below 1 lifts the dark
@@ -67,13 +68,13 @@ vec3 gradeTint(float l) {
 
 // 1. Grade and colour isolation (round 32: each realm's own gradient map, not the one cold-to-warm
 // split of all of them) everywhere except anomaly hues, which anomalyProximity boosts.
-vec3 isolate(vec3 c) {
+vec3 isolate(vec3 c, float share) {
   vec3 hsv = rgb2hsv(c);
   float near = max(max(hueNear(hsv.x, uAnomalyHues.x), hueNear(hsv.x, uAnomalyHues.y)),
                    hueNear(hsv.x, uAnomalyHues.z));
   float mask = near * smoothstep(uMinSat, uMinSat + 0.15, hsv.y) * smoothstep(0.03, 0.1, hsv.z);
   float l = dot(c, LUMA);
-  vec3 graded = mix(c, l * gradeTint(l), uDesat);
+  vec3 graded = mix(c, l * gradeTint(l), uDesat * share);
   float boost = clamp(uAnomalyProximity + uAnomalyStress, 0.0, 1.0);
   vec3 vivid = clamp(mix(vec3(l), c, 1.0 + boost) * (1.0 + 0.6 * boost), 0.0, 1.0);
   return mix(graded, vivid, mask);
@@ -157,6 +158,16 @@ vec3 quantize(vec3 c, vec2 cell) {
   return best;
 }
 
+// 3a. A character is not held to the realm's palette (round 34: the grade and the palette took the hue from every
+// creature and person and left them grey, white about the head): its colours are posterised instead, finer in the
+// dark, and dithered like the rest, so the horrors keep what they were drawn in.
+vec3 posterize(vec3 c, vec2 cell) {
+  float n = uChar.y;
+  vec3 s = sqrt(max(c, 0.0));
+  if (uDither > 0.0) s += bayer4(cell) / n;
+  return pow(floor(s * n + 0.5) / n, vec3(2.0));
+}
+
 void main() {
   vec2 cell = floor(gl_FragCoord.xy);
   vec2 uv = (cell + 0.5) / uRes;
@@ -173,6 +184,7 @@ void main() {
     gl_FragColor = vec4(pow(centre.rgb, vec3(uGamma)), 1.0); // outside the palette: no grade, no quantising
     return;
   }
+  bool person = centre.a < 0.9; // marked 0.75; the Colour's own mark (0.31) was dealt with above
   vec3 a = texture(tScene, uv + split).rgb;
   vec3 b = centre.rgb;
   vec3 e = texture(tScene, uv - split).rgb;
@@ -186,13 +198,14 @@ void main() {
     e = mix(e, b, k);
   }
   if (uIsolate > 0.5) {
-    a = isolate(a);
-    b = isolate(b);
-    e = isolate(e);
+    float share = person ? uChar.x : 1.0;
+    a = isolate(a, share);
+    b = isolate(b, share);
+    e = isolate(e, share);
   }
   vec4 fog = fogAlong(uv, bayer4(cell) + 0.5); // the mist between the lens and the scene (round 16)
   vec3 col = pow(stone(faint(hurt(vec3(a.r, b.g, e.b) * fog.a + fog.rgb, uv), uv), uv), vec3(uGamma));
-  if (uQuantize > 0.5) col = quantize(col, cell);
+  if (uQuantize > 0.5) col = person ? posterize(col, cell) : quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }
 `;

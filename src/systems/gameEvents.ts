@@ -62,6 +62,7 @@ export interface GameEvents {
   Rammed: { entity: Entity };
   Title: { text: string }; // a set piece's words across the screen
   Notice: { text: string }; // a short line mid-screen
+  Overheard: { name: string; text: string }; // someone near says a line to themselves (overheard.ts; round 34)
   Ending: { id: string }; // one of the three endings (endings.ts)
   Healed: { entity: Entity; amount: number }; // a shot of West's Reagent
   Erupted: { at: V3; radius: number; by: Entity }; // a marked spot bursts

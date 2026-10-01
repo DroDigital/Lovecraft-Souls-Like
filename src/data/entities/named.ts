@@ -28,7 +28,7 @@ export const NAMED = tier('named', [
   },
   {
     id: 'keziah_mason', name: 'Keziah Mason', source: 'The Dreams in the Witch House', regions: ['arkham'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 2, eyes: 2 },
+    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 2, eyes: 2, gear: ['witch'] },
     ...scripted('boss', phases(ph(1, { projectile: 2, teleport: 1, summon: 1, barrage: 1 }, { summons: ['rat_swarm'], hooks: ['arena_reconnect'] }), ph(0.5, { projectile_fan: 2, teleport: 2, gaze: 1, summon: 1, barrage: 1, eruption: 1 }, { summons: ['rat_swarm'], hooks: ['arena_reconnect', 'camera_warp'] })), { range: [6, 12], strafe: 0.5 }),
     stats: st(700, 120, 30, 3.4, 2, 8), drops: { echoes: 2500 }, insightOnSight: 1,
   },
@@ -40,13 +40,13 @@ export const NAMED = tier('named', [
   },
   {
     id: 'black_man', name: 'The Black Man', source: 'The Dreams in the Witch House', regions: ['arkham'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'charcoal', scale: 2.6, eyes: 2, glow: 'purple' },
+    sprite: { silhouette: 'humanoid', palette: 'charcoal', scale: 2.6, eyes: 2, glow: 'purple', gear: ['tall', 'coat'] },
     ...scripted('mind_thief', phases(ph(1, { projectile: 2, gaze: 1, teleport: 1, sweep_beam: 1 }), ph(0.5, { gaze: 2, projectile_fan: 1, teleport: 1, barrage: 1, vortex: 1 }, { hooks: ['decoys'] }))),
     stats: st(750, 200, 36, 3.8, 3, 10), drops: { echoes: 2500 }, insightOnSight: 2,
   },
   {
     id: 'joseph_curwen', name: 'Joseph Curwen', source: 'The Case of Charles Dexter Ward', regions: ['providence'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'sand', scale: 2.1, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'sand', scale: 2.1, eyes: 2, gear: ['tricorn', 'coat'] },
     ...scripted('boss', phases(
       ph(1, { projectile: 2, summon: 1, teleport: 1, eruption: 1 }, { summons: ['reanimated_corpse'] }),
       ph(0.5, { projectile_fan: 2, beam: 1, summon: 1, teleport: 1, barrage: 1 }, { summons: ['reanimated_corpse'] }),
@@ -56,13 +56,13 @@ export const NAMED = tier('named', [
   },
   {
     id: 'simon_orne', name: 'Simon Orne', source: 'The Case of Charles Dexter Ward', regions: ['providence'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'charcoal', scale: 2.1, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'charcoal', scale: 2.1, eyes: 2, gear: ['brim', 'coat'] },
     ...scripted('caster', phases(ph(1, { projectile: 2, sweep: 1, summon: 1, combo: 1 }, { summons: ['reanimated_corpse'] }), ph(0.4, { projectile_fan: 2, sweep: 1, teleport: 1, eruption: 1, barrage: 1 }))),
     stats: st(650, 140, 30, 3.4, 1.5, 6), drops: { echoes: 1600 }, insightOnSight: 1,
   },
   {
     id: 'edward_hutchinson', name: 'Edward Hutchinson', source: 'The Case of Charles Dexter Ward', regions: ['providence'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 2.2, eyes: 2 },
+    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 2.2, eyes: 2, gear: ['cowl'] },
     ...scripted('caster', phases(ph(1, { projectile: 2, teleport: 1, summon: 1, eruption: 1 }, { summons: ['reanimated_corpse'] }), ph(0.4, { projectile_fan: 1, beam: 1, teleport: 2, sweep_beam: 1 }))),
     stats: st(650, 140, 30, 3.4, 1.5, 6), drops: { echoes: 1600 }, insightOnSight: 1,
   },
@@ -74,7 +74,7 @@ export const NAMED = tier('named', [
   },
   {
     id: 'ephraim_waite', name: 'Ephraim Waite', source: 'The Thing on the Doorstep', regions: ['innsmouth', 'arkham'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'sea', scale: 2, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'sea', scale: 2, eyes: 2, gear: ['coat'] },
     ...scripted('mind_thief', phases(ph(1, { gaze: 2, projectile: 1, grab: 1, combo: 1 }, { hooks: ['control_swap'] }), ph(0.5, { gaze: 2, grab: 2, projectile_fan: 1, vortex: 1 }, { hooks: ['control_swap', 'camera_warp'] }))),
     stats: st(600, 120, 28, 3.6, 2.5, 9), drops: { echoes: 1800 }, insightOnSight: 1,
     eldritchVariant: { sprite: { palette: 'mold' } },
@@ -112,7 +112,7 @@ export const NAMED = tier('named', [
   },
   {
     id: 'lilith', name: 'Lilith', source: 'The Horror at Red Hook', regions: ['providence'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 2.1, eyes: 2, glow: 'magenta' },
+    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 2.1, eyes: 2, glow: 'magenta', gear: ['horns'] },
     ...scripted('caster', phases(ph(1, { grab: 1, projectile: 2, summon: 1, combo: 1 }, { summons: ['cthulhu_cultist'] }), ph(0.5, { projectile_fan: 2, grab: 1, summon: 1, teleport: 1, barrage: 1, vortex: 1 }, { summons: ['cthulhu_cultist'] }))),
     stats: st(750, 160, 32, 3.8, 3, 9), drops: { echoes: 2200 }, insightOnSight: 2,
   },
@@ -130,7 +130,7 @@ export const NAMED = tier('named', [
   },
   {
     id: 'high_priest', name: 'High Priest Not to Be Described', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'sand', scale: 2.4, eyes: 0 },
+    sprite: { silhouette: 'robed', palette: 'sand', scale: 2.4, eyes: 0, gear: ['mask'] },
     ...scripted('boss', phases(
       ph(1, { projectile: 2, teleport: 1, summon: 1, gaze: 1, barrage: 1 }, { summons: ['man_of_leng'] }),
       ph(0.5, { gaze: 2, projectile_fan: 1, teleport: 1, summon: 1, eruption: 1 }, { summons: ['man_of_leng'], hooks: ['camera_warp'] }),
@@ -153,13 +153,13 @@ export const NAMED = tier('named', [
   },
   {
     id: 'dr_munoz', name: 'Dr. Muñoz', source: 'Cool Air', regions: ['hub'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'pallid', scale: 2, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'pallid', scale: 2, eyes: 2, gear: ['coat', 'pipes'] },
     ...scripted('caster', phases(ph(1, { projectile: 2, grab: 1, combo: 1 }), ph(0.5, { grab: 2, pool: 1, projectile: 1, barrage: 1 }))),
     stats: st(400, 80, 22, 2.6, 2, 6), weak: ['fire'], drops: { echoes: 800 }, insightOnSight: 1,
   },
   {
     id: 'charles_le_sorcier', name: 'Charles le Sorcier', source: 'The Alchemist', regions: ['hub'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 2.1, eyes: 2, glow: 'magenta' },
+    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 2.1, eyes: 2, glow: 'magenta', gear: ['cowl', 'staff'] },
     ...scripted('caster', phases(ph(1, { projectile: 2, teleport: 1, combo: 1 }), ph(0.5, { projectile_fan: 2, teleport: 1, pool: 1, eruption: 1, sweep_beam: 1 }))),
     stats: st(550, 120, 28, 3.4, 2, 7), drops: { echoes: 1400 }, insightOnSight: 1,
   },
@@ -171,25 +171,25 @@ export const NAMED = tier('named', [
   },
   {
     id: 'hypnos', name: 'Hypnos', source: 'Hypnos', regions: ['dreamlands'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 2.3, eyes: 2, glow: 'purple' },
+    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 2.3, eyes: 2, glow: 'purple', gear: ['halo'] },
     ...scripted('mind_thief', phases(ph(1, { gaze: 2, teleport: 1, roar: 1, barrage: 1 }, { hooks: ['time_skip'] }), ph(0.5, { gaze: 2, beam: 1, teleport: 1, sweep_beam: 1, vortex: 1 }, { hooks: ['time_skip', 'camera_warp'] }))),
     stats: st(650, 140, 30, 3.4, 3, 10), drops: { echoes: 2000 }, insightOnSight: 2,
   },
   {
     id: 'the_outsider', name: 'The Outsider', source: 'The Outsider', regions: ['hub'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'mold', scale: 2, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'mold', scale: 2, eyes: 2, gear: ['tatters'] },
     ...scripted('brute', phases(ph(1, { grab: 1, sweep: 2, roar: 1, delayed_slam: 1, combo: 1 }), ph(0.4, { grab: 2, sweep: 1, charge: 1, roar: 1, combo: 1, quake: 1 }))),
     stats: st(550, 120, 28, 3, 3, 10), drops: { echoes: 1200 }, insightOnSight: 1,
   },
   {
     id: 'terrible_old_man', name: 'The Terrible Old Man', source: 'The Terrible Old Man', regions: ['providence'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 1.8, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 1.8, eyes: 2, gear: ['brim', 'beard', 'cane'] },
     ...scripted('caster', phases(ph(1, { summon: 2, projectile: 1, combo: 1 }, { summons: ['moon_bog_wraith'] }), ph(0.5, { summon: 1, projectile_fan: 1, teleport: 1, eruption: 1 }, { summons: ['moon_bog_wraith'] }))),
     stats: st(450, 80, 24, 2.4, 1.5, 6), drops: { echoes: 1500 }, insightOnSight: 1,
   },
   {
     id: 'zkauba', name: 'Zkauba the Wizard', source: 'Through the Gates of the Silver Key', regions: ['beyond'], canonLooks: true,
-    sprite: { silhouette: 'hunched', palette: 'stone', scale: 2.6, eyes: 2, glow: 'purple' },
+    sprite: { silhouette: 'hunched', palette: 'stone', scale: 2.6, eyes: 2, glow: 'purple', gear: ['staff'] },
     ...scripted('caster', phases(ph(1, { projectile: 2, beam: 1, teleport: 1, barrage: 1 }), ph(0.5, { beam: 2, projectile_fan: 1, teleport: 1, sweep_beam: 1, eruption: 1 }, { hooks: ['arena_reconnect'] }))),
     stats: st(750, 160, 32, 3.4, 2.5, 9), drops: { echoes: 2200 }, insightOnSight: 2,
   },

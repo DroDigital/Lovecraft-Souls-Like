@@ -10,7 +10,8 @@
  */
 
 import { VOID_GLSL } from './eldritch';
-import { LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL } from './world';
+import { LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL } from './common';
+import { SHADOW_GLSL } from './shadow';
 
 export const SPRITE_VERT = /* glsl */ `
 uniform vec2 uRes;
@@ -36,6 +37,7 @@ varying float vWeird;
 varying vec4 vCell;
 ${LANTERN_GLSL}
 ${LAMPS_GLSL}
+${SHADOW_GLSL}
 void main() {
   vec3 origin = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
   float w = length(instanceMatrix[0].xyz);
@@ -51,7 +53,9 @@ void main() {
   gl_Position = clip;
   float u = aInfo.z > 0.5 ? 1.0 - uv.x : uv.x;
   vUv = vec2(mix(aCell.x, aCell.z, u), mix(aCell.y, aCell.w, 1.0 - uv.y));
-  vLight = uAmbient + (uLightColor + uLanternColor * lanternAt(uLanternPos - wp) + lampLight(wp, vec3(0.0, 1.0, 0.0), 0.0)) * uCharacterLight;
+  float moon = mix(1.0, moonLit(origin + vec3(0.0, 0.8, 0.0), vec3(0.0, 1.0, 0.0), 1.0), uShadow.x); // what stands between it and the moon (round 34)
+  float lamp = mix(1.0, lanternLit(origin + vec3(0.0, 0.8, 0.0), vec3(0.0, 1.0, 0.0)), uLShadow.x); // and the lantern's
+  vLight = uAmbient + (uLightColor * moon + uLanternColor * lanternAt(uLanternPos - wp) * lamp + lampLight(wp, vec3(0.0, 1.0, 0.0), 0.0)) * uCharacterLight;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
   vDist = -vp.z;
   vFlash = aInfo.x;
@@ -120,6 +124,6 @@ void main() {
     return;
   }
   if (glow) fog = max(fog, smoothstep(uEyeRange.x, uEyeRange.y, vDist));
-  gl_FragColor = vec4(mix(col, uFogColor, fog), 1.0);
+  gl_FragColor = vec4(mix(col, uFogColor, fog), uMarkCharacters > 0.5 ? 0.75 : 1.0); // alpha 0.75 marks a character for the post pass, which lets it keep its colour (round 34)
 }
 `;

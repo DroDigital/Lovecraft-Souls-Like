@@ -19,6 +19,7 @@ import { chunkContent } from '../../world/chunks';
 import { worldLayout } from '../../world/placements';
 import { segmentDistance } from '../../world/roads';
 import { chunkOf } from '../../world/worldMap';
+import { wetness } from '../wetness';
 import { dullness } from './cues';
 import type { Sampler } from './sampler';
 
@@ -87,7 +88,9 @@ export function createFoley(g: Game, sampler: Sampler): Foley {
     const stride = strideAt(speed);
     if (walked < stride) return;
     walked %= stride;
-    play(STEPS[surfaceAt(g, tr.pos.x, tr.pos.y, tr.pos.z)], 0.55 + 0.45 * Math.min(1, speed / PACE[1]));
+    const surface = surfaceAt(g, tr.pos.x, tr.pos.y, tr.pos.z);
+    play(STEPS[surface], 0.55 + 0.45 * Math.min(1, speed / PACE[1]));
+    if (surface !== 'water' && wetness.value > 0.3 && Math.random() < wetness.value) play('stepWater', 0.32 * wetness.value, 0, 1.1 + 0.25 * Math.random()); // a stride on ground the rain has soaked splashes (round 34)
   }
 
   function moves(place: (at: V3, range: number) => { gain: number; pan: number }, warn: (at: V3) => void): void {

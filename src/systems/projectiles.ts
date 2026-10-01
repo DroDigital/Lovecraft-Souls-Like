@@ -42,8 +42,9 @@ export function launch(g: Game, id: Entity, v: VolleyDef): void {
     const yaw = yaw0 + (v.count > 1 ? (i / (v.count - 1) - 0.5) * v.spread * DEG : 0);
     let vel: V3;
     if (v.lob) {
-      const t = flat / v.speed; // arcs to come down where the target stands
-      vel = { x: Math.sin(yaw) * v.speed, y: (dy - 1 + 0.5 * BOSS.gravity * t * t) / t, z: Math.cos(yaw) * v.speed };
+      const reach = Math.min(flat, v.range); // arcs to come down where the target stands, or at the end of its throw: aimed at one that has jumped far away (a travel mid-wind-up) the arc would climb into the clouds (round 34)
+      const t = reach / v.speed;
+      vel = { x: Math.sin(yaw) * v.speed, y: (dy * (reach / flat) - 1 + 0.5 * BOSS.gravity * t * t) / t, z: Math.cos(yaw) * v.speed };
     } else {
       const len = Math.hypot(flat, dy);
       vel = { x: Math.sin(yaw) * v.speed * (flat / len), y: v.speed * (dy / len), z: Math.cos(yaw) * v.speed * (flat / len) };

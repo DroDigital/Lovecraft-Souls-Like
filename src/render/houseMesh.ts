@@ -187,6 +187,7 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
 
   const chimneys: THREE.BufferGeometry[] = [];
   const stacks = style === 'brick' ? [-1, 1] : style === 'stone' ? [] : [rng() < 0.5 ? -1 : 1];
+  const smoke = stacks.map((s): [number, number, number] => [s * wx * 0.7, top + rh + 1.3, -wd * 0.2]); // the top of each stack
   for (const s of stacks) chimneys.push(tileUv(box(0.8, rh + 1.6, 0.8, s * wx * 0.7, top + (rh + 1.6) / 2 - 0.3, -wd * 0.2, scaleRgb(BASE.bone, 1.2)), 0.8, rh + 1.6));
 
   const { frames, panes, glows } = windows(wx, wd, h, rng, 0.3, style === 'clapboard' && rng() < 0.6);
@@ -202,7 +203,7 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
     { mat: style === 'stone' ? 'stone' : 'shingle', geo: tint(roofGeo, roofTint) },
     { mat: 'trim', geo: tileUv(mergeGeometries([...frames, ...panes, ...door]), 1, 1) }, // relief on the walls, drawn nearer than they are (round 21)
   ];
-  if (chimneys.length) pieces.push({ mat: 'brick', geo: mergeGeometries(chimneys) });
+  if (chimneys.length) pieces.push({ mat: 'brick', geo: mergeGeometries(chimneys), smoke });
   for (const g of glows) pieces.push({ mat: 'pane', geo: g.geo, light: 'window', at: g.at, glass: g.glass, pane: g.pane });
   return pieces;
 }

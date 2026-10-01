@@ -42,6 +42,7 @@ import { registerArms, unreinforced } from './arms';
 import { registerRelics } from './relics';
 import { applyCarry, type Carry } from './cycles';
 import { registerTally, tallySystem } from './tally';
+import { overheardSystem } from './overheard';
 import { registerRoomWords, roomWordsSystem } from './roomWords';
 import { registerPerception } from './perception';
 import { playerControl } from './playerControl';
@@ -179,7 +180,7 @@ function cameraSystem(g: Game, lookX: number, lookY: number, dt: number): void {
 /**
  * One fixed 60 Hz step. The order matters: intent → a boss fight's E, then signs, gates and talk → moves →
  * AI → motion → hits, shots, special effects, bolts and pools → recovery → sanity → boss fights and
- * their reality hooks → lock → camera → sight → hallucinations → death → population.
+ * their reality hooks → lock → camera → sight → the words of rooms and people → hallucinations → death → population.
  */
 export function stepGame(g: Game, input: InputFrame): void {
   const dt = 1 / SIM.hz;
@@ -215,6 +216,7 @@ export function stepGame(g: Game, input: InputFrame): void {
   questSystem(g);
   tallySystem(g);
   roomWordsSystem(g);
+  overheardSystem(g);
   sealSystem(g);
   hallucinationSystem(g);
   deathSystem(g);

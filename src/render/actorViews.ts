@@ -16,6 +16,7 @@ import { cadence, type Ground } from './gait';
 import { FX_PREFIX } from './fightViews';
 import { SHRINE_MODEL } from './signViews';
 import { box } from './meshKit';
+import { personShadow } from './moonShadow';
 import { BASE } from './palette';
 import { createPoseBlend, type PoseBlend } from './poseBlend';
 import { pose } from './poses';
@@ -89,6 +90,7 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
     for (const [id, model] of g.ecs.c.model) {
       if (views.has(id) || model.startsWith(MODEL_PREFIX) || model.startsWith(FX_PREFIX) || model === SHRINE_MODEL) continue; // roster creatures: creatureViews; bolts, pools and props: fightViews; Elder Signs: signViews
       const figure = buildFigure(model);
+      if (figure.rig === 'humanoid') figure.root.add(personShadow(figure.hip)); // what the moon sees of them: one shape, not their twenty parts
       scene.add(figure.root);
       views.set(id, { figure, stride: 0, speed: 0, lastTime: 0, hitAt: -Infinity, blend: createPoseBlend(figure), kneel: 0 });
     }

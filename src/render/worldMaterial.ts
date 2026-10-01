@@ -6,6 +6,7 @@ import type { FxParams } from './fx';
 import { ANOMALY } from './palette';
 import { LAMP_SLOTS, WORLD_FRAG, WORLD_VERT } from './shaders/world';
 import { generateTexture, TEXTURE_SIZE, UV_PER_TEXTURE, type TextureKind } from './textures';
+import { wetness } from './wetness';
 
 const v3 = (c: Vec3): THREE.Vector3 => new THREE.Vector3(c[0], c[1], c[2]);
 
@@ -46,6 +47,16 @@ export const worldUniforms = {
   uFogAmount: { value: 0 },
   uFogColor: { value: v3(FX.fogColor) },
   uSeaLevel: { value: WORLD.seaLevel }, // where the sea lies: the shore's waterline (the world shader's SHORE)
+  uWind: { value: 1 }, // how hard the wind blows the leaves and grass (shaders/world.ts SWAY): 1 on a calm night, more in a gale (weather.ts; round 34)
+  uWet: wetness, // how soaked the ground is: 0 dry, 1 after hard rain (shaders/world.ts; weather.ts eases it; round 34)
+  uShadowMap: { value: null as THREE.Texture | null }, // the moon's depth map, its matrix and its numbers (moonShadow.ts; round 34)
+  uShadowMat: { value: new THREE.Matrix4() },
+  uShadow: { value: new THREE.Vector4() },
+  uLShadowMap: { value: null as THREE.Texture | null }, // the lantern's depth map, how it is looked through, and its numbers (lanternShadow.ts; round 34)
+  uLShadowView: { value: new THREE.Matrix4() },
+  uLShadowProj: { value: new THREE.Matrix4() },
+  uLShadowNF: { value: new THREE.Vector2(0.35, 13) }, // its near and far planes
+  uLShadow: { value: new THREE.Vector4() }, // strength (0: none), a texel, the bias, the offset
 };
 
 export interface WorldMaterialOptions {
@@ -65,6 +76,7 @@ export interface WorldMaterialOptions {
   bodyScale?: number; // metres: the body's height, which that is measured in
   shore?: boolean; // the ground is washed by the sea where it meets it: a wet band and lace of foam, breathing with the swell (round 30)
   panes?: boolean; // lit windows, each lived behind by its aPane seed (paneLife.ts; round 18)
+  sway?: boolean; // blown by the wind, by each vertex's aSway (round 34)
 }
 
 const textures = new Map<string, THREE.DataTexture>();
@@ -113,7 +125,7 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,
     vertexColors: o.vertexColors ?? false,
-    defines: { ...(o.panes && { PANES: '' }), ...(o.shore && { SHORE: '' }) },
+    defines: { ...(o.panes && { PANES: '' }), ...(o.shore && { SHORE: '' }), ...(o.sway && { SWAY: '' }) },
   });
   material.userData.emissive = o.emissive ?? 0;
   return material;

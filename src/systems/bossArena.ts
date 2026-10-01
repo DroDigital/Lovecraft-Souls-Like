@@ -11,6 +11,7 @@ import type { Entity } from '../core/ecs';
 import { distXZ, type XZ } from '../core/geom';
 import type { MoveDef } from '../data/moves';
 import { BOSS } from '../data/tuning';
+import { resolveCapsule } from '../world/colliders';
 import { moveDef, startMove } from './actions';
 import type { ArenaCircle, Brain, Game, Mover } from './components';
 
@@ -40,12 +41,19 @@ export function holdInside(a: ArenaCircle, pos: XZ, m: Mover, speed: number): vo
 /** The fog at an engaged ring (round 12): it closes once the investigator is inside, and then holds them within it. */
 export function holdInVeil(g: Game, f: { arena: ArenaCircle; veiled?: boolean }): void {
   const tr = g.ecs.c.transform.get(g.player.id)!;
-  const r = f.arena.radius - (g.ecs.c.body.get(g.player.id)?.radius ?? 0.4);
+  const body = g.ecs.c.body.get(g.player.id);
+  const r = f.arena.radius - (body?.radius ?? 0.4);
   const [dx, dz] = [tr.pos.x - f.arena.x, tr.pos.z - f.arena.z];
   const d = Math.hypot(dx, dz);
   if (!f.veiled) f.veiled = d <= r;
   if (!f.veiled || d <= r) return;
-  [tr.pos.x, tr.pos.z] = [f.arena.x + (dx / d) * r, f.arena.z + (dz / d) * r];
+  if (d > f.arena.radius + BOSS.margin) return void (f.veiled = false); // carried far off (a leap across the world): the fog does not reach them, and the boss lets them go
+  const rim = { x: f.arena.x + (dx / d) * r, y: 0, z: f.arena.z + (dz / d) * r };
+  rim.y = g.world.ground(rim.x, rim.z);
+  const set = { ...rim };
+  resolveCapsule(g.world, set, body?.radius ?? 0.4, body?.height ?? 1.8);
+  if (Math.hypot(set.x - rim.x, set.z - rim.z) > 0.1) return; // the rim lies in a wall: the fog does not set them down inside it, where the wall and the fog would hold them fast (round 34)
+  [tr.pos.x, tr.pos.z] = [rim.x, rim.z];
 }
 
 /** Whether `id`'s blow is still winding up. */

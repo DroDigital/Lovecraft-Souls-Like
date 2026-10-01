@@ -124,6 +124,10 @@ export type CreaturePalette = (typeof CREATURE_PALETTES)[number];
 
 export type Glow = 'magenta' | 'purple' | 'green';
 
+/** What a named character wears or carries, drawn over their body plan (render/sprites/gear.ts; round 34). */
+export const GEAR = ['brim', 'tall', 'tricorn', 'witch', 'cowl', 'halo', 'horns', 'beard', 'mask', 'cane', 'staff', 'coat', 'pipes', 'tatters', 'chain'] as const;
+export type Gear = (typeof GEAR)[number];
+
 /** Sprite recipe (spec §2): silhouette archetype + palette + feature params. */
 export interface SpriteRecipe {
   silhouette: Silhouette;
@@ -134,6 +138,7 @@ export interface SpriteRecipe {
   wings?: number;
   limbs?: number; // total arms/legs, overriding the silhouette's default
   glow?: Glow; // eyes and markings glow in this anomaly colour
+  gear?: readonly Gear[]; // what they wear or carry (the upright, hunched and robed bodies only)
   outside?: boolean; // drawn in a hue outside the palette (the Colour Out of Space)
   seed?: number;
 }

@@ -7,118 +7,11 @@
  */
 
 import { PANE_GLSL } from '../paneLife';
+import { LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL, SPACE_GLSL } from './common';
 import { ELDRITCH_FRAG, ELDRITCH_VERT } from './eldritch';
+import { SHADOW_GLSL } from './shadow';
 
-/**
- * The player's lantern (world and sprite shaders): inverse-square decay, windowed smoothly to nothing
- * at its range, so the pool of light fades naturally instead of ending at an edge.
- */
-export const LANTERN_GLSL = /* glsl */ `
-uniform vec3 uLanternPos;
-uniform vec3 uLanternColor;
-uniform float uLanternRange;
-uniform float uLanternDecay;
-
-float lanternFalloff(float d) {
-  float x = clamp(d / max(uLanternRange, 0.001), 0.0, 1.0);
-  float x2 = x * x;
-  float win = 1.0 - x2 * x2;
-  return win * win / (1.0 + uLanternDecay * d * d);
-}
-
-float lanternAt(vec3 toLamp) {
-  return lanternFalloff(length(toLamp));
-}
-`;
-
-/**
- * The world's lamps (playtest round 5, render/worldLights.ts): the nearest street lamps, fires,
- * torches and lit windows as point lights, each windowed to nothing at its range like the lantern.
- * `facing` weighs N·L (0 for characters and sprites, which take the light whole).
- */
-export const LAMP_SLOTS = 12;
-export const LAMPS_GLSL = /* glsl */ `
-uniform vec4 uLamps[${LAMP_SLOTS}]; // position, range (0: dark)
-uniform vec3 uLampColors[${LAMP_SLOTS}]; // colour × strength
-vec3 lampLight(vec3 p, vec3 n, float facing) {
-  vec3 sum = vec3(0.0);
-  for (int i = 0; i < ${LAMP_SLOTS}; i++) {
-    vec4 l = uLamps[i];
-    if (l.w <= 0.0) continue;
-    vec3 to = l.xyz - p;
-    float d = length(to);
-    float x = clamp(d / l.w, 0.0, 1.0);
-    float x2 = x * x;
-    float win = 1.0 - x2 * x2;
-    float face = mix(1.0, max(dot(n, to / max(d, 0.001)), 0.0), facing);
-    sum += uLampColors[i] * win * win / (1.0 + uLanternDecay * d * d) * face; // the lantern's own falloff
-  }
-  // Many lights at once (a corridor of torches, a hall's braziers) would add up past white and wash the walls to cream (round 31): the sum is eased toward a ceiling.
-  float peak = max(max(sum.r, sum.g), sum.b);
-  return sum / (1.0 + 0.55 * peak);
-}
-`;
-
-/** Cheap value noise over the world, for texture variation. */
-export const NOISE_GLSL = /* glsl */ `
-float hash12(vec2 p) {
-  vec3 q = fract(vec3(p.xyx) * 0.1031);
-  q += dot(q, q.yzx + 33.33);
-  return fract((q.x + q.y) * q.z);
-}
-
-float vnoise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), u.x), mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), u.x), u.y);
-}
-`;
-
-/**
- * Where a world point is drawn (world materials and the Elder Signs' glow): the sanity-driven
- * non-Euclidean displacement, and PS1 vertex snapping of clip positions to the low-res pixel grid.
- */
-export const SPACE_GLSL = /* glsl */ `
-uniform float uTime;
-uniform vec2 uRes;
-uniform float uSnap;
-uniform float uDisplace;
-uniform vec3 uCamPos;
-uniform float uDispAmp;
-uniform float uDispFreq;
-uniform float uDispSafe;
-uniform float uDispFull;
-uniform float uTwist;
-uniform float uLean;
-
-// Non-Euclidean distortion. Nothing moves near the camera, so combat stays readable.
-vec3 displace(vec3 wp) {
-  vec3 rel = wp - uCamPos;
-  float d = length(rel.xz);
-  float w = smoothstep(uDispSafe, uDispFull, d) * uDisplace;
-  if (w <= 0.0) return wp;
-  float f = uDispFreq;
-  wp += w * uDispAmp * vec3(
-    sin(wp.y * f * 1.7 + wp.z * f + uTime * 1.3),
-    0.5 * sin(wp.x * f + wp.z * f * 0.8 + uTime * 0.9),
-    sin(wp.x * f * 1.3 + wp.y * f * 1.9 + uTime * 1.1));
-  float h = max(0.0, wp.y - (uCamPos.y - 1.6)); // round 26: what stands tall leans in toward whoever is losing their mind, its top the most
-  wp.xz -= normalize(rel.xz + vec2(1e-4)) * w * uLean * h * h;
-  float a = w * uTwist * sin(uTime * 0.21 + d * 0.05);
-  rel = wp - uCamPos;
-  wp.xz = uCamPos.xz + mat2(cos(a), sin(a), -sin(a), cos(a)) * rel.xz;
-  return wp;
-}
-
-vec4 snap(vec4 clip) {
-  if (uSnap > 0.0 && clip.w > 0.0) {
-    vec2 grid = uRes * 0.5 / uSnap;
-    clip.xy = floor(clip.xy / clip.w * grid + 0.5) / grid * clip.w;
-  }
-  return clip;
-}
-`;
+export { LAMP_SLOTS, LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL, SPACE_GLSL } from './common';
 
 export const WORLD_VERT = /* glsl */ `
 ${SPACE_GLSL}
@@ -135,6 +28,10 @@ uniform vec2 uUvScale;
 uniform vec2 uUvScroll;
 
 attribute float aSplat; // the second ground texture's share (roads, paths); 0 where a mesh has none
+#ifdef SWAY
+attribute float aSway; // metres this vertex is blown at the height of a gust: nothing at a trunk's foot, most at the tip of a bough or a blade (round 34)
+uniform float uWind;
+#endif
 #ifdef PANES
 attribute float aPane; // a lit window's seed (paneLife.ts; round 18)
 varying float vPane;
@@ -144,6 +41,7 @@ ${ELDRITCH_VERT}
 varying vec2 vUv;
 varying vec3 vUvw;
 varying vec3 vLight;
+varying vec3 vMoon; // the moon's share of vLight, which a shadow takes (shaders/shadow.ts; round 34)
 varying vec3 vTint;
 varying vec3 vWorld;
 varying vec3 vNormal;
@@ -158,6 +56,11 @@ void main() {
 #ifdef PANES
   vPane = aPane;
 #endif
+#ifdef SWAY
+  float gust = 0.5 + 0.5 * sin(uTime * 0.31 + wp.x * 0.045 - wp.z * 0.03); // gusts roll across the land...
+  float flutter = 0.5 * sin(uTime * 1.7 + wp.x * 0.9 + wp.z * 0.7) + 0.25 * sin(uTime * 2.9 + wp.z * 1.3); // ...and shiver in it
+  wp.xz += aSway * uWind * (0.3 + 0.7 * gust + 0.3 * flutter) * vec2(0.85, 0.5); // after vWorld: lit and shadowed where it stands, drawn where the wind has it
+#endif
   wp.xyz = displace(wp.xyz);
 
   vec4 vp = viewMatrix * wp;
@@ -168,7 +71,8 @@ void main() {
   vUv = uv0;
   vUvw = vec3(uv0 * clip.w, clip.w);
 
-  vec3 light = uAmbient + uLightColor * max(dot(wn, uLightDir), 0.0);
+  vec3 moon = uLightColor * max(dot(wn, uLightDir), 0.0);
+  vec3 light = uAmbient + moon;
   vec3 toGlow = uGlowPos - wp.xyz;
   float gd = length(toGlow);
   float fall = clamp(1.0 - gd / uGlowRange, 0.0, 1.0);
@@ -179,6 +83,7 @@ void main() {
 #endif
   vTint = tint;
   vLight = mix(light, vec3(1.0), uEmissive) * tint;
+  vMoon = moon * (1.0 - uEmissive) * tint;
   vNormal = wn;
   vSplat = aSplat;
   vFog = clamp((-vp.z - uFogNear) / max(uFogFar - uFogNear, 0.001), 0.0, 1.0);
@@ -193,6 +98,7 @@ uniform float uAffine;
 uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uCharacter;
+uniform float uMarkCharacters; // 1: a character's pixels carry alpha 0.75, which the post pass keeps the colour of (round 34)
 uniform float uCharacterLight;
 uniform float uLanternSelf; // the investigator's share of their own lantern
 uniform float uSelfMax; // the brightest anything lights the investigator
@@ -202,19 +108,24 @@ uniform float uVary; // world-space tone variation (0: none)
 uniform float uBomb; // 1: a second, turned sample blends in by a noise mask, so organic ground never repeats
 uniform float uHasMap2; // 1: uMap2 blends in by vSplat (roads)
 uniform float uSeaLevel;
+uniform float uWet; // how soaked the ground is, 0..1 (weather.ts; round 34)
+uniform vec3 uLightColor;
 uniform float uHasMap3; uniform vec2 uPatch; // 1: uMap3 is laid over the ground in patches of the land's own noise, from uPatch.x, softly over uPatch.y (round 32: a field is not one ground)
 
 varying vec2 vUv;
 varying vec3 vUvw;
 varying vec3 vLight;
+varying vec3 vMoon;
 varying vec3 vTint;
 varying vec3 vWorld;
 varying vec3 vNormal;
 varying float vFog;
 varying float vSplat;
+uniform vec3 uLightDir;
 ${LANTERN_GLSL}
 ${LAMPS_GLSL}
 ${NOISE_GLSL}
+${SHADOW_GLSL}
 ${ELDRITCH_FRAG}
 #ifdef PANES
 varying float vPane;
@@ -266,18 +177,36 @@ void main() {
   vec3 toLamp = uLanternPos - vWorld;
   float ld = length(toLamp);
   vec3 n = normalize(vNormal);
+  float pud = 0.0; // rain has soaked the ground: all that stands under the sky is darker for it, and flat ground holds puddles in the heaviest (round 34)
+  if (uWet > 0.01 && uEmissive < 0.5 && uCharacter < 0.5) {
+    float pn = 0.55 * vnoise(vWorld.xz * 0.19 + 7.0) + 0.3 * vnoise(vWorld.xz * 0.55 + 1.0) + 0.15 * vnoise(vWorld.xz * 1.7);
+    float thr = 0.78 - 0.17 * uWet; // they shrink as the ground dries, and are not there in a light rain
+    pud = smoothstep(thr, thr + 0.06, pn) * smoothstep(0.86, 0.97, n.y);
+    tex *= 1.0 - uWet * (0.1 + 0.16 * n.y) - 0.3 * pud;
+  }
   float facing = mix(1.0, max(dot(n, toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
   float self = uCharacter > 1.5 ? 1.0 : 0.0;
   float share = uCharacterLight * mix(1.0, uLanternSelf, self);
   float character = min(uCharacter, 1.0);
-  vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, share, character);
+  vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, share, character) * mix(1.0, lanternLit(vWorld, n), uLShadow.x * (1.0 - self)); // what stands between a point and the lantern takes its light (round 34)
   lamp += lampLight(vWorld, n, uLanternFacing * (1.0 - character)) * mix(1.0, uCharacterLight, character); // the world's lamps, fires and windows
   lamp *= (1.0 - uEmissive) * vTint;
-  vec3 lit = vLight + lamp;
+  vec3 lit = vLight - vMoon * (1.0 - moonLit(vWorld, n, max(dot(n, uLightDir), 0.0))) * uShadow.x + lamp; // what stands between a point and the moon takes the moon's light
   float peak = max(max(lit.r, lit.g), max(lit.b, 0.001));
   lit *= mix(1.0, min(1.0, uSelfMax / peak), self * max(1.0 - uEmissive, 0.0));
   tex = mix(tex, vec3(1.0), 0.6 * uEmissive); // a lit thing shines through its texture
   vec3 col = eldritch(tex * lit);
+  if (pud > 0.01) { // a puddle throws back the lamps, the sky and the moon at a glancing look, and rings where the drops fall
+    vec3 v = normalize(cameraPosition - vWorld);
+    float mirror = (0.1 + 0.9 * pow(1.0 - max(v.y, 0.0), 4.0)) * 0.6;
+    float glint = pow(max(dot(reflect(-v, vec3(0.0, 1.0, 0.0)), uLightDir), 0.0), 24.0);
+    vec2 cell = floor(vWorld.xz * 1.6);
+    float t = uTime * 0.8 + hash12(cell) * 3.0, beat = floor(t), age = fract(t); // a drop in a cell's turn, not in every turn, and each time elsewhere in it
+    vec2 drop = (cell + 0.2 + 0.6 * vec2(hash12(cell + beat * 7.3), hash12(cell + beat * 3.7 + 9.0))) / 1.6;
+    float ring = step(0.4, hash12(cell * 1.7 + beat * 5.1)) * smoothstep(0.1, 0.0, abs(length(vWorld.xz - drop) * 1.6 - age * 0.5)) * (1.0 - age);
+    col = mix(col, uFogColor * vec3(0.8, 0.9, 1.0) + uLightColor * glint * 1.5, mirror * pud);
+    col += (lamp * 1.1 + vec3(0.2, 0.22, 0.25) * ring) * pud;
+  }
 #ifdef PANES
   col *= paneLit(vPane, uTime); // lived behind: put out now and then, dimmed as someone passes
 #endif
@@ -294,6 +223,6 @@ void main() {
     col = mix(col, min(lit, vec3(1.2)) * vec3(0.9, 0.95, 0.93) * 1.1, clamp(foam, 0.0, 0.7));
   }
 #endif
-  gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
+  gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), uCharacter > 0.5 && uMarkCharacters > 0.5 ? 0.75 : 1.0);
 }
 `;
