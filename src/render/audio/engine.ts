@@ -18,6 +18,7 @@ export interface AudioEngine {
   readonly score: AudioNode | null; // the boss scores in (sanity FX, like the bed)
   readonly music: AudioNode | null; // the title's theme in: the volume setting only, no sanity FX
   readonly speech: AudioNode | null; // what the people and the horrors say in (the voices): the speech setting, and the volume; no sanity FX, no muffle
+  readonly hushed: number; // how far the bed has given way (setHush), 0..1: the realm music follows it
   detune: number; // cents new one-shots start at: the sanity FX's sag and drift
   playing: number; // one-shots sounding now (synth.ts counts them against AUDIO.polyphony)
   setVolume(v: number): void;
@@ -147,6 +148,9 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
     },
     get speech() {
       return graph?.speech ?? null;
+    },
+    get hushed() {
+      return hushed;
     },
     detune: 0,
     playing: 0,
