@@ -7,7 +7,8 @@
  */
 
 import * as THREE from 'three';
-import { DUNGEON_FOG, FOGS, type FogDef } from '../data/fogs';
+import { dungeonFogOf, FOGS, type FogDef } from '../data/fogs';
+import { lookOf } from '../data/looks';
 import { FOG } from '../data/tuning';
 import type { PostPass } from './postPass';
 
@@ -21,10 +22,12 @@ export interface FogFrame {
 
 export interface VolumetricFog {
   update(camera: THREE.Camera, time: number, f: FogFrame): void;
+  /** The next frame takes the place's own mist at once (the debug panel). */
+  snap(): void;
 }
 
-/** The mist wanted where the investigator stands. */
-export const fogOf = (region: string | null, enclosed: boolean): FogDef => (enclosed ? DUNGEON_FOG : (FOGS[region ?? ''] ?? FOGS.hub));
+/** The mist wanted where the investigator stands, in its realm's colour as it is now (data/looks.ts). */
+export const fogOf = (region: string | null, enclosed: boolean): FogDef => (enclosed ? dungeonFogOf(region) : { ...(FOGS[region ?? ''] ?? FOGS.hub), color: lookOf(region).mist });
 
 const mix = (a: number, b: number, k: number): number => a + (b - a) * k;
 
@@ -47,6 +50,9 @@ export function createVolumetricFog(post: PostPass): VolumetricFog {
   let last = -1;
   let [dx, dz] = [0, 0]; // how far the wind has carried the mist
   return {
+    snap() {
+      now = null;
+    },
     update(camera, time, f) {
       const dt = last < 0 ? 0 : Math.min(0.1, Math.max(0, time - last));
       last = time;

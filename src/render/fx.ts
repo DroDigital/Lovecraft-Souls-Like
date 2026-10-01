@@ -91,12 +91,16 @@ export function sanityStress(sanity: number, cap: number): number {
   return Math.min(clamp01(1 - sanity / 100), clamp01(cap));
 }
 
-/** How much the picture warps at `stress`: in step with it up to FX.warpCap, past it only FX.warpSlope as fast (round 23). */
-export const warpOf = (stress: number): number => Math.min(stress, FX.warpCap) + Math.max(0, stress - FX.warpCap) * FX.warpSlope;
+/** How far the picture has taken up a failing mind's effects at `stress`: none until FX.calm of it is spent, easing in to the whole at FX.warpCap (round 32). */
+export const onsetOf = (stress: number): number => smooth(FX.calm, FX.warpCap, stress);
+
+/** How much the picture warps at `stress`: nothing until FX.calm, then in step with it up to FX.warpCap, past it only FX.warpSlope as fast (round 23). */
+export const warpOf = (stress: number): number => onsetOf(stress) * (Math.min(stress, FX.warpCap) + Math.max(0, stress - FX.warpCap) * FX.warpSlope);
 
 export function computeFx(s: FxState): FxParams {
   const t = sanityStress(s.sanity, s.cap);
   const w = warpOf(t);
+  const seen = t * onsetOf(t); // the stress as the picture shows it: the fog, the colour drained, the hues boosted and the dither wait for it as the warp does
   const on = s.enabled;
   const pulse = clamp01(s.pulse ?? 0) * clamp01(s.cap);
   return {
@@ -104,15 +108,15 @@ export function computeFx(s: FxState): FxParams {
     lowRes: on.pixelate,
     snapPixels: on.snap ? FX.snapPixels : 0,
     affine: on.affine ? at(FX.affine, w) : 0,
-    fogNear: at(FX.fogNear, t),
-    fogFar: at(FX.fogFar, t),
+    fogNear: at(FX.fogNear, seen),
+    fogFar: at(FX.fogFar, seen),
     fogAmount: on.fog ? 1 : 0,
     isolate: on.isolate,
-    desaturate: at(FX.desaturate, t),
+    desaturate: at(FX.desaturate, seen),
     anomalyProximity: clamp01(s.anomalyProximity),
-    anomalyStress: at(FX.anomalyStress, t),
+    anomalyStress: at(FX.anomalyStress, seen),
     quantize: on.quantize,
-    ditherSpread: at(FX.ditherSpread, t),
+    ditherSpread: at(FX.ditherSpread, seen),
     ripple: on.warp ? at(FX.ripple, w) + FX.pulseRipple * pulse : 0,
     chroma: on.warp ? at(FX.chroma, w) + FX.pulseChroma * pulse : 0,
     displace: on.displace ? at(FX.displace, w) : 0,

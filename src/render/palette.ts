@@ -1,10 +1,10 @@
 /**
- * Art palette (spec §2): charcoal, bone, rust, sea-grey, plus the only three saturated
- * colours in the game. Colours are sRGB triples in 0..1 and shaders use them as-is.
+ * Art palette (spec §2): charcoal, bone, rust, sea-grey, plus the three anomaly colours. Colours are
+ * sRGB triples in 0..1 and shaders use them as-is. Round 32: each realm's own grade and 64-colour
+ * palette are in realmPalette.ts (data/looks.ts).
  */
 
 import type { CreaturePalette } from '../data/schema';
-import { GRADE } from '../data/tuning';
 
 export type Rgb = readonly [number, number, number];
 
@@ -25,8 +25,6 @@ export const ANOMALY = {
   purple: hexToRgb('#6A0DAD'), // Cosmic Purple
   green: hexToRgb('#2BFFA0'), // Void Green
 };
-
-const WHITE: Rgb = [1, 1, 1];
 
 export const mixRgb = (a: Rgb, b: Rgb, t: number): Rgb => [
   a[0] + (b[0] - a[0]) * t,
@@ -52,51 +50,12 @@ export function rgbToHsv(c: Rgb): Rgb {
   return [h, max > 0 ? d / max : 0, max];
 }
 
-const unitLuma = (c: Rgb): Rgb => scaleRgb(c, 1 / luma(c));
-
-/** Split-tone grade tints, normalised to luma 1: fog and shadows lean cold grey-green, lit areas warm bone/sepia. */
-export const COLD_TINT: Rgb = unitLuma(hexToRgb('#4e5b56'));
-export const WARM_TINT: Rgb = unitLuma(hexToRgb('#d6c4a0'));
-
-
-/** The grade's tint at luma `l` (the post shader mirrors this), so `l * gradeTint(l)` is the graded colour. */
-export function gradeTint(l: number): Rgb {
-  const [lo, hi] = GRADE.split;
-  const t = Math.min(1, Math.max(0, (l - lo) / (hi - lo)));
-  return mixRgb(COLD_TINT, WARM_TINT, t * t * (3 - 2 * t));
-}
-
-/** The mist's greys (round 23), a cool neutral: the graded ramp turns everything of a mist's brightness sepia, and the mist was never grey. Normalised to luma 1. */
-export const MIST_TINT: Rgb = unitLuma([0.97, 1, 1.03]);
-const MIST_LEVELS = [0.055, 0.085, 0.12, 0.16, 0.21, 0.28] as const;
-
 /** Hues of the three anomaly colours, for colour isolation. */
 export const ANOMALY_HUES: Rgb = [
   rgbToHsv(ANOMALY.magenta)[0],
   rgbToHsv(ANOMALY.purple)[0],
   rgbToHsv(ANOMALY.green)[0],
 ];
-
-/** Quantisation palette (at most 64 colours): the graded ramp (cold darks to warm lights), sea-grey, rust, anomaly ramps, and the mist's greys. */
-export function buildPalette(): Rgb[] {
-  const out: Rgb[] = [];
-  for (let i = 0; i < 24; i++) {
-    const l = Math.pow(i / 23, 1.5);
-    const t = scaleRgb(gradeTint(l), l);
-    out.push([Math.min(t[0], 1), Math.min(t[1], 1), Math.min(t[2], 1)]);
-  }
-  for (const base of [BASE.seaGrey, BASE.rust]) {
-    for (let i = 0; i < 8; i++) {
-      out.push(mixRgb(scaleRgb(base, 0.3), mixRgb(base, BASE.bone, 0.35), i / 7));
-    }
-  }
-  for (const a of Object.values(ANOMALY)) {
-    out.push(scaleRgb(a, 0.25), scaleRgb(a, 0.5), scaleRgb(a, 0.75), a);
-    out.push(mixRgb(a, WHITE, 0.35), mixRgb(a, WHITE, 0.65));
-  }
-  for (const l of MIST_LEVELS) out.push(scaleRgb(MIST_TINT, l));
-  return out;
-}
 
 /** Muted creature palettes (dark, mid, light), all low-saturation: only `glow` markings carry colour. */
 export const CREATURE_COLORS: Readonly<Record<CreaturePalette, { dark: Rgb; mid: Rgb; light: Rgb }>> = {

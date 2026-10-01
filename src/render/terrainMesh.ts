@@ -21,16 +21,17 @@ const GAIN = 2; // textures average about half brightness; tints are doubled (as
 const ROWS_PER_STEP = 8;
 
 const materials = new Map<string, THREE.ShaderMaterial>();
-const ORGANIC = new Set<GroundTexture>(['rot', 'grass', 'mud', 'sand', 'snow', 'flesh', 'water']);
+const ORGANIC = new Set<GroundTexture>(['rot', 'grass', 'mud', 'sand', 'snow', 'flesh', 'water', 'dirt', 'gravel', 'leaves']);
 
 /**
- * One shared material per ground and road texture: varied in world space, (organic ground) bombed
- * with a turned second sample so it never repeats, and the road texture blended in along the roads.
+ * One shared material per ground, road and patch texture: varied in world space, (organic ground)
+ * bombed with a turned second sample so it never repeats, the road texture blended in along the roads,
+ * and the biome's patch ground laid over it here and there.
  */
-export function groundMaterial(texture: GroundTexture, road: RoadTexture = 'cobble'): THREE.ShaderMaterial {
-  const key = `${texture}|${road}`;
+export function groundMaterial(texture: GroundTexture, road: RoadTexture = 'cobble', patch?: GroundTexture): THREE.ShaderMaterial {
+  const key = `${texture}|${road}|${patch ?? ''}`;
   let m = materials.get(key);
-  if (!m) materials.set(key, (m = createWorldMaterial({ texture, texture2: road, vertexColors: true, vary: 0.9, bomb: ORGANIC.has(texture), shore: true })));
+  if (!m) materials.set(key, (m = createWorldMaterial({ texture, texture2: road, texture3: patch, vertexColors: true, vary: 0.9, bomb: ORGANIC.has(texture), shore: true })));
   return m;
 }
 
@@ -93,5 +94,5 @@ export function* terrainJob(cx: number, cz: number, done: (mesh: THREE.Mesh | nu
   geo.setAttribute('aSplat', new THREE.BufferAttribute(splat, 1));
   geo.setIndex(index);
   geo.computeBoundingSphere();
-  done(new THREE.Mesh(geo, groundMaterial(region.biome.texture, (REGION_LAYOUTS[region.id] ?? REGION_LAYOUTS.hub).road)));
+  done(new THREE.Mesh(geo, groundMaterial(region.biome.texture, (REGION_LAYOUTS[region.id] ?? REGION_LAYOUTS.hub).road, region.biome.patch)));
 }

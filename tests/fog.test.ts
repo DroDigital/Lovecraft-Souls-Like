@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DUNGEON_FOG, FOGS } from '../src/data/fogs';
+import { DUNGEON_FOG, dungeonFogOf, FOGS } from '../src/data/fogs';
+import { LOOKS } from '../src/data/looks';
 import { REGIONS } from '../src/data/regions';
 import { FOG } from '../src/data/tuning';
 import { easeFog, fogOf } from '../src/render/volumetricFog';
@@ -21,9 +22,18 @@ describe('volumetric fog (playtest rounds 16 and 23)', () => {
       expect(f.patchy, id).toBeGreaterThanOrEqual(0);
       expect(f.patchy, id).toBeLessThanOrEqual(1);
       for (const c of f.color) expect(c, id).toBeGreaterThanOrEqual(0);
-      for (const c of f.color) expect(c, id).toBeLessThan(0.25); // a night mist: never brighter than the lights in it
-      expect(Math.max(...f.color) - Math.min(...f.color), id).toBeLessThanOrEqual(0.11); // grey, with a hint of its realm
+      for (const c of f.color) expect(c, id).toBeLessThan(0.95); // a mist of the moon's light, or of snow: never white
     }
+  });
+
+  it("is its realm's own colour, light enough to see the land through (round 32: it was a dark grey blanket)", () => {
+    for (const r of REGIONS) {
+      expect(FOGS[r.id].color, r.id).toEqual(LOOKS[r.id].mist);
+      expect(Math.max(...FOGS[r.id].color), r.id).toBeGreaterThan(0.3);
+      expect(FOGS[r.id].density, r.id).toBeLessThanOrEqual(0.075); // a third of what it was
+    }
+    const dark = dungeonFogOf('hub').color;
+    expect(Math.max(...dark)).toBeLessThan(0.3); // a crypt's is dark
   });
 
   it('at the height of the camera, the whole reach of the march still lets a sixth of the light through', () => {
@@ -42,9 +52,10 @@ describe('volumetric fog (playtest rounds 16 and 23)', () => {
   });
 
   it("a roofed dungeon room takes the crypt-mist; out of doors, the region's (the hub's where there is none)", () => {
-    expect(fogOf('arkham', true)).toBe(DUNGEON_FOG);
-    expect(fogOf('innsmouth', false)).toBe(FOGS.innsmouth);
-    expect(fogOf(null, false)).toBe(FOGS.hub);
+    expect(fogOf('arkham', true)).toEqual(dungeonFogOf('arkham'));
+    expect(dungeonFogOf('arkham')).toMatchObject({ density: DUNGEON_FOG.density, height: DUNGEON_FOG.height, haze: DUNGEON_FOG.haze });
+    expect(fogOf('innsmouth', false)).toEqual(FOGS.innsmouth);
+    expect(fogOf(null, false)).toEqual(FOGS.hub);
   });
 
   it('turns from one mist to the next by the share asked', () => {

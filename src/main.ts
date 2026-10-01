@@ -23,6 +23,7 @@ import { createEchoFx } from './render/echoFx';
 import { createImpactFx } from './render/impactFx';
 import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
+import { createRealmLook } from './render/realmLook';
 import { createSky } from './render/sky';
 import { createVolumetricFog } from './render/volumetricFog';
 import { createWorldLife } from './render/worldLife';
@@ -161,9 +162,10 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const signs = createSignViews(scene, game, particles, lights);
   const bossFx = createBossFx(scene, game, particles);
   const shadows = createShadows(scene, game);
-  const sky = createSky();
+  const look = createRealmLook(pipeline.post); // round 32: each realm's own colours
+  const sky = createSky(look);
   const mist = createVolumetricFog(pipeline.post); // round 16
-  const skyline = createSkyline(scene);
+  const skyline = createSkyline(scene, look);
   const life = createWorldLife(scene, game, audio, { sky: sky.mesh, post: pipeline.post, sheet: creatures.sheet, skyline, particles }); // round 18: the world's own life
   scene.add(sky.mesh);
   const hurt = createHurtFx(game);
@@ -180,7 +182,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   worldUniforms.uGlowColor.value.set(...ANOMALY.green).multiplyScalar(LIGHT.echoGlowIntensity); // Echo drops glow
   worldUniforms.uGlowRange.value = LIGHT.echoGlowRange;
   const noGlow = new Vector3(0, -1e4, 0);
-  if (debug) Object.assign(window, { game, world, audio: shell.engine, life, cinema, pipeline, sky, scene, camera, settings });
+  if (debug) Object.assign(window, { game, world, audio: shell.engine, life, cinema, pipeline, sky, scene, camera, settings, look, mist });
   placeCamera(camera, game, 1);
   void pipeline.compile(scene, camera); // compiling while the chunks are built (in parallel, where the browser can)
   await made(0.55);
@@ -227,6 +229,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         cinema.update(camera, still ? 0 : blend); // over the follow camera's pose
         hud.hide(cinema.active);
         const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
+        look.update(time, game.overworld?.region ?? null, enclosed, camera.position);
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
         const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
         mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
@@ -253,6 +256,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         fxController.update(state, camera.position, time);
         const fx = computeFx(state);
         sky.strange(fx.strange);
+        look.apply(fx);
         applyReality(fx, game.reality);
         lightReality(game.reality);
         life.update(camera, time, enclosed); // after the night's light: the lightning adds to it

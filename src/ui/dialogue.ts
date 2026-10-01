@@ -11,7 +11,7 @@ import { DOCUMENTS } from '../data/documents';
 import { spokenFor } from '../data/speechLines';
 import type { Game } from '../systems/components';
 import { BONE } from './hudKit';
-import { button, createScreen, el, type Page } from './menuKit';
+import { button, createScreen, el, frame as panelFrame, type Page } from './menuKit';
 import { keyLayout } from '../core/bindings';
 import { glyph } from './glyphs';
 
@@ -36,8 +36,8 @@ const SAID = 'opacity:1;filter:blur(0);transform:none;letter-spacing:normal';
 const LATE = 600; // ms a line waits for its recording to begin before it is said by the clock instead (no recording, or one still loading)
 
 export function createDialogue(g: Game): Dialogue {
-  const talk = createScreen(8, 'transparent', 'left:50%;bottom:17%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px', true, true);
-  const read = createScreen(8, '#050506cc', 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);max-height:84vh;overflow:auto;padding:22px 26px;background:#0e0d0c;border:1px solid #d9d0b833');
+  const talk = createScreen(8, 'transparent', 'left:50%;bottom:17%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px', true, true); // no box: the words stand on the world (round 30)
+  const read = createScreen(8, '#050506cc', `left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);max-height:84vh;overflow:auto;${panelFrame()}`);
 
   /** Closes the talk, and whoever is speaking is cut off (the voices). */
   const leave = (): void => {

@@ -73,7 +73,7 @@ export function arenaProps(style: ArenaStyle, x: number, z: number, y: number, r
   return out;
 }
 
-/** A dungeon boss room's dressing about its centre (x, z): the heart at its far side, the braziers in its corners. */
+/** A dungeon boss room's dressing about its centre (x, z): the heart at its far side, the braziers in its corners, and two rows of pieces down its sides (round 32). */
 export function roomProps(style: ArenaStyle, x: number, z: number, y: number, half: number, away: { x: number; z: number }): Prop[] {
   const rng = createRng((hash2(Math.round(x), Math.round(z), WORLD.seed + 31) * 4294967296) >>> 0);
   const out: Prop[] = [];
@@ -82,5 +82,9 @@ export function roomProps(style: ArenaStyle, x: number, z: number, y: number, ha
   const c = half - 2.5;
   const corners = [[1, 1], [-1, -1], [1, -1], [-1, 1]].slice(0, f);
   for (const [a, b] of corners) out.push(at('firepit', x + a * c, z + b * c, y, rng));
+  if (style.hall && half > 12) { // a great hall's two rows down its sides, clear of its doorways and the middle of its floor
+    const side = { x: -away.z, z: away.x };
+    for (const s of [-1, 1]) for (const v of [-16, -8, 8, 16]) out.push(at(style.hall.kind, x + side.x * s * (half - 3.5) + away.x * v, z + side.z * s * (half - 3.5) + away.z * v, y, rng, style.hall.scale ?? 1, rng() * Math.PI * 2));
+  }
   return out;
 }

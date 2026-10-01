@@ -1,14 +1,17 @@
 /** The single fullscreen post pass: material, fullscreen triangle, per-frame uniform update. Round 16: it reads the scene's depth for the volumetric fog (shaders/fog.ts, volumetricFog.ts). */
 
 import * as THREE from 'three';
-import { FOG, FX, GRADE, LIGHT } from '../data/tuning';
+import { LOOKS } from '../data/looks';
+import { FOG, FX, LIGHT } from '../data/tuning';
 import type { FxParams } from './fx';
-import { ANOMALY_HUES, buildPalette, COLD_TINT, WARM_TINT } from './palette';
+import { ANOMALY_HUES } from './palette';
+import { ANOMALY_FROM, ANOMALY_TO, buildRealmPalette, gradeTints } from './realmPalette';
 import { POST_FRAG, POST_VERT } from './shaders/post';
 import { worldUniforms } from './worldMaterial';
 
 function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, palette: Float32Array) {
   const w = worldUniforms; // the lantern and the lamps, shared: they light the mist as they light the world
+  const [ink, shade, mid, high] = gradeTints(LOOKS.hub); // until a realm's own is laid (render/realmLook.ts)
   return {
     tScene: { value: source },
     tDepth: { value: depth },
@@ -40,9 +43,10 @@ function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, pale
     uAnomalyStress: { value: 0 },
     uHueWidth: { value: FX.hueWidth },
     uMinSat: { value: FX.minSaturation },
-    uCold: { value: new THREE.Vector3(...COLD_TINT) },
-    uWarm: { value: new THREE.Vector3(...WARM_TINT) },
-    uSplit: { value: new THREE.Vector2(...GRADE.split) },
+    uInk: { value: new THREE.Vector3(...ink) },
+    uShade: { value: new THREE.Vector3(...shade) },
+    uMid: { value: new THREE.Vector3(...mid) },
+    uHigh: { value: new THREE.Vector3(...high) },
     uHurt: { value: new THREE.Vector4(0, 0, 0, 0) },
     uFaint: { value: new THREE.Vector2(0, 0) }, // near death (hurtFx.ts; round 23)
     uStone: { value: 0 }, // a petrifying gaze: the colour drains, the edges close in, it cracks (hurtFx.ts; round 25)
@@ -62,10 +66,10 @@ export interface PostPass {
 }
 
 export function createPostPass(source: THREE.Texture, depth: THREE.Texture | null = null): PostPass {
-  const palette = buildPalette();
+  const palette = buildRealmPalette(LOOKS.hub);
   const uniforms = createUniforms(source, depth, new Float32Array(palette.flat()));
   const material = new THREE.ShaderMaterial({
-    defines: { PALETTE_SIZE: palette.length, FOG_STEPS: FOG.steps },
+    defines: { PALETTE_SIZE: palette.length, ANOMALY_FROM, ANOMALY_TO, FOG_STEPS: FOG.steps },
     uniforms,
     vertexShader: POST_VERT,
     fragmentShader: POST_FRAG,

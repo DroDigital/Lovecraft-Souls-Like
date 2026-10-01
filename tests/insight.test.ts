@@ -41,7 +41,7 @@ describe('first sight', () => {
     const g = createGame({ creature: 'wilbur_whateley' });
     const foe = find(g, 'creature:wilbur_whateley');
     g.ecs.c.brain.delete(foe);
-    place(g, foe, 0, 20, 0); // behind the camera
+    place(g, foe, 0, 28, 0); // behind the camera (which stands CAMERA.distance behind the investigator)
     steps(g, 5);
     expect(g.mind.insight).toBe(0);
     place(g, foe, -8, -2, 0);

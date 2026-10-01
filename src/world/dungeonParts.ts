@@ -11,11 +11,12 @@ import type { Dir, Veil } from '../data/dungeons';
 import { DUNGEON } from '../data/tuning';
 import type { Collider } from './colliders';
 import { floorRange, kitOfRoom, roomAt, roomPoint, type DoorLayout, type DungeonLayout, type RoomLayout } from './dungeonKit';
+import { baysOf, cornersOf, inlaysOf, pillarsOf, roomStyle, type Tone } from './roomStyle';
 import { bankEnds, grounded } from './moundBanks';
 import { DIRS } from './worldMap';
 
 /** How a part is drawn: 'none' is an invisible collider (a chasm's edge), 'chasm' a dark hole. */
-export type Look = 'wall' | 'floor' | 'step' | 'pillar' | 'rim' | 'deck' | 'chasm' | 'ceiling' | 'none';
+export type Look = 'wall' | 'floor' | 'step' | 'pillar' | 'rim' | 'deck' | 'chasm' | 'ceiling' | 'inlay' | 'none';
 
 export interface BoxPart {
   shape: 'box';
@@ -25,6 +26,7 @@ export interface BoxPart {
   solid: boolean;
   room: number; // the room it belongs to (its kit decides its look; round 13)
   outer?: Dir; // a wall with nothing beyond it on this side: the dungeon's outside face
+  tone?: Tone; // an inlay's stone or cloth (roomStyle.ts; round 32)
 }
 
 export interface CylPart {
@@ -37,6 +39,8 @@ export interface CylPart {
   y1: number;
   solid: boolean;
   room: number;
+  inner?: number; // an inlay's ring: the radius it is hollow within (round 32)
+  tone?: Tone;
 }
 
 export type Part = BoxPart | CylPart;
@@ -65,7 +69,7 @@ function localSide(r: RoomLayout, d: Dir): 'far' | 'entry' | 'u+' | 'u-' {
   return s.x === a.z && s.z === -a.x ? 'u+' : 'u-';
 }
 
-function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: string): void {
+function roomParts(d: DungeonLayout, r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: string): void {
   const { half: h, level: L } = r;
   const { height: H, lane: W, stairLane: S, ledge, deck, chasm, rim, well } = DUNGEON;
   const [lo, hi] = floorRange(r);
@@ -75,11 +79,12 @@ function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: s
   switch (r.def.kind) {
     case 'hall': {
       floor(-h, h, -h, h);
-      const ring = r.size === 3 ? Array.from({ length: 8 }, (_, k) => [17 * Math.cos((k + 0.5) * (Math.PI / 4)), 17 * Math.sin((k + 0.5) * (Math.PI / 4))]) : [[5, 5], [-5, 5], [5, -5], [-5, -5]];
-      for (const [u, v] of ring) {
+      const [plan, spots] = [roomStyle(d, r), standing(r)];
+      for (const [u, v, radius] of pillarsOf(plan, r, spots)) { // round 32: not the same four or eight in every hall
         const p = roomPoint(r, u, v);
-        out.push({ shape: 'cyl', look: 'pillar', x: p.x, z: p.z, radius: r.size === 3 ? 0.9 : 0.55, y0: L, y1: L + H - 0.6, solid: true, room: r.index });
+        out.push({ shape: 'cyl', look: 'pillar', x: p.x, z: p.z, radius, y0: L, y1: L + H - 0.6, solid: true, room: r.index });
       }
+      for (const [u0, u1, v0, v1] of [...cornersOf(plan, r, spots), ...baysOf(plan, r)]) block(u0, u1, v0, v1); // a cross-shaped hall's corners, a buttressed hall's bays
       break;
     }
     case 'corridor': {
@@ -128,6 +133,20 @@ function roomParts(r: RoomLayout, out: Part[], pieces: HiddenPieceDef[], name: s
       break;
     }
   }
+  const boards = kitOfRoom(d, r).floor === 'wood';
+  for (const { tone, box, disc, at } of inlaysOf(roomStyle(d, r), r, boards)) { // flat pieces laid on the floor: nothing to stop a foot
+    if (box) out.push({ ...local(r, box[0], box[1], box[2], box[3], L, L + 0.04, 'inlay', false), tone });
+    if (disc) {
+      const c = roomPoint(r, ...(at ?? ([0, 0] as const)));
+      out.push({ shape: 'cyl', look: 'inlay', tone, x: c.x, z: c.z, radius: disc[0], ...(disc[1] > 0 && { inner: disc[1] }), y0: L, y1: L + 0.04, solid: false, room: r.index });
+    }
+  }
+}
+
+/** Where things are put in a hall, in its own frame: a pillar keeps a pace from each (roomStyle.ts). */
+export function standing(r: RoomLayout): readonly (readonly [number, number])[] {
+  const s = roomSpots(r);
+  return [s.centre, s.sign, s.rest, s.gate, s.tome, [s.tome[0], -s.tome[1]], ...s.ring];
 }
 
 const glowOf = (v: Veil): 'purple' | 'magenta' => (v.minInsight !== undefined || v.minSeals !== undefined ? 'purple' : 'magenta');
@@ -238,7 +257,7 @@ function moundBands(d: DungeonLayout, out: Part[]): void {
 export function dungeonParts(d: DungeonLayout): DungeonParts {
   const parts: Part[] = [];
   const pieces: HiddenPieceDef[] = [];
-  for (const r of d.rooms) roomParts(r, parts, pieces, `${d.def.name}: ${r.def.id}`);
+  for (const r of d.rooms) roomParts(d, r, parts, pieces, `${d.def.name}: ${r.def.id}`);
   for (const r of d.rooms) ceiling(d, r, parts);
   wallParts(d, parts, pieces);
   moundBands(d, parts);

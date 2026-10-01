@@ -20,7 +20,7 @@ const CONTOUR = 6; // metres between contour lines
 type Rgb = readonly [number, number, number];
 const GROUND: Readonly<Record<GroundTexture, Rgb>> = {
   grass: [104, 100, 76], mud: [86, 76, 62], sand: [150, 134, 100], snow: [186, 186, 192], slab: [94, 94, 102],
-  stone: [90, 96, 92], flesh: [112, 82, 78], water: [70, 72, 88], rot: [84, 80, 66],
+  stone: [90, 96, 92], flesh: [112, 82, 78], water: [70, 72, 88], rot: [84, 80, 66], dirt: [112, 88, 64], gravel: [108, 102, 94], leaves: [120, 84, 48],
 };
 const WATER: Rgb = [38, 50, 58];
 const SHORE: Rgb = [92, 104, 104];

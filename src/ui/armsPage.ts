@@ -12,7 +12,7 @@ import { edgeAt, equip } from '../systems/arms';
 import type { Game } from '../systems/components';
 import { falloff, gunEdge } from '../systems/gun';
 import { might } from '../systems/levels';
-import { button, el, heading, type Page } from './menuKit';
+import { button, el, heading, title, type Page } from './menuKit';
 import { fill, glyph } from './glyphs';
 
 /** A weapon's numbers: its first light and heavy blows (times `k`, the Might bonus), how soon the light one lands, its reach and cost. */
@@ -27,7 +27,7 @@ export function armsPage(g: Game, back: () => void, show: (p: Page) => void): Pa
   const page: Page = {
     back,
     build(p) {
-      el(p, 'div', 'ARMS', 'font-size:18px;letter-spacing:6px;margin-bottom:10px');
+      title(p, 'ARMS');
       for (const id of g.player.arms) {
         const w = WEAPONS[id];
         const level = g.player.reinforced[id];

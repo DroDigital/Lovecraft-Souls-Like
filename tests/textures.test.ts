@@ -44,9 +44,9 @@ describe.each(TEXTURE_KINDS)('%s texture', (kind) => {
     expect(meanStep(px, true)).toBeLessThan(meanStep(px, false) * 3 + 0.02);
   });
 
-  it('stays desaturated, so only anomalies carry colour', () => {
+  it('stays muted: the world is coloured by its realm and its light, and only anomalies are saturated (round 32: natural grounds carry their own colours now)', () => {
     for (let i = 0; i < px.length; i += 4) {
-      expect(rgbToHsv([px[i] / 255, px[i + 1] / 255, px[i + 2] / 255])[1]).toBeLessThan(0.6);
+      expect(rgbToHsv([px[i] / 255, px[i + 1] / 255, px[i + 2] / 255])[1]).toBeLessThan(0.72);
     }
   });
 });

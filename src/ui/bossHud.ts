@@ -9,7 +9,7 @@
 import { engagedFights } from '../systems/bossFight';
 import type { Game } from '../systems/components';
 import { SIGNATURES } from '../systems/signatures';
-import { bar, BONE, el, percent, RUST, setStyle, setText } from './hudKit';
+import { bar, BLOOD, BONE, el, percent, setStyle, setText } from './hudKit';
 import { createTally } from './damageTally';
 
 const BARS = 2; // at once: a pair of bosses fights together at most
@@ -27,18 +27,17 @@ export function createBossHud(g: Game, root: HTMLElement, say: (text: string) =>
     const head = el('display:flex;justify-content:space-between;align-items:baseline', '', slot);
     const name = el('letter-spacing:3px;font-size:14px', '', head);
     const sum = el('font-size:13px;letter-spacing:1px', '', head); // the run of blows, as soulslikes show it (round 14)
-    const fill = bar(slot, RUST);
-    fill.parentElement!.style.height = '8px';
+    const fill = bar(slot, BLOOD, 14);
     const chip = el(`position:absolute;left:0;top:0;height:100%;background:${BONE}99`, '', fill.parentElement!);
     fill.parentElement!.insertBefore(chip, fill);
     fill.style.position = 'relative';
     const status = el('letter-spacing:2px;font-size:11px;opacity:.8', '', slot);
     return { slot, name, sum, chip, fill, status, ticks: [] as HTMLDivElement[] };
   });
-  const gaze = el('position:absolute;left:16px;bottom:84px;width:240px;display:none;font-size:10px;letter-spacing:2px', 'GAZE', root);
-  const gazeFill = bar(gaze, '#6a0dad');
-  const stone = el('position:absolute;left:16px;bottom:112px;width:240px;display:none;font-size:10px;letter-spacing:2px', 'PETRIFICATION', root);
-  const stoneFill = bar(stone, '#8a8f86');
+  const gaze = el('position:absolute;left:16px;bottom:136px;width:290px;display:none;font-size:10px;letter-spacing:2px', 'GAZE', root);
+  const gazeFill = bar(gaze, '#a257d6', 8);
+  const stone = el('position:absolute;left:16px;bottom:168px;width:290px;display:none;font-size:10px;letter-spacing:2px', 'PETRIFICATION', root);
+  const stoneFill = bar(stone, '#9ca29a', 8);
   const flash = el('position:absolute;inset:0;background:#e8e0cc;opacity:0', '', root);
   const name = el(`position:absolute;left:0;right:0;top:36%;text-align:center;font-size:72px;letter-spacing:28px;color:${BONE};opacity:0`, '', root);
   const tally = createTally(g);

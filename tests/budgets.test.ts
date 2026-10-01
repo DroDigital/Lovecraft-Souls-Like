@@ -67,8 +67,8 @@ describe('AI and view distance', () => {
     }
   });
 
-  it('sees about 80 m: the fog closes before the far plane, which lies within the streamed chunks', () => {
-    expect(FX.fogFar[0]).toBeGreaterThanOrEqual(75);
+  it('sees past 125 m (round 32: it was 80, and the towns and hills never showed): the fog closes before the far plane, which lies within the streamed chunks', () => {
+    expect(FX.fogFar[0]).toBeGreaterThanOrEqual(125);
     expect(FX.fogFar[0]).toBeLessThanOrEqual(RENDER.far);
     expect(RENDER.far).toBeLessThanOrEqual(WORLD.chunk * (WORLD.load + 0.5));
   });

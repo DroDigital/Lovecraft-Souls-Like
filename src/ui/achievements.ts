@@ -12,7 +12,7 @@ import { loadRecords, noteAchievements } from '../systems/records';
 import type { SaveStore } from '../systems/save';
 import { desktop } from './desktop';
 import { glyph } from './glyphs';
-import { button, el, heading, type Page } from './menuKit';
+import { button, el, heading, title, type Page } from './menuKit';
 
 export function watchAchievements(g: Game, store: SaveStore | null): void {
   let records = loadRecords(store);
@@ -33,7 +33,7 @@ export function achievementsPage(store: SaveStore | null, back: () => void): Pag
     back,
     build(p) {
       const held = new Set(loadRecords(store).achievements);
-      el(p, 'div', 'ACHIEVEMENTS', 'font-size:18px;letter-spacing:6px');
+      title(p, 'ACHIEVEMENTS');
       el(p, 'div', `${ACHIEVEMENT_IDS.filter((id) => held.has(id)).length} of ${ACHIEVEMENT_IDS.length}`, 'opacity:.55;margin:2px 0 10px');
       for (const id of ACHIEVEMENT_IDS) {
         const a = ACHIEVEMENTS[id];

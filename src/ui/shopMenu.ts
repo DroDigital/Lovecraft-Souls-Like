@@ -8,7 +8,7 @@ import { SHOPS, WARES } from '../data/wares';
 import type { Game } from '../systems/components';
 import { buy, canBuy, carried, hasRoom, stockLeft } from '../systems/trade';
 import { fill, glyph } from './glyphs';
-import { button, createScreen, el, heading, type Page } from './menuKit';
+import { button, createScreen, el, heading, title, type Page } from './menuKit';
 
 export interface ShopMenu {
   readonly open: boolean;
@@ -21,7 +21,7 @@ export function createShopMenu(g: Game): ShopMenu {
     const page: Page = {
       back: () => screen.close(),
       build(panel) {
-        el(panel, 'div', name.toUpperCase(), 'font-size:18px;letter-spacing:4px');
+        title(panel, name.toUpperCase());
         el(panel, 'div', `Echoes: ${g.player.echoes}`, 'opacity:.6;margin:2px 0 8px');
         for (const id of wares) {
           const w = WARES[id];

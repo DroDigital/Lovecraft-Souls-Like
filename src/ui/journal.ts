@@ -11,14 +11,14 @@ import { mainLead } from '../systems/lead';
 import { isDone, stageOf, UNSTARTED } from '../systems/quests';
 import { documentPage } from './dialogue';
 import { BONE } from './hudKit';
-import { button, el, heading, type Page } from './menuKit';
+import { button, el, heading, title, type Page } from './menuKit';
 import { glyph } from './glyphs';
 
 export function journalPage(g: Game, back: () => void, show: (p: Page) => void): Page {
   const page: Page = {
     back,
     build(p) {
-      el(p, 'div', 'JOURNAL', 'font-size:18px;letter-spacing:6px;margin-bottom:6px');
+      title(p, 'JOURNAL');
       const begun = Object.keys(QUESTS).filter((id) => stageOf(g, id) !== UNSTARTED);
       const open = begun.filter((id) => !isDone(g, id)).sort((a, b) => Number(!!QUESTS[b].main) - Number(!!QUESTS[a].main));
       const done = begun.filter((id) => isDone(g, id));

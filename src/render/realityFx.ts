@@ -6,8 +6,9 @@
  */
 
 import type { FxParams } from './fx';
-import { LANTERN, LIGHT, REALITY } from '../data/tuning';
+import { LANTERN, REALITY } from '../data/tuning';
 import type { Reality } from '../systems/components';
+import { night } from './realmLook';
 import { worldUniforms } from './worldMaterial';
 
 export function applyReality(fx: FxParams, r: Reality): void {
@@ -22,10 +23,10 @@ export function applyReality(fx: FxParams, r: Reality): void {
   fx.ripple += 0.004 * r.warp;
 }
 
-/** The night's light under the darkness hook (lightNight() set the base values). */
+/** The night's light under the darkness hook (the realm's, render/realmLook.ts, is the base). */
 export function lightReality(r: Reality): void {
   const u = worldUniforms;
   u.uLanternRange.value = LANTERN.range * (1 - REALITY.darkLantern * r.darkness);
-  u.uLightColor.value.set(...LIGHT.nightMoon).multiplyScalar(1 - r.darkness);
-  u.uAmbient.value.set(...LIGHT.nightAmbient).multiplyScalar(1 - 0.6 * r.darkness);
+  u.uLightColor.value.copy(night.moon).multiplyScalar(1 - r.darkness);
+  u.uAmbient.value.copy(night.ambient).multiplyScalar(1 - 0.6 * r.darkness);
 }
