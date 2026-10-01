@@ -22,7 +22,8 @@ import { REGIONS } from '../data/regions';
 import { creatureOf } from '../systems/creatures';
 import { createBanner } from './banner';
 import { DYING_MS } from './journeys';
-import { bar, blend, BLOOD, BONE, el, LEAF, percent, SERIF, setStyle, setText } from './hudKit';
+import { gauge, pipRow } from './gauges';
+import { blend, BLOOD, BONE, el, LEAF, percent, SERIF, setStyle, setText } from './hudKit';
 import { HEART } from '../render/feel';
 import type { MapPainter } from './mapPainter';
 import { menuOpen } from './menuKit';
@@ -56,20 +57,20 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   const root = el(`${PICTURE_LAYER};pointer-events:none;font:13px/1.4 ${SERIF};font-variant-numeric:lining-nums tabular-nums;color:${BONE};z-index:1`); // drawn at the UI scale, in the period face (round 14)
   const minimap = createMinimap(g, root, painter);
   const hints = createHints(g, root);
-  const vitals = el('position:absolute;left:16px;bottom:16px;width:290px', '', root);
-  const hp = bar(vitals, BLOOD, 16);
+  const vitals = el('position:absolute;left:18px;bottom:14px;width:196px', '', root);
+  const hp = gauge(vitals, BLOOD, 7, true);
   const chip = el(`position:absolute;left:0;top:0;height:100%;width:100%;background:${BONE}aa`, '', hp.parentElement!);
   hp.parentElement!.insertBefore(chip, hp);
   hp.style.position = 'relative';
   let chipPct = 100;
   let chipHold = 0;
-  const stamina = bar(vitals, LEAF, 9);
+  const stamina = gauge(vitals, LEAF, 3);
   const mind = createMindHud(g, vitals, (text: string) => say(text));
-  const reagent = el(`opacity:.85;margin-top:2px;letter-spacing:2px;font-size:11px`, '', vitals);
-  const gun = el(`opacity:.85;margin-top:2px;letter-spacing:2px;font-size:11px`, '', vitals); // the revolver's cylinder and its spare rounds (round 22)
-  const counters = el('position:absolute;right:16px;bottom:16px;font-size:14px;letter-spacing:2px;text-align:right', '', root);
+  const reagent = pipRow(vitals, 'REAGENT', 'diamond', '#c9b6e0'); // doses as diamonds, cartridges as rounds, each full or hollow (round 33)
+  const gun = pipRow(vitals, 'REVOLVER', 'round', '#d6b85a'); // the cylinder's six and the spare rounds (round 22)
+  const counters = el('position:absolute;right:18px;bottom:14px;font-size:11px;letter-spacing:3px;text-align:right;opacity:.85', '', root);
   const insight = el('', '', counters);
-  const echoes = el('', '', counters);
+  const echoes = el('margin-top:1px', '', counters);
   const reticle = el(`position:absolute;width:8px;height:8px;margin:-5px 0 0 -5px;border:1px solid ${BONE};transform:rotate(45deg)`, '', root);
   const notice = el('position:absolute;left:0;right:0;top:64%;text-align:center;font-size:16px;letter-spacing:4px', '', root);
   const prompt = el('position:absolute;left:0;right:0;bottom:64px;text-align:center;letter-spacing:2px;opacity:.85', '', root);
@@ -149,9 +150,11 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
       setStyle(chip, 'width', `${chipPct.toFixed(1)}%`);
       setStyle(stamina, 'width', percent(s.value, s.max));
       mind.update(now0);
-      setText(reagent, `REAGENT ×${g.player.reagent}${g.player.oil > 0 ? `   OIL ×${g.player.oil}` : ''}`); // flasks once any are carried (round 12)
-      setText(gun, `REVOLVER ${g.player.ammo}/${GUN.chamber}  ·  ${g.player.rounds}`);
-      setStyle(gun, 'color', g.player.ammo === 0 ? '#c8503c' : BONE); // dry: it reddens
+      reagent.set(g.player.reagent, g.player.reagentMax);
+      setText(reagent.after, g.player.oil > 0 ? `OIL ×${g.player.oil}` : ''); // flasks once any are carried (round 12)
+      gun.set(g.player.ammo, GUN.chamber);
+      setText(gun.after, `· ${g.player.rounds}`);
+      setStyle(gun.after, 'color', g.player.ammo === 0 ? '#c8503c' : BONE); // dry: it reddens
       setText(insight, `INSIGHT ${g.mind.insight}`);
       const ready = LEVEL_IDS.some((id) => canLevel(g, id)); // a level within reach: rest at an Elder Sign
       setText(echoes, `ECHOES ${Math.max(0, g.player.echoes - held())}${ready ? '  ▲' : ''}`);

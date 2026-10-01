@@ -152,11 +152,15 @@ export function createSkyline(scene: THREE.Scene, look: RealmLook): Skyline {
         fakeMesh.scale.set(fakeDef.width * s * 6, fakeDef.height * s * 6, 1);
         fakeMesh.rotation.set(0, Math.atan2(-Math.sin(bearing), -Math.cos(bearing)), 0);
       }
+      const shown: { f: Far; d: number }[] = [];
       for (const f of fars) {
         const [dx, dz] = [f.x - cam.x, f.z - cam.z];
         const d = Math.hypot(dx, dz);
         f.mesh.visible = alpha.get(f.region)!.value > 0.01 && d > R * 1.5;
         if (!f.mesh.visible) continue;
+        shown.push({ f, d });
+        // Farther things are paler (the air between), so a far castle behind a nearer hill is the lighter of the two.
+        (f.mesh.material as THREE.ShaderMaterial).uniforms.uFade.value = (f.def.fade ?? 0) + (1 - (f.def.fade ?? 0)) * Math.min(0.55, d / 9000);
         const [ux, uz, s] = [dx / d, dz / d, R / Math.max(d, f.def.height / TALLEST)];
         f.mesh.position.set(cam.x + ux * R, cam.y + (f.base - cam.y) * s, cam.z + uz * R);
         f.glow?.blink(time);
@@ -164,6 +168,11 @@ export function createSkyline(scene: THREE.Scene, look: RealmLook): Skyline {
         f.mesh.scale.set(f.def.width * s * (2 - breath), f.def.height * s * breath, 1);
         f.mesh.rotation.set(0, Math.atan2(-ux, -uz), 0);
       }
+      // All are drawn at one distance with no depth test, so which lies over which is the order they are drawn in: the farthest first (round 33: a far castle was drawn over a near hill).
+      shown.sort((a, b) => b.d - a.d).forEach(({ f }, i) => {
+        f.mesh.renderOrder = -999 + i * 0.5;
+        if (f.glow) [f.glow.halo.renderOrder, f.glow.eyes.renderOrder] = [f.mesh.renderOrder - 0.25, f.mesh.renderOrder + 0.1]; // its halo behind it, its eyes over it
+      });
     },
   };
 }
