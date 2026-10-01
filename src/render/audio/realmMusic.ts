@@ -69,8 +69,9 @@ export function createRealmMusic(e: AudioEngine): RealmMusic {
       const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
       const analysis = analyse(Array.from({ length: buffer.numberOfChannels }, (_, c) => buffer.getChannelData(c)), buffer.sampleRate);
       return { buffer, analysis, region: loopRegion(analysis, buffer.duration) };
-    } catch {
+    } catch (err) {
       failed.set(id, clock + REALM_MUSIC.retry);
+      console.warn(`realm music: ${id} could not be loaded`, err);
       return null;
     }
   };
@@ -88,7 +89,6 @@ export function createRealmMusic(e: AudioEngine): RealmMusic {
     const now = ctx.currentTime;
     const from = dir === 'in' ? 0 : v.gain.gain.value;
     v.gain.gain.cancelScheduledValues(now);
-    v.gain.gain.setValueAtTime(from, now);
     const top = dir === 'in' ? v.level : from;
     v.gain.gain.setValueCurveAtTime((dir === 'in' ? FADE_IN : FADE_OUT).map((x) => x * top) as unknown as Float32Array<ArrayBuffer>, now, seconds);
     if (dir === 'out') v.endsAt = now + seconds + 0.1;
@@ -149,8 +149,14 @@ export function createRealmMusic(e: AudioEngine): RealmMusic {
         if (waiting === asked) waiting = null;
         if (!t) return void loaded.delete(asked);
         if (wanted !== asked || current?.id === asked) return; // they have gone on, or it is already sounding
-        enter(ctx, bus, asked, t);
-        trim();
+        try {
+          enter(ctx, bus, asked, t);
+          trim();
+          console.info(`realm music: ${asked} (loop ${t.region.start.toFixed(1)}–${t.region.end.toFixed(1)} s, gain ${t.analysis.gain.toFixed(3)})`);
+        } catch (err) {
+          failed.set(asked, clock + REALM_MUSIC.retry); // the browser refused it: not asked for again every frame
+          console.warn(`realm music: ${asked} could not start`, err);
+        }
       });
     },
   };

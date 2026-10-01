@@ -59,8 +59,8 @@ export function realmTrackOf(region: string | null | undefined, dungeon?: string
 }
 
 export const REALM_MUSIC = {
-  /** Loudness: a track's body is brought to this RMS (dBFS), and no peak above the ceiling (linear). Quiet beside the effects and under the ambience's drones, so it sits in the world and wears slowly. */
-  target: -27,
+  /** Loudness: a track's body is brought to this RMS (dBFS), and no peak above the ceiling (linear). Measured at the speakers (round 28b): −27 came out about 2.5 dB under the ambience (averaged over 25 s) and was not noticed; −19 came out 5 dB over it, as loud as the title theme; −23 came out level with it; −21 (chosen) comes out about 2 dB over it and 5 dB under the title theme, so it sits in the world and wears slowly. */
+  target: -21,
   ceiling: 0.8,
   level: 1, // the music setting's bus, times this
   /** Loop points: the body is where a half second's level reaches this share of the track's median, so the seam falls between two steady stretches, not in a fade. */
