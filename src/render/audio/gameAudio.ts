@@ -3,7 +3,9 @@
  * the drones and recorded ambience for where the investigator stands, the foley of bodies moving
  * (foley.ts), and a boss fight's music (bossMusic.ts). A stinger or a voice with recordings
  * (data/samples.ts) plays one of them, dulled with distance (keeping a share of its recipe beneath,
- * where that gives it weight); until they have loaded, the recipes play. The investigator grunts as
+ * where that gives it weight); until they have loaded, the recipes play. What is said aloud (the
+ * `Said` event: a person at an Elder Sign, a horror that speaks) plays its recording (speech.ts;
+ * the voices), and a talk's next lines are fetched as it begins. The investigator grunts as
  * blows land on them, and a creature cries out as it dies. A creature calls at random within its
  * voice's interval while it is in the world and not lying hidden, and at once when it turns on the
  * investigator (a snarl, for some); the listener is the camera. A failing mind (round 22) hears a
@@ -32,6 +34,7 @@ import type { Drones } from './drones';
 import type { AudioEngine } from './engine';
 import { createFoley } from './foley';
 import { createSampler, setFiles } from './sampler';
+import { createSpeech } from './speech';
 import { HEART } from '../feel';
 import { playSound } from './synth';
 
@@ -56,6 +59,7 @@ interface Caller {
 
 const HURT: ReadonlySet<string> = new Set(['hit', 'stagger', 'guardBreak', 'riposte', 'interrupted']);
 const CRY_GAP = 48; // frames between one creature's cries at blows
+const AHEAD = 5; // the first lines of a talk whose recordings are loaded as it begins
 
 export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAudio {
   const listener = { x: 0, y: 0, z: 0 };
@@ -140,6 +144,11 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     if (v.sound?.die && recorded(v.sound.die, at, v.voice.range, { pitch: pitchOf(v), gain: 0.95 })) return; // its own dying, if it has one (round 20)
     call(entity, v, { pitch: 0.78 + 0.1 * Math.random(), gain: 0.9 }); // else its call, deeper
   });
+
+  const speech = createSpeech(e); // the voices of the people and of the horrors that speak
+  g.events.on('Said', ({ speaker, text }) => speech.say(speaker, text));
+  g.events.on('Silenced', () => speech.stop());
+  g.events.on('Talked', ({ npc, lines }) => speech.ahead(`npc:${npc}`, lines.slice(0, AHEAD))); // their recordings loaded before they are said
 
   const callers = new Map<Entity, Caller>();
   const music = createBossMusic(e);

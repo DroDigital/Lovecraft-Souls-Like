@@ -6,6 +6,7 @@ declare module 'node:fs' {
   export function readFileSync(path: string): Uint8Array;
   export function statSync(path: string): { size: number };
   export function appendFileSync(path: string, data: string): void;
+  export function writeFileSync(path: string, data: string): void;
 }
 declare module 'node:zlib' {
   export function inflateSync(data: Uint8Array): Uint8Array;

@@ -27,11 +27,12 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
   music: ['Music', pct],
   sfx: ['Effects', pct],
   ambience: ['Ambience', pct],
+  speech: ['Voices', pct],
 };
 const GROUPS: readonly (readonly [string, readonly SettingId[]])[] = [
   ['VIDEO', ['resolution', 'brightness', 'fog', 'uiScale', 'fxCap', 'shake']],
   ['CONTROLS', ['sensitivity', 'invertY', 'cutscenes']],
-  ['SOUND', ['volume', 'music', 'sfx', 'ambience']],
+  ['SOUND', ['volume', 'music', 'sfx', 'ambience', 'speech']],
 ];
 
 /** Fullscreen on or off: the desktop shell's window, or the browser's. */

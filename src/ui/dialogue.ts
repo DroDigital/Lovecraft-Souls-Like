@@ -25,10 +25,17 @@ export function createDialogue(g: Game): Dialogue {
   const talk = createScreen(8, 'transparent', 'left:50%;bottom:7%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px;background:#0b0b0de8;border:1px solid #d9d0b833');
   const read = createScreen(8, '#050506cc', 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);max-height:84vh;overflow:auto;padding:22px 26px;background:#0e0d0c;border:1px solid #d9d0b833');
 
-  g.events.on('Talked', ({ name, title, lines, shop }) => {
+  /** Closes the talk, and whoever is speaking is cut off (the voices). */
+  const leave = (): void => {
+    talk.close();
+    g.events.emit('Silenced', {});
+  };
+
+  g.events.on('Talked', ({ npc, name, title, lines, shop }) => {
     let i = 0;
+    const say = (): void => g.events.emit('Said', { speaker: `npc:${npc}`, text: lines[i] });
     const page: Page = {
-      back: () => talk.close(),
+      back: leave,
       keys: (e) => void (advances(e.code) && !e.repeat && next()),
       build(p) {
         el(p, 'div', name.toUpperCase(), `letter-spacing:3px;color:${BONE}`);
@@ -41,15 +48,19 @@ export function createDialogue(g: Game): Dialogue {
       },
     };
     const next = (): void => {
-      if (++i < lines.length) return talk.show(page);
-      talk.close();
+      if (++i < lines.length) {
+        talk.show(page);
+        return say();
+      }
+      leave();
       if (shop) g.events.emit('Trade', { shop, name }); // a merchant's wares follow (round 12)
     };
     talk.show(page);
+    say();
   });
 
   g.events.on('Hit', (e) => {
-    if (e.target === g.player.id && e.damage > 0 && talk.open) talk.close(); // no one talks on through a blow
+    if (e.target === g.player.id && e.damage > 0 && talk.open) leave(); // no one talks on through a blow
   });
 
   g.events.on('Read', ({ name }) => {
