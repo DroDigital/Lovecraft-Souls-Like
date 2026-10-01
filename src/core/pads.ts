@@ -29,8 +29,17 @@ interface Seen {
 const seen = new Map<string, Seen>();
 const PUSH = 0.5; // how far off its rest an axis must be to count as used
 let report = '';
+let listed = -1; // how many devices the browser lists (-1: it has not been asked)
+let blocked = ''; // why it could not be asked
+const events: string[] = []; // the pads the browser has said it saw come and go
+if (typeof addEventListener === 'function') {
+  addEventListener('gamepadconnected', (e) => void events.push(`connected: ${(e as GamepadEvent).gamepad.id} (${(e as GamepadEvent).gamepad.mapping || 'no mapping'})`));
+  addEventListener('gamepaddisconnected', (e) => void events.push(`gone: ${(e as GamepadEvent).gamepad.id}`));
+}
 /** A line for the controls page: what pad is heard, or what to do. */
 export const padReport = (): string => report;
+/** What the browser itself says of pads, for the controls page (round 33: the desktop shell heard none, and nothing said why). */
+export const padFacts = (): string => [blocked ? `the browser refused: ${blocked}` : listed < 0 ? 'not asked yet' : `${listed} device${listed === 1 ? '' : 's'} listed by the browser`, ...events.slice(-3)].join(' · ');
 
 function read(p: Gamepad): { reading: PadReading; used: number } {
   const key = `${p.index}:${p.id}`;
@@ -61,8 +70,12 @@ function read(p: Gamepad): { reading: PadReading; used: number } {
 export function activePad(): PadReading | null {
   let list: (Gamepad | null)[] = [];
   try {
-    list = [...(navigator.getGamepads?.() ?? [])];
-  } catch {
+    if (typeof navigator.getGamepads !== 'function') throw new Error('this window has no gamepad interface');
+    list = [...navigator.getGamepads()];
+    listed = list.filter(Boolean).length;
+    blocked = '';
+  } catch (e) {
+    blocked = e instanceof Error ? e.message : String(e);
     return null; // a page not allowed pads (a permissions policy) hears none
   }
   let best: { reading: PadReading; used: number } | null = null;

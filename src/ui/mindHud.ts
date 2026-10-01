@@ -12,7 +12,8 @@ import { MIND_HUD, SANITY } from '../data/tuning';
 import type { Band, Game } from '../systems/components';
 import { atOrBelow, bandIndex } from '../systems/sanity';
 import { glyph } from './glyphs';
-import { bar, BONE, el, setStyle, setText } from './hudKit';
+import { gauge } from './gauges';
+import { BONE, el, setStyle, setText } from './hudKit';
 
 const MAGENTA = '#d80073';
 /** The bar and the band's name, from clear water to magenta (round 32: they were bone, bone, purple and magenta, and the bar was one of three of a colour). */
@@ -28,13 +29,13 @@ export const callsForLaudanum = (g: Game): boolean =>
 
 /** Builds the sanity bar and the band line into `vitals`; `say` shows a short notice. */
 export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) => void): MindHud {
-  const fill = bar(vitals, BAND_COLOURS.lucid, 12);
+  const fill = gauge(vitals, BAND_COLOURS.lucid, 5);
   const frame = fill.parentElement!;
   const chip = el(`position:absolute;left:0;top:0;height:100%;width:100%;background:${MAGENTA}cc`, '', frame);
   frame.insertBefore(chip, fill);
   fill.style.position = 'relative';
-  for (const floor of SANITY.bands) el(`position:absolute;left:${floor}%;top:-3px;bottom:-3px;width:1px;background:${BONE}99`, '', frame);
-  const line = el('display:flex;justify-content:space-between;letter-spacing:2px;font-size:11px', '', vitals);
+  for (const floor of SANITY.bands) el(`position:absolute;left:${floor}%;top:-2px;bottom:-2px;width:1px;background:${BONE}99`, '', frame);
+  const line = el('display:flex;justify-content:space-between;letter-spacing:2px;font-size:9px;margin-top:1px', '', vitals);
   const band = el('', '', line);
   const laudanum = el('opacity:.7', '', line);
   let chipPct = 100;
