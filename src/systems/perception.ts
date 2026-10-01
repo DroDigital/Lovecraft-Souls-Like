@@ -18,6 +18,7 @@ import { inWindow, moveDef } from './actions';
 import { isAbsent, type Game } from './components';
 import { targetsOf } from './targets';
 import { quietOf } from './weather';
+import { fogBetween } from './fogGates';
 
 const DEG = Math.PI / 180;
 
@@ -32,6 +33,7 @@ export function sight(g: Game, self: Entity, other: Entity, p: ArchetypeParams):
   const a = g.ecs.c.transform.get(self)!;
   const b = g.ecs.c.transform.get(other)!.pos;
   const d = distXZ(a.pos, b);
+  if (fogBetween(g, a.pos, b)) return 0; // a boss's fog is a wall: nothing is seen across it, or heard (round 35)
   if (d <= p.hearing) return 1;
   if (d > Math.max(p.aggro, AI.side)) return 0;
   const off = Math.abs(wrapAngle(yawOf(b.x - a.pos.x, b.z - a.pos.z) - a.yaw));
@@ -62,7 +64,7 @@ export function noiseOf(g: Game): number {
 export function hears(g: Game, self: Entity, at: V3, radius: number): boolean {
   if (radius <= 0) return false;
   const d = distXZ(g.ecs.c.transform.get(self)!.pos, at);
-  if (d > radius) return false;
+  if (d > radius || fogBetween(g, g.ecs.c.transform.get(self)!.pos, at)) return false;
   return d <= radius * AI.muffle || hasLineOfSight(g.world, eye(g, self), { x: at.x, y: at.y + 1.2, z: at.z });
 }
 

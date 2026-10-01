@@ -17,7 +17,7 @@ import type { Particles } from './particles';
 const VERT = `varying vec3 vWorld; varying vec2 vUv;
 void main() { vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 
-const FRAG = `uniform vec3 uBase, uTop, uSpark, uGlow; uniform vec3 uCentre;
+const FRAG = `uniform vec3 uBase, uTop, uSpark, uGlow; uniform vec3 uCentre; uniform vec4 uPart; // uPart: where the fog parts (a walker passing), and how wide
 uniform float uTime, uVis, uDensity, uSpeed, uMode, uShimmer, uShare, uFoot, uHeight, uHeld, uGlyph;
 varying vec3 vWorld; varying vec2 vUv;
 float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -28,6 +28,7 @@ float noise(vec3 x) {
 }
 float fbm(vec3 p) { return 0.55 * noise(p) + 0.3 * noise(p * 2.1 + 7.0) + 0.15 * noise(p * 4.3 + 3.0); }
 void main() {
+  float col_boost = 0.0;
   float h = clamp((vWorld.y - uFoot) / uHeight, 0.0, 1.0);
   float t = uTime * uSpeed * 0.3;
   vec3 p = vec3(vWorld.x, vWorld.y, vWorld.z) * 0.32;
@@ -41,8 +42,16 @@ void main() {
   float crown = 1.0 - smoothstep(0.5 + 0.35 * n, 1.0, h);
   float foot = smoothstep(0.0, 0.07, h);
   float a = uDensity * (0.35 + 0.95 * n) * crown * foot;
-  a = min(0.96, a * (1.0 + 0.3 * uHeld)) * uVis;
-  vec3 col = mix(uBase, uTop, clamp(h * 0.75 + (n - 0.5) * 0.6, 0.0, 1.0));
+  // A wall, not a haze (round 35: the horror could be seen through it): solid from its foot to near its crown, the mist's own mottling in its colour.
+  a = max(min(0.96, a * (1.0 + 0.3 * uHeld)), 0.985 * (1.0 - smoothstep(0.8, 1.0, h)) * foot) * uVis;
+  if (uPart.w > 0.0) { // it parts about a body passing through, in a ragged round, and eddies at its edge
+    float dd = length(vWorld - uPart.xyz);
+    float edge = uPart.w * (0.82 + 0.4 * fbm(vWorld * 0.9 + uTime * 0.6));
+    a *= smoothstep(edge * 0.55, edge, dd);
+    col_boost += 0.35 * (1.0 - smoothstep(edge, edge * 1.5, dd)) * step(0.001, a);
+  }
+  vec3 col = mix(uBase, uTop, clamp(h * 0.5 + (n - 0.5) * 1.5 + 0.25, 0.0, 1.0));
+  col *= 0.72 + 0.5 * noise(p * vec3(2.2, 0.5, 2.2) + 11.0); // drifting banks, darker and paler
   if (uShimmer > 0.0) col = mix(col, 0.55 + 0.45 * cos(6.2832 * (n * 1.6 + uTime * 0.12 + vec3(0.0, 0.33, 0.67))), uShimmer * 0.6);
   if (uShare > 0.0) { // motes that catch the light
     vec3 q = floor(p * 9.0);
@@ -50,12 +59,12 @@ void main() {
     col += uSpark * s * 0.9; a = max(a, s * 0.7 * uVis * foot);
   }
   if (uGlyph > 0.0) col += uGlow * pow(n, 5.0) * 1.6 * (0.6 + 0.4 * sin(uTime * 1.3));
-  gl_FragColor = vec4(col, a);
+  gl_FragColor = vec4(col + col_boost, a);
 }`;
 
 const MODE: Record<FogMotion, number> = { rise: 0, roll: 1, swirl: 2, shear: 3 };
-const SEE = 95; // metres from its nearest point past which a wall is not made
-const FADE = [60, 85] as const; // and over which it thins to nothing
+const SEE = 138; // metres from its nearest point past which a wall is not made
+const FADE = [112, 134] as const; // and over which it thins to nothing
 const DISSOLVE = 3.5; // seconds a slain horror's fog takes to go
 
 /** How much of a wall shows `distance` metres off. */
@@ -71,7 +80,7 @@ function materialOf(w: FogWall, theme: FogTheme): THREE.ShaderMaterial {
     uniforms: {
       uBase: { value: v(theme.base) }, uTop: { value: v(theme.top) }, uSpark: { value: v(theme.sparks?.colour ?? [0, 0, 0]) }, uGlow: { value: v(theme.glyph ?? [0, 0, 0]) }, uCentre: { value: new THREE.Vector3(w.x, w.y, w.z) },
       uTime: { value: 0 }, uVis: { value: 0 }, uDensity: { value: theme.density }, uSpeed: { value: theme.speed }, uMode: { value: MODE[theme.motion] },
-      uShimmer: { value: theme.shimmer ?? 0 }, uShare: { value: theme.sparks?.share ?? 0 }, uFoot: { value: w.y }, uHeight: { value: w.height }, uHeld: { value: 0 }, uGlyph: { value: theme.glyph ? 1 : 0 },
+      uShimmer: { value: theme.shimmer ?? 0 }, uShare: { value: theme.sparks?.share ?? 0 }, uFoot: { value: w.y }, uHeight: { value: w.height }, uHeld: { value: 0 }, uPart: { value: new THREE.Vector4(0, 0, 0, 0) }, uGlyph: { value: theme.glyph ? 1 : 0 },
     },
     vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
   });
@@ -94,6 +103,11 @@ export interface BossFog {
 
 export function createBossFog(scene: THREE.Scene, g: Game, particles: Particles, audio: GameAudio): BossFog {
   const walls: Wall[] = gatePlan(worldLayout()).fogs.map((w) => ({ w, theme: FOG_THEMES[w.theme], mesh: null, vis: 0, held: 0, gone: false, owed: 0, engaged: false }));
+  g.events.on('FogPassing', () => audio.sample('rumble', { gain: 0.4, pitch: 0.85 }));
+  g.events.on('FogPassed', (e) => {
+    const b = walls.find((w) => w.w.id === e.wall);
+    if (b) burst(b, e); // it closes behind them
+  });
   let last = -1;
   const seed = { v: 11 };
   const rand = (): number => (seed.v = (seed.v * 16807) % 2147483647) / 2147483647;
@@ -131,6 +145,13 @@ export function createBossFog(scene: THREE.Scene, g: Game, particles: Particles,
         u.uTime.value = time;
         u.uVis.value = b.vis;
         u.uHeld.value = b.held;
+        const pass = g.player.fogPass;
+        if (pass && pass.wall === b.w.id && me) { // the walk through: the fog opens about them, widest as they cross it
+          const k = pass.frame / pass.frames;
+          const opening = 3.4 * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, k))), 0.7);
+          u.uPart.value.set(me.x, g.world.ground(me.x, me.z) + 1.1, me.z, opening);
+          if (k > 0.1 && k < 0.9) eddy(b, me, dt);
+        } else u.uPart.value.w = 0;
         if (me && engaged && !b.engaged && near < 40) burst(b, me); // it has woken: the fog is crossed
         b.engaged = engaged;
         if (b.mesh.visible && me && near < 30 && !slain && !engaged) seep(b, me, dt);
@@ -160,6 +181,16 @@ export function createBossFog(scene: THREE.Scene, g: Game, particles: Particles,
       const s = (rand() - 0.5) * (b.w.kind === 'ring' ? 12 : b.w.width);
       const [x, z] = b.w.kind === 'ring' ? [cx + Math.cos(Math.atan2(me.x - b.w.x, me.z - b.w.z)) * s, cz - Math.sin(Math.atan2(me.x - b.w.x, me.z - b.w.z)) * s] : [cx + Math.cos(b.w.yaw) * s, cz - Math.sin(b.w.yaw) * s];
       mote(b, x, z, !!b.theme.sparks && rand() < b.theme.sparks.share, 0.5);
+    }
+  }
+
+  /** Mist torn from the wall as a body goes through it: curls that stream past, thickest as it crosses. */
+  function eddy(b: Wall, me: { x: number; z: number }, dt: number): void {
+    b.owed += dt * 60;
+    for (; b.owed >= 1; b.owed--) {
+      const a = rand() * Math.PI * 2;
+      const r = 0.5 + rand() * 1.4;
+      mote(b, me.x + Math.cos(a) * r, me.z + Math.sin(a) * r, !!b.theme.sparks && rand() < b.theme.sparks.share, 0.9);
     }
   }
 

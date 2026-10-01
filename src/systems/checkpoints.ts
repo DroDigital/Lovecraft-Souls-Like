@@ -12,6 +12,7 @@ import type { InputFrame } from '../core/input';
 import { distXZ } from '../core/geom';
 import type { Place } from '../data/arena';
 import { CAMERA, SANITY, WORLD } from '../data/tuning';
+import { fogToPass, passFog } from './fogGates';
 import { worldLayout, type GatePlace, type SignPlace } from '../world/placements';
 import { yawOfDir } from '../world/worldMap';
 import { engagedFights } from './bossFight';
@@ -157,7 +158,7 @@ export function passGate(g: Game, id: string): boolean {
 }
 
 export interface Interactable {
-  kind: 'sign' | 'gate' | 'npc';
+  kind: 'sign' | 'gate' | 'npc' | 'fog';
   id: string;
   name: string;
 }
@@ -188,6 +189,8 @@ export function interactable(g: Game): Interactable | null {
   for (const s of w.signs) consider({ kind: 'sign', id: s.id, name: s.name }, s, WORLD.signReach);
   for (const t of w.gates) consider({ kind: 'gate', id: t.id, name: t.name }, t, WORLD.reach);
   for (const [e, id] of g.ecs.c.npc) consider({ kind: 'npc', id, name: npcDef(id)?.name ?? id }, g.ecs.c.transform.get(e)!.pos, WORLD.reach);
+  const fog = fogToPass(g); // a boss's fog, close by: E passes it (round 35)
+  if (fog && best === null) return { kind: 'fog', id: fog.id, name: 'the fog' };
   return best;
 }
 
@@ -201,4 +204,8 @@ export function checkpointSystem(g: Game, input: InputFrame): void {
   if (t?.kind === 'sign') rest(g, t.id);
   else if (t?.kind === 'gate') passGate(g, t.id);
   else if (t?.kind === 'npc') talk(g, t.id);
+  else if (t?.kind === 'fog') {
+    const w = fogToPass(g);
+    if (w) passFog(g, w);
+  }
 }
