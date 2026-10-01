@@ -35,6 +35,9 @@ export function createSky(look: RealmLook): Sky {
     uStars: { value: start.stars },
     uClouds: { value: start.clouds },
     uHaze: { value: start.haze },
+    uMilky: { value: start.milky },
+    uAurora: { value: start.aurora },
+    uMeteors: { value: start.meteors },
     uOpen: { value: 1 },
     uWrong: { value: 0 },
     uFlash: { value: 0 },
@@ -64,6 +67,9 @@ export function createSky(look: RealmLook): Sky {
       ease(u.uStars, want.stars * (1 + clear * 0.9), k);
       ease(u.uClouds, want.clouds, k);
       ease(u.uHaze, want.haze * look.now.glow, k);
+      ease(u.uMilky, want.milky, k);
+      ease(u.uAurora, want.aurora, k);
+      ease(u.uMeteors, want.meteors, k);
       ease(u.uOpen, enclosed ? 0 : 1, Math.min(1, dt / SKY.close));
       u.uFogColor.value.set(...look.now.haze); // the realm's, already eased (render/realmLook.ts)
       u.uHorizon.value.set(...look.now.horizon);

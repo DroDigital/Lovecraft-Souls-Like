@@ -52,6 +52,7 @@ function createUniforms(source: THREE.Texture, depth: THREE.Texture | null, pale
     uStone: { value: 0 }, // a petrifying gaze: the colour drains, the edges close in, it cracks (hurtFx.ts; round 25)
     uBlur: { value: 0 }, // a failing mind: the edges of sight lose their focus (round 22)
     uAnomalyHues: { value: new THREE.Vector3(...ANOMALY_HUES) },
+    uChar: { value: new THREE.Vector2(FX.charShare, FX.charLevels) }, // what a character keeps (round 34)
     uQuantize: { value: 0 },
     uDither: { value: 0 },
     uGamma: { value: 1 }, // 1 / the brightness setting (round 12)

@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { WEATHER } from '../data/tuning';
 import type { Game } from '../systems/components';
 import type { Particles } from './particles';
+import { worldUniforms } from './worldMaterial';
 
 const BOX = 15; // metres about the lens the rain falls in
 const TOP = 9;
@@ -53,6 +54,7 @@ export function createWeatherFx(scene: THREE.Scene, g: Game, particles: Particle
       last = time;
       const w = g.overworld?.weather;
       const amount = !w || hidden ? 0 : w.amount;
+      worldUniforms.uWind.value = 1 + (w?.kind === 'gale' ? 2.4 * amount : w?.kind === 'rain' ? 0.7 * amount : 0); // the trees and the grass bend with it (round 34)
       const cam = camera.position;
       const rain = w?.kind === 'rain' && amount > 0;
       lines.visible = rain;

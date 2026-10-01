@@ -46,6 +46,10 @@ export const worldUniforms = {
   uFogAmount: { value: 0 },
   uFogColor: { value: v3(FX.fogColor) },
   uSeaLevel: { value: WORLD.seaLevel }, // where the sea lies: the shore's waterline (the world shader's SHORE)
+  uWind: { value: 1 }, // how hard the wind blows the leaves and grass (shaders/world.ts SWAY): 1 on a calm night, more in a gale (weather.ts; round 34)
+  uShadowMap: { value: null as THREE.Texture | null }, // the moon's depth map, its matrix and its numbers (moonShadow.ts; round 34)
+  uShadowMat: { value: new THREE.Matrix4() },
+  uShadow: { value: new THREE.Vector4() },
 };
 
 export interface WorldMaterialOptions {
@@ -65,6 +69,7 @@ export interface WorldMaterialOptions {
   bodyScale?: number; // metres: the body's height, which that is measured in
   shore?: boolean; // the ground is washed by the sea where it meets it: a wet band and lace of foam, breathing with the swell (round 30)
   panes?: boolean; // lit windows, each lived behind by its aPane seed (paneLife.ts; round 18)
+  sway?: boolean; // blown by the wind, by each vertex's aSway (round 34)
 }
 
 const textures = new Map<string, THREE.DataTexture>();
@@ -113,7 +118,7 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,
     vertexColors: o.vertexColors ?? false,
-    defines: { ...(o.panes && { PANES: '' }), ...(o.shore && { SHORE: '' }) },
+    defines: { ...(o.panes && { PANES: '' }), ...(o.shore && { SHORE: '' }), ...(o.sway && { SWAY: '' }) },
   });
   material.userData.emissive = o.emissive ?? 0;
   return material;

@@ -45,13 +45,16 @@ const COLORS: Readonly<Record<Kind, readonly Rgb[]>> = {
 };
 
 class Builder {
+  constructor(private readonly swaying = false) {} // a geometry that is blown carries aSway for it; one that is not (stones) must not, or it will not merge with the props' (propMeshes.ts)
   pos: number[] = [];
   col: number[] = [];
   nor: number[] = [];
   uv: number[] = [];
-  /** A triangle seen from both sides (the world's materials cull back faces). */
-  tri(a: readonly number[], b: readonly number[], c: readonly number[], ca: Rgb, cb: Rgb, cc: Rgb): void {
-    for (const [p, col] of [[a, ca], [b, cb], [c, cc], [b, cb], [a, ca], [c, cc]] as const) {
+  sway: number[] = [];
+  /** A triangle seen from both sides (the world's materials cull back faces); `sway`: how far each corner is blown (metres: the tip of a blade, nothing at its foot). */
+  tri(a: readonly number[], b: readonly number[], c: readonly number[], ca: Rgb, cb: Rgb, cc: Rgb, sway: readonly [number, number, number] = [0, 0, 0]): void {
+    for (const [p, col, s] of [[a, ca, sway[0]], [b, cb, sway[1]], [c, cc, sway[2]], [b, cb, sway[1]], [a, ca, sway[0]], [c, cc, sway[2]]] as const) {
+      this.sway.push(s);
       this.pos.push(p[0], p[1], p[2]);
       this.col.push(col[0], col[1], col[2]);
       this.nor.push(0, 1, 0); // lit as the ground is
@@ -65,6 +68,7 @@ class Builder {
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    if (this.swaying) g.setAttribute('aSway', new THREE.Float32BufferAttribute(this.sway, 1));
     return g;
   }
 }
@@ -83,7 +87,7 @@ function blades(b: Builder, rng: Rng, x: number, y: number, z: number, n: number
     const base1 = [x + co * w, y, z - s * w];
     const tip = [x + s * len * lean, y + len, z + co * len * lean];
     const dark = shade(c, 0.6);
-    b.tri(base0, base1, tip, dark, dark, c);
+    b.tri(base0, base1, tip, dark, dark, c, [0, 0, 0.16 * len]); // the tip is blown, the foot is not
   }
 }
 
@@ -115,7 +119,7 @@ export function groundCover(cx: number, cz: number, region: RegionDef, roads: re
   const cover = COVER[region.biome.texture];
   const rng = createRng(chunkKey(cx, cz) * 7919 + 17);
   const pads = worldLayout().chunk(cx, cz).pads;
-  const [leaf, stone] = [new Builder(), new Builder()];
+  const [leaf, stone] = [new Builder(true), new Builder()];
   for (let k = 0; k < cover.count; k++) {
     const [x, z] = [(cx + rng()) * WORLD.chunk, (cz + rng()) * WORLD.chunk];
     let roll = rng();

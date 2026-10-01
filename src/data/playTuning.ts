@@ -69,6 +69,7 @@ export const SETTINGS = {
   resolution: [0.5, 2, 0.25, 2], // internal resolution, × RENDER's 400 × 225 (the most, 800 × 450, by default since playtest round 13)
   brightness: [0.7, 1.6, 0.05, 1], // lifts the dark (a gamma, after the grade; round 12)
   fog: [0, 1, 0.25, 1], // the volumetric fog's strength (0: none, for slower machines; round 16)
+  shadows: [0, 1, 1, 1], // 0: the moon casts no shadows (a second pass over the scene each frame, for slower machines; round 34)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
   cutscenes: [0, 1, 1, 1], // 0: none play: a new game's wake, a horror's arrival and fall, an ending's (round 20)
@@ -129,20 +130,23 @@ export interface SkyDef {
   stars: number; // their density
   clouds: number; // cover
   haze: number; // the horizon's moonlit glow
+  milky: number; // the Milky Way's strength (round 34)
+  aurora: number; // curtains of cold light low in the north (round 34)
+  meteors: number; // falling stars: how many of the turns that come every eleven seconds have one (round 34)
 }
 
 /** The night sky over each realm (playtest round 4, render/sky.ts). */
 export const SKY = {
-  base: { moon: 0.034, stars: 1, clouds: 0.5, haze: 1 } as SkyDef,
+  base: { moon: 0.034, stars: 1, clouds: 0.5, haze: 1, milky: 0.8, aurora: 0, meteors: 1 } as SkyDef,
   regions: {
     innsmouth: { clouds: 0.7 }, // sea mist
-    mountains: { stars: 1.6, clouds: 0.15, haze: 0.8 },
-    pnakotus: { stars: 1.4, clouds: 0.1 }, // desert air
-    kn_yan: { moon: 0, stars: 0, clouds: 0, haze: 0.35 }, // under the earth
-    dreamlands: { moon: 0.075, stars: 1.3, clouds: 0.3, haze: 1.3 }, // the Dreamlands' moon hangs near
-    rlyeh: { stars: 0.5, clouds: 0.8, haze: 0.7 },
-    yuggoth: { moon: 0, stars: 1.8, clouds: 0, haze: 0.3 }, // no moon over Yuggoth: the sun a star among the rest
-    beyond: { moon: 0, stars: 0.5, clouds: 0, haze: 0 },
+    mountains: { stars: 1.6, clouds: 0.15, haze: 0.8, milky: 1, aurora: 1 }, // the cold air, and lights over the pole
+    pnakotus: { stars: 1.4, clouds: 0.1, milky: 1.3 }, // desert air
+    kn_yan: { moon: 0, stars: 0, clouds: 0, haze: 0.35, milky: 0, meteors: 0 }, // under the earth
+    dreamlands: { moon: 0.075, stars: 1.3, clouds: 0.3, haze: 1.3, milky: 1.2, aurora: 0.45, meteors: 1.6 }, // the Dreamlands' moon hangs near, and the sky is busier than it should be
+    rlyeh: { stars: 0.5, clouds: 0.8, haze: 0.7, milky: 0.3, meteors: 0.4 },
+    yuggoth: { moon: 0, stars: 1.8, clouds: 0, haze: 0.3, milky: 1.5, meteors: 0.6 }, // no moon over Yuggoth: the sun a star among the rest
+    beyond: { moon: 0, stars: 0.5, clouds: 0, haze: 0, milky: 0.4, aurora: 0.6, meteors: 0.3 },
   } as Readonly<Record<string, Partial<SkyDef>>>,
   fade: 3, // seconds to ease into another realm's sky...
   jump: 30, // ...unless the camera leapt this many metres at once (a journey): then at once

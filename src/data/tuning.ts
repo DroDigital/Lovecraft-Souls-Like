@@ -29,6 +29,8 @@ export const FX = {
   fogColor: [0.2, 0.24, 0.3] as Vec3, // before a realm's own is known (data/looks.ts)
   desaturate: [0, 0.8] as Ramp, // the further share of the picture a failing mind has graded away, over the realm's own (render/realmLook.ts)
   anomalyStress: [0, 0.7] as Ramp, // added to anomalyProximity when boosting anomaly hues
+  charShare: 0.3, // round 34: the share of its realm's grade a character (the investigator, the people, the creatures) takes: the rest is the colours they were drawn in
+  charLevels: 9, // ...and the levels each of their colours is held to (not the realm's 64: that left every horror grey)
   hueWidth: 0.1, // anomaly hue window, in 0..1 hue units
   minSaturation: 0.3, // below this a pixel never counts as an anomaly hue
   ditherSpread: [0.05, 0.12] as Ramp,

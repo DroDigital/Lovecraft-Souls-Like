@@ -42,3 +42,13 @@ export const FLASK = {
   colour: { flame: [1, 0.55, 0.16], core: [1, 0.86, 0.45], glass: [0.5, 0.62, 0.5], smoke: [0.26, 0.24, 0.22] } as const,
   capacity: 8, // flasks drawn at once
 };
+
+/** The moon's shadows (round 34, render/moonShadow.ts): one depth map drawn from the moon over the investigator. Lengths in metres. */
+export const SHADOW = {
+  size: 1024, // texels a side: with `range`, a texel is 7 cm
+  range: 34, // half the width of ground the map covers about the investigator (the shadows fade out toward its edge)
+  depth: 160, // how far the map looks along the moon's rays, about the investigator
+  strength: 0.9, // the share of the moon's light a shadow takes away (the rest is the sky's, and what the land gives back)
+  bias: 0.07, // metres a surface is held from its own shadow, more where it turns from the moon
+  offset: 0.12, // metres a point is pushed off its surface along the normal before it is looked up
+};

@@ -23,6 +23,7 @@ export interface Piece {
   at?: readonly [number, number, number]; // ...from here in the prop's frame (else from its middle)
   glass?: readonly [number, number, number]; // a window's pane: its glow sits there, seen only from before it (worldLights.ts)
   pane?: number; // a lit window's seed: who lives behind it (paneLife.ts; round 18)
+  smoke?: readonly (readonly [number, number, number])[]; // the tops of the chimneys this piece is, in the prop's frame: smoke goes up from them (chimneys.ts; round 34)
 }
 
 const BARK: Rgb = scaleRgb(mixRgb(BASE.charcoal, BASE.rust, 0.35), 1.7);

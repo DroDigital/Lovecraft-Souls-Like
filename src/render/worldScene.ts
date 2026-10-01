@@ -15,6 +15,7 @@ import { chunkContent } from '../world/chunks';
 import { worldLayout } from '../world/placements';
 import { chunkSpan, streamDiff } from '../world/streaming';
 import { chunkKey, chunkOf, keyChunk, type Rect } from '../world/worldMap';
+import { chimneyTops } from './chimneys';
 import { groundCover } from './groundCover';
 import { propJob } from './propMeshes';
 import { arenaJob, dungeonJob } from './siteMeshes';
@@ -76,7 +77,7 @@ export function createWorldScene(lights?: WorldLights): WorldScene {
     const content = chunkContent(cx, cz);
     yield;
     yield* terrainJob(cx, cz, (m) => m && add(list, m));
-    if (content.region) yield* propJob(content.props, content.region, (ms, spots) => (ms.forEach((m) => add(list, m)), lights?.add(chunkKey(cx, cz), spots)), groundCover(content.cx, content.cz, content.region, content.roads));
+    if (content.region) yield* propJob(content.props, content.region, (ms, spots, tops) => (ms.forEach((m) => add(list, m)), lights?.add(chunkKey(cx, cz), spots), chimneyTops.add(chunkKey(cx, cz), tops)), groundCover(content.cx, content.cz, content.region, content.roads));
   }
 
   const load = (cx: number, cz: number, key: number): void => {
@@ -89,6 +90,7 @@ export function createWorldScene(lights?: WorldLights): WorldScene {
     drop(chunks.get(key) ?? []);
     chunks.delete(key);
     lights?.remove(key);
+    chimneyTops.remove(key);
   };
 
   /** Sites stand while any chunk they touch is loaded. Their jobs use negative keys. */

@@ -8,17 +8,21 @@
 
 import * as THREE from 'three';
 import { FX, RENDER } from '../data/tuning';
+import { createMoonShadow, type MoonShadow } from './moonShadow';
 import { createPostPass, type PostPass } from './postPass';
 import { worldUniforms } from './worldMaterial';
 
 export interface Pipeline {
   renderer: THREE.WebGLRenderer;
   post: PostPass;
+  /** The moon's shadows (round 34): `render` says where and whether, and draws the map before the world. */
+  shadow: MoonShadow;
   /** Internal render size in pixels (low-res target, or full canvas when pixelation is off). */
   size: THREE.Vector2;
   /** `scale` multiplies the low-res target (the settings menu's resolution scale). */
   resize(lowRes: boolean, scale?: number): void;
-  render(scene: THREE.Scene, camera: THREE.Camera): void;
+  /** `shadowAt`: where the moon's shadow map is centred (the investigator), or null for none (a roof overhead, a dungeon, the setting off: round 34). */
+  render(scene: THREE.Scene, camera: THREE.Camera, shadowAt?: { x: number; y: number; z: number } | null): void;
   /** Starts compiling every shader the scene and the post pass need; resolves once they can be drawn without a stall. */
   compile(scene: THREE.Scene, camera: THREE.Camera): Promise<void>;
   /** Compiles, then draws a frame (sending the GPU what the scene holds), so the next one shown comes at once. */
@@ -45,11 +49,15 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     depthTexture: new THREE.DepthTexture(RENDER.width, RENDER.height), // read by the volumetric fog (round 16)
   });
   const post = createPostPass(target.texture, target.depthTexture);
+  const shadow = createMoonShadow();
   worldUniforms.uMarkCharacters.value = 1; // the post pass reads characters from the target's alpha
   const size = new THREE.Vector2(RENDER.width, RENDER.height);
 
-  const render = (scene: THREE.Scene, camera: THREE.Camera): void => {
+  const render = (scene: THREE.Scene, camera: THREE.Camera, shadowAt: { x: number; y: number; z: number } | null = null): void => {
     renderer.info.reset();
+    if (shadowAt) shadow.focus.set(shadowAt.x, shadowAt.y, shadowAt.z);
+    shadow.enabled = !!shadowAt;
+    shadow.render(renderer, scene);
     renderer.setRenderTarget(target);
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
@@ -68,6 +76,7 @@ export function createPipeline(parent: HTMLElement): Pipeline {
   return {
     renderer,
     post,
+    shadow,
     size,
     render,
     compile,

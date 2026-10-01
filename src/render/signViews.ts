@@ -14,6 +14,7 @@ import { signPlace } from '../systems/checkpoints';
 import type { Game } from '../systems/components';
 import { PLINTH, SHRINE } from '../world/shrine';
 import { BASE, mixRgb, type Rgb } from './palette';
+import { casting } from './moonShadow';
 import type { Particles } from './particles';
 import { SPACE_GLSL } from './shaders/world';
 import { GLOW_REACH, shrineGeometry } from './signMeshes';
@@ -148,7 +149,7 @@ export function createSignViews(scene: THREE.Scene, g: Game, particles: Particle
     const glow = glowMaterial(0);
     const flameMat = createWorldMaterial({ texture: 'cloth', emissive: 1, vertexColors: true });
     const [runes, wave, flames] = [new THREE.Mesh(geo.runes, glowMaterial(1)), new THREE.Mesh(geo.runes, glowMaterial(2)), new THREE.Mesh(geo.flames, flameMat)];
-    root.add(new THREE.Mesh(geo.stone, stone), new THREE.Mesh(geo.glyph, glyph), new THREE.Mesh(geo.glow, glow), new THREE.Mesh(geo.wax, wax), runes, wave, flames);
+    root.add(casting(new THREE.Mesh(geo.stone, stone)), new THREE.Mesh(geo.glyph, glyph), new THREE.Mesh(geo.glow, glow), new THREE.Mesh(geo.wax, wax), runes, wave, flames);
     scene.add(root);
     return { sign, root, glyph, glow, runes, wave, flames, lit: 0, flare: null, motes: 0, phase: Math.random() * 6 };
   }
