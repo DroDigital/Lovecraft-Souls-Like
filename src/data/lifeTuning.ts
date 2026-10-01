@@ -83,6 +83,15 @@ export const WEATHER = {
   dry: 0.04, // ...and how slowly it dries once it has passed: puddles are gone in about a minute
 };
 
+/** What the people say to themselves as the investigator passes (round 34; data/overheard.ts, systems/overheard.ts). */
+export const HEARD = {
+  range: 6.5, // metres within which a muttering is overheard
+  every: 1500, // frames between one overheard and the next, whoever it is (25 s): none is a wall of text
+  look: 30, // frames between looks for someone near
+  seen: 1.55, // metres above the ground that the line of sight is taken at, both ends
+  shown: 6, // seconds a line is shown
+};
+
 /** The sights that cross the dream (round 26; data/wanderers.ts, systems/wanderers.ts). */
 export const WANDER = {
   every: 600, // frames between looks for a moment to send one

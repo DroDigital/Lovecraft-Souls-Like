@@ -4,6 +4,7 @@ import { BOSS } from '../src/data/tuning';
 import { startMove } from '../src/systems/actions';
 import { setArena } from '../src/systems/bossFight';
 import { strike } from '../src/systems/combat';
+import { resolveCapsule } from '../src/world/colliders';
 import { deathblow } from './worldHelpers';
 import { bossGame, engage, type BossGame } from './bossHelpers';
 import { place, steps } from './helpers';
@@ -91,6 +92,37 @@ describe('a boss keeps to its arena (spec §3E)', () => {
     place(b.g, b.g.player.id, b.ring.x, b.ring.z + b.ring.radius + 3, Math.PI);
     steps(b.g, 2);
     expect(distXZ(me.pos, b.ring)).toBeGreaterThan(b.ring.radius + 2); // the fog has lifted
+  });
+
+  it('does not drag back an investigator who has been carried far from its ring, which lets them go (soak finding, round 34: one set down 1250 m away was pulled back across the world)', () => {
+    const b = ringed('the_outsider', 6, 3);
+    engage(b);
+    hold(b);
+    const me = b.g.ecs.c.transform.get(b.g.player.id)!;
+    steps(b.g, 2);
+    expect(b.fight.veiled).toBe(true);
+    b.g.world.contain = () => undefined; // (the arena's own circle would draw them back: the open world has none)
+    place(b.g, b.g.player.id, b.ring.x, b.ring.z + b.ring.radius + BOSS.margin + 30, Math.PI);
+    const far = { ...me.pos };
+    steps(b.g, 2);
+    expect(distXZ(me.pos, far)).toBeLessThan(1);
+    expect(b.fight.veiled).toBe(false);
+  });
+
+  it('never sets the investigator down inside a wall that stands where its rim does (the same finding: stuck in the corner of the Starry Wisdom church)', () => {
+    const b = ringed('the_outsider', 6, 3);
+    engage(b);
+    hold(b);
+    const me = b.g.ecs.c.transform.get(b.g.player.id)!;
+    steps(b.g, 2);
+    expect(b.fight.veiled).toBe(true);
+    const rim = b.ring.z + b.ring.radius - 0.4;
+    b.g.world.colliders.push({ kind: 'box', min: { x: b.ring.x - 3, y: -1, z: rim - 1.5 }, max: { x: b.ring.x + 3, y: 6, z: rim + 0.2 } }); // thicker inside the rim than beyond it: the wall's nearest way out is outward, and the fog was drawing them back in
+    place(b.g, b.g.player.id, b.ring.x, b.ring.z + b.ring.radius + 3, Math.PI); // beyond the wall
+    steps(b.g, 30);
+    const out = { ...me.pos };
+    resolveCapsule(b.g.world, out, 0.4, 1.8);
+    expect(Math.hypot(out.x - me.pos.x, out.z - me.pos.z)).toBeLessThan(0.1); // not inside it
   });
 
   it('a quick foe may slip a blow as it winds up, stepping aside inside its ring', () => {

@@ -10,11 +10,12 @@ import { BUTTONS, emptyInput, type Button, type InputFrame } from '../src/core/i
 import { GUN, SANITY } from '../src/data/tuning';
 import { ROSTER_IDS } from '../src/data/roster';
 import { createWorldGame, stepGame } from '../src/systems/game';
-import { rest, teleport } from '../src/systems/checkpoints';
+import { rest, teleport, travelBar } from '../src/systems/checkpoints';
 import { spawnCreature } from '../src/systems/creatures';
 import { parseSave, snapshot } from '../src/systems/save';
 import { setSanity } from '../src/systems/sanity';
 import type { Game } from '../src/systems/components';
+import { resolveCapsule } from '../src/world/colliders';
 import { worldLayout } from '../src/world/placements';
 
 const env = (globalThis as unknown as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}; // (the tests carry no Node typings)
@@ -27,12 +28,25 @@ const summaries: string[] = [];
 
 const finite = (n: unknown): boolean => typeof n === 'number' && Number.isFinite(n);
 
+/** How many looks running the investigator has been found inside something solid. */
+const embedded = new WeakMap<Game, number>();
+
 function invariants(g: Game): string[] {
   const bad: string[] = [];
   const c = g.ecs.c;
   for (const [id, t] of c.transform) {
     if (![t.pos.x, t.pos.y, t.pos.z, t.yaw].every(finite)) bad.push(`entity ${id} (${c.model.get(id) ?? c.combatant.get(id)?.name ?? '?'}) transform not finite: ${JSON.stringify(t.pos)} yaw ${t.yaw}`);
     else if (Math.abs(t.pos.x) > 6000 || Math.abs(t.pos.z) > 6000 || t.pos.y < -80 || t.pos.y > 400) bad.push(`entity ${id} (${c.combatant.get(id)?.name ?? c.model.get(id) ?? '?'}) far off: ${JSON.stringify(t.pos)}`);
+  }
+  const [pt, pb] = [c.transform.get(g.player.id), c.body.get(g.player.id)];
+  if (pt && pb && ![pt.pos.x, pt.pos.y, pt.pos.z].some((v) => !finite(v))) {
+    const ground = g.world.ground(pt.pos.x, pt.pos.z);
+    if (Math.abs(pt.pos.y - ground) > 0.75) bad.push(`the investigator floats or sinks: y ${pt.pos.y.toFixed(2)} on ground ${ground.toFixed(2)}`); // (round 34)
+    const out = { ...pt.pos };
+    resolveCapsule(g.world, out, pb.radius, pb.height);
+    const [inside, was] = [Math.hypot(out.x - pt.pos.x, out.z - pt.pos.z), embedded.get(g) ?? 0];
+    embedded.set(g, inside > 0.3 ? was + 1 : 0); // a shove into a wall for a frame is mended by the next: it is a finding when it is still there three looks (sixty frames) on
+    if (was >= 2 && inside > 0.3) bad.push(`the investigator is stuck inside something solid: ${inside.toFixed(2)} m from where they can stand, for sixty frames`);
   }
   for (const [id, h] of c.health) {
     if (!finite(h.hp) || !finite(h.max)) bad.push(`entity ${id} health not finite ${h.hp}/${h.max}`);
@@ -93,7 +107,7 @@ describe('soak', () => {
         // Orchestration
         if (frame % 300 === 150) {
           const r = rng();
-          if (r < 0.35) {
+          if (r < 0.35 && travelBar(g) !== 'boss') { // a journey is not begun from the map in a boss fight (the fog holds them: dragged back from across the world, one was set down inside a wall)
             const s = signs[Math.floor(rng() * signs.length)];
             const yaw = rng() * Math.PI * 2;
             teleport(g, { x: s.x + Math.sin(yaw) * 4, z: s.z + Math.cos(yaw) * 4, yaw });
@@ -117,7 +131,7 @@ describe('soak', () => {
           } else if (r < 0.93) {
             setSanity(g, rng() * 30);
             recent.push('sanity shock');
-          } else {
+          } else if (travelBar(g) !== 'boss') {
             const s = signs[Math.floor(rng() * signs.length)];
             teleport(g, { x: s.x + 3, z: s.z + 3, yaw: 0 });
             g.player.kneeling = null;
