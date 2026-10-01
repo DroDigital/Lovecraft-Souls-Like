@@ -58,31 +58,39 @@ export const onPadSelect = (fn: () => void): void => void padSelect.push(fn);
 export const setMenuSound = (fn: () => void): void => void (sound = fn);
 
 const CSS = `
-[data-menu] button{display:block;width:100%;margin:4px 0;padding:6px 12px 6px 14px;text-align:left;font:14px ${SERIF};letter-spacing:.8px;color:${BONE};background:linear-gradient(180deg,#201f27,#141318);border:1px solid ${BONE}40;border-left:3px solid #8a7648;box-shadow:inset 0 1px 0 #ffffff12,0 1px 0 #000c;cursor:pointer;transition:background .12s,border-color .12s,color .12s}
-[data-menu] button:disabled{opacity:.4;cursor:default}
-[data-menu] button.quiet{display:inline-block;width:auto;background:none;border:none;box-shadow:none;padding:2px 0;opacity:.55;text-shadow:0 0 6px #000,0 1px 2px #000}
-[data-menu] button.quiet:focus,[data-menu] button.quiet:hover:not(:disabled){outline:none;background:none!important;box-shadow:none;opacity:1}
-[data-menu] button:focus,[data-menu] button:hover:not(:disabled){outline:none;color:#fff3d0;background:linear-gradient(180deg,#38332b,#221f1d)!important;border-color:${GOLD}cc;border-left-color:#f0cf6a;box-shadow:inset 0 0 14px ${GOLD}22,0 0 9px ${GOLD}33}
-[data-menu] label{display:flex;gap:10px;align-items:center;margin:8px 0}
+[data-menu] button{position:relative;display:block;width:100%;margin:1px 0;padding:6px 10px 6px 26px;text-align:left;font:15px ${SERIF};letter-spacing:.6px;color:${BONE}d0;background:none;border:none;border-bottom:1px solid transparent;cursor:pointer;transition:color .15s,border-color .15s}
+[data-menu] button::before{content:'';position:absolute;left:10px;top:50%;width:5px;height:5px;margin-top:-3px;border:1px solid ${GOLD};transform:rotate(45deg) scale(.4);opacity:0;transition:opacity .15s,transform .15s}
+[data-menu] button:disabled{opacity:.35;cursor:default}
+[data-menu] button.quiet{display:inline-block;width:auto;padding:2px 0;opacity:.55;text-shadow:0 0 6px #000,0 1px 2px #000}
+[data-menu] button.quiet::before{display:none}
+[data-menu] button.quiet:focus,[data-menu] button.quiet:hover:not(:disabled){outline:none;opacity:1;border-color:transparent}
+[data-menu] button:focus,[data-menu] button:hover:not(:disabled){outline:none;color:${PAPER};border-bottom-color:${GOLD}55}
+[data-menu] button:focus::before,[data-menu] button:hover:not(:disabled)::before{opacity:1;transform:rotate(45deg) scale(1);background:${GOLD}}
+[data-menu] label{display:flex;gap:12px;align-items:center;margin:9px 0}
 [data-menu] label span:first-child{min-width:13ch}
-[data-menu] label span:last-child{min-width:6ch;text-align:right}
-[data-menu] input[type=range]{flex:1;accent-color:${GOLD}}
-[data-menu] input:focus{outline:1px solid ${GOLD}aa}
-[data-menu]{scrollbar-width:thin;scrollbar-color:${GOLD}66 transparent}
-[data-menu]::-webkit-scrollbar{width:8px}
-[data-menu]::-webkit-scrollbar-thumb{background:${GOLD}55;border-radius:4px}
+[data-menu] label span:last-child{min-width:6ch;text-align:right;opacity:.8}
+[data-menu] input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:16px;background:transparent;cursor:pointer}
+[data-menu] input[type=range]::-webkit-slider-runnable-track{height:1px;background:${GOLD}77}
+[data-menu] input[type=range]::-moz-range-track{height:1px;background:${GOLD}77}
+[data-menu] input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;margin-top:-4px;transform:rotate(45deg);background:#0e0c0b;border:1px solid ${GOLD}}
+[data-menu] input[type=range]::-moz-range-thumb{width:7px;height:7px;transform:rotate(45deg);border-radius:0;background:#0e0c0b;border:1px solid ${GOLD}}
+[data-menu] input[type=range]:focus{outline:none}
+[data-menu] input[type=range]:focus::-webkit-slider-thumb{background:${GOLD}}
+[data-menu] input[type=range]:focus::-moz-range-thumb{background:${GOLD}}
+[data-menu]{scrollbar-width:thin;scrollbar-color:${GOLD}55 transparent}
+[data-menu]::-webkit-scrollbar{width:6px}
+[data-menu]::-webkit-scrollbar-thumb{background:${GOLD}44}
 [data-menu]::-webkit-scrollbar-track{background:transparent}`;
 
 /**
- * A framed panel's look (round 32: the menus were plain dark boxes): a deep ground lit from above, a
- * thin gold border held off by a second, dark one and a third faint, brackets at the four corners,
- * and a heavy shadow. `alpha` (two hex digits) lets a dialogue's panel show the world through it.
+ * A panel's look (round 35: round 32's gilt frames, brackets and glowing plaques read as a modern
+ * game's menu, and too much of one colour): a leaf of an old field journal. A warm near-black
+ * ground with a little light at its head, a single fine rule held inside the edge by a second, and
+ * nothing else; its choices are plain lines of print, the one chosen marked by a small lozenge and
+ * brightened. `alpha` (two hex digits) lets a dialogue's panel show the world through it.
  */
 export function frame(alpha = ''): string {
-  const corner = (x: 'left' | 'right', y: 'top' | 'bottom'): string =>
-    `linear-gradient(${GOLD},${GOLD}) ${x} 9px ${y} 9px/26px 1px no-repeat,linear-gradient(${GOLD},${GOLD}) ${x} 9px ${y} 9px/1px 26px no-repeat`;
-  const corners = [corner('left', 'top'), corner('right', 'top'), corner('left', 'bottom'), corner('right', 'bottom')].join(',');
-  return `padding:22px 26px;background:${corners},radial-gradient(ellipse at 50% 0%,#1d1c26${alpha},#0b0a0f${alpha} 72%);border:1px solid ${GOLD}66;box-shadow:0 0 0 3px #08080b${alpha},0 0 0 4px ${BONE}33,0 20px 60px #000d,inset 0 0 60px #000b`;
+  return `padding:24px 30px;background:radial-gradient(ellipse at 50% 0%,#17130f${alpha},#0c0a09${alpha} 75%);border:1px solid ${GOLD}44;box-shadow:inset 0 0 0 5px #0c0a09${alpha},inset 0 0 0 6px ${GOLD}33,0 18px 50px #000c,inset 0 0 70px #000a`;
 }
 
 const items = (panel: HTMLElement): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input')];
@@ -250,17 +258,17 @@ export function el<K extends keyof HTMLElementTagNameMap>(parent: HTMLElement, t
   return e;
 }
 
-/** A page's section: small gold capitals over a faint rule (an empty one is the rule alone, before a closing button). */
-export const heading = (parent: HTMLElement, text: string): HTMLDivElement => el(parent, 'div', text, `margin:16px 0 6px;padding-bottom:3px;letter-spacing:3px;font-size:12px;color:${GOLD};border-bottom:1px solid ${GOLD}44`);
+/** A page's section: small capitals in old brass over a hair rule (an empty one is the rule alone, before a closing button). */
+export const heading = (parent: HTMLElement, text: string): HTMLDivElement => el(parent, 'div', text, `margin:16px 0 6px;padding-bottom:3px;letter-spacing:3px;font-size:11px;color:${GOLD};border-bottom:1px solid ${GOLD}33`);
 
-/** A page's title: its name in pale capitals, a rule fading out on either side of a small gold diamond below it. */
+/** A page's title: its name in pale capitals and a hair rule with a small lozenge, no more. */
 export function title(parent: HTMLElement, text: string): HTMLDivElement {
-  const box = el(parent, 'div', '', 'margin:0 0 12px;text-align:center');
-  el(box, 'div', text, `font-size:18px;letter-spacing:6px;color:${PAPER};text-shadow:0 0 12px ${GOLD}44`);
-  const rule = el(box, 'div', '', 'display:flex;align-items:center;gap:8px;margin:7px 10px 0');
-  el(rule, 'span', '', `flex:1;height:1px;background:linear-gradient(90deg,transparent,${GOLD}aa)`);
-  el(rule, 'span', '', `width:6px;height:6px;transform:rotate(45deg);background:${GOLD}`);
-  el(rule, 'span', '', `flex:1;height:1px;background:linear-gradient(270deg,transparent,${GOLD}aa)`);
+  const box = el(parent, 'div', '', 'margin:0 0 14px;text-align:center');
+  el(box, 'div', text, `font-size:17px;letter-spacing:7px;color:${PAPER}`);
+  const rule = el(box, 'div', '', 'display:flex;align-items:center;gap:8px;margin:8px 18px 0');
+  el(rule, 'span', '', `flex:1;height:1px;background:linear-gradient(90deg,transparent,${GOLD}77)`);
+  el(rule, 'span', '', `width:5px;height:5px;transform:rotate(45deg);border:1px solid ${GOLD}`);
+  el(rule, 'span', '', `flex:1;height:1px;background:linear-gradient(270deg,transparent,${GOLD}77)`);
   return box;
 }
 
