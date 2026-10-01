@@ -20,7 +20,7 @@ export interface LanternShadow {
   render(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, from: { x: number; y: number; z: number }): void;
 }
 
-const FAR_SIDE = new THREE.ShaderMaterial({
+export const FAR_SIDE = new THREE.ShaderMaterial({
   vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: 'void main() { gl_FragColor = vec4(1.0); }',
   side: THREE.BackSide,
@@ -41,6 +41,9 @@ export function createLanternShadow(): LanternShadow {
   u.uLShadowView.value = lens.matrixWorldInverse; // the camera keeps these two matrices up to date in place
   u.uLShadowProj.value = lens.projectionMatrix;
   const aim = new THREE.Vector3();
+  // Held still while the camera turns (round 35: aimed afresh at every frame's look, the map's texels crawled across every shadow's edge as the mouse moved, and they shimmered): the map's aim steps in whole notches, and only when the look has gone well past the one held, so the edges are the same ones from frame to frame.
+  let held: { yaw: number; pitch: number } | null = null;
+  const notch = (v: number, step: number): number => Math.round(v / step) * step;
   const shadow: LanternShadow = {
     enabled: false,
     render(renderer, scene, camera, from) {
@@ -49,7 +52,11 @@ export function createLanternShadow(): LanternShadow {
       camera.updateMatrixWorld();
       camera.getWorldDirection(aim);
       lens.position.set(from.x, from.y + height, from.z);
-      lens.lookAt(lens.position.x + aim.x, lens.position.y + aim.y, lens.position.z + aim.z);
+      const [yaw, pitch] = [Math.atan2(aim.x, aim.z), Math.asin(Math.max(-1, Math.min(1, aim.y)))];
+      const turn = held ? Math.abs(Math.atan2(Math.sin(yaw - held.yaw), Math.cos(yaw - held.yaw))) : Infinity;
+      if (!held || turn > LANTERN_SHADOW.hold || Math.abs(pitch - held.pitch) > LANTERN_SHADOW.hold) held = { yaw: notch(yaw, LANTERN_SHADOW.notch), pitch: notch(pitch, LANTERN_SHADOW.notch) };
+      const [cp, sp] = [Math.cos(held.pitch), Math.sin(held.pitch)];
+      lens.lookAt(lens.position.x + Math.sin(held.yaw) * cp, lens.position.y + sp, lens.position.z + Math.cos(held.yaw) * cp);
       lens.updateMatrixWorld(true);
       const [was, material] = [renderer.getRenderTarget(), scene.overrideMaterial];
       scene.overrideMaterial = FAR_SIDE;

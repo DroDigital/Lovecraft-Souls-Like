@@ -244,6 +244,8 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         views.update(alpha, time);
         placeLantern(game, alpha);
         lights.update(camera.position, time, views.flame);
+        pipeline.lamps.enabled = !!world && settings.shadows > 0.5;
+        pipeline.lamps.update(lights.casters, 1 / 60); // which lamps cast this frame, before they are drawn (round 35)
         creatures.update(alpha, time, camera);
         hidden.update(time);
         fights.update(alpha, time);
