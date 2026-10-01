@@ -24,7 +24,6 @@ const v = (voice: readonly [string, string], more: Own = {}): Voice => ({ voice:
 /** Premade voices (ElevenLabs' own). */
 const ERIC = ['cjVigY5qzO86Huf0OWal', 'Eric - Smooth, Trustworthy'] as const;
 const WILL = ['bIHbv24MWmeRgasZH58o', 'Will - Relaxed Optimist'] as const;
-const ADAM = ['pNInz6obpgDQGcFmaJgB', 'Adam - Dominant, Firm'] as const;
 const ROGER = ['CwhRBWXzGAHq8TQ4Fs17', 'Roger - Laid-Back, Casual, Resonant'] as const;
 const BRIAN = ['nPczCjzI2devNBz1zQrb', 'Brian - Deep, Resonant and Comforting'] as const;
 const CALLUM = ['N2lVS1w4EtoT3dr4eOWO', 'Callum - Husky Trickster'] as const;
@@ -43,7 +42,7 @@ export const CAST: Readonly<Record<string, Voice>> = {
   // people met at the Elder Signs
   'npc:peaslee': v(ERIC),
   'npc:gilman': v(WILL),
-  'npc:morgan': v(ADAM),
+  'npc:morgan': v(['AFtA63zAzQAlNDuzSRKy', 'Josef Hammer – Deep & Expressive']), // round 29: Adam was a generic firm voice for a trader who deals in Echoes; this one is smoky, low and unhurried
   'npc:kuranes': v(['jAW0IMxOTz75sgLAYWp6', 'Desmond (UK) - Distinguished Persuasion']),
   'npc:zadok': v(['KgUSWQPFmuiZ5ycRbnty', 'Jessie - Vintage Narrator']),
   'npc:wilmarth': v(ROGER),

@@ -32,8 +32,8 @@ const flat = (radius: number, segments = 24): THREE.BufferGeometry =>
 
 function pool(radius: number, fire = false): THREE.Mesh {
   if (fire) { // burning lamp oil (round 12): bright, and it crawls
-    const geo = tint(flat(radius), mixRgb(BASE.rust, BASE.bone, 0.5));
-    return new THREE.Mesh(geo, createWorldMaterial({ texture: 'cloth', uvScale: [radius * 2, radius * 2], uvScroll: [0.4, 0.7], emissive: 0.9, vertexColors: true }));
+    const geo = tint(flat(radius), [1, 0.52, 0.2]); // flame, not bone: the grade pales a dull colour to grey
+    return new THREE.Mesh(geo, createWorldMaterial({ texture: 'cloth', uvScale: [radius * 2, radius * 2], uvScroll: [0.4, 0.7], emissive: 1, vertexColors: true }));
   }
   const geo = tint(flat(radius), scaleRgb(mixRgb(BASE.rust, BASE.seaGrey, 0.5), 0.9));
   return new THREE.Mesh(geo, createWorldMaterial({ texture: 'flesh', uvScale: [radius, radius], uvScroll: [0.05, 0.03], emissive: 0.35, vertexColors: true }));
@@ -134,9 +134,14 @@ export function createFightViews(scene: THREE.Scene, g: Game): FightViews {
       if (views.has(id)) continue;
       const p = c.transform.get(id)!.pos;
       const mesh = pool(h.radius, h.fire);
+      mesh.userData.life0 = Math.max(1, h.life);
       mesh.position.set(p.x, p.y + 0.05, p.z);
       scene.add(mesh);
       views.set(id, mesh);
+    }
+    for (const [id, h] of c.hazard) { // burning oil dwindles as it is spent (round 29)
+      const v = views.get(id);
+      if (h.fire && v) v.scale.setScalar(0.5 + 0.5 * Math.min(1, h.life / (v.userData.life0 * 0.3)));
     }
     for (const [id, prop] of c.prop) {
       if (views.has(id)) continue;
@@ -170,7 +175,7 @@ export function createFightViews(scene: THREE.Scene, g: Game): FightViews {
       let n = 0;
       for (const [id, b] of c.bolt) {
         const tr = c.transform.get(id);
-        if (!tr || n >= CAPACITY) continue;
+        if (!tr || n >= CAPACITY || (b.pool?.fire && b.faction === 'player')) continue; // a flask of oil is drawn by flaskFx.ts
         at.set(tr.prev.x + (tr.pos.x - tr.prev.x) * alpha, tr.prev.y + (tr.pos.y - tr.prev.y) * alpha, tr.prev.z + (tr.pos.z - tr.prev.z) * alpha);
         q.setFromAxisAngle(axis, time * 9 + id);
         bolts.setMatrixAt(n++, m4.compose(at, q, size.setScalar(b.radius)));

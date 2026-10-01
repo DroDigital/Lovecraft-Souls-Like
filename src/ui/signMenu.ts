@@ -42,6 +42,7 @@ export interface SignMenu {
 /** `go` makes a long jump under the veil (journeys.ts). */
 export function createSignMenu(g: Game, go: (words: string, jump: () => void, line?: string) => void): SignMenu {
   const screen = createScreen(3, '#050506cc');
+  screen.onClose = () => void (g.player.kneeling = null); // rested at the stone, they rise when the menu is left, not when they next move (round 29)
   const close = (): void => screen.close();
   const journey = (s: SignPlace): void => (close(), go(s.name.toUpperCase(), () => travel(g, s.id)));
   /** The signs found, but the one rested at, by region in the world's order. */

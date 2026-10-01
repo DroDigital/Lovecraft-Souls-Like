@@ -113,7 +113,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
       // No pointer lock: a click on the canvas captures the mouse, as ever.
     }
   };
+  let spawned = false; // the world's own sound (ambience, drones, the realm's music) waits for the spawn: until then the theme plays on alone (round 29)
   const reveal = (): void => {
+    spawned = true;
     shell.music?.fadeOut(); // the title's theme plays on until the world shows, then sinks away under its ambience
     shell.music = undefined;
     if (opts.intro) director.wake(); // a new game: the investigator wakes in the dream (round 20)
@@ -148,6 +150,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const fights = createFightViews(scene, game);
   const fxController = createFxController(game);
   const audio = createGameAudio(shell.engine, shell.drones, game);
+  audio.warm(); // the realm's track decoded while the theme plays, to come in as it sinks
   const particles = createParticles(scene);
   const combatFx = createCombatFx(game, particles, () => views.muzzle);
   const impactFx = createImpactFx(game, particles); // round 20: the weight of the investigator's blows
@@ -251,7 +254,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         applyReality(fx, game.reality);
         lightReality(game.reality);
         life.update(camera, time, enclosed); // after the night's light: the lightning adds to it
-        audio.update(fx, time, camera, still);
+        if (spawned) audio.update(fx, time, camera, still);
         const lens = lensAt(fx, time);
         applyLens(camera, cinema.lensFov(lens.fovDeg), lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);

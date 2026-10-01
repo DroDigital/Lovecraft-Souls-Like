@@ -33,3 +33,12 @@ export const IMPACT = {
   kick: { push: 0.14, shake: 0.025, seconds: 0.22 }, // the camera's: metres it is pushed toward the blow at a weight of 1, how much it is shaken, and how long it takes to settle
   finisher: 3, // frames more hitstop for a blow that kills or lands as a riposte
 };
+
+/** Flasks of lamp oil (round 29): the glass in flight, its trail, the burst where it lands and the fire it leaves. Render only. */
+export const FLASK = {
+  trail: { embers: 34, smoke: 16 }, // particles a second behind a flask in flight
+  burst: { fire: 40, ring: 24, shards: 16, smoke: 9, flash: 0.35 }, // particles at a landing; seconds of its flash
+  fire: { tongues: 10, embers: 1.6, smoke: 0.5, glow: 2.2, fade: 0.25 }, // a burning pool: tongues, embers and smoke a second per m²; its halo (× its radius); the last share of its life it dies down in
+  colour: { flame: [1, 0.55, 0.16], core: [1, 0.86, 0.45], glass: [0.5, 0.62, 0.5], smoke: [0.26, 0.24, 0.22] } as const,
+  capacity: 8, // flasks drawn at once
+};
