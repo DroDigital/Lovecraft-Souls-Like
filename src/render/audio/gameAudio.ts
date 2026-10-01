@@ -28,6 +28,8 @@ import { dungeonRoomAt } from '../../world/terrain';
 import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
+import { realmTrackOf } from '../../data/realmMusic';
+import { createRealmMusic } from './realmMusic';
 import { createDread } from './dread';
 import { createWeatherBed } from './weatherBed';
 import { CUES, cueFor, dullness, nextCall, placeSound, type Cue } from './cues';
@@ -158,6 +160,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
 
   const callers = new Map<Entity, Caller>();
   const music = createBossMusic(e);
+  const realm = createRealmMusic(e); // round 28: each realm's background track, crossfaded
   let region: string | null = null;
 
   function calls(seconds: number): void {
@@ -239,6 +242,8 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       weatherBed.set(g.overworld?.weather.kind ?? 'clear', g.overworld?.weather.amount ?? 0, !!roofed); // round 26
       ambience.update(seconds);
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
+      const stairs = g.overworld && at ? dungeonRoomAt(at.x, at.z) : null;
+      realm.update(seconds, { track: g.overworld ? realmTrackOf(region, stairs?.layout.def.id, stairs?.room.def.id) : null, fight: !!fight, hush: e.hushed, paused });
       dread.update(seconds, paused);
       drones.update(fx, seconds);
       if (paused) return;

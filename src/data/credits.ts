@@ -16,6 +16,7 @@ export const CREDITS: readonly CreditBlock[] = [
   { heading: 'RECORDED SOUNDS', lines: ['from Freesound, dedicated to the public domain (CC0 1.0), cut and treated for the game:', 'Craig Smith (craigsmith)', 'Breviceps', 'EvaMusik', 'fonografico', 'corkob', 'Lsoundaccount', 'TheKingOfGeeks360', 'waterboy920'] },
   { heading: 'VOICES', lines: ['the people of the realms and the horrors that speak: synthetic voices, made with ElevenLabs (Eleven v4)'] },
   { heading: 'TITLE THEME', lines: ['"Subterranean Pulse"'] },
+  { heading: 'MUSIC OF THE REALMS', lines: ['fifteen background tracks, one for each realm of the dream: synthetic music, made with Suno'] },
   { heading: 'SOFTWARE', lines: ['three.js · MIT License · © 2010–2026 three.js authors', 'Electron · MIT License · © Electron contributors, with Chromium under its own licences', 'built with TypeScript and Vite'] },
   { heading: '', lines: ['Thank you for dreaming.'] },
 ];
