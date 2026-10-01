@@ -26,6 +26,8 @@ export interface RealmState {
 
 export interface RealmMusic {
   update(seconds: number, state: RealmState): void;
+  /** Fetches and decodes a track without sounding it, so it can come in at once when the world shows (round 29: it waits out the intro). */
+  warm(track: RealmTrackId | null): void;
   /** What sounds now (for the debug panel and tests). */
   readonly sounding: RealmTrackId | null;
 }
@@ -117,6 +119,10 @@ export function createRealmMusic(e: AudioEngine): RealmMusic {
   return {
     get sounding() {
       return current && current.endsAt === Infinity ? current.id : null;
+    },
+    warm(track) {
+      const ctx = e.ctx;
+      if (ctx && track && !loaded.has(track) && (failed.get(track) ?? 0) <= clock) loaded.set(track, fetchTrack(ctx, track));
     },
     update(seconds, state) {
       clock = seconds;

@@ -52,7 +52,7 @@ playback, so a recast does not need them again.
 |---|---|---|---|
 | `npc:peaslee` | Eric - Smooth, Trustworthy (premade) | `cjVigY5qzO86Huf0OWal` | — |
 | `npc:gilman` | Will - Relaxed Optimist (premade) | `bIHbv24MWmeRgasZH58o` | — |
-| `npc:morgan` | Adam - Dominant, Firm (premade) | `pNInz6obpgDQGcFmaJgB` | — |
+| `npc:morgan` | Josef Hammer – Deep & Expressive (library; round 29, was Adam) | `AFtA63zAzQAlNDuzSRKy` | — |
 | `npc:kuranes` | Desmond (UK) - Distinguished Persuasion | `jAW0IMxOTz75sgLAYWp6` | — |
 | `npc:zadok` | Jessie - Vintage Narrator | `KgUSWQPFmuiZ5ycRbnty` | — |
 | `npc:wilmarth` | Roger - Laid-Back, Casual, Resonant (premade) | `CwhRBWXzGAHq8TQ4Fs17` | — |

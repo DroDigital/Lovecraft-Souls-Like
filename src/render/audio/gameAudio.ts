@@ -28,7 +28,7 @@ import { dungeonRoomAt } from '../../world/terrain';
 import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
-import { realmTrackOf } from '../../data/realmMusic';
+import { realmTrackOf, type RealmTrackId } from '../../data/realmMusic';
 import { createRealmMusic } from './realmMusic';
 import { createDread } from './dread';
 import { createWeatherBed } from './weatherBed';
@@ -53,6 +53,8 @@ export interface GameAudio {
   stinger(sound: StingerId, o?: { gain?: number; pitch?: number }): void;
   /** A recording heard without place (round 20: a cutscene's laugh, its choir). */
   sample(set: SampleSetId, o?: { gain?: number; pitch?: number }): void;
+  /** Gets the realm's track ready (fetched, decoded) without sounding it: the world's sound begins when it shows (round 29). */
+  warm(): void;
 }
 
 interface Caller {
@@ -163,6 +165,12 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   const realm = createRealmMusic(e); // round 28: each realm's background track, crossfaded
   let region: string | null = null;
 
+  /** The track of where the investigator is: their realm's, or the stairs of slumber's. */
+  const trackHere = (at: V3 | undefined): RealmTrackId | null => {
+    const stairs = g.overworld && at ? dungeonRoomAt(at.x, at.z) : null;
+    return g.overworld ? realmTrackOf(g.overworld.region ?? region, stairs?.layout.def.id, stairs?.room.def.id) : null;
+  };
+
   function calls(seconds: number): void {
     const c = g.ecs.c;
     for (const [id, dread] of c.dread) {
@@ -209,6 +217,9 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     sampler.play(SAMPLE_SETS.whisper, { gain: lo + (hi - lo) * Math.min(1, k), pan: Math.random() < 0.5 ? -0.9 : 0.9, pitch: 0.78 + 0.22 * Math.random() });
   }
   return {
+    warm() {
+      realm.warm(trackHere(g.ecs.c.transform.get(g.player.id)?.pos));
+    },
     far(set, gain = 1, pitch) {
       sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, pitch, bus: e.bed ?? undefined });
     },
@@ -242,8 +253,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       weatherBed.set(g.overworld?.weather.kind ?? 'clear', g.overworld?.weather.amount ?? 0, !!roofed); // round 26
       ambience.update(seconds);
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
-      const stairs = g.overworld && at ? dungeonRoomAt(at.x, at.z) : null;
-      realm.update(seconds, { track: g.overworld ? realmTrackOf(region, stairs?.layout.def.id, stairs?.room.def.id) : null, fight: !!fight, hush: e.hushed, paused });
+      realm.update(seconds, { track: trackHere(at), fight: !!fight, hush: e.hushed, paused });
       dread.update(seconds, paused);
       drones.update(fx, seconds);
       if (paused) return;

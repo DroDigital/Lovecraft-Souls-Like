@@ -109,6 +109,7 @@ export function travel(g: Game, id: string): boolean {
   const s = signPlace(id);
   if (!ow || !s || !ow.discovered.has(id)) return false;
   teleport(g, s.rest);
+  g.player.kneeling = { x: s.x, z: s.z }; // they arrive on one knee before the stone, as after a rest (round 29)
   ow.sign = id;
   g.player.checkpoint = { ...s.rest };
   g.events.emit('Travelled', { via: 'sign', to: id, name: s.name });

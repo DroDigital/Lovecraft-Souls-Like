@@ -28,6 +28,8 @@ export interface Screen {
   readonly open: boolean;
   show(page: Page): void;
   close(): void;
+  /** Called once the screen has closed (round 29: the Elder Sign's menu lets the investigator rise). */
+  onClose?: () => void;
 }
 
 interface Entry {
@@ -220,6 +222,7 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left
       root.style.display = 'none';
       if (!stack.length) muteHeldPad(); // the B or A that closed it is not a dodge or a word
       (document.activeElement as HTMLElement | null)?.blur?.();
+      self.onClose?.();
     },
   };
   return self;

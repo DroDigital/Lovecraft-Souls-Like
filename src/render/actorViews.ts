@@ -69,6 +69,10 @@ export function createActorViews(scene: THREE.Scene, g: Game): ActorViews {
   let muzzle: THREE.Vector3 | null = null;
   let rising: { seconds: number; at: number | null } | null = null; // a cutscene's slow rise from the knee: when it began (set by the first frame drawn)
 
+  g.events.on('Travelled', () => { // arriving at a sign on one knee: already down as the veil lifts (round 29)
+    const v = views.get(g.player.id);
+    if (v && g.player.kneeling) v.kneel = 1;
+  });
   g.events.on('Hit', (e) => {
     const v = views.get(e.target);
     if (v && e.outcome !== 'dodged') v.hitAt = simTime();

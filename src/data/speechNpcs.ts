@@ -35,10 +35,10 @@ export const NPC_SAID: Readonly<Record<string, readonly string[]>> = {
     "[distant] I keep counting the corners on this street. [long pause] [whispers] There are more of them than there should be.",
   ],
   morgan: [
-    "[satisfied] Armitage will want to hear the Horror's gone. [dryly] I carried the sprayer that night, you know. [chuckles] The powder worked then, TOO.",
-    "[businesslike] Here, see what I have. [wry chuckle] It all costs something... [dryly] even HERE.",
-    "[brusquely] Morgan. Medicine, and comparative anatomy. I was at Dunwich with Armitage and Rice, before all this. [casually] I've been making myself useful.",
-    "[matter of fact] Lamp oil in medicine bottles, mostly. Thrown, they BURN. [low voice] And a few odd things from the Exhibition Hall's drawers. [dryly] I'll trade for those Echoes of yours... [pause] don't ask me what I do with them.",
+    "[low voice] [satisfied] Armitage will want to hear the Horror's gone. [pause] [dryly] I carried the sprayer that night, you know. [quiet chuckle] The powder worked then, TOO.",
+    "[low voice] [measured] Here, see what I have. [wry chuckle] [slowly] It all costs something... [pause] [dryly] even HERE.",
+    "[low voice] [measured] Morgan. Medicine, and comparative anatomy. [pause] I was at Dunwich with Armitage and Rice, before all this. [casually] [quietly] I've been making myself useful.",
+    "[low voice] [matter of fact] Lamp oil in medicine bottles, mostly. Thrown, they BURN. [pause] [softly] And a few odd things from the Exhibition Hall's drawers. [dryly] I'll trade for those Echoes of yours... [long pause] [whispers] don't ask me what I do with them.",
   ],
   kuranes: [
     "[warmly] Another one from the waking world. [gently] You have the look. [softly] Tired... [pause] and very careful.",
