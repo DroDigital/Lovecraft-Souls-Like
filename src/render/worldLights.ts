@@ -47,11 +47,17 @@ export interface WorldLights {
 
 const MAX_HALOS = 400;
 
-/** A flame's waver: about 1, by `amount`, its own rhythm for each spot. */
+/** How far the mind has gone (0..1; set each frame by worldLife.ts, round 26): the flames of a failing mind's world waver harder, and some gutter out for a moment. */
+export const LIGHT_NERVES = { madness: 0 };
+
+/** A flame's waver: about 1, by `amount` (and a failing mind's), its own rhythm for each spot. */
 function waver(s: LightSpot, amount: number, time: number): number {
-  if (amount <= 0) return 1;
+  const m = LIGHT_NERVES.madness;
+  const a = amount + m * 0.3;
+  if (a <= 0) return 1;
   const phase = Math.abs(Math.sin(s.x * 12.9898 + s.z * 78.233)) * 40;
-  return 1 + amount * (0.6 * Math.sin(time * 7.3 + phase) + 0.4 * Math.sin(time * 13.1 + phase * 0.37));
+  const gutter = m > 0.15 && Math.sin(time * 1.9 + phase * 3.1) > 0.93 ? 1 - 0.75 * m : 1; // a flame that all but goes out, now and again
+  return (1 + a * (0.6 * Math.sin(time * 7.3 + phase) + 0.4 * Math.sin(time * 13.1 + phase * 0.37))) * gutter;
 }
 
 export function createWorldLights(): WorldLights {

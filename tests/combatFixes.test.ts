@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PLAYER_MOVES, type HitDef, type MoveSet } from '../src/data/moves';
+import { ZONES } from '../src/data/bossTuning';
 import { ENTITIES } from '../src/data/registry';
 import { WEAPONS } from '../src/data/weapons';
 import { aimAt, capsuleGap2, hitCentre } from '../src/systems/combat';
@@ -12,7 +13,7 @@ describe('playtest round 7: combat', () => {
   it('every blow reaches every creature in front of the investigator, however short (the Zoogs, Brown Jenkin)', () => {
     const g = createGame();
     const blows: HitDef[] = [PLAYER_MOVES.light1.hit!, ...[WEAPONS.razor, WEAPONS.axe].flatMap((w) => Object.values(w.moves as MoveSet).map((m) => m.hit!))];
-    for (const d of ENTITIES.filter((e) => e.tier !== 'ally')) {
+    for (const d of ENTITIES.filter((e) => e.tier !== 'ally' && !(e.assembly && e.assembly.scale >= ZONES.height))) { // (a colossus has zones: reach.test.ts strikes it from where it lets one stand)
       const e = spawnCreature(g, d.id, { x: 0, z: 1.1, yaw: Math.PI });
       if (e === undefined) continue;
       const feet = { x: 0, y: 0, z: 0 };

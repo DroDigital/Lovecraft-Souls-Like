@@ -7,7 +7,7 @@ import type { Rng } from '../core/rng';
 import type { HiddenPieceDef, Place } from '../data/arena';
 import type { MoveSet } from '../data/moves';
 import type { BrainDef } from '../data/archetypes';
-import type { Tier } from '../data/schema';
+import type { AssemblyRecipe, Tier } from '../data/schema';
 import type { LevelId, UpgradeId } from '../data/tuning';
 import type { WeaponId } from '../data/weapons';
 import type { Collider, CollisionWorld } from '../world/colliders';
@@ -35,6 +35,7 @@ export interface Body {
   height: number;
   aimHeight: number;
   fixed: boolean;
+  assembly?: AssemblyRecipe; // a colossus's shape: its hurt zones follow it (hurt.ts)
 }
 
 /** Desired locomotion, written by the player controller or a brain and read by movement. */

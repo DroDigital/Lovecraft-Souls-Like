@@ -93,8 +93,11 @@ export const kitOf = (dungeon: string): DungeonKit => KITS[DUNGEON_KITS[dungeon]
  * A room's kit: its own (`kit` in dungeons.ts), else its dungeon's, unless the room is sunk below
  * the entrance and the dungeon's kit says what lies below (a house's cellar).
  */
-export function roomKit(dungeon: string, room: { kit?: KitId; sunk: boolean }): DungeonKit {
-  if (room.kit) return KITS[room.kit];
-  const k: DungeonKit = kitOf(dungeon);
-  return room.sunk && k.below ? (KITS as Record<string, DungeonKit>)[k.below] : k;
+export function roomKitId(dungeon: string, room: { kit?: KitId; sunk: boolean }): KitId {
+  if (room.kit) return room.kit;
+  const id = DUNGEON_KITS[dungeon] ?? 'masonry';
+  const below = (KITS[id] as DungeonKit).below as KitId | undefined;
+  return room.sunk && below ? below : id;
 }
+
+export const roomKit = (dungeon: string, room: { kit?: KitId; sunk: boolean }): DungeonKit => KITS[roomKitId(dungeon, room)];

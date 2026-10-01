@@ -102,6 +102,9 @@ export const FALL: Readonly<Record<Scale, Shot>> = {
   colossal: shot({ dur: 4.4, yaw: to(75, 115), dist: to(1.5, 2), up: to(0.05, 0.25), look: to(0.75, 0.5), fov: to(62, 56), body: true, sway: 0.15 }),
 };
 
+/** How hard the ground is struck as a horror arrives, by its size (none for a person). */
+const BOOM: Readonly<Partial<Record<Scale, number>>> = { large: 0.45, giant: 0.8, colossal: 1 };
+
 /** A horror comes: its name, a beat after the close-up begins; then the scene lets go. */
 export function arrival(scale: Scale, name: string, epithet: string | undefined): Scene {
   const shots = ARRIVAL[scale];
@@ -111,8 +114,8 @@ export function arrival(scale: Scale, name: string, epithet: string | undefined)
     sim: 'frozen',
     shots,
     beats: [
-      { at: 0.4, shake: scale === 'colossal' ? 0.35 : 0.12, hold: 1.4 },
-      { at, title: [name.toUpperCase(), epithet], hold: 3.2 },
+      { at: 0.4, shake: scale === 'colossal' ? 0.35 : 0.12, hold: 1.4, ...(BOOM[scale] && { set: 'boom' as const, gain: BOOM[scale], pitch: scale === 'colossal' ? 0.55 : 0.75 }) }, // round 26: the ground takes it
+      { at, title: [name.toUpperCase(), epithet], hold: 3.2, ...(scale === 'colossal' && { set: 'whale' as const, gain: 0.85, pitch: 0.6 }) }, // and something vast is heard calling
     ],
   };
 }

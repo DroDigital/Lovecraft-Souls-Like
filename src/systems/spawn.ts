@@ -30,7 +30,7 @@ export function spawnCombatant(g: Spawner, def: CombatantDef, at: Place, faction
   const c = g.ecs.c;
   const pos = { x: at.x, y: g.world.ground(at.x, at.z), z: at.z };
   c.transform.set(e, { pos, prev: { ...pos }, yaw: at.yaw, prevYaw: at.yaw });
-  c.body.set(e, { radius: def.radius, height: def.height, aimHeight: def.aimHeight, fixed: !!def.fixed });
+  c.body.set(e, { radius: def.radius, height: def.height, aimHeight: def.aimHeight, fixed: !!def.fixed, ...(def.assembly && { assembly: def.assembly }) });
   c.health.set(e, { hp: def.hp, max: def.hp, immortal: !!def.immortal, calm: 0 });
   c.poise.set(e, { value: def.poise, max: def.poise, calm: 0 });
   c.actor.set(e, createActor(def.moves));

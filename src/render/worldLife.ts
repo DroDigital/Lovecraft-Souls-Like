@@ -7,12 +7,24 @@
 
 import type * as THREE from 'three';
 import type { Game } from '../systems/components';
+import { madnessOf } from '../systems/sanity';
 import type { GameAudio } from './audio/gameAudio';
+import { createBeacons } from './beacons';
+import { createBossFog } from './bossFog';
+import { createDoors } from './doorViews';
 import { createFauna, type Fauna } from './fauna';
 import { createGlints } from './glints';
+import { LIGHT_NERVES } from './worldLights';
 import { createLightning } from './lightning';
+import type { Particles } from './particles';
+import { createNightFx } from './nightFx';
+import { createOmenFx } from './omenFx';
+import { createPresence } from './presence';
 import type { PostPass } from './postPass';
 import { createSkyLife } from './skyLife';
+import { createWatchers } from './watchers';
+import { createWeatherFx } from './weather';
+import type { Skyline } from './skyline';
 import type { SpriteAtlas } from './sprites/atlas';
 
 export interface WorldLife {
@@ -25,6 +37,8 @@ export interface LifeParts {
   sky: THREE.Mesh; // the sky dome, whose haze the lightning brightens
   post: PostPass; // the post pass, whose mist it lights
   sheet: { atlas: SpriteAtlas; texture: THREE.Texture }; // the creatures' sprites, for the great winged things
+  skyline: Skyline; // the far silhouettes, given a false one by a failing mind (round 26)
+  particles: Particles; // dust and grit (round 26: what a colossus throws up)
 }
 
 export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, parts: LifeParts): WorldLife {
@@ -32,6 +46,14 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
   const sky = createSkyLife(scene, g, fauna, parts.sheet, (voice, at) => audio.cry(voice, at, 1.4));
   const lightning = createLightning(parts.sky, parts.post, (gain) => audio.far('thunder', gain));
   const glints = createGlints(scene, g);
+  const watchers = createWatchers(scene, g);
+  const omens = createOmenFx(g, parts.sky, parts.post, audio);
+  const presence = createPresence(g, parts.particles, audio); // round 26: what a colossus does to the ground and the air
+  const beacons = createBeacons(scene, g); // round 26: pale columns over the Elder Signs not yet found
+  const night = createNightFx(g, parts.sky, parts.post); // round 26: the moon's course, and the grey of the last hour
+  const weather = createWeatherFx(scene, g, parts.particles); // round 26: rain, gale and motes
+  const doors = createDoors(scene, g, audio); // round 27: a door in each doorway that has one
+  const fog = createBossFog(scene, g, parts.particles, audio); // round 27: a wall of mist before each horror
   return {
     fauna,
     update(camera, time, enclosed) {
@@ -39,7 +61,17 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
       fauna.update(camera, time, !outside);
       sky.update(camera, time, !outside);
       lightning.update(time, g.overworld?.region ?? null, !outside);
+      beacons.update(camera, time, !outside);
+      night.update(time);
+      LIGHT_NERVES.madness = madnessOf(g.mind.sanity); // the flames waver harder in a failing mind's world
+      weather.update(camera, time, !outside);
+      fog.update(camera, time, !g.overworld);
+      doors.update(camera, time, !g.overworld);
       glints.update(camera.position, time, !g.overworld);
+      presence.update(camera, time);
+      omens.update(time);
+      parts.skyline.wrong(Math.min(1, Math.max(0, 1 - g.mind.sanity / 100)));
+      watchers.update(camera, time, !outside, () => audio.sample('whisper', { gain: 0.5, pitch: 0.8 })); // round 26: what a failing mind makes of the dark
     },
   };
 }

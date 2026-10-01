@@ -16,6 +16,7 @@ import { placesOf } from '../world/namedPlaces';
 import { regionAt, regionRect } from '../world/worldMap';
 import { artOf, type Art } from './mapArt';
 import { drawLabels, type MapLabel } from './mapLabels';
+import { falseStar, slip, SLIDE } from './mapWrong';
 import { uiScale } from './uiScale';
 
 export interface MapView {
@@ -199,6 +200,8 @@ export function createMapPainter(g: Game): MapPainter {
         ctx.restore();
       }
       const inRealm = new Set(realm.map((r) => r.id));
+      const [sanity, bucket] = [g.mind.sanity, Math.floor(performance.now() / 1000 / SLIDE)];
+      const off = (id: string): { dx: number; dy: number } => slip(id, sanity, bucket); // a failing mind's map slides (round 26)
       const k = uiScale(); // the names grow with the UI (the marks keep their size)
       const regionNames: MapLabel[] = [];
       const names: MapLabel[] | null = labels ? [] : null; // the signs' first, then the people's
@@ -206,7 +209,8 @@ export function createMapPainter(g: Game): MapPainter {
       const marks: { x: number; y: number; r: number }[] = [];
       for (const p of mapPlaces()) {
         if (!inRealm.has(p.region)) continue;
-        const [x, y] = [sx(p.x), sy(p.z)];
+        const s0 = off(p.id);
+        const [x, y] = [sx(p.x) + s0.dx, sy(p.z) + s0.dy];
         if (x < -20 || y < -20 || x > view.w + 20 || y > view.h + 20) continue;
         if (!isExplored(ow.explored, p.x, p.z) && !(p.kind === 'sign' && ow.discovered.has(p.id))) continue;
         place(ctx, p, x, y, names, k);
@@ -215,7 +219,8 @@ export function createMapPainter(g: Game): MapPainter {
       for (const n of NPCS) { // the people met in the dream: a figure where they stand, named once met
         const at = npcPlace(n);
         if (!at || !inRealm.has(regionAt(at.x, at.z)?.id ?? '') || !isExplored(ow.explored, at.x, at.z)) continue;
-        const [x, y] = [sx(at.x), sy(at.z)];
+        const s1 = off(n.id);
+        const [x, y] = [sx(at.x) + s1.dx, sy(at.z) + s1.dy];
         ctx.fillStyle = ow.met.has(n.id) ? BONE : DIM;
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
@@ -258,7 +263,10 @@ export function createMapPainter(g: Game): MapPainter {
         drawLabels(ctx, [...regionNames, ...names, ...people, ...found], marks);
       }
       const tr = g.ecs.c.transform.get(g.player.id)!;
-      const [px, py] = [sx(tr.pos.x), sy(tr.pos.z)];
+      const s2 = off('you');
+      const [px, py] = [sx(tr.pos.x) + s2.dx, sy(tr.pos.z) + s2.dy];
+      const lie = falseStar(sanity, bucket, Math.min(view.w, view.h) / 2); // a star where there is none, for a moment of each slide
+      if (lie && performance.now() % (SLIDE * 1000) < 4000) star(ctx, view.w / 2 + lie.dx, view.h / 2 + lie.dy, 5.5, DIM);
       ctx.save();
       ctx.translate(px, py);
       ctx.rotate(-tr.yaw); // yaw 0 faces north (up); +x, a quarter turn of yaw, is on the left

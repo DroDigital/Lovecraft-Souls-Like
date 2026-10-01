@@ -14,16 +14,17 @@ describe('key bindings (playtest round 12)', () => {
     expect(new Set(Object.values(k)).size).toBe(Object.keys(k).length);
   });
 
-  it('the menus\' own keys cannot be taken', () => {
+  it('the menus\' own keys, and Shift (the heavy blow\'s modifier), cannot be taken', () => {
     const k: KeyLayout = { ...DEFAULT_KEYS };
-    for (const code of ['Escape', 'Enter', 'Tab', 'ArrowUp']) expect(rebind(k, 'dodge', code)).toBe(false);
+    for (const code of ['Escape', 'Enter', 'Tab', 'ArrowUp', 'ShiftLeft', 'ShiftRight']) expect(rebind(k, 'dodge', code)).toBe(false);
     expect(k).toEqual(DEFAULT_KEYS);
   });
 
   it('a stored layout parses; a broken, hostile or doubled one stays playable', () => {
     expect(parseKeys(null)).toEqual(DEFAULT_KEYS);
     expect(parseKeys('{not json')).toEqual(DEFAULT_KEYS);
-    expect(parseKeys('{"dodge":"ShiftLeft","map":"<b>","heal":7}')).toEqual({ ...DEFAULT_KEYS, dodge: 'ShiftLeft' });
+    expect(parseKeys('{"dodge":"ControlLeft","map":"<b>","heal":7}')).toEqual({ ...DEFAULT_KEYS, dodge: 'ControlLeft' });
+    expect(parseKeys('{"back":"ShiftLeft"}')).toEqual(DEFAULT_KEYS); // a layout saved before Shift was kept
     const doubled = parseKeys('{"forward":"KeyE","interact":"KeyE"}');
     expect(new Set(Object.values(doubled)).size).toBe(Object.keys(doubled).length);
     expect(parseKeys('{"interact":"Escape"}').interact).toBe('KeyE');

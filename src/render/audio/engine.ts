@@ -29,6 +29,8 @@ export interface AudioEngine {
   setDistortion(amount: number): void;
   /** Near death the world's sound dulls (round 23): 0 not at all, 1 as far as AUDIO.muffle goes. Not the title's theme. */
   setMuffle(amount: number): void;
+  /** The ambience and drones give way (round 26: the ground goes quiet before a horror): 0 not at all, 1 to almost nothing. Not the title's theme or the boss scores. */
+  setHush(amount: number): void;
   /** Runs `fn` once WebAudio has started (at once if it has). */
   onStart(fn: (ctx: AudioContext) => void): void;
   /** Starts WebAudio now if it has not (a click or key press also starts it), or wakes it. */
@@ -98,9 +100,12 @@ function build(volume: number, levels: Levels, speechLevel: number): Graph {
   return graph;
 }
 
-function setBusLevels(g: Graph, l: Levels): void {
+const HUSHED = 0.94; // the share of the bed a full hush takes away
+
+function setBusLevels(g: Graph, l: Levels, hush = 0): void {
   const at = g.ctx.currentTime;
-  for (const [node, v] of [[g.music, l.music], [g.score, l.music], [g.sfx, l.sfx], [g.bed, l.ambience]] as const) node.gain.setTargetAtTime(v, at, 0.05);
+  for (const [node, v] of [[g.music, l.music], [g.score, l.music], [g.sfx, l.sfx]] as const) node.gain.setTargetAtTime(v, at, 0.05);
+  g.bed.gain.setTargetAtTime(l.ambience * (1 - HUSHED * hush), at, hush > 0 ? 0.8 : 0.05);
 }
 
 export function createAudioEngine(volume: number, levels: Levels = { music: 1, sfx: 1, ambience: 1 }): AudioEngine {
@@ -108,6 +113,7 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
   let graph: Graph | null = null;
   let amount = 0;
   let muffled = 0; // how far the world's sound is dulled (setMuffle)
+  let hushed = 0; // how far the bed has given way (setHush)
   const waiting: ((ctx: AudioContext) => void)[] = [];
   const start = (): void => {
     if (graph) {
@@ -154,7 +160,13 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
     },
     setLevels(l) {
       levels = { ...l };
-      if (graph) setBusLevels(graph, levels);
+      if (graph) setBusLevels(graph, levels, hushed);
+    },
+    setHush(a) {
+      const k = Math.min(1, Math.max(0, a));
+      if (!graph || Math.abs(k - hushed) < 0.02) return; // asked every frame: told of a change
+      hushed = k;
+      setBusLevels(graph, levels, k);
     },
     setDistortion(a) {
       if (!graph || Math.abs(a - amount) <= 0.02) return;

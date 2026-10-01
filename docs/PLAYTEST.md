@@ -126,3 +126,21 @@ Roughly in the order I would take them.
 14. `npm run check` now takes about a minute and a half, most of it audits that walk every dungeon and prop. A
     `npm run audit` for the slow ones (the soak, the bots, `dungeonView`, `objectView`) would keep the everyday check
     fast without dropping any of them from CI.
+
+## Round 25: what was done with these notes
+
+| Note | What became of it |
+| --- | --- |
+| 1 | The colossi are balanced against a bot now (note 8): `docs/BALANCE.md`, held by `tests/balance.test.ts`. Cthulhu's health and damage, Yog-Sothoth's damage and Tsathoggua's were brought in; Azathoth and the Haunter are exempt and said to be. |
+| 2, 6 | A colossus has zones (legs, torso, head; a body of spheres is its spheres), and stoops after each blow of its own with its head down in reach: `data/assemblyShape.ts`, `systems/hurt.ts`, `DECISIONS.md` round 25 (c). |
+| 3 | Bodies shove by their weight (`separate`). |
+| 4 | Petrification drains the colour, closes the edges and cracks the picture (`uStone`); the monoliths are proved to be cover and reachable in time (`tests/stoneCover.test.ts`). Its numbers are as they were. |
+| 5 | Every boss that asks for more than striking says so once before the fight (`bossHints`). |
+| 7 | `?spawn=<colossus>` stands the investigator off the body's near edge. |
+| 8 | `tests/balance.test.ts`, `tests/balanceModel.ts`, `tests/botHelpers.ts`: the table. |
+| 9 | Not changed: the note makes it conditional on nobody using the gun, which this pass could not see. `WARES.rounds` and `GUN.find` are the levers. |
+| 10 | The shop says what is carried. |
+| 11 | The veil says what has come up before it says anything else. |
+| 12 | Shift is kept. |
+| 13 | Still open: it needs a person at a real screen, a pair of speakers and a pad. |
+| 14 | `npm run audit`, `npm run check:all`; `check` runs in under half a minute. |

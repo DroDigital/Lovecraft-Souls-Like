@@ -53,3 +53,51 @@ export const LIGHTNING = {
   mist: 0.3, // ...and the mist
   delay: [0.6, 3.2] as const, // seconds before the thunder: the farther the strike, the later and quieter
 };
+
+/** The night's turn and the weather (round 26; systems/clock.ts, systems/weather.ts): the night is one long night that turns, and the weather rolls over it. */
+export const CLOCK = {
+  night: 1080, // seconds for the night to turn (the gloaming, the deep of the night, the hour before a dawn that does not come) and begin again
+  start: 0.03, // where in it a new journey opens: the gloaming, the windows lit and the lamplighter out
+};
+
+export const WEATHER = {
+  calm: [150, 420] as const, // seconds of clear skies between spells
+  spell: [110, 300] as const, // seconds a spell of rain or gale lasts
+  ease: 12, // seconds for a spell to come on or pass
+  // The kinds each region knows, by weight (the rest of the time it is clear): rain, a gale, the motes of the dream.
+  regions: {
+    arkham: { rain: 3, gale: 1 },
+    dunwich: { rain: 2, gale: 2 },
+    innsmouth: { rain: 3, gale: 2 },
+    providence: { rain: 3 },
+    vermont: { rain: 2, gale: 2 },
+    mountains: { gale: 4 },
+    pnakotus: { gale: 3 },
+    rlyeh: { rain: 3, gale: 1 },
+    dreamlands: { motes: 3 },
+    yuggoth: { motes: 2 },
+  } as Readonly<Record<string, Readonly<Partial<Record<'rain' | 'gale' | 'motes', number>>>>>,
+  quiet: 0.35, // how much of the investigator's noise is lost in it (a rain hushes footsteps; a gale takes them): at its fullest
+  rain: 420, // streaks of rain about the lens at its fullest
+};
+
+/** The sights that cross the dream (round 26; data/wanderers.ts, systems/wanderers.ts). */
+export const WANDER = {
+  every: 600, // frames between looks for a moment to send one
+  chance: 0.22, // of a look that finds the ground clear
+  from: [70, 105] as const, // metres from the investigator a file comes out of the dark at...
+  pass: [18, 38] as const, // ...and passes them at, at the nearest
+  apart: 2.1, // metres between one and the next in a file
+  leave: 150, // metres the investigator may be off before it is gone
+  stay: 300, // seconds it lasts at the most
+};
+
+/** The first hour's hook (round 26; systems/hook.ts): seconds of play before something vast is first heard, and again. */
+export const HOOK = { first: 150, second: 780 };
+
+/** What a page sketches (round 26; systems/survey.ts) and the pale columns over Elder Signs not yet found (render/beacons.ts). */
+export const SURVEY = {
+  reach: 900, // metres: how far off the nearest unfound sign may be for a page to sketch the way to it
+  radius: 70, // metres of ground drawn in about it
+  beacon: { see: 340, near: 30, height: 60, width: 1.6 }, // how far a column shows, how near it fades, how tall and broad it is
+};

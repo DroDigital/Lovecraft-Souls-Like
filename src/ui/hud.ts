@@ -16,6 +16,7 @@ import { canLevel, LEVEL_IDS } from '../systems/levels';
 import { createBossHud } from './bossHud';
 import { createFoeBars } from './foeBars';
 import { fill, glyph } from './glyphs';
+import { deathLine } from '../systems/deathNotes';
 import { EPITAPHS } from '../data/epitaphs';
 import { REGIONS } from '../data/regions';
 import { creatureOf } from '../systems/creatures';
@@ -103,7 +104,7 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   });
   g.events.on('Died', (e) => {
     if (e.entity !== me) return;
-    great.show('UNMADE', 'death', 'YOUR ECHOES LIE WHERE YOU FELL');
+    great.show('UNMADE', 'death', 'YOUR ECHOES LIE WHERE YOU FELL', deathLine(g)); // what the last blow teaches, or a fragment of the place (round 26)
     setTimeout(() => great.hide(), DYING_MS); // it fades as the veil falls (journeys.ts)
   });
   g.events.on('Respawned', () => great.hide());
@@ -116,6 +117,9 @@ export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainte
   g.events.on('RegionEntered', (e) => show(e.name.toUpperCase()));
   g.events.on('Travelled', (e) => show(e.name.toUpperCase()));
   g.events.on('Vanquished', (e) => great.show('HORROR VANQUISHED', 'victory', e.name.toUpperCase(), EPITAPHS[creatureOf(g, e.entity)?.id ?? '']));
+  g.events.on('Exhaled', (e) => setTimeout(() => great.show('THE DREAM BREATHES OUT', 'place', e.name.toUpperCase(), 'What lay on it has gone.'), 7500)); // after the fall's own words (round 26)
+  g.events.on('Foreboding', (e) => setTimeout(() => great.show('SOMETHING STIRS', 'place', e.words, ''), 2500)); // after the sound has reached them (round 26)
+  g.events.on('Wandered', (e) => void (e.words && say(e.words))); // the first time one is seen (round 26)
   g.events.on('Discovered', (e) => say(`ELDER SIGN FOUND · ${e.name.toUpperCase()}`));
   g.events.on('PlaceFound', (e) => great.show(e.name.toUpperCase(), 'place', `${e.found} OF ${e.of} PLACES · ${(REGIONS.find((r) => r.id === e.region)?.name ?? '').toUpperCase()}`)); // round 18
   g.events.on('QuestChanged', (e) => say(e.done ? `DONE · ${e.title.toUpperCase()}` : e.stage === 0 ? `JOURNAL · ${e.title.toUpperCase()}` : `${e.title.toUpperCase()} · UPDATED`));

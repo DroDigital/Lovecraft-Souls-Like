@@ -28,6 +28,8 @@ import { dungeonRoomAt } from '../../world/terrain';
 import type { FxParams } from '../fx';
 import { createAmbience } from './ambience';
 import { createBossMusic } from './bossMusic';
+import { createDread } from './dread';
+import { createWeatherBed } from './weatherBed';
 import { CUES, cueFor, dullness, nextCall, placeSound, type Cue } from './cues';
 import { impactLayers, landedBlow } from './impact';
 import type { Drones } from './drones';
@@ -44,7 +46,7 @@ export interface GameAudio {
   /** A voice where `at` is, recorded if it can be (round 18: the small lives' cries as they take fright). */
   cry(id: VoiceId, at: V3, gain?: number): void;
   /** A recording from afar: panned anywhere, duller the quieter (round 18: the thunder after lightning). */
-  far(set: SampleSetId, gain?: number): void;
+  far(set: SampleSetId, gain?: number, pitch?: number): void;
   /** A stinger heard without place, recorded if it can be (round 20: an Echo drawn into the investigator). */
   stinger(sound: StingerId, o?: { gain?: number; pitch?: number }): void;
   /** A recording heard without place (round 20: a cutscene's laugh, its choir). */
@@ -68,6 +70,8 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
   void sampler.load(setFiles(Object.values(SAMPLE_SETS)));
   const ambience = createAmbience(e, sampler);
   const foley = createFoley(g, sampler);
+  const weatherBed = createWeatherBed(e);
+  const dread = createDread(e, g, (set, gain, pitch) => void sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.6, lowpass: 700 + 3000 * gain, pitch })); // round 26: the ground goes quiet, and far off it is heard
   const place = (at: V3 | null, range: number): { gain: number; pan: number } => placeSound(listener, right, at, range);
   /** One of a set's takes where `at` is; false when none has loaded. */
   const recorded = (id: SampleSetId, at: V3 | null, range: number, o: { gain?: number; pitch?: number; delay?: number } = {}): boolean => {
@@ -131,6 +135,8 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     const where = g.ecs.c.transform.get(ev.target)?.pos ?? null;
     for (const l of impactLayers(landed)) recorded(l.set, where, AUDIO.eventRange, { gain: l.gain, pitch: l.pitch, delay: l.delay });
   });
+  g.events.on('Foreboding', ({ sound, pitch }) => void recorded(sound, null, 1, { gain: 0.95, pitch })); // round 26: something vast, far off
+  g.events.on('Wandered', ({ at, sound }) => void (sound && recorded(sound, at, 170, { gain: 0.9, pitch: 0.9 }))); // a file comes out of the dark, heard from afar (round 26)
   g.events.on('Vanished', ({ at, struck }) => {
     if (!struck) return;
     play({ sound: 'vanish', at });
@@ -200,8 +206,8 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     sampler.play(SAMPLE_SETS.whisper, { gain: lo + (hi - lo) * Math.min(1, k), pan: Math.random() < 0.5 ? -0.9 : 0.9, pitch: 0.78 + 0.22 * Math.random() });
   }
   return {
-    far(set, gain = 1) {
-      sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, bus: e.bed ?? undefined });
+    far(set, gain = 1, pitch) {
+      sampler.play(SAMPLE_SETS[set], { gain, pan: (Math.random() * 2 - 1) * 0.7, lowpass: 900 + 4000 * gain, pitch, bus: e.bed ?? undefined });
     },
     stinger(sound, o = {}) {
       play({ sound, at: null, ...o });
@@ -228,9 +234,12 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       const [fight] = engagedFights(g);
       drones.set(region, !!fight);
       const at = g.ecs.c.transform.get(g.player.id)?.pos;
-      ambience.set((g.overworld && at && inside(at)) || (AMBIENCE[region ?? ''] ?? null));
+      const roofed = (g.overworld && at && inside(at)) || null;
+      ambience.set(roofed || (AMBIENCE[region ?? ''] ?? null));
+      weatherBed.set(g.overworld?.weather.kind ?? 'clear', g.overworld?.weather.amount ?? 0, !!roofed); // round 26
       ambience.update(seconds);
       music.update(fight ? { id: fight[1].id, phase: fight[1].phase } : null);
+      dread.update(seconds, paused);
       drones.update(fx, seconds);
       if (paused) return;
       if (HEART.beats !== lastBeat) { // near death, the heart (round 14; hurtFx.ts and the health bar keep to it), louder as it nears the end (round 23)

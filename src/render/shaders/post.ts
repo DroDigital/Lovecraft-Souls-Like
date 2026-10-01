@@ -32,6 +32,7 @@ uniform vec3 uWarm;
 uniform vec2 uSplit;
 uniform vec4 uHurt; // the investigator's recent wound: x strength, yz the screen direction it came from
 uniform vec2 uFaint; // near death: x how red the edge of the picture is, y how much of its colour the picture has lost
+uniform float uStone; // a petrifying gaze (round 25): 0..1 to stone, which the colour drains to, the edges close in grey, and past half the picture cracks
 uniform float uBlur; // low-res pixels the edges blur by
 uniform vec3 uAnomalyHues;
 uniform float uQuantize;
@@ -87,6 +88,36 @@ vec3 faint(vec3 col, vec2 uv) {
   col = mix(col, vec3(l), uFaint.y);
   float edge = smoothstep(0.18, 0.8, length((uv - 0.5) * vec2(1.0, 0.8)) * 1.35);
   return mix(col, vec3(0.3, 0.02, 0.03) * (0.4 + l), clamp(uFaint.x * edge, 0.0, 0.75));
+}
+
+// 2a'. Turning to stone (round 25: the gaze was a bar and then death): the colour drains to the grey of stone, the
+// edges close in pale, and past half the picture cracks, so it is a rule the eye learns and not a surprise.
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+vec3 stone(vec3 col, vec2 uv) {
+  if (uStone <= 0.0) return col;
+  float l = dot(col, LUMA);
+  vec3 grey = vec3(0.56, 0.55, 0.52) * (0.35 + 0.9 * l);
+  col = mix(col, grey, clamp(uStone * 1.15, 0.0, 1.0));
+  vec2 c = (uv - 0.5) * vec2(1.0, 0.8);
+  float edge = smoothstep(0.85 - 0.7 * uStone, 1.05 - 0.45 * uStone, length(c) * 1.6);
+  col = mix(col, vec3(0.62, 0.61, 0.58) * (0.5 + l), clamp(edge * uStone, 0.0, 0.8));
+  vec2 w = uv * vec2(9.0, 6.0) + 3.1;
+  w += 0.45 * vec2(vnoise(w * 2.3), vnoise(w * 2.3 + 7.7)); // bent, so the lines fork and kink instead of looping
+  float ridge = 1.0 - abs(vnoise(w) * 2.0 - 1.0); // a line wandering across the picture...
+  float fine = 1.0 - abs(vnoise(vec2(w.y * 1.9 + 11.0, w.x * 2.1)) * 2.0 - 1.0); // ...and a finer one across it
+  float crack = max(smoothstep(0.965, 0.992, ridge), 0.8 * smoothstep(0.972, 0.994, fine));
+  crack *= smoothstep(0.45, 0.62, uStone) * (0.35 + 0.65 * smoothstep(0.1, 0.6, length(c)));
+  return mix(col, vec3(0.04, 0.04, 0.05), clamp(crack, 0.0, 0.9));
 }
 
 // 2b. A failing mind (round 22): the edges of sight lose their focus (never the middle of the picture).
@@ -151,7 +182,7 @@ void main() {
     e = isolate(e);
   }
   vec4 fog = fogAlong(uv, bayer4(cell) + 0.5); // the mist between the lens and the scene (round 16)
-  vec3 col = pow(faint(hurt(vec3(a.r, b.g, e.b) * fog.a + fog.rgb, uv), uv), vec3(uGamma));
+  vec3 col = pow(stone(faint(hurt(vec3(a.r, b.g, e.b) * fog.a + fog.rgb, uv), uv), uv), vec3(uGamma));
   if (uQuantize > 0.5) col = quantize(col, cell);
   gl_FragColor = vec4(col, 1.0);
 }

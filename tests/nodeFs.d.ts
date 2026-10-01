@@ -8,6 +8,7 @@ declare module 'node:fs' {
   export function appendFileSync(path: string, data: string): void;
   export function writeFileSync(path: string, data: string): void;
 }
+declare const process: { env: Record<string, string | undefined> };
 declare module 'node:zlib' {
   export function inflateSync(data: Uint8Array): Uint8Array;
 }

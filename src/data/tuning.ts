@@ -39,6 +39,7 @@ export const FX = {
   displaceFreq: 0.35,
   displaceSafe: 7, // metres from the camera with no displacement (keeps combat readable)
   displaceFull: 32, // metres from the camera where displacement is at full strength
+  displaceLean: 0.004, // metres a tall thing's top leans toward the viewer, per metre of height squared (round 26: buildings lean in as the mind goes)
   displaceTwist: 0.2, // radians of space-twist around the viewer at full strength
   warpCap: 0.5, // the stress past which the picture warps only warpSlope as fast: ripple, split, swimming walls, breathing lens and shear (round 22: they had grown all the way to madness, and the screen tore; round 23: capped too hard at 0.4 of it, so a little more)
   warpSlope: 0.3, // ...so at sanity 0 it warps 0.65 of what it did before round 22, and at the edge of Unmoored 0.6 (round 22 left it at 0.4)

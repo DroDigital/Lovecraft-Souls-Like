@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { createRng } from '../core/rng';
+import { globes, PROFILE } from '../data/assemblyShape';
 import type { AssemblyRecipe } from '../data/schema';
 import { tint } from './meshKit';
 import { beyond, halo } from './eldritch';
@@ -23,20 +24,6 @@ export interface Assembly {
 
 /** Textures average about half brightness; tints are doubled so a part shows its palette colour (as figures do). */
 const TEXTURE_GAIN = 2;
-
-/** Body outline, bottom to top: (radius, height) as fractions of the assembly's height. */
-const PROFILE: readonly (readonly [number, number])[] = [
-  [0.02, 0],
-  [0.26, 0.02],
-  [0.3, 0.16],
-  [0.24, 0.34],
-  [0.32, 0.5],
-  [0.3, 0.62],
-  [0.18, 0.7],
-  [0.24, 0.78],
-  [0.2, 0.92],
-  [0.02, 1],
-];
 
 /** `wrongness` (eldritch.ts): how far the body refuses to hold its shape, by its place in the Mythos. */
 export function buildAssembly(r: AssemblyRecipe, seed = 1, wrongness = 0): Assembly {
@@ -72,9 +59,9 @@ export function buildAssembly(r: AssemblyRecipe, seed = 1, wrongness = 0): Assem
   if (r.body === 'spheres') {
     const glow = mat(0.8);
     const tints = [ANOMALY[r.glow ?? 'green'], ANOMALY.purple, pal.light];
-    for (let i = 0; i < (r.spheres ?? 12); i++) {
-      const s = add(new THREE.IcosahedronGeometry(h * (0.08 + rng() * 0.1), 1), tints[i % tints.length], glow, body);
-      s.position.set((rng() - 0.5) * h * 0.7, h * (0.25 + rng() * 0.6), (rng() - 0.5) * h * 0.7);
+    for (const [i, g] of globes(r, seed).entries()) { // where the fight's hurt zones are (data/assemblyShape.ts)
+      const s = add(new THREE.IcosahedronGeometry(g.r, 1), tints[i % tints.length], glow, body);
+      s.position.set(g.x, g.y, g.z);
       s.userData.baseY = s.position.y;
       spheres.push(s);
     }

@@ -10,7 +10,7 @@
  */
 
 import { fbm } from '../core/noise';
-import { LORE_LINES } from '../data/loreLines';
+import { nextLore } from './loreLine';
 import { BONE, SERIF } from './hudKit';
 
 const [W, H] = [240, 135]; // pixels, upscaled nearest-neighbour
@@ -21,7 +21,7 @@ const LINE = { y: 97, half: 34, ease: 5 }; // the making's line: its row, half i
 
 export interface Veil {
   /** Draws the dark over the screen; resolves once it covers everything and has been shown. */
-  cover(words?: string, seconds?: number, line?: string): Promise<void>; // `line`: said under the words (else a lore line at random)
+  cover(words?: string, seconds?: number, line?: string): Promise<void>; // `line`: said under the words (else the next lore line: loreLine.ts)
   /** Draws it back; resolves once it has gone. */
   lift(seconds?: number): Promise<void>;
   /** Covers at once (over a screen that is already dark). */
@@ -99,7 +99,7 @@ export function createVeil(): Veil {
   words.append(said, lore);
   const say = (text: string, line?: string): void => {
     said.textContent = text;
-    lore.textContent = text ? (line ?? LORE_LINES[Math.floor(Math.random() * LORE_LINES.length)]) : '';
+    lore.textContent = text ? (line ?? nextLore()) : '';
   };
   document.body.append(canvas, words);
   const ctx = canvas.getContext('2d');

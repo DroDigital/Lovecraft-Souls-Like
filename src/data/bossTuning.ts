@@ -127,3 +127,18 @@ export const AZATHOTH = {
   rest: 60, // frames after a blast before it can hear again
   blast: { radius: 3.5, life: 70, tick: 20, damage: 40 },
 };
+
+/**
+ * A colossus's hurt zones (round 24; data/assemblyShape.ts, systems/hurt.ts): it was one column struck
+ * alike along its height, at the base where a blade reaches. Now its legs take a blow whole, its body
+ * soaks it, and its head, the weak spot, takes it several times over: out of reach on its feet (the
+ * revolver aims for it), and down within the blade's after each of its own blows, while it recovers.
+ */
+export const ZONES = {
+  height: 12, // metres: only assembly bodies this tall have zones
+  legs: { top: 0.34, damage: 1 }, // the lowest third of it, and the share of a blow taken there
+  torso: { top: 0.72, reach: 0.95, damage: 0.6 }, // up to here; its breadth, of the body's; the share of a blow
+  head: { reach: 0.65, damage: 2.5, stoop: 4.5 }, // above that; breadth; the share of a blow; how low it comes (metres) when it stoops
+  linger: 24, // frames it stays stooped after its recovery ends
+  aimReach: 18, // metres: a head higher than this is out of a bullet's range, and the revolver aims at the body as before
+};

@@ -82,6 +82,7 @@ export function toCombatant(def: EntityDef, variant?: Variant): CombatantDef {
     radius,
     height,
     aimHeight: Math.min(6, height * 0.6),
+    ...(def.assembly && { assembly: def.assembly }),
     bounty: def.drops.echoes,
     brain,
     moves,
@@ -147,7 +148,7 @@ export function morph(g: Game, e: Entity, id: string, variant: Variant | undefin
   const c = g.ecs.c;
   c.model.set(e, cd.model);
   Object.assign(c.combatant.get(e)!, { name: cd.name, bounty: c.phantom.has(e) ? 0 : cd.bounty });
-  Object.assign(c.body.get(e)!, { radius: cd.radius, height: cd.height, aimHeight: cd.aimHeight });
+  Object.assign(c.body.get(e)!, { radius: cd.radius, height: cd.height, aimHeight: cd.aimHeight, assembly: cd.assembly });
   const h = c.health.get(e)!;
   const hp = def.tier === 'ally' ? cd.hp : Math.round(cd.hp * foeHealth(g));
   [h.hp, h.max] = [(h.hp / h.max) * hp, hp];
