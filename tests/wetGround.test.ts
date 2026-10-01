@@ -14,7 +14,8 @@ import { createWorldGame } from '../src/systems/game';
 
 function sky() {
   const g = createWorldGame();
-  const fx = createWeatherFx(new THREE.Scene(), g, { spawn() {} } as unknown as Particles);
+  const drops: unknown[] = [];
+  const fx = createWeatherFx(new THREE.Scene(), g, { spawn: (p: unknown) => drops.push(p) } as unknown as Particles);
   const camera = new THREE.PerspectiveCamera();
   let t = 0;
   const run = (seconds: number, hidden = false): number => {
@@ -22,7 +23,16 @@ function sky() {
     return worldUniforms.uWet.value;
   };
   const weather = (kind: 'clear' | 'rain' | 'gale', amount: number): void => void Object.assign(g.overworld!.weather, { kind, want: kind, amount });
-  return { run, weather };
+  /** Walks the investigator `metres` along x over `seconds`, the sky stepped as they go. */
+  const walk = (metres: number, seconds: number, hidden = false): void => {
+    const at = g.ecs.c.transform.get(g.player.id)!.pos;
+    const n = Math.round(seconds * 60);
+    for (let i = 0; i < n; i++) {
+      at.x += metres / n;
+      run(1 / 60, hidden);
+    }
+  };
+  return { run, weather, walk, drops, g };
 }
 
 describe('wet ground', () => {
@@ -51,6 +61,25 @@ describe('wet ground', () => {
     expect(run(0.1, true)).toBe(0);
     weather('gale', 1);
     expect(run(20)).toBeLessThan(0.1);
+  });
+
+  it('splashes under a walk on soaked ground, and not on dry ground, standing still or after a leap', () => {
+    const { run, weather, walk, drops, g } = sky();
+    walk(6, 4); // dry
+    expect(drops).toHaveLength(0);
+    weather('rain', 1);
+    run(10);
+    const before = drops.length;
+    run(2); // soaked, standing still
+    expect(drops.length).toBe(before);
+    walk(9, 6);
+    expect(drops.length - before).toBeGreaterThanOrEqual(5 * 8); // a stride is under a metre: about ten of them, five drops each
+    const walked = drops.length;
+    g.ecs.c.transform.get(g.player.id)!.pos.x += 500; // a leap
+    run(1 / 60);
+    expect(drops.length).toBe(walked);
+    walk(5, 3, true); // under a roof
+    expect(drops.length).toBe(walked);
   });
 
   it('is eased at the rates the tuning names', () => {

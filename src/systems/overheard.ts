@@ -6,6 +6,7 @@
  */
 
 import { distXZ } from '../core/geom';
+import { hash2 } from '../core/rng';
 import { npcDef } from '../data/npcs';
 import { OVERHEARD } from '../data/overheard';
 import { HEARD } from '../data/tuning';
@@ -36,7 +37,7 @@ export function overheardSystem(g: Game): void {
   }
   const name = best && npcDef(best.npc)?.name;
   if (!best || !name) return;
-  const i = best.left[Math.floor(g.rng() * best.left.length)]; // from the game's own stream, so a replay hears the same
+  const i = best.left[Math.floor(hash2(g.frame, best.left.length, 11) * best.left.length)]; // by the frame, not the game's stream: what the people say is not what the world rolls next, and a replay hears the same
   ow.said.add(heardKey(best.npc, i));
   ow.heardAt = g.frame;
   g.events.emit('Overheard', { name, text: OVERHEARD[best.npc][i] });

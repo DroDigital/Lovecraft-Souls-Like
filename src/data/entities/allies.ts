@@ -5,7 +5,7 @@ import { st, tier } from './kit';
 export const ALLIES = tier('ally', [
   {
     id: 'nodens', name: 'Nodens', source: 'The Strange High House in the Mist', regions: ['dreamlands', 'providence'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 3.2, eyes: 2 },
+    sprite: { silhouette: 'humanoid', palette: 'bone', scale: 3.2, eyes: 2, gear: ['beard'] },
     behavior: { archetype: 'ally', attacks: ['slam', 'beam', 'wind_push'] },
     stats: st(6000, 1000, 70, 3, 0, 0), drops: { echoes: 0 }, insightOnSight: 2,
   },
@@ -29,7 +29,7 @@ export const ALLIES = tier('ally', [
   },
   {
     id: 'nasht_kaman_thah', name: 'Nasht & Kaman-Thah', source: 'The Dream-Quest of Unknown Kadath', regions: ['dreamlands'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'bone', scale: 2.4, eyes: 2 },
+    sprite: { silhouette: 'robed', palette: 'bone', scale: 2.4, eyes: 2, gear: ['cowl'] },
     behavior: { archetype: 'ally', params: { range: [5, 10] }, attacks: ['projectile', 'teleport'] },
     stats: st(1200, 120, 26, 2.6, 0, 0), drops: { echoes: 0 }, insightOnSight: 1,
   },

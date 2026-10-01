@@ -6,7 +6,7 @@
  */
 
 import * as THREE from 'three';
-import { WEATHER } from '../data/tuning';
+import { WEATHER, WORLD } from '../data/tuning';
 import type { Game } from '../systems/components';
 import type { Particles } from './particles';
 import { wetness } from './wetness';
@@ -17,6 +17,8 @@ const TOP = 9;
 const FALL = 15; // m/s
 const SLANT = 0.22; // share of the fall blown sideways
 const LEN = 0.5; // metres a streak is long
+const STRIDE = 0.9; // metres between the splashes of a walk on soaked ground
+const DROP: readonly [number, number, number] = [0.72, 0.78, 0.86];
 
 const VERT = 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
 const FRAG = 'uniform float uAlpha; uniform vec3 uColor; void main() { gl_FragColor = vec4(uColor, uAlpha); }';
@@ -41,6 +43,7 @@ export function createWeatherFx(scene: THREE.Scene, g: Game, particles: Particle
   lines.visible = false;
   scene.add(lines);
   let [last, seeded, owed, wet] = [-1, false, 0, 0];
+  let [px, pz, strode] = [NaN, NaN, 0]; // where the investigator was, and how far they have gone since the last splash
   const wind = { x: SLANT, z: SLANT * 0.4 };
 
   const seed = (i: number, cam: THREE.Vector3, fresh: boolean): void => {
@@ -61,6 +64,18 @@ export function createWeatherFx(scene: THREE.Scene, g: Game, particles: Particle
       const soak = rain ? Math.min(1, amount * 1.5) : 0; // the ground is soaked before the rain is at its fullest
       wet = hidden ? 0 : wet + (soak - wet) * Math.min(1, dt * (soak > wet ? WEATHER.soak : WEATHER.dry)); // dry at once under a roof
       wetness.value = wet;
+      const me = g.ecs.c.transform.get(g.player.id)?.pos;
+      if (me && !hidden) {
+        const moved = Number.isNaN(px) ? 0 : Math.hypot(me.x - px, me.z - pz);
+        [px, pz, strode] = [me.x, me.z, moved > 3 ? 0 : strode + moved]; // (a leap is not a stride)
+        if (strode >= STRIDE && wet > 0.35 && me.y > WORLD.seaLevel) {
+          strode = 0;
+          for (let k = 0; k < 5; k++) { // a stride on soaked ground throws a few drops
+            const a = Math.random() * Math.PI * 2;
+            particles.spawn({ x: me.x + Math.sin(a) * 0.15, y: me.y + 0.05, z: me.z + Math.cos(a) * 0.15, vx: Math.sin(a) * (0.6 + Math.random() * 0.8), vy: 1.3 + Math.random() * 1.2, vz: Math.cos(a) * (0.6 + Math.random() * 0.8), life: 0.4, size: 0.07, grow: 0.6, color: DROP, alpha: 0.75 * wet, gravity: 9, drag: 0.5 });
+          }
+        }
+      }
       lines.visible = rain;
       if (rain) {
         const n = streaksAt(amount, max);

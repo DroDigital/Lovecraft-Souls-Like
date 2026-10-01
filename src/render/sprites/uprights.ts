@@ -1,6 +1,7 @@
 /** Upright body plans, drawn facing the viewer: humanoid, hunched, robed, giant, cephalopod, spectre. */
 
 import { capsule, ellipse, poly } from './raster';
+import { dress, type Anchors } from './gear';
 import { claws, eyes, GROUND, MID, recoil, tentacles, wing, type Pose, type Sketch } from './parts';
 
 const HALF_PI = Math.PI / 2;
@@ -20,6 +21,8 @@ export function humanoid(s: Sketch): void {
   const x = MID + dx;
   const b = dy - p.bob;
   const [hip, sh, head] = [38 + b, 20 + b, 12 + b];
+  const worn: Anchors = { x, head, rx: 4.5, ry: 5.2, face: [4.5, 5.2, 0], sh, hip, hand: [x + 8, sh + 17] };
+  dress(s, 'before', worn);
   if (r.wings) for (const side of [-1, 1] as const) wing(s, x + side * 3, sh + 2, side, 20, 8 + p.bob * 3);
   const fishy = r.palette === 'sea';
   for (const [side, ink] of [[-1, s.dark], [1, s.body]] as const) {
@@ -30,10 +33,12 @@ export function humanoid(s: Sketch): void {
   }
   capsule(c, x, hip, x, sh + 2, 5, 6.5, s.body);
   capsule(c, x - 4.5, hip - 1, x + 4.5, hip - 1, 0.9, 0.9, s.dark); // belt, or the line of the hips
+  dress(s, 'torso', worn);
   capsule(c, x, sh + 1, x, head + 3, 1.9, 1.7, s.body); // neck
   if (fishy) for (const gy of [sh - 1.5, sh]) capsule(c, x - 1.6, gy, x + 1.6, gy, 0.35, 0.35, s.dark); // gills
   for (const side of [-1, 1] as const) {
     const [hx, hy] = arm(p, x + side * 6.5, sh + 1, side, 17);
+    if (side === 1) worn.hand = [hx, hy];
     ellipse(c, x + side * 6, sh + 1.5, 2.8, 2.4, s.body); // shoulder
     capsule(c, x + side * 6.5, sh + 1, hx, hy, 2.2, 1.7, s.body);
     ellipse(c, hx, hy, 1.8, 1.8, s.light);
@@ -44,6 +49,7 @@ export function humanoid(s: Sketch): void {
   capsule(c, x - 1.6, head + 2.6, x + 1.6, head + 2.6, 0.45, 0.45, s.dark); // mouth
   eyes(s, x, head - 0.5, r.eyes ?? 2, 2, 1.1);
   if (r.tentacles) tentacles(s, x, head + 3, r.tentacles, 10, 1.1, HALF_PI - 0.6, HALF_PI + 0.6, p.bob + p.swing);
+  dress(s, 'after', worn);
 }
 
 export function hunched(s: Sketch): void {
@@ -51,6 +57,8 @@ export function hunched(s: Sketch): void {
   const [dx, dy] = recoil(p);
   const x = MID + dx;
   const b = dy - p.bob;
+  const worn: Anchors = { x, head: 25 + b, rx: 6, ry: 5.5, face: [6, 5.5, 0], sh: 30 + b, hip: 46 + b, hand: [x + 13, 56 + b] };
+  dress(s, 'before', worn);
   capsule(c, x - 5, 46 + b, x - 7 + p.swing * 4, GROUND - 1, 3, 2.4, s.dark);
   capsule(c, x + 5, 46 + b, x + 7 - p.swing * 4, GROUND - 1, 3, 2.4, s.body);
   ellipse(c, x, 38 + b, 11, 11, s.body);
@@ -59,6 +67,7 @@ export function hunched(s: Sketch): void {
   for (const side of [-1, 1] as const) {
     const up = p.attack === 1 ? -26 : p.attack === 2 ? 8 : p.hurt ? 2 : 0;
     const [hx, hy] = [x + side * (p.attack === 2 ? 5 : 13) + p.swing * side, 56 + b + up];
+    if (side === 1) worn.hand = [hx, hy];
     capsule(c, x + side * 9, 30 + b, hx, hy, 3, 2.2, s.body);
     claws(s, hx, hy, side);
   }
@@ -67,6 +76,7 @@ export function hunched(s: Sketch): void {
   capsule(c, x - 3, 28 + b, x + 3, 28 + b, 0.8, 0.8, s.dark); // wide mouth
   for (let k = -2; k <= 2; k += 2) ellipse(c, x + k, 28.3 + b, 0.5, 0.7, s.claw); // and its teeth
   if (r.tentacles) tentacles(s, x, 29 + b, r.tentacles, 9, 1.1, HALF_PI - 0.4, HALF_PI + 0.4, p.bob);
+  dress(s, 'after', worn);
 }
 
 export function robed(s: Sketch): void {
@@ -74,12 +84,15 @@ export function robed(s: Sketch): void {
   const [dx, dy] = recoil(p);
   const x = MID + dx;
   const b = dy - p.bob;
+  const worn: Anchors = { x, head: 14 + b, rx: 6.5, ry: 7.5, face: [4, 4.8, 1.5], sh: 22 + b, hip: 38 + b, hand: [x + 9, 36 + b] };
+  dress(s, 'before', worn);
   if (r.tentacles) tentacles(s, x, 58, r.tentacles, 10, 1.4, 0.3, Math.PI - 0.3, p.bob);
   poly(c, [[x - 7, 20 + b], [x + 7, 20 + b], [x + 13 + p.swing, GROUND], [x - 13 + p.swing, GROUND]], s.body);
   capsule(c, x, 24 + b, x, GROUND - 2, 0.6, 0.8, s.dark);
   for (const side of [-1, 1] as const) {
     const [hx, hy] =
       p.attack === 1 ? [x + side * 11, 6 + b] : p.attack === 2 ? [x + side * 4, 26 + b] : p.attack === 3 ? [x + side * 9, 30 + b] : [x + side * 9, 36 + b];
+    if (side === 1) worn.hand = [hx, hy];
     capsule(c, x + side * 6, 22 + b, hx, hy, 2.4, 3, s.body);
     ellipse(c, hx, hy, 1.7, 1.7, s.light);
     if (p.attack === 2 && r.glow) ellipse(c, hx, hy - 3, 2.5, 2.5, s.eye);
@@ -87,6 +100,7 @@ export function robed(s: Sketch): void {
   ellipse(c, x, 14 + b, 6.5, 7.5, s.body);
   ellipse(c, x, 15.5 + b, 4, 4.8, (r.eyes ?? 2) === 0 ? s.light : s.dark);
   eyes(s, x, 15 + b, r.eyes ?? 2, 1.6, 0.9);
+  dress(s, 'after', worn);
 }
 
 export function giant(s: Sketch): void {

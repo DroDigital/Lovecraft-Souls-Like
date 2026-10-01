@@ -39,7 +39,9 @@ function invariants(g: Game): string[] {
     else if (Math.abs(t.pos.x) > 6000 || Math.abs(t.pos.z) > 6000 || t.pos.y < -80 || t.pos.y > 400) bad.push(`entity ${id} (${c.combatant.get(id)?.name ?? c.model.get(id) ?? '?'}) far off: ${JSON.stringify(t.pos)}`);
   }
   const [pt, pb] = [c.transform.get(g.player.id), c.body.get(g.player.id)];
-  if (pt && pb && ![pt.pos.x, pt.pos.y, pt.pos.z].some((v) => !finite(v))) {
+  const dying = c.actor.get(g.player.id)?.move === 'death' || (c.health.get(g.player.id)?.hp ?? 1) <= 0; // a body in its death throes is shoved about by whatever stands on it, and is up in the next breath
+  if (dying) embedded.set(g, 0);
+  else if (pt && pb && ![pt.pos.x, pt.pos.y, pt.pos.z].some((v) => !finite(v))) {
     const ground = g.world.ground(pt.pos.x, pt.pos.z);
     if (Math.abs(pt.pos.y - ground) > 0.75) bad.push(`the investigator floats or sinks: y ${pt.pos.y.toFixed(2)} on ground ${ground.toFixed(2)}`); // (round 34)
     const out = { ...pt.pos };

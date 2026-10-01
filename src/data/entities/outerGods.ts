@@ -43,7 +43,7 @@ export const OUTER_GODS = tier('outer_god', [
   },
   {
     id: 'umr_at_tawil', name: "'Umr at-Tawil", source: 'Through the Gates of the Silver Key', regions: ['beyond'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 4, eyes: 0, glow: 'purple' },
+    sprite: { silhouette: 'robed', palette: 'charcoal', scale: 4, eyes: 0, glow: 'purple', gear: ['cowl', 'staff'] },
     ...scripted('boss', phases(
       ph(1, { gaze: 2, teleport: 1, beam: 1, sweep_beam: 1 }, { hooks: ['time_skip'] }),
       ph(0.6, { gaze: 2, beam: 2, teleport: 1, summon: 1, eruption: 1 }, { summons: ['ancient_ones'], hooks: ['time_skip', 'hidden_platforms'] }),
@@ -53,7 +53,7 @@ export const OUTER_GODS = tier('outer_god', [
   },
   {
     id: 'ancient_ones', name: 'The Ancient Ones', source: 'Through the Gates of the Silver Key', regions: ['beyond'], canonLooks: true,
-    sprite: { silhouette: 'robed', palette: 'pallid', scale: 3.2, eyes: 0 },
+    sprite: { silhouette: 'robed', palette: 'pallid', scale: 3.2, eyes: 0, gear: ['cowl'] },
     ...scripted('stationary_horror', phases(ph(1, { gaze: 2, roar: 1, sweep_beam: 1 }), ph(0.5, { gaze: 2, roar: 1, beam: 1, barrage: 1 }, { hooks: ['time_skip'] }))),
     stats: st(1550, 1000, 50, 0, 6, 14), drops: { echoes: 5000 }, insightOnSight: 4,
   },
@@ -68,7 +68,7 @@ export const OUTER_GODS = tier('outer_god', [
   },
   {
     id: 'nyarlathotep', name: 'Nyarlathotep', source: 'Nyarlathotep', regions: ['dreamlands', 'beyond'], canonLooks: true,
-    sprite: { silhouette: 'humanoid', palette: 'sand', scale: 2.6, eyes: 2, glow: 'purple' },
+    sprite: { silhouette: 'humanoid', palette: 'sand', scale: 2.6, eyes: 2, glow: 'purple', gear: ['tall', 'coat', 'chain'] },
     ...scripted('boss', phases(
       ph(1, { projectile: 2, teleport: 1, summon: 1, beam: 1, barrage: 1 }, { summons: ['night_gaunt'], hooks: ['decoys'] }),
       ph(0.6, { projectile_fan: 2, beam: 2, teleport: 1, gaze: 1, sweep_beam: 1, eruption: 1 }, { hooks: ['decoys', 'camera_warp'] }),
