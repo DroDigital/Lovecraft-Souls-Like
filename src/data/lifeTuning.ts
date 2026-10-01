@@ -57,8 +57,11 @@ export const LIGHTNING = {
 /** The night's turn and the weather (round 26; systems/clock.ts, systems/weather.ts): the night is one long night that turns, and the weather rolls over it. */
 export const CLOCK = {
   night: 1080, // seconds for the night to turn (the gloaming, the deep of the night, the hour before a dawn that does not come) and begin again
-  start: 0.03, // where in it a new journey opens: the gloaming, the windows lit and the lamplighter out
+  start: 0.3, // where in it a new journey opens: round 35, the deep of the night, not the gloaming (a bright violet sky and a land lit plain to see were no night)
 };
+
+/** How dark the night is kept (round 35: it was too bright to be creepy; render/realmLook.ts): at its deepest the sky, the mist, the far land and both lights are this much of what a realm's look gives them. */
+export const NIGHT_DARK = { sky: 0.24, mist: 0.28, far: 0.3, ambient: 0.2, moon: 0.28 };
 
 export const WEATHER = {
   calm: [150, 420] as const, // seconds of clear skies between spells

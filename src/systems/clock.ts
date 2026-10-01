@@ -33,3 +33,13 @@ export const dawnOf = (phase: number): number => smooth(0.72, 0.93, phase) * (1 
 
 /** How high the moon stands (0..1): it climbs to a peak past the middle and is low again at the end. */
 export const moonHigh = (phase: number): number => Math.sin(Math.PI * Math.min(1, phase * 1.02)) ** 0.8;
+
+/** How deep the dark is (0..1): half dark in the gloaming, wholly in the deep of the night, lifting through the last hour toward the grey. */
+export function darkOf(phase: number): number {
+  const rise = 0.55 + 0.45 * smooth(0.0, 0.16, phase); // the gloaming deepens
+  const fall = 1 - 0.55 * smooth(0.7, 0.93, phase); // and the last hour thins it
+  return Math.min(rise, fall) * (1 - smooth(0.96, 1, phase) * 0.0);
+}
+
+/** The hour's name for the HUD's small clock. */
+export const hourName = (phase: number): string => (phase < 0.14 ? 'GLOAMING' : phase < 0.7 ? 'THE DEEP' : 'THE WANING');

@@ -10,6 +10,7 @@
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
+import { darkOf, phaseOf } from './systems/clock';
 import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
@@ -229,7 +230,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         cinema.update(camera, still ? 0 : blend); // over the follow camera's pose
         hud.hide(cinema.active);
         const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
-        look.update(time, game.overworld?.region ?? null, enclosed, camera.position);
+        look.update(time, game.overworld?.region ?? null, enclosed, camera.position, false, game.overworld ? darkOf(phaseOf(time)) * (enclosed ? 0.35 : 1) : 0);
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
         const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
         mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
