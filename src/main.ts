@@ -130,6 +130,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   scene.add(lights.halos);
   const menu: SignMenu | null = opts.arena ? null : createSignMenu(game, journeys.go);
   const ending = createEndingCard(game, store, () => (shell.music = playMenuMusic(shell.engine, settings.volume))); // the title's theme again, under an ending
+  let building = true; // until the loop starts
   const pause = createPauseMenu({
     settings,
     change: shell.change,
@@ -140,7 +141,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     arms: (back, show) => armsPage(game, back, show),
     achievements: opts.arena ? undefined : (back) => achievementsPage(store, back),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
-    held: () => cinema.active, // a cutscene has the screen
+    held: () => cinema.active || journeys.busy || building, // a cutscene, the veil or the making of the world has the screen: leaving the window then must not pause (round 31)
   });
   if (store) startAutosave(game, store);
   if (!opts.arena) watchAchievements(game, store);
@@ -195,6 +196,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   let frames = 0;
   let statsAt = performance.now();
 
+  building = false;
   let heldAt = 0; // when a talk or a menu last held the investigator
   startLoop(
     {

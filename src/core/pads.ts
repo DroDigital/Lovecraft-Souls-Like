@@ -5,21 +5,79 @@
  * else any pad used most recently.
  */
 
-export function activePad(): Gamepad | null {
+/** What the game reads of a pad: buttons and sticks as the pad reports them, less what it only ever reports at rest. */
+export interface PadReading {
+  readonly id: string;
+  readonly mapping: string;
+  readonly axes: readonly number[];
+  readonly buttons: readonly { pressed: boolean; value: number }[];
+}
+
+/**
+ * What is known of each pad seen (round 31: in the desktop shell attacks failed and the investigator
+ * walked on alone, and the pad that was wanted was not heard). A pad is not believed until it is used:
+ * a button pressed that was not pressed when it was first seen, or a stick moved well off where it
+ * lay. Buttons already down when first seen (a trigger that rests at 1, a wheel's pedal) are ignored
+ * until let go once, and an axis that lay off centre (a trigger read as a stick) is read from there;
+ * none of these can then hold a button down, or push the stick, for ever.
+ */
+interface Seen {
+  rest: number[];
+  stuck: Set<number>; // buttons down since first seen, ignored until let go
+  armedAt: number; // timestamp of the last real use (0: not yet used)
+}
+const seen = new Map<string, Seen>();
+const PUSH = 0.5; // how far off its rest an axis must be to count as used
+let report = '';
+/** A line for the controls page: what pad is heard, or what to do. */
+export const padReport = (): string => report;
+
+function read(p: Gamepad): { reading: PadReading; used: number } {
+  const key = `${p.index}:${p.id}`;
+  let s = seen.get(key);
+  if (!s) {
+    s = { rest: [...p.axes], stuck: new Set(p.buttons.flatMap((b, i) => (b.pressed || b.value > 0.5 ? [i] : []))), armedAt: 0 };
+    seen.set(key, s);
+  }
+  const axes = p.axes.map((v, i) => {
+    if (p.mapping === 'standard' && i < 4 && Math.abs(v) < 0.1) s.rest[i] = 0; // a stick seen at centre rests at centre
+    const r = s.rest[i] ?? 0;
+    return Math.abs(r) > 0.3 ? (Math.abs(v - r) > 0.2 ? v - r : 0) : v; // an axis that lay off centre is read from where it lay
+  });
+  const buttons = p.buttons.map((b, i) => {
+    const down = b.pressed || b.value > 0.5;
+    if (s.stuck.has(i)) {
+      if (!down) s.stuck.delete(i);
+      return { pressed: false, value: 0 };
+    }
+    return { pressed: b.pressed, value: b.value };
+  });
+  const used = buttons.some((b) => b.pressed || b.value > 0.5) || p.axes.some((v, i) => Math.abs(v - (s.rest[i] ?? 0)) > PUSH) ? p.timestamp : 0;
+  if (used) s.armedAt = Math.max(s.armedAt, used);
+  return { reading: { id: p.id, mapping: p.mapping, axes, buttons }, used: s.armedAt };
+}
+
+/** The pad in hand: of those used, the standard-mapped one used most recently, else any used most recently; null while none has been touched. */
+export function activePad(): PadReading | null {
   let list: (Gamepad | null)[] = [];
   try {
     list = [...(navigator.getGamepads?.() ?? [])];
   } catch {
     return null; // a page not allowed pads (a permissions policy) hears none
   }
-  let best: Gamepad | null = null;
+  let best: { reading: PadReading; used: number } | null = null;
+  let heard = 0;
   for (const p of list) {
     if (!p || !p.connected) continue;
-    const std = p.mapping === 'standard';
-    const bestStd = best?.mapping === 'standard';
-    if (!best || (std && !bestStd) || (std === bestStd && p.timestamp > best.timestamp)) best = p;
+    heard++;
+    const r = read(p);
+    if (!r.used) continue;
+    const std = r.reading.mapping === 'standard';
+    const bestStd = best?.reading.mapping === 'standard';
+    if (!best || (std && !bestStd) || (std === bestStd && r.used > best.used)) best = r;
   }
-  return best;
+  report = best ? `${best.reading.id}${best.reading.mapping === 'standard' ? '' : ' (not a standard layout: some buttons may differ)'}` : heard ? `${heard} controller${heard > 1 ? 's' : ''} found: press a button on the one to use` : '';
+  return best?.reading ?? null;
 }
 
 let resync = false;

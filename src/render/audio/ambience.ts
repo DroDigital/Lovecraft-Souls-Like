@@ -7,7 +7,7 @@
  * random within its interval.
  */
 
-import { BED_MANNER, SAMPLE_SETS, type Ambience, type Spot } from '../../data/samples';
+import { BED_MANNER, BED_TRIM, SAMPLE_SETS, SPOT_TRIM, type Ambience, type Spot } from '../../data/samples';
 import { AUDIO } from '../../data/tuning';
 import type { AudioEngine } from './engine';
 import type { Sampler } from './sampler';
@@ -54,7 +54,7 @@ export function createAmbience(e: AudioEngine, sampler: Sampler): AmbienceBeds {
         src.loop = true;
         [src.loopStart, src.loopEnd] = [EDGE, buf.duration - EDGE];
         const g = ctx.createGain();
-        const top = gain * Math.SQRT1_2; // two unrelated readers sum to the bed's level
+        const top = gain * (BED_MANNER[file.replace(/\.\w+$/, '')] ? BED_TRIM.eased : BED_TRIM.rest) * Math.SQRT1_2; // two unrelated readers sum to the bed's level
         const breath = manner.breath ?? 0;
         g.gain.value = top * (1 - breath / 2);
         if (breath > 0) { // it swells and falls back, never above the bed's level, each reader on its own slow round
@@ -127,7 +127,7 @@ export function createAmbience(e: AudioEngine, sampler: Sampler): AmbienceBeds {
       for (const s of spots) {
         if (seconds < s.next) continue;
         s.next = nextSpot(s.spot, seconds, Math.random);
-        sampler.play(SAMPLE_SETS[s.spot.set], { pan: (Math.random() * 2 - 1) * 0.85, lowpass: 2500 + 3500 * Math.random(), bus: e.bed ?? undefined });
+        sampler.play(SAMPLE_SETS[s.spot.set], { gain: SPOT_TRIM, pan: (Math.random() * 2 - 1) * 0.85, lowpass: 2500 + 3500 * Math.random(), bus: e.bed ?? undefined });
       }
     },
   };

@@ -175,8 +175,8 @@ export const LIGHTS = {
   kinds: {
     lamp: { color: [1, 0.8, 0.52], strength: 2.6, range: 11, halo: 1.4, haloGain: 0.8, flicker: 0.03 }, // a pool about six metres across under a lamp three and a half up, and the walls about it
     window: { color: [1, 0.76, 0.48], strength: 1.1, range: 6.5, halo: 0.9, haloGain: 0.38, flicker: 0 }, // a warm patch on the wall and ground before it
-    fire: { color: [1, 0.66, 0.36], strength: 3, range: 13, halo: 1.8, haloGain: 0.75, flicker: 0.2 },
-    torch: { color: [1, 0.72, 0.42], strength: 2.3, range: 9.5, halo: 1.25, haloGain: 0.95, flicker: 0.14 }, // round 30: a torch glows as a flame should
+    fire: { color: [1, 0.66, 0.36], strength: 2.6, range: 12, halo: 1.8, haloGain: 0.7, flicker: 0.2 },
+    torch: { color: [1, 0.72, 0.42], strength: 1.9, range: 8.5, halo: 1.2, haloGain: 0.85, flicker: 0.14 }, // round 30: a torch glows as a flame should
     // A lit Elder Sign: a pale violet light, too grey to count as an anomaly hue, so madness's colour
     // isolation never floods its ground (playtest round 12); its halo and carving keep Cosmic Purple.
     sigil: { color: [0.8, 0.72, 1], strength: 1.1, range: 8, halo: 1.3, haloGain: 0.3, haloColor: [0.62, 0.26, 1], flicker: 0 },

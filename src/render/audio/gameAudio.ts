@@ -147,7 +147,16 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     play({ sound: 'vanish', at });
     recorded('whisper', at, 25, { pitch: 1.2 });
   });
+  let hush = 0; // the world's high end, closed on an unmaking and let go again on the waking (round 31)
+  let hushTo = 0;
+  g.events.on('Respawned', () => void (hushTo = 0));
   g.events.on('Died', ({ entity }) => {
+    if (entity === g.player.id) { // UNMADE: the heart stops, the world dulls and goes under, the voices the dying hear
+      hushTo = 1;
+      play({ sound: 'unmade', at: null });
+      for (const [delay, gain, pitch] of [[0.7, 0.5, 0.7], [1.5, 0.4, 0.62], [2.4, 0.32, 0.8]] as const) recorded('whisper', null, 1, { gain, pitch, delay });
+      return;
+    }
     const rosterId = g.ecs.c.dread.get(entity)?.id;
     const v = rosterId ? voice(rosterId) : null;
     if (!v) return;
@@ -244,7 +253,8 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
       Object.assign(right, { x: m[0] / len, z: m[2] / len });
       e.detune = fx.detune + fx.wobble * Math.sin(seconds * 0.7);
       e.setDistortion(fx.distortion);
-      e.setMuffle(HEART.need); // near death the world dulls, and the heart is heard (round 23)
+      hush += (hushTo - hush) * (hushTo > hush ? 0.018 : 0.012); // a few seconds to close, a few to open
+      e.setMuffle(Math.max(HEART.need, hush * 0.9)); // near death the world dulls, and the heart is heard (round 23)
       region = g.overworld ? (g.overworld.region ?? region) : 'arena'; // out at sea, the last shore's drone
       const [fight] = engagedFights(g);
       drones.set(region, !!fight);

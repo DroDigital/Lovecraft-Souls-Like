@@ -59,6 +59,7 @@ function open() {
     show: false,
     webPreferences: {
       autoplayPolicy: 'no-user-gesture-required',
+      backgroundThrottling: false, // round 31: a window tabbed away from kept loading and running (frames and timers are not slowed or stopped behind another window)
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
@@ -69,7 +70,10 @@ function open() {
     if (last.maximized) win.maximize();
     win.setFullScreen(last.fullscreen);
     win.show();
+    win.focus();
+    win.webContents.focus(); // the page must have the focus for Chromium to report a pad at all (round 31)
   });
+  win.on('focus', () => win.webContents.focus()); // and again on returning to the window
   win.on('close', () => {
     try {
       writeWhole(windowFile(), JSON.stringify({ ...win.getNormalBounds(), fullscreen: win.isFullScreen(), maximized: win.isMaximized() }));

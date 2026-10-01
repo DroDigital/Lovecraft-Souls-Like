@@ -19,7 +19,8 @@ import { hourOf, phaseOf, type Hour } from './clock';
 import type { Game } from './components';
 import { npcPlace } from './npcs';
 
-const SPEED = 0.9; // m/s
+const SPEED = 1.15; // m/s: an unhurried walk (round 31: 0.9 was a shuffle, and set off and stopped at once)
+const ACCEL = 1.8; // m/s²: they get up to it, and ease off as they near a turn
 const TURN = 2.2; // rad/s
 const HOLD = 4.5; // metres from the investigator within which they stand and face them
 const ARRIVE = 0.25;
@@ -37,6 +38,7 @@ interface Walker {
   next: number; // which they are walking to
   wait: number; // seconds to stand before going on
   look: number; // the way they look while they stand
+  pace: number; // m/s now
 }
 
 const walkers = new WeakMap<Game, Map<Entity, Walker>>();
@@ -86,9 +88,10 @@ export function npcLife(g: Game, dt: number): void {
     if (!w) {
       const place = npcPlace(def);
       if (!place) continue;
-      table.set(e, (w = { home: place, turns: [], next: 0, wait: between(g, [1, 6]), look: place.yaw }));
+      table.set(e, (w = { home: place, turns: [], next: 0, wait: between(g, [1, 6]), look: place.yaw, pace: 0 }));
     }
     const near = g.player.listening === e || distXZ(tr.pos, me) < HOLD;
+    if (near || w.wait > 0) w.pace = 0;
     if (near) { // they stand, and turn to the one beside them (npcs.ts does it faster for one being talked with)
       tr.prev = { ...tr.pos };
       tr.prevYaw = tr.yaw;
@@ -113,7 +116,8 @@ export function npcLife(g: Game, dt: number): void {
       w.look = tr.yaw + (g.rng() - 0.5) * 2.4; // at the turn, they look about
       continue;
     }
-    const step = Math.min(d, SPEED * dt);
+    w.pace = Math.min(SPEED, w.pace + ACCEL * dt, 0.35 + d * 1.5); // up to a walk, and down toward the turn
+    const step = Math.min(d, w.pace * dt);
     const next = { x: tr.pos.x + ((to.x - tr.pos.x) / d) * step, z: tr.pos.z + ((to.z - tr.pos.z) / d) * step };
     if (!clearStep(g, tr.pos, next)) {
       w.next = (w.next + 1) % w.turns.length; // something is in the way: on to the next

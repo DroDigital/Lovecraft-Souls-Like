@@ -27,8 +27,6 @@ const CARPET: Partial<Record<KitId, Rgb>> = {
   library: [0.5, 0.17, 0.16], church: [0.34, 0.2, 0.44], marble: [0.2, 0.27, 0.5], townhouse: [0.3, 0.42, 0.32], timber: [0.5, 0.36, 0.2], dream: [0.95, 0.78, 0.4],
 };
 const RUNNER = new Set<KitId>(['library', 'church', 'marble', 'townhouse', 'timber', 'dream']);
-/** A kit's banners' colour (its carpet's, else a faded red). */
-const banner = (kit: DungeonKit): Rgb => CARPET[(Object.keys(KITS) as KitId[]).find((k) => KITS[k] === kit) as KitId] ?? [0.46, 0.16, 0.14];
 const AWAY = { door: 2.8, torch: 1.5, spot: 2.2 }; // metres furniture keeps from a doorway, a torch, and what stands in a room
 
 const finish = (g: THREE.BufferGeometry): THREE.BufferGeometry => {
@@ -60,16 +58,6 @@ function roof(r: RoomLayout, kit: DungeonKit, c: Rgb, at: Origin, out: Out): voi
   const to = kit.roof === 'vault' ? out.trim : out.beam;
   for (let v = -r.half + step / 2; v < r.half; v += step) put(0, v, span * 2, depth, drop, top - drop / 2, col, to);
   put(0, 0, depth * 0.8, r.half * 2 - 0.2, drop * 0.7, top - (drop * 0.7) / 2, col, to); // the ridge along it
-  if (r.def.kind !== 'hall' || kit.trim !== 'masonry') return;
-  const cloth = scaleRgb(banner(kit), 1);
-  const reach = r.size === 3 ? 9 : 2.6;
-  for (let v = -r.half + step / 2; v < r.half; v += step) {
-    for (const u of [-reach, reach]) {
-      put(u, v, 1.1, 0.07, 2.6, top - drop - 1.3, cloth, out.trim); // a banner hung from the rib, its tail cut to a point
-      put(u, v, 0.6, 0.07, 0.5, top - drop - 2.85, scaleRgb(cloth, 0.9), out.trim);
-      put(u, v + 0.05, 1.2, 0.05, 0.1, top - drop - 0.1, scaleRgb(c, 0.5), out.trim);
-    }
-  }
 }
 
 /** What lies on a hall's floor: a border, a runner, a medallion (inlaid; drawn nearer than the slab). */

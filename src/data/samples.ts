@@ -186,7 +186,21 @@ export const BED_MANNER: Readonly<Record<string, { lowpass?: number; breath?: nu
   frogs: { lowpass: 3200, breath: 0.7, every: [30, 70] },
   alien: { lowpass: 5000, breath: 0.4, every: [45, 90] },
   murmur: { breath: 0.35, every: [50, 100] },
+  // Round 31 (the rest were too loud): the winds, the sea, the leaves and the cave soften and breathe too.
+  wind: { lowpass: 2600, breath: 0.45, every: [30, 70] },
+  wind_cold: { lowpass: 2400, breath: 0.4, every: [30, 70] },
+  wind_ghost: { lowpass: 2800, breath: 0.5, every: [35, 80] },
+  leaves: { lowpass: 3000, breath: 0.4, every: [25, 60] },
+  surf: { lowpass: 2800, breath: 0.3, every: [24, 50] },
+  waves: { lowpass: 2800, breath: 0.3, every: [24, 50] },
+  cave: { lowpass: 2400, breath: 0.25, every: [40, 90] },
+  drips: { lowpass: 4200 },
 };
+
+/** The share of a bed's listed level it is played at: the tonal beds above were already eased (round 30), the rest were not (round 31). */
+export const BED_TRIM = { eased: 0.85, rest: 0.5 } as const;
+/** The same for spot sounds (owls, dogs, creaks, chains), far off and rare, but sharp when they come. */
+export const SPOT_TRIM = 0.6;
 
 export const AMBIENCE: Record<string, Ambience> = {
   title: { beds: [], spots: [] }, // the theme plays

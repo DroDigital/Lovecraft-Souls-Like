@@ -71,6 +71,16 @@ export const STINGERS = {
   dry: [noise('bandpass', 2800, 0.03, 0.3, { q: 4 }), tone('square', 950, 0.03, 0.04, { filter: { type: 'bandpass', hz: 1500 } })], // the trigger pulled on nothing
   lock: [tone('square', 1760, 0.04, 0.04, { filter: { type: 'bandpass', hz: 2000 } })],
   death: [...chord('sawtooth', [55, 58.27, 82.41, 87.31], 3.5, 0.3, { attack: 0.05, filter: lp(900, 120) }), tone('sine', 41, 4, 0.4, { to: 30 }), noise('lowpass', 300, 2.5, 0.2)],
+  // Round 31, UNMADE: the heart's last stroke, a long fall into the floor, a swell drawn backward out of the air, a cold cluster that wavers and goes, and a thin ringing where hearing was.
+  unmade: [
+    tone('sine', 52, 0.5, 0.8, { to: 38 }),
+    tone('sine', 52, 0.7, 0.55, { to: 30, at: 0.34 }),
+    tone('sine', 64, 4.2, 0.55, { to: 22, at: 0.6, attack: 0.15 }),
+    noise('lowpass', 1800, 2.6, 0.32, { to: 120, attack: 1.7 }),
+    ...chord('sine', [138.6, 146.8, 207.7, 220], 4.2, 0.12, { attack: 1.4, vibrato: [4, 28] }),
+    tone('sine', 3100, 3.4, 0.03, { at: 0.5, attack: 0.6, to: 2900, vibrato: [6, 22] }),
+    noise('bandpass', 700, 3, 0.1, { to: 150, q: 2, at: 0.4 }),
+  ],
   rise: [noise('lowpass', 300, 2, 0.2, { to: 1200, attack: 1.2 }), tone('sine', 55, 2.2, 0.25, { to: 110, attack: 1 })],
   sight: [...chord('sawtooth', [233.1, 246.9, 349.2, 370], 1.8, 0.28, { attack: 0.02, vibrato: [6, 18], filter: lp(3000, 700) }), noise('highpass', 2500, 1.2, 0.08, { attack: 0.05 })],
   slip: [tone('sine', 62, 0.22, 0.45, { to: 44 }), tone('sine', 2637, 0.9, 0.025, { at: 0.03, attack: 0.15, to: 2489, vibrato: [8, 30] })], // sanity lost at once: a thud in the chest, a thin ringing

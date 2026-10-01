@@ -33,3 +33,20 @@ describe('kneeling at an Elder Sign (round 29)', () => {
     expect(g.player.kneeling).toBeNull();
   });
 });
+
+describe('a respawn kneels too (round 31)', () => {
+  it('after a fall at a sign they come up on one knee before it, and rise on the first move', async () => {
+    const { strike } = await import('../src/systems/combat');
+    const { PLAYER_MOVES } = await import('../src/data/moves');
+    const g = createWorldGame();
+    const s = worldLayout().signs.find((x) => !x.dream)!;
+    place(g, g.player.id, s.x, s.z + 2, 0);
+    expect(rest(g, s.id)).toBe(true);
+    g.player.kneeling = null;
+    strike(g, g.player.id, g.player.id, { damage: 9999, poise: 0, guard: 0, hitstop: 0, parryable: false, interrupts: false });
+    for (let i = 0; i < PLAYER_MOVES.death.frames + 5; i++) stepGame(g, emptyInput());
+    expect(g.player.kneeling).toEqual({ x: s.x, z: s.z });
+    stepGame(g, { ...emptyInput(), moveY: 1 });
+    expect(g.player.kneeling).toBeNull();
+  });
+});

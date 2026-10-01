@@ -131,11 +131,14 @@ export function createInput(canvas: HTMLCanvasElement): InputDevice {
     const b = keyButton(e.code);
     if (b) release(b);
   });
-  addEventListener('blur', () => {
+  const letGo = (): void => { // a key or button let go while the window was elsewhere is never heard to rise: nothing is held on leaving it, or on coming back (round 31)
     keys.clear();
     mouseButtons.clear();
     for (const b of BUTTONS) release(b);
-  });
+  };
+  addEventListener('blur', letGo);
+  addEventListener('focus', letGo);
+  document.addEventListener('visibilitychange', letGo);
   canvas.addEventListener('mousedown', (e) => {
     useDevice('keys');
     if (!captured()) capture();

@@ -6,6 +6,7 @@
  */
 
 import { ACTIONS, DEFAULT_KEYS, keyLayout, keyName, rebind, type Action } from '../core/bindings';
+import { padReport } from '../core/pads';
 import { RENDER, SETTINGS } from '../data/tuning';
 import { desktop } from './desktop';
 import { glyph } from './glyphs';
@@ -114,6 +115,7 @@ export function controlsPage(back: () => void, save: () => void = () => undefine
     build(panel) {
       el(panel, 'div', 'CONTROLS', 'font-size:18px;letter-spacing:4px');
       el(panel, 'div', 'Choose a key to rebind it, then press the new one. Shift, Tab, Enter, Esc and the arrows are kept.', 'opacity:.6;margin:4px 0 10px');
+      el(panel, 'div', `Controller: ${padReport() || 'none found (press a button on it)'}`, 'opacity:.6;margin:0 0 10px'); // what the game hears (round 31)
       if (refused) el(panel, 'div', 'That key is kept: Shift is the heavy blow and the parry, and the rest are the menus\u2019. Choose another.', 'color:#d9a066;margin:0 0 8px');
       const table = el(panel, 'div', '', 'display:grid;grid-template-columns:1fr auto auto;gap:2px 12px;align-items:center');
       for (const cell of ['', 'KEY', 'PAD']) el(table, 'div', cell, 'opacity:.55;letter-spacing:2px;font-size:11px');
