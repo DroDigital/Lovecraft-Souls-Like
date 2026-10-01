@@ -33,6 +33,7 @@ export const AUDIO = {
   eventRange: 40, // the range of event stingers (blows, shots) away from the investigator
   callGap: 2.5, // a creature calls at most this often, even when it turns on the investigator
   pan: 0.8, // the widest stereo placement
+  speech: 1.5, // the spoken lines' make-up gain: a recording's speech averages some −20 dB below full scale, about 10 dB over the bed, and the bus joins before the limiter
   muffle: [16000, 2400] as readonly [number, number], // near death the world's sound dulls: the low-pass on it (Hz), at the line and at death's door (the heart itself is low, and stays)
   whisper: { from: 0.6, every: [22, 9] as readonly [number, number], gain: [0.22, 0.45] as readonly [number, number] }, // a failing mind hears a whisper at one ear (round 22): from this stress on, every so many seconds (the slow end at that stress, the quick at madness), this loud; nothing else is added to the sound
 };
@@ -75,6 +76,7 @@ export const SETTINGS = {
   music: [0, 1, 0.05, 1], // the title's theme and the boss scores (round 12)
   sfx: [0, 1, 0.05, 1], // blows, steps, voices
   ambience: [0, 1, 0.05, 1], // the drones and the recorded ambience
+  speech: [0, 1, 0.05, 1], // the people's and the horrors' spoken lines (the voices)
 } satisfies Record<string, readonly [number, number, number, number]>;
 
 /** The UI's scale (ui/uiScale.ts): 1 at a window this tall, and never below or above these. */

@@ -44,6 +44,7 @@ export interface Beat {
   burst?: { kind: 'ash' | 'motes' | 'embers' | 'stars'; on: Subject; count: number };
   shake?: number; // the camera trembles this hard (metres) for `hold` seconds
   rise?: number; // the investigator gets up from the knee, over this many seconds (0: as fast as they would in play)
+  voice?: { by: string; text: string }; // a line said aloud by `boss:<id>` (data/speechLines.ts; the voices): its recording plays
 }
 
 export interface Scene {

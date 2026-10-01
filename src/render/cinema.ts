@@ -117,6 +117,7 @@ export function createCinema(g: Game, ui: CinemaUi, audio: GameAudio, particles:
     if (b.fade) ui.fade(b.fade, b.over ?? 1);
     if (b.sound) audio.stinger(b.sound, { gain: b.gain, pitch: b.pitch });
     if (b.set) audio.sample(b.set, { gain: b.gain, pitch: b.pitch });
+    if (b.voice) g.events.emit('Said', { speaker: b.voice.by, text: b.voice.text });
     if (b.shake) r.shakes.push({ at: r.t, amount: b.shake, hold: b.hold ?? 1 });
     if (b.rise !== undefined) {
       g.player.kneeling = null;
@@ -142,6 +143,7 @@ export function createCinema(g: Game, ui: CinemaUi, audio: GameAudio, particles:
     run = undefined;
     hold = 0;
     if (skipped && r.scene.beats.some((b) => b.rise !== undefined && b.at > r.t)) g.player.kneeling = null; // skipped before they got up: up now, under the fade
+    if (skipped && r.scene.beats.some((b) => b.voice)) g.events.emit('Silenced', {}); // and a line being said is cut off with it
     ui.hint(false);
     ui.clear(0.8);
     if (skipped && !r.scene.shut) ui.fade('clear', 0.5);

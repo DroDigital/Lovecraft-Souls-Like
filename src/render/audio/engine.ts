@@ -17,9 +17,12 @@ export interface AudioEngine {
   readonly bed: AudioNode | null; // drones and ambience in
   readonly score: AudioNode | null; // the boss scores in (sanity FX, like the bed)
   readonly music: AudioNode | null; // the title's theme in: the volume setting only, no sanity FX
+  readonly speech: AudioNode | null; // what the people and the horrors say in (the voices): the speech setting, and the volume; no sanity FX, no muffle
   detune: number; // cents new one-shots start at: the sanity FX's sag and drift
   playing: number; // one-shots sounding now (synth.ts counts them against AUDIO.polyphony)
   setVolume(v: number): void;
+  /** The speech setting (0..1): the level of the spoken lines' bus. */
+  setSpeech(v: number): void;
   /** The music, effects and ambience settings (0..1), each its bus's level. */
   setLevels(l: Levels): void;
   /** The sanity waveshaper: 0 clean, 1 heavily driven. */
@@ -61,12 +64,13 @@ interface Graph {
   bed: GainNode;
   score: GainNode;
   music: GainNode;
+  speech: GainNode;
   shaper: WaveShaperNode;
   muffle: BiquadFilterNode;
   master: GainNode;
 }
 
-function build(volume: number, levels: Levels): Graph {
+function build(volume: number, levels: Levels, speechLevel: number): Graph {
   const ctx = new AudioContext();
   const sfx = ctx.createGain();
   const bed = ctx.createGain();
@@ -83,12 +87,15 @@ function build(volume: number, levels: Levels): Graph {
   const master = ctx.createGain();
   master.gain.value = volume;
   const music = ctx.createGain();
+  const speech = ctx.createGain(); // spoken lines join before the compressor, past the sanity shaper and the muffle: a failing mind is still understood
+  speech.gain.value = speechLevel * AUDIO.speech;
   sfx.connect(shaper);
   bed.connect(shaper);
   score.connect(shaper);
   shaper.connect(muffle).connect(limiter).connect(master).connect(ctx.destination);
   music.connect(master);
-  const graph = { ctx, sfx, bed, score, music, shaper, muffle, master };
+  speech.connect(limiter);
+  const graph = { ctx, sfx, bed, score, music, speech, shaper, muffle, master };
   setBusLevels(graph, levels);
   return graph;
 }
@@ -102,6 +109,7 @@ function setBusLevels(g: Graph, l: Levels, hush = 0): void {
 }
 
 export function createAudioEngine(volume: number, levels: Levels = { music: 1, sfx: 1, ambience: 1 }): AudioEngine {
+  let speechLevel = 1; // the speech setting, kept for a graph not yet built
   let graph: Graph | null = null;
   let amount = 0;
   let muffled = 0; // how far the world's sound is dulled (setMuffle)
@@ -113,7 +121,7 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
       return;
     }
     try {
-      graph = build(volume, levels);
+      graph = build(volume, levels, speechLevel);
     } catch {
       return; // No WebAudio: the game stays silent.
     }
@@ -137,8 +145,15 @@ export function createAudioEngine(volume: number, levels: Levels = { music: 1, s
     get music() {
       return graph?.music ?? null;
     },
+    get speech() {
+      return graph?.speech ?? null;
+    },
     detune: 0,
     playing: 0,
+    setSpeech(v) {
+      speechLevel = v;
+      graph?.speech.gain.setTargetAtTime(v * AUDIO.speech, graph.ctx.currentTime, 0.05);
+    },
     setVolume(v) {
       volume = v;
       graph?.master.gain.setTargetAtTime(v, graph.ctx.currentTime, 0.05);

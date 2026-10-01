@@ -37,6 +37,7 @@ export function createShell(): Shell {
   const settings = loadSettings(store);
   const levels = (): { music: number; sfx: number; ambience: number } => ({ music: settings.music, sfx: settings.sfx, ambience: settings.ambience });
   const engine = createAudioEngine(settings.volume, levels());
+  engine.setSpeech(settings.speech);
   setMenuSound(() => playSound(engine, STINGERS.select));
   try {
     Object.assign(keyLayout, parseKeys(store?.getItem(KEYS_KEY) ?? null));
@@ -53,6 +54,7 @@ export function createShell(): Shell {
       shell.music?.setVolume(settings.volume);
     }
     if (id === 'music' || id === 'sfx' || id === 'ambience') engine.setLevels(levels());
+    if (id === 'speech') engine.setSpeech(settings.speech);
     if (id === 'uiScale') applyUiScale(settings.uiScale);
   };
   const saveKeys = (): void => {

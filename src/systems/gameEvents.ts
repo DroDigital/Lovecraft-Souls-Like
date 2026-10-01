@@ -70,6 +70,8 @@ export interface GameEvents {
   Swept: { by: Entity }; // a sweeping beam begins its sweep
   Explored: { region: string }; // more of a region seen (exploration.ts)
   Talked: { npc: string; name: string; title: string; lines: readonly string[]; shop?: string }; // someone spoke (npcs.ts); a merchant offers their wares after
+  Said: { speaker: string; text: string }; // a line said aloud, by `npc:<id>` (ui/dialogue.ts) or `boss:<id>` (a horror's scene: render/cinema.ts, cinemaDirector.ts): its recording plays (render/audio/speech.ts; the voices)
+  Silenced: Record<string, never>; // a talk ended, or a scene was skipped: whoever was speaking is cut off
   Trade: { shop: string; name: string }; // a merchant's wares are shown (ui/shopMenu.ts; round 12)
   QuestChanged: { id: string; title: string; stage: number; done: boolean }; // a quest begun, moved on or done (quests.ts)
   Read: { name: string }; // a tome or a note picked up (documents.ts has its text)
