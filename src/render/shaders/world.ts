@@ -188,6 +188,7 @@ void main() {
 export const WORLD_FRAG = /* glsl */ `
 uniform sampler2D uMap;
 uniform sampler2D uMap2;
+uniform sampler2D uMap3;
 uniform float uAffine;
 uniform vec3 uFogColor;
 uniform float uFogAmount;
@@ -201,6 +202,7 @@ uniform float uVary; // world-space tone variation (0: none)
 uniform float uBomb; // 1: a second, turned sample blends in by a noise mask, so organic ground never repeats
 uniform float uHasMap2; // 1: uMap2 blends in by vSplat (roads)
 uniform float uSeaLevel;
+uniform float uHasMap3; uniform vec2 uPatch; // 1: uMap3 is laid over the ground in patches of the land's own noise, from uPatch.x, softly over uPatch.y (round 32: a field is not one ground)
 
 varying vec2 vUv;
 varying vec3 vUvw;
@@ -248,9 +250,14 @@ void main() {
     float edge = vSplat + 0.35 * (vnoise(vWorld.xz * 0.9) - 0.5);
     tex = mix(tex, textureGrad(uMap2, uv, gx, gy).rgb, smoothstep(0.35, 0.65, edge));
   }
+  if (uHasMap3 > 0.5) {
+    float pn = 0.5 * vnoise(vWorld.xz * 0.045 + 17.0) + 0.3 * vnoise(vWorld.xz * 0.13 + 3.0) + 0.2 * vnoise(vWorld.xz * 0.5), pm = smoothstep(uPatch.x, uPatch.x + uPatch.y, pn) * (1.0 - smoothstep(0.1, 0.5, vSplat)); // never over a road
+    if (pm > 0.01) tex = mix(tex, textureGrad(uMap3, uv * 0.9 + vec2(0.31, 0.57), gx * 0.9, gy * 0.9).rgb, pm);
+  }
   if (uVary > 0.0) {
-    float n = 0.6 * vnoise(vWorld.xz * 0.045) + 0.4 * vnoise(vWorld.xz * 0.23 + 5.0);
-    tex *= 1.0 + uVary * (n - 0.5) * 0.8;
+    float n = 0.45 * vnoise(vWorld.xz * 0.018 + 2.0) + 0.35 * vnoise(vWorld.xz * 0.06) + 0.2 * vnoise(vWorld.xz * 0.3 + 5.0);
+    tex *= 1.0 + uVary * (n - 0.5) * 0.9;
+    tex *= 1.0 + uVary * vec3(0.16, 0.02, -0.18) * (vnoise(vWorld.xz * 0.012 + 40.0) - 0.5); // drier and warmer here, damper and cooler there: no field is one colour
   }
   // The lantern, per pixel: a smooth pool, brightest at the investigator. Characters take a fixed
   // share of it (no N·L, like sprites), so their values hold as they turn; the investigator takes less

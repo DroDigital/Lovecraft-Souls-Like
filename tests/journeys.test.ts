@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { emptyInput } from '../src/core/input';
 import { signPlace, travel } from '../src/systems/checkpoints';
+import { WORLD } from '../src/data/tuning';
 import { strike } from '../src/systems/combat';
 import { createWorldGame, stepGame } from '../src/systems/game';
 import { createJourneys, DYING_MS } from '../src/ui/journeys';
@@ -87,7 +88,8 @@ describe('journeys (ui/journeys.ts)', () => {
     const g = createWorldGame();
     const gate = worldLayout().gates[0];
     const twin = worldLayout().gates.find((x) => x.id === gate.to)!;
-    goTo(g, (gate.x + gate.arrive.x) / 2, (gate.z + gate.arrive.z) / 2);
+    const back = (WORLD.reach - 0.7) / WORLD.gateArrive; // a step or two back toward the gate: within reach (round 32: the arrival is further out, so no longer half the way)
+    goTo(g, gate.x + (gate.arrive.x - gate.x) * back, gate.z + (gate.arrive.z - gate.z) * back);
     const { veil, asked, covers } = fakeVeil();
     const j = createJourneys(g, veil);
     const frame = press('interact');

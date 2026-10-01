@@ -102,15 +102,30 @@ describe('band pulse and audio', () => {
 describe('a failing mind warps the picture more slowly past a point, and loses its focus and its stars (rounds 22–23)', () => {
   const sanityOf = (stress: number): number => 100 * (1 - stress);
 
-  it('warps in step with the stress to FX.warpCap and only FX.warpSlope as fast past it', () => {
+  it('holds still until FX.calm of the stress is spent (round 32), then warps up to FX.warpCap, and only FX.warpSlope as fast past it', () => {
     expect(warpOf(0)).toBe(0);
+    expect(warpOf(FX.calm)).toBe(0);
     expect(warpOf(FX.warpCap)).toBeCloseTo(FX.warpCap, 9);
     expect(warpOf(1)).toBeCloseTo(FX.warpCap + (1 - FX.warpCap) * FX.warpSlope, 9);
     let last = -1;
     for (let stress = 0; stress <= 1; stress += 0.05) {
-      expect(warpOf(stress)).toBeGreaterThan(last); // it never stops growing, and never falls
-      last = warpOf(stress);
+      const w = warpOf(stress);
+      expect(stress <= FX.calm ? w >= last : w > last).toBe(true); // it never stops growing once it has begun, and never falls
+      last = w;
     }
+  });
+
+  it('leaves the picture whole at 76 sanity, where the fringing and the shimmer once hid the scene (round 32)', () => {
+    const fx = computeFx(state(76));
+    expect(fx.ripple).toBeLessThan(FX.ripple[1] * 0.03); // under a tenth of a pixel
+    expect(fx.chroma).toBeLessThan(FX.chroma[1] * 0.03);
+    expect(fx.displace).toBeLessThan(0.03);
+    expect(fx.affine).toBeLessThan(FX.affine[0] + 0.15);
+    expect(fx.desaturate).toBeLessThan(0.02);
+    expect(fx.fogFar).toBeGreaterThan(FX.fogFar[0] - 2);
+    const uneasy = computeFx(state(70)); // and begins as it first falls Uneasy: faintly
+    expect(uneasy.ripple).toBeGreaterThan(fx.ripple);
+    expect(uneasy.ripple).toBeLessThan(FX.ripple[1] * 0.12);
   });
 
   it('warps the ripple, split, swimming walls, breathing lens and shear by that, less than they did before round 22 and more than the cap alone', () => {
@@ -122,8 +137,8 @@ describe('a failing mind warps the picture more slowly past a point, and loses i
     expect(mad.ripple).toBeLessThan(FX.ripple[1] * 0.8); // where it was 0.012, and grew to madness
     expect(mad.ripple).toBeGreaterThan(FX.ripple[1] * 0.5); // and where round 22 left it, at 0.4 of that
     expect(mad.skew).toBeGreaterThan(FX.skew[1] * 0.5);
-    expect(computeFx(state(sanityOf(0.2))).ripple).toBeLessThan(capped.ripple);
-    expect(computeFx(state(sanityOf(0.2))).ripple).toBeGreaterThan(0);
+    expect(computeFx(state(sanityOf(0.3))).ripple).toBeLessThan(capped.ripple);
+    expect(computeFx(state(sanityOf(0.3))).ripple).toBeGreaterThan(0);
   });
 
   it('softens the edges of sight and makes the stars strange only as the mind goes, none while it holds', () => {

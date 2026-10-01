@@ -1,6 +1,6 @@
 /**
  * The single fullscreen post pass (spec §2): sanity warp (UV ripple + chromatic split),
- * split-tone grade with colour isolation, palette quantisation with 4×4 Bayer dithering, and a red
+ * the realm's gradient-map grade (round 32) with colour isolation, palette quantisation with 4×4 Bayer dithering, and a red
  * vignette on the side a blow came from, near death (round 23) a dark red edge that swells with the
  * heart and a colour that drains, and (round 22) a failing mind's soft focus at the edges of sight. It renders at the low-res size; the browser upscales the canvas nearest-neighbour. Scene alpha below 0.5 marks a hue outside the palette (the Colour Out of
  * Space), which is neither graded nor quantised. Round 16: volumetric fog (fog.ts) lies between the lens
@@ -27,9 +27,10 @@ uniform float uAnomalyProximity;
 uniform float uAnomalyStress;
 uniform float uHueWidth;
 uniform float uMinSat;
-uniform vec3 uCold;
-uniform vec3 uWarm;
-uniform vec2 uSplit;
+uniform vec3 uInk; // the realm's grade (data/looks.ts): four colours, each normalised to its own brightness, that the picture's darks, shadows, middle and lights are pushed toward
+uniform vec3 uShade;
+uniform vec3 uMid;
+uniform vec3 uHigh;
 uniform vec4 uHurt; // the investigator's recent wound: x strength, yz the screen direction it came from
 uniform vec2 uFaint; // near death: x how red the edge of the picture is, y how much of its colour the picture has lost
 uniform float uStone; // a petrifying gaze (round 25): 0..1 to stone, which the colour drains to, the edges close in grey, and past half the picture cracks
@@ -57,15 +58,22 @@ float hueNear(float h, float target) {
   return 1.0 - smoothstep(uHueWidth * 0.5, uHueWidth, d);
 }
 
-// 1. Grade and colour isolation: split toning (cold grey-green shadows and fog, warm bone/sepia
-// lights) everywhere except anomaly hues, which anomalyProximity boosts.
+// The realm's grade at brightness l (render/realmPalette.ts mirrors it): a gradient map over four stops.
+vec3 gradeTint(float l) {
+  vec3 t = mix(uInk, uShade, smoothstep(0.0, 0.08, l));
+  t = mix(t, uMid, smoothstep(0.08, 0.35, l));
+  return mix(t, uHigh, smoothstep(0.35, 0.8, l));
+}
+
+// 1. Grade and colour isolation (round 32: each realm's own gradient map, not the one cold-to-warm
+// split of all of them) everywhere except anomaly hues, which anomalyProximity boosts.
 vec3 isolate(vec3 c) {
   vec3 hsv = rgb2hsv(c);
   float near = max(max(hueNear(hsv.x, uAnomalyHues.x), hueNear(hsv.x, uAnomalyHues.y)),
                    hueNear(hsv.x, uAnomalyHues.z));
   float mask = near * smoothstep(uMinSat, uMinSat + 0.15, hsv.y) * smoothstep(0.03, 0.1, hsv.z);
   float l = dot(c, LUMA);
-  vec3 graded = mix(c, l * mix(uCold, uWarm, smoothstep(uSplit.x, uSplit.y, l)), uDesat);
+  vec3 graded = mix(c, l * gradeTint(l), uDesat);
   float boost = clamp(uAnomalyProximity + uAnomalyStress, 0.0, 1.0);
   vec3 vivid = clamp(mix(vec3(l), c, 1.0 + boost) * (1.0 + 0.6 * boost), 0.0, 1.0);
   return mix(graded, vivid, mask);
@@ -140,6 +148,7 @@ vec3 quantize(vec3 c, vec2 cell) {
   for (int i = 0; i < PALETTE_SIZE; i++) {
     vec3 d = c - uPalette[i];
     float dist = dot(d * d, vec3(0.3, 0.5, 0.2));
+    if (i >= ANOMALY_FROM && i < ANOMALY_TO) dist += 0.006; // an anomaly's colour is matched only by a pixel nearly its own (a warm pool on cold snow once snapped to green and pink)
     if (dist < bestD) {
       bestD = dist;
       best = uPalette[i];

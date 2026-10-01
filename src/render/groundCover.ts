@@ -1,5 +1,5 @@
 /**
- * Ground cover (render only): what lies about on open ground, a few dozen to a chunk by its ground —
+ * Ground cover (render only): what lies about on open ground, fifty to a hundred and thirty to a chunk by its ground (round 32: it was a few dozen, and the fields looked bare) —
  * tufts of grass and October leaf litter on New England turf, reeds on the Innsmouth mud, dry grass
  * on sand, pebbles on stone and snow, nodules on Yuggoth's flesh — never on a road, a site or a
  * dungeon floor. Seeded by the chunk, so it is the same each visit. Blades are lit as the ground is
@@ -21,14 +21,17 @@ type Kind = 'tuft' | 'reed' | 'dry' | 'litter' | 'pebble' | 'nodule';
 
 /** Pieces a chunk holds, by its ground, and what they are. */
 const COVER: Readonly<Record<GroundTexture, { count: number; mix: readonly [Kind, number][] }>> = {
-  grass: { count: 70, mix: [['tuft', 0.7], ['litter', 0.18], ['pebble', 0.12]] },
-  rot: { count: 45, mix: [['dry', 0.7], ['pebble', 0.3]] },
-  mud: { count: 45, mix: [['reed', 0.65], ['pebble', 0.35]] },
-  sand: { count: 30, mix: [['dry', 0.6], ['pebble', 0.4]] },
+  grass: { count: 130, mix: [['tuft', 0.7], ['litter', 0.18], ['pebble', 0.12]] },
+  rot: { count: 80, mix: [['dry', 0.7], ['pebble', 0.3]] },
+  mud: { count: 80, mix: [['reed', 0.65], ['pebble', 0.35]] },
+  sand: { count: 45, mix: [['dry', 0.6], ['pebble', 0.4]] },
   stone: { count: 22, mix: [['pebble', 0.7], ['dry', 0.3]] },
   slab: { count: 22, mix: [['pebble', 0.8], ['dry', 0.2]] },
   snow: { count: 12, mix: [['pebble', 1]] },
   flesh: { count: 30, mix: [['nodule', 1]] },
+  dirt: { count: 70, mix: [['dry', 0.6], ['pebble', 0.4]] },
+  gravel: { count: 50, mix: [['pebble', 0.75], ['dry', 0.25]] },
+  leaves: { count: 100, mix: [['litter', 0.45], ['tuft', 0.4], ['pebble', 0.15]] },
   water: { count: 0, mix: [] },
 };
 

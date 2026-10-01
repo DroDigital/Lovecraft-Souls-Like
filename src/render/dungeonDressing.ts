@@ -1,9 +1,12 @@
 /**
  * A dungeon's dressing (round 30: "improve the dungeon designs drastically"): over the bare rooms,
- * vaulting ribs (or joists) under every roof, runners and borders and medallions laid in the floors,
- * furniture of the kit along the halls' walls (dungeonFurniture.ts), things strewn on their floors,
- * and braziers in their far corners. Placed clear of doorways, torches, and what stands in a room
- * (its sign, gate, tomes, pillars). Deterministic from where each room is. Render only.
+ * vaulting ribs (or joists) under every roof, furniture of the kit along the halls' walls
+ * (dungeonFurniture.ts), things strewn on their floors, and braziers in their far corners. Placed clear
+ * of doorways, torches, and what stands in a room (its sign, gate, tomes, pillars, and the corners and
+ * bays a plan fills in: world/roomStyle.ts). Round 31: the floors' carpets and inlays are no longer
+ * laid here, the same border, runner and three rings in every hall (the playtest's "the same inlay ring
+ * in every room"); each room's plan lays its own (world/roomStyle.ts, drawn by siteMeshes.ts).
+ * Deterministic from where each room is. Render only.
  */
 
 import * as THREE from 'three';
@@ -12,21 +15,17 @@ import { createRng, hash2 } from '../core/rng';
 import { KITS, type DungeonKit, type KitId } from '../data/kits';
 import { DUNGEON } from '../data/tuning';
 import { floorRange, kitIdOfRoom, roomPoint, type DungeonLayout, type RoomLayout } from '../world/dungeonKit';
-import { roomSpots } from '../world/dungeonParts';
+import { standing } from '../world/dungeonParts';
+import { baysOf, cornersOf, pillarsOf, roomStyle } from '../world/roomStyle';
 import { DIRS } from '../world/worldMap';
 import { brazier, DEPTH, ITEMS, place, type Out, type Wall } from './dungeonFurniture';
-import { box, tint, worldUv } from './meshKit';
+import { box, worldUv } from './meshKit';
 import { scaleRgb, type Rgb } from './palette';
 import type { LightSpot } from './worldLights';
 
-export type Dressed = { kind: 'wall' | 'wood' | 'trim' | 'beam' | 'inlay' | 'glow'; kit: DungeonKit; geo: THREE.BufferGeometry; light?: LightSpot };
+export type Dressed = { kind: 'wall' | 'wood' | 'trim' | 'beam' | 'glow'; kit: DungeonKit; geo: THREE.BufferGeometry; light?: LightSpot };
 type Origin = { x: number; z: number };
 
-/** What each kit lays in its floors (a carpet's colour, or none: its stone's own darker shade). */
-const CARPET: Partial<Record<KitId, Rgb>> = {
-  library: [0.5, 0.17, 0.16], church: [0.34, 0.2, 0.44], marble: [0.2, 0.27, 0.5], townhouse: [0.3, 0.42, 0.32], timber: [0.5, 0.36, 0.2], dream: [0.95, 0.78, 0.4],
-};
-const RUNNER = new Set<KitId>(['library', 'church', 'marble', 'townhouse', 'timber', 'dream']);
 const AWAY = { door: 2.8, torch: 1.5, spot: 2.2 }; // metres furniture keeps from a doorway, a torch, and what stands in a room
 
 const finish = (g: THREE.BufferGeometry): THREE.BufferGeometry => {
@@ -60,50 +59,40 @@ function roof(r: RoomLayout, kit: DungeonKit, c: Rgb, at: Origin, out: Out): voi
   put(0, 0, depth * 0.8, r.half * 2 - 0.2, drop * 0.7, top - (drop * 0.7) / 2, col, to); // the ridge along it
 }
 
-/** What lies on a hall's floor: a border, a runner, a medallion (inlaid; drawn nearer than the slab). */
-function floors(r: RoomLayout, kitId: KitId, c: Rgb, at: Origin, list: THREE.BufferGeometry[]): void {
-  const y = r.level + 0.02;
-  const colour = CARPET[kitId] ?? scaleRgb(c, 0.55);
-  const alongX = DIRS[r.axis].x !== 0;
-  const strip = (u: number, v: number, du: number, dv: number, col: Rgb): void => {
-    const p = roomPoint(r, u, v);
-    list.push(worldUv(box(alongX ? dv : du, 0.04, alongX ? du : dv, p.x, y, p.z, col), at));
-  };
-  const e = r.half - 1.6;
-  const gold = kitId === 'dream' ? [0.95, 0.8, 0.45] as const : scaleRgb(colour, 1.3);
-  strip(0, e, e * 2, 0.35, gold);
-  strip(0, -e, e * 2, 0.35, gold);
-  strip(e, 0, 0.35, e * 2, gold);
-  strip(-e, 0, 0.35, e * 2, gold);
-  if (RUNNER.has(kitId)) strip(0, 0, r.size === 3 ? 3.2 : 2, r.half * 2 - 1, colour);
-  const p = roomPoint(r, 0, 0);
-  const rings = r.size === 3 ? [7, 4, 1.4] : [3.4, 2, 0.8];
-  rings.forEach((rad, k) => list.push(worldUv(tint(new THREE.RingGeometry(rad - (k === 2 ? rad : 0.3), rad, 20).rotateX(-Math.PI / 2).translate(p.x, y + 0.012 * k, p.z), k % 2 ? gold : colour), at)));
-}
-
 /** The geometry of one room's dressing by group, in its kit's textures. */
-function grouped(kit: DungeonKit, out: Out, inlay: THREE.BufferGeometry[], at: Origin): Dressed[] {
+function grouped(kit: DungeonKit, out: Out, at: Origin): Dressed[] {
   const uv = (g: THREE.BufferGeometry, m = 2): THREE.BufferGeometry => worldUv(g, at, m);
   return [
     ...merged('wall', kit, out.wall.map((g) => uv(g))),
     ...merged('wood', kit, out.wood.map((g) => uv(g, 3))),
     ...merged('trim', kit, out.trim.map((g) => uv(g))),
     ...merged('beam', kit, out.beam.map((g) => uv(g, 4))),
-    ...merged('inlay', kit, inlay),
     ...merged('glow', kit, out.glow),
   ];
 }
 
-/** A hall's floors, furniture and braziers (a boss's hall: floors only). */
-function hall(d: DungeonLayout, r: RoomLayout, kitId: KitId, kit: DungeonKit, c: Rgb, torches: LightSpot[], out: Out, inlay: THREE.BufferGeometry[], at: Origin): Dressed[] {
+/** A hall's furniture, debris and braziers (a boss's hall: none; its own style dresses it). */
+function hall(d: DungeonLayout, r: RoomLayout, kitId: KitId, kit: DungeonKit, c: Rgb, torches: LightSpot[], out: Out): Dressed[] {
   const rng = createRng((hash2(Math.round(r.x), Math.round(r.z), 31) * 4294967296) >>> 0);
-  floors(r, kitId, c, at, inlay);
   if (r.def.boss) return []; // a boss's ground is dressed by its own style (arenaDecor.ts)
-  const s = roomSpots(r);
-  const stands = [s.sign, s.rest, s.gate, s.tome, ...s.ring].map(([u, v]) => roomPoint(r, u, v));
+  const spots = standing(r);
+  const plan = roomStyle(d, r);
+  const pillars = pillarsOf(plan, r, spots); // what the room's plan stands in it: pillars, the corners filled solid, the bays along its walls
+  const blocks = [...cornersOf(plan, r, spots), ...baysOf(plan, r)];
+  const a = DIRS[r.axis];
+  const stands = spots.map(([u, v]) => roomPoint(r, u, v));
   const doors = d.doors.filter((o) => o.a === r || o.b === r);
-  const free = (x: number, z: number, margin: number): boolean =>
-    doors.every((o) => Math.hypot(o.x - x, o.z - z) > AWAY.door + margin) && torches.every((t) => Math.hypot(t.x - x, t.z - z) > AWAY.torch + margin) && stands.every((p) => Math.hypot(p.x - x, p.z - z) > AWAY.spot + margin);
+  const free = (x: number, z: number, margin: number): boolean => {
+    const [dx, dz] = [x - r.x, z - r.z];
+    const [u, v] = [dx * a.z - dz * a.x, dx * a.x + dz * a.z]; // in the room's own frame
+    return (
+      doors.every((o) => Math.hypot(o.x - x, o.z - z) > AWAY.door + margin) &&
+      torches.every((t) => Math.hypot(t.x - x, t.z - z) > AWAY.torch + margin) &&
+      stands.every((p) => Math.hypot(p.x - x, p.z - z) > AWAY.spot + margin) &&
+      pillars.every(([pu, pv, rad]) => Math.hypot(pu - u, pv - v) > rad * 1.5 + 0.6 + margin) &&
+      blocks.every(([u0, u1, v0, v1]) => !(u > u0 - 1 - margin && u < u1 + 1 + margin && v > v0 - 1 - margin && v < v1 + 1 + margin))
+    );
+  };
   const inner = r.half - DUNGEON.wall / 2;
   const list = ITEMS[kitId];
   let turn = Math.floor(rng() * 4);
@@ -133,19 +122,18 @@ function hall(d: DungeonLayout, r: RoomLayout, kitId: KitId, kit: DungeonKit, c:
   return lit;
 }
 
-/** The dressing of every room of a dungeon (halls: furniture, floors, braziers; every roofed room: its ribs). */
+/** The dressing of every room of a dungeon (halls: furniture, debris, braziers; every roofed room: its ribs). */
 export function dressing(d: DungeonLayout, colour: (kit: DungeonKit) => Rgb, at: Origin, lights: LightSpot[]): Dressed[] {
   const torches = lights.filter((l) => l.kind === 'torch');
   const result: Dressed[] = [];
   for (const r of d.rooms) {
     const out: Out = { wall: [], wood: [], beam: [], trim: [], glow: [] };
-    const inlay: THREE.BufferGeometry[] = [];
     const kitId = kitIdOfRoom(d, r);
     const kit = KITS[kitId] as DungeonKit;
     const c = colour(kit);
     if (kit.roof !== 'open') roof(r, kit, c, at, out);
-    const lit = r.def.kind === 'hall' ? hall(d, r, kitId, kit, c, torches, out, inlay, at) : [];
-    result.push(...grouped(kit, out, inlay, at), ...lit);
+    const lit = r.def.kind === 'hall' ? hall(d, r, kitId, kit, c, torches, out) : [];
+    result.push(...grouped(kit, out, at), ...lit);
   }
   return result;
 }

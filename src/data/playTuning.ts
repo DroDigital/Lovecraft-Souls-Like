@@ -144,8 +144,6 @@ export const SKY = {
     yuggoth: { moon: 0, stars: 1.8, clouds: 0, haze: 0.3 }, // no moon over Yuggoth: the sun a star among the rest
     beyond: { moon: 0, stars: 0.5, clouds: 0, haze: 0 },
   } as Readonly<Record<string, Partial<SkyDef>>>,
-  haze: [0.075, 0.085, 0.09] as Vec3, // the moonlit haze, added to the fog's colour off the horizon
-  moonColor: [0.86, 0.85, 0.8] as Vec3,
   fade: 3, // seconds to ease into another realm's sky...
   jump: 30, // ...unless the camera leapt this many metres at once (a journey): then at once
   close: 0.6, // seconds for a dungeon's walls to close it off
@@ -168,7 +166,7 @@ export interface LightDef {
 /** The world's lights (playtest round 5, render/worldLights.ts): street lamps, fires, torches and lit windows. */
 export const LIGHTS = {
   reach: 42, // metres: the farthest a light is chosen to light the world about it
-  haloReach: 75, // metres: the farthest a halo is drawn
+  haloReach: 120, // metres: the farthest a halo is drawn (round 32: was 75; a town's windows are seen lit from across the fields)
   haloFog: 0.55, // halos pierce the fog: they fade by only this share of it
   paneHalo: 0.55, // metres: a lit window's glow, on its glass (round 13; the window kind's halo was a ball before the wall)
   lantern: { color: [1, 0.82, 0.58] as Vec3, halo: 0.34, haloGain: 0.6 }, // the investigator's own, which lights by its own rules (lantern.ts)

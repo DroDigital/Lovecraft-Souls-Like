@@ -6,7 +6,7 @@
  */
 
 import { creditsPage } from './credits';
-import { button, createScreen, el, menuOpen, onPadStart, type Page } from './menuKit';
+import { button, createScreen, menuOpen, onPadStart, title, type Page } from './menuKit';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
 import { controlsPage, settingsPage } from './menuPages';
@@ -38,7 +38,7 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
   const main: Page = {
     back: resume,
     build(p) {
-      el(p, 'div', 'PAUSED', 'font-size:18px;letter-spacing:6px;margin-bottom:10px');
+      title(p, 'PAUSED');
       button(p, 'Resume', resume);
       if (o.map) button(p, 'Map', () => [screen.close(), o.map!()]);
       if (o.journal) button(p, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))));

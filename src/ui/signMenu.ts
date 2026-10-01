@@ -22,7 +22,7 @@ import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
 import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLevelCost } from '../systems/levels';
 import { worldLayout, type SignPlace } from '../world/placements';
-import { button, createScreen, el, heading, type Page } from './menuKit';
+import { button, createScreen, el, heading, title, type Page } from './menuKit';
 import { keyLayout } from '../core/bindings';
 import { glyph } from './glyphs';
 
@@ -57,7 +57,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
   function build(panel: HTMLElement): void {
     const ow = g.overworld!;
     const here = signPlace(ow.sign);
-    el(panel, 'div', (here?.name ?? 'Elder Sign').toUpperCase(), 'font-size:18px;letter-spacing:4px');
+    title(panel, (here?.name ?? 'Elder Sign').toUpperCase());
     el(panel, 'div', 'You rest. Your health, sanity, Laudanum and Reagent are restored, the revolver is loaded from your spare rounds, and the creatures you killed are back.', 'opacity:.6;margin-top:2px');
     const endings = courtEndings(g, ow.sign); // the choice the whole dream led to comes first (round 12)
     if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');
@@ -99,7 +99,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
   const reinforcePage: Page = {
     back: () => screen.show(main),
     build(panel) {
-      el(panel, 'div', 'REINFORCE', 'font-size:18px;letter-spacing:4px');
+      title(panel, 'REINFORCE');
       el(panel, 'div', `Star-stones: ${g.player.stones}. The horrors slain for good leave them; each level set into a weapon adds ${Math.round(REINFORCE.damage * 100)}% to its blows, and into the revolver ${Math.round(GUN.level.damage * 100)}% to its shots, with a truer aim and a longer reach.`, 'opacity:.6;margin:2px 0 8px');
       const [level, price] = [g.player.gun, gunCost(g)];
       const shot = (n: number): number => Math.round(PLAYER_MOVES.shoot.shot.damage * might(g, g.player.id) * gunEdge(n));
@@ -122,7 +122,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
   const travelPage: Page = {
     back: () => screen.show(main),
     build(panel) {
-      el(panel, 'div', 'TRAVEL', 'font-size:18px;letter-spacing:4px');
+      title(panel, 'TRAVEL');
       el(panel, 'div', 'Choose a region, then the Elder Sign to wake beside.', 'opacity:.6;margin:2px 0 8px');
       for (const [region, signs] of found()) {
         if (signs.length === 1) button(panel, `${regionName(region)}  ·  ${signs[0].name}`, () => journey(signs[0]));
@@ -139,7 +139,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
       const page: Page = {
         back: () => screen.show(travelPage),
         build(panel) {
-          el(panel, 'div', regionName(region).toUpperCase(), 'font-size:18px;letter-spacing:4px;margin-bottom:8px');
+          title(panel, regionName(region).toUpperCase());
           for (const s of found().get(region) ?? []) button(panel, s.name, () => journey(s));
           heading(panel, '');
           button(panel, `Back  (${glyph('back')})`, page.back!);

@@ -21,6 +21,7 @@ import type { Part } from '../world/dungeonParts';
 import { drawn } from '../world/wallJoins';
 import { dressing } from './dungeonDressing';
 import { dungeonShell } from './dungeonShell';
+import { floorInlay } from './floorInlay';
 import type { ArenaPlace, Dungeon } from '../world/placements';
 import { box, tileUv, tint, worldUv } from './meshKit';
 import { mixRgb, scaleRgb, type Rgb } from './palette';
@@ -32,10 +33,10 @@ const WOOD: Rgb = [0.75, 0.7, 0.62];
 const PER_STEP = 12;
 const SLAB = 0.3; // a floor slab's depth (world/dungeonParts.ts)
 
-type Kind = 'wall' | 'floor' | 'wood' | 'glow' | 'trim' | 'beam' | 'inlay'; // a kit gives the first two their textures; trim and beams are relief on a wall (round 21)
+type Kind = 'wall' | 'floor' | 'wood' | 'glow' | 'trim' | 'beam' | 'cloth'; // a kit gives the first two their textures; trim and beams are relief on a wall (round 21), cloth relief on a floor (round 31)
 type Built = { kind: Kind; geo: THREE.BufferGeometry; light?: LightSpot }; // a flame is a light too (worldLights.ts)
 /** What a piece is drawn with: a kit's texture, or (marked `+`) the same drawn a little nearer than it is, for relief that stands 6 to 15 cm off a wall's face. */
-export type Group = KitTexture | 'glow' | `${KitTexture}+`;
+export type Group = KitTexture | 'glow' | 'cloth+' | `${KitTexture}+`;
 type Origin = { x: number; z: number }; // where a dungeon's world-space UVs count from
 /** What a wall needs to know of its place to hang torches: which face looks into a room (outer walls have one), and the floor each face looks onto. */
 type WallContext = { inner: (alongX: boolean) => number; floor: (x: number, z: number, fallback: number) => number };
@@ -45,7 +46,7 @@ const material = (group: Group): THREE.ShaderMaterial => {
   let m = materials.get(group);
   if (!m) {
     const relief = group.endsWith('+');
-    const texture = (relief ? group.slice(0, -1) : group) as KitTexture | 'glow';
+    const texture = (relief ? group.slice(0, -1) : group) as KitTexture | 'glow' | 'cloth';
     const o = texture === 'glow' ? { texture: 'cloth' as const, emissive: 1 } : { texture, vary: 0.7, ...(texture === 'wood' && { uvScale: [0.5, 0.5] as const }) };
     m = createWorldMaterial({ seed: 8, vertexColors: true, ...o });
     if (relief) Object.assign(m, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 }); // nearer by a pixel's slope, however slanted the view: the PS1's snapping moves a face's depth by up to that, and the wall behind showed through it
@@ -54,7 +55,7 @@ const material = (group: Group): THREE.ShaderMaterial => {
   return m;
 };
 /** The group of each kind in this kit. */
-const textureOf = (k: Kind, kit: DungeonKit): Group => (k === 'wall' ? kit.wall : k === 'floor' ? kit.floor : k === 'trim' ? `${kit.wall}+` : k === 'inlay' ? `${kit.floor}+` : k === 'beam' ? 'wood+' : k);
+const textureOf = (k: Kind, kit: DungeonKit): Group => (k === 'wall' ? kit.wall : k === 'floor' ? kit.floor : k === 'trim' ? `${kit.wall}+` : k === 'beam' ? 'wood+' : k === 'cloth' ? 'cloth+' : k);
 
 /** Hangs a torch at each of `stops` along a wall, on a face that looks into a room, at its floor. */
 function torches(glow: Built[], stone: THREE.BufferGeometry[], stops: number[], w: { along: (t: number, across: number) => [number, number]; thick: number; alongX: boolean; base: number }, ctx: WallContext): void {
@@ -190,6 +191,7 @@ function ruin(min: V3, max: V3, c: Rgb, kit: DungeonKit, at: Origin, ctx: WallCo
 }
 
 function partGeometry(p: Part, c: Rgb, kit: DungeonKit, at: Origin, ctx: WallContext): Built[] {
+  if (p.look === 'inlay') return [floorInlay(p, c, kit, at)];
   if (p.shape === 'cyl') {
     if (p.look === 'rim') return well(p.x, p.z, p.radius, p.y1, c).map((geo) => ({ kind: 'wall', geo }));
     const h = p.y1 - p.y0;

@@ -112,10 +112,10 @@ export const clapboard: TexelFn = (u, v, seed) => {
   const y = v * 16;
   const row = Math.floor(y);
   const fy = y - row;
-  const peel = fbm(u * 8, v * 8, seed + 5, 3, 8);
+  const peel = fbm(u * 12, v * 4, seed + 5, 3, 12, 4); // long along the boards (round 32: hard dark blobs read as camouflage)
   const streak = fbm(u * 32, v * 2, seed + 1, 2, 32, 2);
   const paint = mixRgb(BASE.bone, BASE.seaGrey, 0.3 + 0.2 * hash2(0, row, seed));
-  let c = peel > 0.62 ? mixRgb(BASE.seaGrey, BASE.charcoal, 0.4) : paint;
+  let c = peel > 0.6 ? mixRgb(paint, mixRgb(BASE.seaGrey, BASE.charcoal, 0.15), Math.min(0.65, (peel - 0.6) * 6)) : paint; // grey wood, where the paint has gone
   c = scaleRgb(c, 0.8 + 0.25 * streak);
   if (fy > 0.82) c = scaleRgb(c, 0.5); // the shadow under the lap
   else c = scaleRgb(c, 0.85 + 0.15 * fy);

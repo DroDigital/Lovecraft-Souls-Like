@@ -15,7 +15,8 @@ import { glyph } from './glyphs';
 import { bar, BONE, el, setStyle, setText } from './hudKit';
 
 const MAGENTA = '#d80073';
-const BAND_COLOURS: Record<Band, string> = { lucid: BONE, uneasy: BONE, fractured: '#6a0dad', unmoored: MAGENTA };
+/** The bar and the band's name, from clear water to magenta (round 32: they were bone, bone, purple and magenta, and the bar was one of three of a colour). */
+const BAND_COLOURS: Record<Band, string> = { lucid: '#5aa6cf', uneasy: '#8a9be0', fractured: '#a257d6', unmoored: MAGENTA };
 
 export interface MindHud {
   update(now: number): void;
@@ -27,7 +28,7 @@ export const callsForLaudanum = (g: Game): boolean =>
 
 /** Builds the sanity bar and the band line into `vitals`; `say` shows a short notice. */
 export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) => void): MindHud {
-  const fill = bar(vitals, BONE);
+  const fill = bar(vitals, BAND_COLOURS.lucid, 12);
   const frame = fill.parentElement!;
   const chip = el(`position:absolute;left:0;top:0;height:100%;width:100%;background:${MAGENTA}cc`, '', frame);
   frame.insertBefore(chip, fill);
@@ -68,6 +69,7 @@ export function createMindHud(g: Game, vitals: HTMLElement, say: (text: string) 
         jolted = jolt > 0;
       }
       setText(band, `${m.band.toUpperCase()} ${Math.ceil(m.sanity)}${m.mending > SANITY.mend.rate * 1.5 ? ' ▲▲' : m.mending > 0 ? ' ▲' : ''}`);
+      setStyle(band, 'color', BAND_COLOURS[m.band]);
       const call = callsForLaudanum(g);
       setText(laudanum, `${call ? `${glyph('item').toUpperCase()} · ` : ''}LAUDANUM ×${g.player.laudanum}`);
       setStyle(laudanum, 'color', call ? '#ff5aa8' : BONE);

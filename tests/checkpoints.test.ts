@@ -129,7 +129,8 @@ describe('Elder Signs', () => {
     const gate = gatePlace('hub_australia')!;
     goTo(g, gate.arrive.x, gate.arrive.z);
     expect(interactable(g)).toBeNull(); // arriving, the gate is out of reach: a stray E does not send them back
-    goTo(g, (gate.x + gate.arrive.x) / 2, (gate.z + gate.arrive.z) / 2);
+    const back = (WORLD.reach - 0.7) / WORLD.gateArrive; // a step or two back toward the gate: within reach (round 32: the arrival is further out, so no longer half way)
+    goTo(g, gate.x + (gate.arrive.x - gate.x) * back, gate.z + (gate.arrive.z - gate.z) * back);
     expect(interactable(g)).toMatchObject({ kind: 'gate', id: 'hub_australia' });
     const moved = record(g, 'Travelled');
     stepGame(g, press('interact'));

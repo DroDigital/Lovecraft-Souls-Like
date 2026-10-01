@@ -15,19 +15,19 @@ export const SIM = {
 export const RENDER = {
   width: 400, // low-res target, upscaled nearest-neighbour (§2)
   height: 225,
-  fovDeg: 60,
+  fovDeg: 66, // round 32: was 60, with the boom at 4.2 m: the investigator filled a third of the picture
   near: 0.1,
-  far: 90, // ~80 m view distance; fog hides the cut
+  far: 140, // the far plane (round 32: it was 90, and the fog closed at 80 so the towns and hills never showed): the fog hides the cut, and the streamed chunks (WORLD.load) reach as far
 };
 
 export const FX = {
   capDefault: 1, // accessibility cap on stress, 0..1 (the settings menu's default)
   snapPixels: 1, // PS1 vertex snap grid, in low-res pixels (madness no longer coarsens it, nor the pixels: playtest round 7)
   affine: [1.25, 10] as Ramp, // texels the PS1 affine mapping may stray from the true one: a shiver when calm, walls swim when mad
-  fogNear: [4, 2] as Ramp, // metres
-  fogFar: [80, 42] as Ramp,
-  fogColor: [0.058, 0.07, 0.068] as Vec3, // cold grey-green, near black, but a shade above the unlit sides of things, so they stand out against it as shapes
-  desaturate: [0.85, 1] as Ramp, // toward bone/sepia
+  fogNear: [22, 8] as Ramp, // metres (round 32: the land fades into its realm's haze from here, not into near-black from four metres)
+  fogFar: [132, 55] as Ramp,
+  fogColor: [0.2, 0.24, 0.3] as Vec3, // before a realm's own is known (data/looks.ts)
+  desaturate: [0, 0.8] as Ramp, // the further share of the picture a failing mind has graded away, over the realm's own (render/realmLook.ts)
   anomalyStress: [0, 0.7] as Ramp, // added to anomalyProximity when boosting anomaly hues
   hueWidth: 0.1, // anomaly hue window, in 0..1 hue units
   minSaturation: 0.3, // below this a pixel never counts as an anomaly hue
@@ -41,6 +41,7 @@ export const FX = {
   displaceFull: 32, // metres from the camera where displacement is at full strength
   displaceLean: 0.004, // metres a tall thing's top leans toward the viewer, per metre of height squared (round 26: buildings lean in as the mind goes)
   displaceTwist: 0.2, // radians of space-twist around the viewer at full strength
+  calm: 0.2, // the picture holds still and keeps its colour until this much of the stress is spent, then takes up its warp gently, whole again at warpCap (round 32: at 76 sanity the fringing and the shimmer already hid the scene)
   warpCap: 0.5, // the stress past which the picture warps only warpSlope as fast: ripple, split, swimming walls, breathing lens and shear (round 22: they had grown all the way to madness, and the screen tore; round 23: capped too hard at 0.4 of it, so a little more)
   warpSlope: 0.3, // ...so at sanity 0 it warps 0.65 of what it did before round 22, and at the edge of Unmoored 0.6 (round 22 left it at 0.4)
   dreadFrom: 0.25, // what a failing mind does besides begins at this stress and grows to madness: the edges of sight lose their focus...
@@ -66,7 +67,7 @@ export const LIGHT = {
   ambient: [0.19, 0.19, 0.21] as Vec3,
   nightAmbient: [0.034, 0.041, 0.04] as Vec3, // night: a faint cold ambient...
   nightMoon: [0.38, 0.43, 0.47] as Vec3, // ...a dim cold moon, so houses, trees and stones beyond the lantern read as shapes...
-  nightMoonDir: [-0.7, 0.35, 0.45] as Vec3, // ...low in the sky, so it finds walls and pillars more than the floor
+  nightMoonDir: [-0.55, 0.62, 0.4] as Vec3, // ...high enough in the sky to find the ground as well as walls and pillars (round 32: it was low, and the land beyond the lantern lay in the dark)
   glowRange: 14, // metres lit by the anomaly
   glowIntensity: 1.3,
   echoGlowRange: 6, // a dropped Echo's faint light
@@ -88,11 +89,6 @@ export const LANTERN = {
   height: 0.9, // metres above the player's feet: it hangs at the belt...
   forward: 0.25, // ...ahead of the player...
   side: 0.3, // ...and to their left, so the pool is brightest on that side
-};
-
-/** Post colour grade (spec §2): split toning by luma. */
-export const GRADE = {
-  split: [0.03, 0.2] as const, // luma: cold grey-green shadows and fog at the first, warm bone/sepia lights from the second
 };
 
 /** The player character (spec §3B). Speeds in m/s, turn rates in rad/s. */
@@ -205,8 +201,8 @@ export const LOCK = {
 
 /** Third-person camera: orbits a pivot above the player and pulls in on collision. */
 export const CAMERA = {
-  pivotHeight: 1.55,
-  distance: 4.2,
+  pivotHeight: 1.7,
+  distance: 5.6, // round 32: was 4.2: the investigator stands about a quarter of the picture's height, the land about them seen
   minDistance: 0.5,
   shoulder: 0.45, // metres the boom hangs to the right of the player, so a lock target is not hidden behind them
   margin: 0.3, // keeps the lens this far off walls
@@ -266,7 +262,7 @@ export const WORLD = {
   reach: 3.2, // pass a gate or talk with someone this close
   signReach: 5.2, // rest at an Elder Sign this close: the point they rise at (4.75 m out) is within it (playtest round 12)
   faceWeight: 2, // E takes what the investigator faces: a thing straight behind them seems (1 + this) times as far
-  gateArrive: 5.5, // those coming through a gate stand this far out from it: the camera behind them clears it, and its E is out of reach
+  gateArrive: 7.2, // those coming through a gate stand this far out from it: the camera behind them clears it, and its E is out of reach
   restFoes: 18, // no resting while a foe hunts the investigator within this distance
   saveSeconds: 20, // autosave interval (also on rest, travel, death and leaving the page)
 };

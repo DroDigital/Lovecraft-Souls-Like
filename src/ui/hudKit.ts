@@ -3,6 +3,11 @@
 export const BONE = '#d9d0b8';
 export const RUST = '#74493a';
 export const SEA = '#5d6c70';
+// The vitals' own colours (round 32: the three bars were rust, slate and bone, six pixels thin and alike) and the trim of frames:
+export const BLOOD = '#ac2f29'; // health
+export const LEAF = '#6f9c3a'; // stamina
+export const GOLD = '#d6b85a'; // the rule and the brackets of a frame, the hot edge of a choice
+export const PAPER = '#efe3c0'; // a title
 /** A period book face for the title, menus, the HUD (round 14) and what is read (system fonts: no font files). */
 export const SERIF = "'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif";
 /** A telegram's or typescript's face. */
@@ -23,10 +28,11 @@ export function blend(a: string, b: string, k: number): string {
   return `#${part(16)}${part(8)}${part(0)}`;
 }
 
-/** A thin framed bar; set the returned fill's width in percent. */
-export function bar(parent: HTMLElement, colour: string): HTMLDivElement {
-  const frame = el(`position:relative;height:6px;margin:4px 0;border:1px solid ${BONE}55;background:#0008`, '', parent);
-  return el(`height:100%;width:100%;background:${colour}`, '', frame);
+/** A framed bar `height` pixels thick (round 32: six was too thin); set the returned fill's width in percent. Its fill has a lit top and a shaded foot, so it reads as a thing and not a line. */
+export function bar(parent: HTMLElement, colour: string, height = 6): HTMLDivElement {
+  const frame = el(`position:relative;height:${height}px;margin:${height > 8 ? 5 : 4}px 0;border:1px solid ${BONE}77;background:#050507;box-shadow:0 0 0 1px #000c,inset 0 0 5px #000`, '', parent);
+  const edge = Math.max(1, Math.round(height / 4));
+  return el(`height:100%;width:100%;background:${colour};box-shadow:inset 0 ${edge}px 0 #ffffff2a,inset 0 -${edge}px 0 #0000004d`, '', frame);
 }
 
 /** Writes only what changed, so an unchanged HUD costs the page no style or layout work. */

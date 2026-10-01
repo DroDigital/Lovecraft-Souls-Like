@@ -1,9 +1,9 @@
 /**
  * The night sky (playtest round 4): drawn first, behind everything, on a sphere about the camera.
- * The fog's colour at and below the horizon (so the land's far edge melts into it), a moonlit haze
- * rising off the horizon, strongest on the moon's side (so far roofs, trees and hills stand against
- * it as silhouettes), stars that twinkle, slow cloud, and the moon itself with its maria and halo.
- * The post pass grades and dithers it like everything else.
+ * Round 32: the realm's own colours (data/looks.ts): its horizon, which the land's far edge melts
+ * into, rising to its zenith, a moonlit glow along the horizon, strongest on the moon's side (so far
+ * roofs, trees and hills stand against it as silhouettes), stars that twinkle, slow cloud, and the
+ * moon itself with its maria and halo. The post pass grades and dithers it like everything else.
  */
 
 export const SKY_VERT = /* glsl */ `
@@ -17,8 +17,9 @@ void main() {
 export const SKY_FRAG = /* glsl */ `
 varying vec3 vDir;
 uniform float uTime;
-uniform vec3 uFogColor;
-uniform vec3 uHazeColor;
+uniform vec3 uFogColor; // what the land fades into: below the horizon, and under a roof
+uniform vec3 uHorizon; // the sky at the horizon...
+uniform vec3 uZenith; // ...and overhead
 uniform vec3 uMoonColor;
 uniform vec3 uMoonDir;
 uniform float uMoon; // the moon's radius, radians (0: none)
@@ -27,6 +28,7 @@ uniform float uClouds; // cover
 uniform float uHaze; // the horizon's moonlit glow
 uniform float uOpen; // 0 under a roof or in a dungeon: the fog's colour alone
 uniform float uWrong; // 0..1: a failing mind's stars, which crawl, crowd and flicker
+uniform float uFlash; // a lightning stroke's light on the sky (lightning.ts)
 
 float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -57,7 +59,8 @@ void main() {
   float toward = 0.5 + 0.5 * dot(normalize(d.xz + 1e-4), normalize(m.xz + 1e-4)); // 1 on the moon's side
   float rise = max(h, 0.0);
   float glow = exp(-rise * 7.0) * (0.35 + 0.65 * toward * toward);
-  vec3 col = mix(uFogColor * 0.45, uFogColor + uHazeColor * uHaze, glow);
+  vec3 col = mix(uHorizon, uZenith, pow(smoothstep(0.0, 0.85, rise), 0.7));
+  col += uMoonColor * (0.16 * uHaze) * glow; // the moon's quarter shines low on the sky
 
   float lift = smoothstep(0.0, 0.18, h); // cloud and stars thin out toward the horizon
   vec2 cp = d.xz / (rise + 0.12) * 0.9 + vec2(uTime * 0.006, uTime * 0.0025);
@@ -83,8 +86,9 @@ void main() {
     col = mix(col, moon, disc * (1.0 - 0.75 * cloud));
     col += uMoonColor * 0.16 * exp(-max(a - uMoon, 0.0) * 10.0) * (1.0 - disc); // the halo
   }
-  vec3 cloudCol = mix(uFogColor * 0.9, uMoonColor * 0.3, exp(-a * 3.0) * step(0.001, uMoon)); // silvered near the moon
+  vec3 cloudCol = mix(mix(uHorizon, uZenith, 0.4) * 0.9, uMoonColor * 0.4, exp(-a * 3.0) * step(0.001, uMoon)); // silvered near the moon
   col = mix(col, cloudCol, cloud * 0.85);
+  col += vec3(0.8, 0.85, 1.0) * uFlash * (0.5 + 0.5 * exp(-rise * 3.0));
   if (h < 0.0) col = uFogColor;
   gl_FragColor = vec4(mix(uFogColor, col, uOpen), 1.0);
 }

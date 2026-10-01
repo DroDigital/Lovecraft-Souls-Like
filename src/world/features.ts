@@ -2,16 +2,22 @@
  * Features (spec §3D): the ordered places a region plan puts between its sites, each a cluster of
  * props with a shape and a purpose: a grove of trees with undergrowth, a graveyard walled in stone
  * with a gate and its graves in rows, a ring of standing stones about an altar, a ruined house's
- * broken walls and rubble, a rock outcrop, and a camp of foes around a fire pit. Pure.
+ * broken walls and rubble, a rock outcrop, and a camp of foes around a fire pit. Round 32 (the land
+ * between the towns was empty): a copse, a wayside stone with its lamp, a farmstead with its fenced
+ * yard and trees. Pure.
  */
 
 import type { XZ } from '../core/geom';
 import { createRng, type Rng } from '../core/rng';
 import type { PropKind } from '../data/regions';
+import type { HouseStyle } from '../data/regionFeatures';
 import { makeProp, type Prop } from './props';
 
 export const FEATURE_KINDS = ['grove', 'graveyard', 'circle', 'ruin', 'outcrop', 'camp', 'landmark'] as const;
 export type FeatureKind = (typeof FEATURE_KINDS)[number];
+/** What fills the land between them (round 32): not named places, and no foes camp in them. */
+export const FILLER_KINDS = ['copse', 'waymark', 'farm'] as const;
+export type FillerKind = (typeof FILLER_KINDS)[number];
 
 export interface Feature {
   kind: FeatureKind;
@@ -22,8 +28,12 @@ export interface Feature {
   seed: number;
 }
 
+export interface Filler extends Omit<Feature, 'kind'> {
+  kind: FillerKind;
+}
+
 /** Footprint radius range of each kind. */
-export const FEATURE_RADIUS: Readonly<Record<FeatureKind, readonly [number, number]>> = {
+export const FEATURE_RADIUS: Readonly<Record<FeatureKind | FillerKind, readonly [number, number]>> = {
   grove: [18, 34],
   graveyard: [14, 18],
   circle: [9, 13],
@@ -31,12 +41,17 @@ export const FEATURE_RADIUS: Readonly<Record<FeatureKind, readonly [number, numb
   outcrop: [7, 11],
   camp: [6, 7],
   landmark: [12, 18],
+  copse: [5, 9],
+  waymark: [3, 4],
+  farm: [15, 19],
 };
 
 export interface FeatureContext {
   pines: boolean; // conifers rather than dead hardwood
   free: (x: number, z: number) => boolean; // open ground: no road, site or other feature
   landmark?: PropKind; // the region's landmark (round 12)
+  house?: HouseStyle; // how a farmstead's buildings are built (round 32)
+  marks?: readonly (readonly [PropKind, number])[]; // what a wayside stone may be, by weight: crosses and lamps are New England's, not R'lyeh's
 }
 
 /** A point of the feature's own frame: +z is its front, +x its left. */
@@ -45,7 +60,7 @@ export const local = (f: Pick<Feature, 'x' | 'z' | 'yaw'>, lx: number, lz: numbe
   return { x: f.x + lx * c + lz * s, z: f.z - lx * s + lz * c };
 };
 
-function scatter(f: Feature, rng: Rng, n: number, spacing: number, ctx: FeatureContext, kinds: () => PropKind): Prop[] {
+function scatter(f: Pick<Feature, 'x' | 'z' | 'r'>, rng: Rng, n: number, spacing: number, ctx: FeatureContext, kinds: () => PropKind): Prop[] {
   const out: Prop[] = [];
   for (let tries = 0; out.length < n && tries < n * 6; tries++) {
     const a = rng() * Math.PI * 2;
@@ -154,8 +169,57 @@ function landmark(f: Feature, rng: Rng, ctx: FeatureContext): Prop[] {
   return [...out, ...scatter(f, rng, 2 + Math.floor(rng() * 2), 9, { ...ctx, free: (x, z) => ctx.free(x, z) && Math.hypot(x - f.x, z - f.z) > 8 }, () => kind).map((p) => ({ ...p, w: p.w * 0.6, d: p.d * 0.6, h: p.h * 0.55 }))];
 }
 
+/** A close stand of trees with a few bushes and stumps among them: smaller than a grove, and there are many. */
+function copse(f: Filler, rng: Rng, ctx: FeatureContext): Prop[] {
+  const trees = Math.max(3, Math.round((Math.PI * f.r * f.r) / 26));
+  const tree = (): PropKind => (ctx.pines && rng() < 0.75 ? 'pine' : 'tree');
+  return [...scatter(f, rng, trees, 2.4, ctx, tree), ...scatter(f, rng, Math.round(trees / 2), 1.6, ctx, () => (rng() < 0.65 ? 'bush' : 'stump'))];
+}
+
+/** A stone by the way (of the realm's own kinds: a cross, an obelisk, a standing stone, a lamp on its post) with a rock and a bush at its foot. */
+function waymark(f: Filler, rng: Rng, ctx: FeatureContext): Prop[] {
+  const marks = ctx.marks ?? [['monolith', 1]];
+  let roll = rng() * marks.reduce((t, [, w]) => t + w, 0);
+  const kind = marks.find(([, w]) => (roll -= w) < 0)?.[0] ?? marks[0][0];
+  const out = [makeProp(kind, f.x, f.z, rng, f.yaw)];
+  for (let k = 0; k < 2; k++) {
+    const p = local(f, (rng() - 0.5) * 3.2, -1 - rng() * 1.2);
+    out.push(makeProp(k === 0 ? 'rock' : 'bush', p.x, p.z, rng));
+  }
+  return out;
+}
+
+/** A rail fence run from local a to b, in lengths of about four metres. */
+function fenceRun(f: Filler, rng: Rng, a: XZ, b: XZ): Prop[] {
+  const len = Math.hypot(b.x - a.x, b.z - a.z);
+  const n = Math.max(1, Math.round(len / 4));
+  const along = Math.atan2(b.x - a.x, b.z - a.z) - Math.PI / 2;
+  return Array.from({ length: n }, (_, k) => {
+    const t = (k + 0.5) / n;
+    const p = local(f, a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t);
+    return makeProp('fence', p.x, p.z, rng, f.yaw + along, [len / n / 2, 0.05, 1]);
+  });
+}
+
+/** A farmstead: a house and a barn facing the way in, a fenced yard between them with a gap, trees and a stump or two about. */
+function farm(f: Filler, rng: Rng, ctx: FeatureContext): Prop[] {
+  const style = ctx.house ?? 'clapboard';
+  const house = local(f, -5, 4);
+  const barn = local(f, 6.5, 5);
+  const out: Prop[] = [
+    makeProp('house', house.x, house.z, rng, f.yaw, undefined, style),
+    makeProp('house', barn.x, barn.z, rng, f.yaw + (rng() < 0.5 ? 0 : Math.PI), [5.5, 4, 5], style),
+  ];
+  const [hw, hd] = [f.r * 0.7, f.r * 0.5];
+  const gate = 2.4;
+  out.push(...fenceRun(f, rng, { x: -hw, z: -hd }, { x: hw, z: -hd }), ...fenceRun(f, rng, { x: -hw, z: -hd }, { x: -hw, z: hd * 0.3 }), ...fenceRun(f, rng, { x: hw, z: -hd }, { x: hw, z: hd * 0.3 }));
+  out.push(...fenceRun(f, rng, { x: -hw, z: -hd * 0.2 }, { x: -gate, z: -hd * 0.2 }), ...fenceRun(f, rng, { x: gate, z: -hd * 0.2 }, { x: hw, z: -hd * 0.2 }));
+  out.push(...scatter(f, rng, 3 + Math.floor(rng() * 3), 4, ctx, () => (rng() < 0.7 ? 'tree' : 'stump')).filter((p) => Math.hypot(p.x - house.x, p.z - house.z) > 6 && Math.hypot(p.x - barn.x, p.z - barn.z) > 7));
+  return out;
+}
+
 /** The feature's props. */
-export function featureProps(f: Feature, ctx: FeatureContext): Prop[] {
+export function featureProps(f: Feature | Filler, ctx: FeatureContext): Prop[] {
   const rng = createRng(f.seed);
   switch (f.kind) {
     case 'grove':
@@ -172,5 +236,11 @@ export function featureProps(f: Feature, ctx: FeatureContext): Prop[] {
       return camp(f, rng);
     case 'landmark':
       return landmark(f, rng, ctx);
+    case 'copse':
+      return copse(f, rng, ctx);
+    case 'waymark':
+      return waymark(f, rng, ctx);
+    case 'farm':
+      return farm(f, rng, ctx);
   }
 }

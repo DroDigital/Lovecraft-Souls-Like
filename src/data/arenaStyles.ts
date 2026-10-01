@@ -4,7 +4,8 @@
  * kinds: dead trees, pillars, obelisks, R'lyeh's spires, Yuggoth's towers, the Beyond's globes…),
  * what stands at its heart or at its far side (an altar, an idol, a sphinx-block, a stepped mound),
  * and how many braziers burn about it. A dungeon's boss room takes its heart and its fires (its
- * walls are its ring). Keyed by the first boss's roster id; the rest are plain stones. Data only.
+ * walls are its ring), and (round 32: they were the plainest rooms, the lairs' not dressed at all) two rows of
+ * pieces down its sides. Keyed by the first boss's roster id; the rest are plain stones. Data only.
  */
 
 import type { PropKind } from './regions';
@@ -15,6 +16,7 @@ export interface ArenaStyle {
   spacing?: number; // metres between them (else by kind)
   centre?: { kind: PropKind; scale: number }; // at the heart, or toward the far side when the boss stands at the heart
   fires: number; // braziers about the edge
+  hall?: { kind: PropKind; scale?: number }; // a dungeon boss room's two rows down its sides (round 32: its walls were bare)
 }
 
 export const MIN_ARENA = 24; // metres: the least radius of an open arena (round 13: some were 10)
@@ -41,20 +43,34 @@ export const ARENA_STYLES: Readonly<Record<string, ArenaStyle>> = {
   daemon_pipers: { ring: 'globe', ringScale: 0.8, spacing: 8, fires: 0 },
   ancient_ones: { ring: 'pillar', ringScale: 1.6, spacing: 7, fires: 0 }, // the hexagonal pedestals beyond the Gate
   // Dungeons' boss rooms: a heart and fires (the room's walls ring it).
-  keziah_mason: { ring: 'stones', centre: { kind: 'altar', scale: 1 }, fires: 2 },
-  dunwich_horror: { ring: 'stones', centre: { kind: 'altar', scale: 2 }, fires: 4 }, // the table-stone on Sentinel Hill
-  father_dagon: { ring: 'stones', centre: { kind: 'monolith', scale: 2.4 }, fires: 0 }, // the reef's monolith of Dagon
-  joseph_curwen: { ring: 'stones', centre: { kind: 'altar', scale: 1.2 }, fires: 4 },
-  haunter_of_the_dark: { ring: 'stones', centre: { kind: 'pillar', scale: 1 }, fires: 0 }, // the Trapezohedron's pillar (no fire: it lives in the dark)
-  whisperer: { ring: 'stones', centre: { kind: 'block', scale: 0.4 }, fires: 2 },
-  shoggoth: { ring: 'stones', centre: { kind: 'cone', scale: 0.5 }, fires: 0 },
-  flying_polyp: { ring: 'stones', centre: { kind: 'block', scale: 0.7 }, fires: 0 },
-  tsathoggua: { ring: 'stones', centre: { kind: 'pyramid', scale: 0.5 }, fires: 3 },
-  high_priest: { ring: 'stones', centre: { kind: 'altar', scale: 1.6 }, fires: 4 }, // the monastery of Leng
-  great_ones: { ring: 'stones', centre: { kind: 'obelisk', scale: 3 }, fires: 6 }, // the onyx castle of Kadath
-  ghatanothoa: { ring: 'stones', centre: { kind: 'pyramid', scale: 0.7 }, fires: 2 }, // the temple on Yaddith-Gho
-  rhan_tegoth: { ring: 'stones', centre: { kind: 'block', scale: 0.6 }, fires: 0 },
-  umr_at_tawil: { ring: 'stones', centre: { kind: 'pillar', scale: 2 }, fires: 0 },
+  keziah_mason: { ring: 'stones', centre: { kind: 'altar', scale: 1 }, fires: 2, hall: { kind: 'block', scale: 0.35 } }, // the garret's trunks
+  dunwich_horror: { ring: 'stones', centre: { kind: 'altar', scale: 2 }, fires: 4, hall: { kind: 'monolith', scale: 1.2 } }, // the table-stone on Sentinel Hill, the hill's standing stones
+  father_dagon: { ring: 'stones', centre: { kind: 'monolith', scale: 2.4 }, fires: 0, hall: { kind: 'rock', scale: 1.8 } }, // the reef's monolith of Dagon, the fallen vault's rubble
+  joseph_curwen: { ring: 'stones', centre: { kind: 'altar', scale: 1.2 }, fires: 4, hall: { kind: 'altar', scale: 0.7 } }, // his tables
+  haunter_of_the_dark: { ring: 'stones', centre: { kind: 'pillar', scale: 1 }, fires: 0, hall: { kind: 'cross', scale: 1.3 } }, // the Trapezohedron's pillar (no fire: it lives in the dark)
+  whisperer: { ring: 'stones', centre: { kind: 'block', scale: 0.4 }, fires: 2, hall: { kind: 'block', scale: 0.3 } },
+  shoggoth: { ring: 'stones', centre: { kind: 'cone', scale: 0.5 }, fires: 0, hall: { kind: 'pillar', scale: 1 } },
+  flying_polyp: { ring: 'stones', centre: { kind: 'block', scale: 0.7 }, fires: 0, hall: { kind: 'block', scale: 0.45 } },
+  tsathoggua: { ring: 'stones', centre: { kind: 'pyramid', scale: 0.5 }, fires: 3, hall: { kind: 'monolith', scale: 1.3 } },
+  high_priest: { ring: 'stones', centre: { kind: 'altar', scale: 1.6 }, fires: 4, hall: { kind: 'obelisk', scale: 1.1 } }, // the monastery of Leng
+  great_ones: { ring: 'stones', centre: { kind: 'obelisk', scale: 3 }, fires: 6, hall: { kind: 'obelisk', scale: 1.5 } }, // the onyx castle of Kadath
+  ghatanothoa: { ring: 'stones', centre: { kind: 'pyramid', scale: 0.7 }, fires: 2, hall: { kind: 'monolith', scale: 1.5 } }, // the temple on Yaddith-Gho
+  rhan_tegoth: { ring: 'stones', centre: { kind: 'block', scale: 0.6 }, fires: 0, hall: { kind: 'block', scale: 0.8 } },
+  umr_at_tawil: { ring: 'stones', centre: { kind: 'pillar', scale: 2 }, fires: 0, hall: { kind: 'pillar', scale: 1.2 } },
+  // The lairs' boss rooms (round 32: they had no dressing at all, and stood as bare as a floor can).
+  dr_munoz: { ring: 'stones', centre: { kind: 'block', scale: 0.5 }, fires: 0, hall: { kind: 'block', scale: 0.3 } }, // the cold room's blocks of ice
+  charles_le_sorcier: { ring: 'stones', centre: { kind: 'altar', scale: 1.3 }, fires: 4, hall: { kind: 'altar', scale: 0.8 } }, // the alchemist's benches
+  the_outsider: { ring: 'stones', centre: { kind: 'pillar', scale: 1.2 }, fires: 0, hall: { kind: 'pillar', scale: 0.6 } }, // the mirror-hall
+  the_hound: { ring: 'stones', centre: { kind: 'cross', scale: 2 }, fires: 2, hall: { kind: 'grave', scale: 1.4 } }, // a coffin-room of graves
+  the_unnamable: { ring: 'stones', centre: { kind: 'stump', scale: 1.6 }, fires: 0, hall: { kind: 'log', scale: 1.2 } }, // the attic's fallen beams
+  voice_in_the_tomb: { ring: 'stones', centre: { kind: 'monolith', scale: 1.4 }, fires: 2, hall: { kind: 'grave', scale: 1.2 } },
+  wilbur_whateley: { ring: 'stones', centre: { kind: 'altar', scale: 1.4 }, fires: 2, hall: { kind: 'block', scale: 0.5 } }, // the upstairs' chests
+  ephraim_waite: { ring: 'stones', centre: { kind: 'altar', scale: 1.5 }, fires: 3, hall: { kind: 'cross', scale: 1 } },
+  shunned_house_entity: { ring: 'stones', centre: { kind: 'rock', scale: 2.2 }, fires: 0, hall: { kind: 'rock', scale: 1.3 } },
+  lilith: { ring: 'stones', centre: { kind: 'altar', scale: 1.8 }, fires: 4, hall: { kind: 'obelisk', scale: 0.8 } },
+  terrible_old_man: { ring: 'stones', centre: { kind: 'altar', scale: 1.1 }, fires: 2, hall: { kind: 'stump', scale: 1.1 } }, // the bottles
+  hypnos: { ring: 'stones', centre: { kind: 'pillar', scale: 1.6 }, fires: 3, hall: { kind: 'pillar', scale: 0.7 } }, // the sculptor's statues
+  zann_window_thing: { ring: 'stones', centre: { kind: 'block', scale: 0.4 }, fires: 0, hall: { kind: 'block', scale: 0.3 } },
 };
 
 export const arenaStyle = (boss: string | undefined): ArenaStyle => (boss && ARENA_STYLES[boss]) || { ring: 'stones', fires: 0 };

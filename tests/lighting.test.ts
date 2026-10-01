@@ -18,7 +18,8 @@ describe('arena lighting', () => {
     expect(u.uLightColor.value.length()).toBeGreaterThan(0);
     lightNight();
     expect(u.uLightColor.value.toArray()).toEqual([...LIGHT.nightMoon]);
-    expect(u.uLightDir.value.y).toBeLessThan(0.45); // a low moon finds walls more than the floor
+    expect(u.uLightDir.value.y).toBeGreaterThan(0.5); // a moon high enough to find the ground as well as the walls (round 32: it was low, and the land beyond the lantern lay in the dark)
+    expect(u.uLightDir.value.y).toBeLessThan(0.85); // but not overhead: walls and pillars are still lit
     expect(u.uAmbient.value.toArray()).toEqual([...LIGHT.nightAmbient]);
     expect(u.uLanternColor.value.toArray()).toEqual(LANTERN.color.map((c) => c * LANTERN.intensity));
   });

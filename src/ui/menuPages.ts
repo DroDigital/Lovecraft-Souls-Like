@@ -10,7 +10,7 @@ import { padReport } from '../core/pads';
 import { RENDER, SETTINGS } from '../data/tuning';
 import { desktop } from './desktop';
 import { glyph } from './glyphs';
-import { button, el, heading, slider, type Page } from './menuKit';
+import { button, el, heading, slider, title, type Page } from './menuKit';
 import type { SettingId, Settings } from './settings';
 
 const pct = (v: number): string => `${Math.round(v * 100)}%`;
@@ -49,7 +49,7 @@ export function settingsPage(s: Settings, change: (id: SettingId, v: number) => 
   const page: Page = {
     back,
     build(panel) {
-      el(panel, 'div', 'SETTINGS', 'font-size:18px;letter-spacing:4px');
+      title(panel, 'SETTINGS');
       el(panel, 'div', 'FX intensity caps every effect of a failing mind, for comfort.', 'opacity:.6;margin:4px 0 0');
       for (const [name, ids] of GROUPS) {
         heading(panel, name);
@@ -113,7 +113,7 @@ export function controlsPage(back: () => void, save: () => void = () => undefine
       page.redraw?.();
     },
     build(panel) {
-      el(panel, 'div', 'CONTROLS', 'font-size:18px;letter-spacing:4px');
+      title(panel, 'CONTROLS');
       el(panel, 'div', 'Choose a key to rebind it, then press the new one. Shift, Tab, Enter, Esc and the arrows are kept.', 'opacity:.6;margin:4px 0 10px');
       el(panel, 'div', `Controller: ${padReport() || 'none found (press a button on it)'}`, 'opacity:.6;margin:0 0 10px'); // what the game hears (round 31)
       if (refused) el(panel, 'div', 'That key is kept: Shift is the heavy blow and the parry, and the rest are the menus\u2019. Choose another.', 'color:#d9a066;margin:0 0 8px');

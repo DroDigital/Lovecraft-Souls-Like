@@ -7,7 +7,7 @@
  */
 
 import type * as THREE from 'three';
-import { LIGHTNING, SKY } from '../data/tuning';
+import { LIGHTNING } from '../data/tuning';
 import type { PostPass } from './postPass';
 import { worldUniforms } from './worldMaterial';
 
@@ -25,7 +25,7 @@ export function flicker(t: number): number {
 }
 
 export function createLightning(sky: THREE.Mesh, post: PostPass, thunder: (gain: number) => void): Lightning {
-  const haze = (sky.material as THREE.ShaderMaterial).uniforms.uHazeColor.value as THREE.Vector3;
+  const flash = (sky.material as THREE.ShaderMaterial).uniforms.uFlash; // the sky's own flash (shaders/sky.ts)
   let [next, struck, strength] = [NaN, -Infinity, 0];
   let rumble: { when: number; gain: number } | null = null;
   return {
@@ -44,7 +44,7 @@ export function createLightning(sky: THREE.Mesh, post: PostPass, thunder: (gain:
         rumble = null;
       }
       const f = hidden ? 0 : flicker(time - struck) * strength;
-      haze.set(...SKY.haze).multiplyScalar(1 + LIGHTNING.sky * f);
+      flash.value = 0.085 * LIGHTNING.sky * f; // what the sky's haze took of it before the realms had their own skies (round 32)
       if (f <= 0) return;
       worldUniforms.uLightColor.value.addScalar(LIGHTNING.light * f);
       worldUniforms.uAmbient.value.addScalar(LIGHTNING.light * 0.5 * f);

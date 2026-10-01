@@ -2,8 +2,10 @@
  * A region's plan (spec §3D): what lies between its sites, laid out once from the world seed. Roads
  * join its Elder Signs, legacy dungeons, gates, towns and borders (roads.ts); towns line their streets
  * with houses and lamps; New England field walls follow the roads; groves, graveyards, stone circles,
- * ruins, outcrops and camps fill open ground (features.ts); a light scatter of the biome's props lies
- * between; and foes are posted around it all (planSpawns.ts). Everything is bucketed by chunk. Pure.
+ * ruins, outcrops and camps fill open ground (features.ts); copses, wayside stones and farmsteads
+ * dot the land between, country roads are lined with things to walk toward, and the biome's props
+ * and the ground's own fill lie over the rest (planFill.ts, round 32); and foes are posted around it
+ * all (planSpawns.ts). Everything is bucketed by chunk. Pure.
  */
 
 import type { XZ } from '../core/geom';
@@ -15,6 +17,7 @@ import { colliderBounds, type Collider } from './colliders';
 import { FEATURE_KINDS, FEATURE_RADIUS, featureProps, type Feature } from './features';
 import { worldLayout, type SpawnPoint } from './placements';
 import { planSpawns } from './planSpawns';
+import { nearestRoad, placeFillers, roadside, scatterBiome } from './planFill';
 import { makeProp, propCollider, type Prop } from './props';
 import { borderPoints, planRoads, segmentDistance, type Road } from './roads';
 import { chunkKey, chunkOf, DIRS, rectDistance, regionRect, toWorld, type Rect } from './worldMap';
@@ -36,7 +39,7 @@ export interface RegionPlan {
 }
 
 const CELL = 4; // metres per occupancy cell
-const DEFAULT: RegionLayout = { road: 'mud', width: 3.5, towns: [], groves: 0, graveyards: 0, circles: 0, ruins: 0, outcrops: 0, camps: 0, walls: false, landmarks: 0 };
+const DEFAULT: RegionLayout = { road: 'mud', width: 3.5, towns: [], groves: 0, graveyards: 0, circles: 0, ruins: 0, outcrops: 0, camps: 0, walls: false, landmarks: 0, copses: 0, waymarks: 0, farms: 0 };
 
 /** Which cells of the region are taken: sites, roads, houses and features. */
 function occupancy(rect: Rect) {
@@ -201,18 +204,11 @@ function buildPlan(region: RegionDef): RegionPlan {
   for (const r of roads) for (let i = 1; i < r.pts.length; i++) occ.disk((r.pts[i - 1].x + r.pts[i].x) / 2, (r.pts[i - 1].z + r.pts[i].z) / 2, r.width / 2 + 3, true);
   thickets(region, rng, occ, roadClear, props);
   const features = placeFeatures(layout, rect, rng, roads, occ, props);
+  placeFillers(region, layout, rect, rng, roads, occ, props);
+  roadside(region, roads, rng, occ, (x, z) => roadClear(x, z, 0.5) && offSites(x, z, 1), props);
   scatterBiome(region, rect, rng, occ, props);
   const spawns = planSpawns(region, features, roads, towns, props, rng);
   return bucket(layout, roads, features, props, spawns);
-}
-
-function nearestRoad(roads: readonly Road[], x: number, z: number): XZ | null {
-  let best: [number, XZ | null] = [Infinity, null];
-  for (const r of roads) for (const p of r.pts) {
-    const d = Math.hypot(p.x - x, p.z - z);
-    if (d < best[0]) best = [d, p];
-  }
-  return best[1];
 }
 
 function placeFeatures(layout: RegionLayout, rect: Rect, rng: Rng, roads: readonly Road[], occ: ReturnType<typeof occupancy>, props: Prop[]): Feature[] {
@@ -237,22 +233,6 @@ function placeFeatures(layout: RegionLayout, rect: Rect, rng: Rng, roads: readon
     }
   }
   return out;
-}
-
-/** A light scatter of the biome's own props over open ground, a few per chunk. */
-function scatterBiome(region: RegionDef, rect: Rect, rng: Rng, occ: ReturnType<typeof occupancy>, props: Prop[]): void {
-  const chunks = ((rect.x1 - rect.x0) * (rect.z1 - rect.z0)) / (WORLD.chunk * WORLD.chunk);
-  const entries = Object.entries(region.biome.props) as [PropKind, number][];
-  const total = entries.reduce((s, [, n]) => s + n, 0);
-  const n = Math.round(chunks * region.biome.density * 0.35);
-  for (let k = 0; k < n; k++) {
-    const [x, z] = [rect.x0 + rng() * (rect.x1 - rect.x0), rect.z0 + rng() * (rect.z1 - rect.z0)];
-    let roll = rng() * total;
-    const kind = entries.find(([, wt]) => (roll -= wt) < 0)?.[0] ?? entries[0]?.[0];
-    if (!kind || !occ.free(x, z)) continue;
-    props.push(makeProp(kind, x, z, rng));
-    occ.disk(x, z, 2, true);
-  }
 }
 
 function bucket(layout: RegionLayout, roads: Road[], features: Feature[], props: Prop[], spawns: SpawnPoint[]): RegionPlan {
