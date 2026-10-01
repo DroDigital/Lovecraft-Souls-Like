@@ -60,6 +60,8 @@ export const setMenuSound = (fn: () => void): void => void (sound = fn);
 const CSS = `
 [data-menu] button{display:block;width:100%;margin:3px 0;padding:5px 10px;text-align:left;font:14px ${SERIF};letter-spacing:.5px;color:${BONE};background:#141416;border:1px solid ${BONE}44;cursor:pointer}
 [data-menu] button:disabled{opacity:.4;cursor:default}
+[data-menu] button.quiet{display:inline-block;width:auto;background:none;border:none;padding:2px 0;opacity:.55;text-shadow:0 0 6px #000,0 1px 2px #000}
+[data-menu] button.quiet:focus,[data-menu] button.quiet:hover:not(:disabled){outline:none;background:none!important;opacity:1}
 [data-menu] button:focus,[data-menu] button:hover:not(:disabled){outline:1px solid ${BONE}aa;background:#26262a!important}
 [data-menu] label{display:flex;gap:10px;align-items:center;margin:8px 0}
 [data-menu] label span:first-child{min-width:13ch}

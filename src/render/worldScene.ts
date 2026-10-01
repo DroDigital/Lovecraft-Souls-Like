@@ -10,7 +10,7 @@
 
 import * as THREE from 'three';
 import { createSlicer } from '../core/slicer';
-import { RENDER, WORLD } from '../data/tuning';
+import { WORLD } from '../data/tuning';
 import { chunkContent } from '../world/chunks';
 import { worldLayout } from '../world/placements';
 import { chunkSpan, streamDiff } from '../world/streaming';
@@ -20,7 +20,7 @@ import { propJob } from './propMeshes';
 import { arenaJob, dungeonJob } from './siteMeshes';
 import { terrainJob } from './terrainMesh';
 import type { LightSpot, WorldLights } from './worldLights';
-import { createWorldMaterial } from './worldMaterial';
+import { createSea } from './sea';
 
 export interface WorldScene {
   scene: THREE.Scene;
@@ -35,8 +35,6 @@ interface Site {
   job: (done: (meshes: THREE.Mesh[], lights?: LightSpot[]) => void) => Generator<void, void>;
   meshes: THREE.Mesh[] | null; // null while not loaded
 }
-
-const SEA_TILE = 8; // metres per water texture repeat; the plane moves in whole tiles so the ripples stay put
 
 function footprint(r: Rect): number[] {
   const keys: number[] = [];
@@ -54,20 +52,13 @@ function sites(): Site[] {
   return out;
 }
 
-function seaPlane(): THREE.Mesh {
-  const size = Math.ceil((RENDER.far * 2.4) / SEA_TILE) * SEA_TILE;
-  const repeats = size / SEA_TILE;
-  const geo = new THREE.PlaneGeometry(size, size, repeats, repeats).rotateX(-Math.PI / 2);
-  return new THREE.Mesh(geo, createWorldMaterial({ texture: 'water', uvScale: [repeats, repeats], uvScroll: [0.02, 0.01] }));
-}
-
 export function createWorldScene(lights?: WorldLights): WorldScene {
   const scene = new THREE.Scene();
   const slicer = createSlicer(() => performance.now());
   const chunks = new Map<number, THREE.Mesh[]>(); // loaded chunks and the meshes built for them so far
   const all = sites();
-  const sea = seaPlane();
-  scene.add(sea);
+  const sea = createSea(); // round 30: waves, not a texture
+  scene.add(sea.group);
   let at = -1; // the investigator's chunk key
 
   const add = (list: THREE.Mesh[], m: THREE.Mesh): void => {
@@ -135,7 +126,7 @@ export function createWorldScene(lights?: WorldLights): WorldScene {
           all.forEach((s, k) => s.chunks.includes(key) && slicer.finish(-1 - k));
         }
       }
-      sea.position.set(Math.round(x / SEA_TILE) * SEA_TILE, WORLD.seaLevel, Math.round(z / SEA_TILE) * SEA_TILE);
+      sea.update(x, z);
       slicer.run(budgetMs);
     },
     get loaded() {

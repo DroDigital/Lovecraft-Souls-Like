@@ -43,7 +43,7 @@ interface Voice {
   hall: AudioNode[]; // what the echo is made of, to be let go after its tail
 }
 
-export function createSpeech(e: AudioEngine, base = VOICE_BASE): Speech {
+export function createSpeech(e: AudioEngine, base = VOICE_BASE, began?: (speaker: string, text: string, buf: AudioBuffer, rate: number) => void): Speech {
   let index: ReadonlySet<string> | null = null; // the recordings that exist (public/voice/index.json); none until it is read
   let listing: Promise<void> | undefined;
   const buffers = new Map<string, AudioBuffer | null>(); // null: it would not load
@@ -98,7 +98,7 @@ export function createSpeech(e: AudioEngine, base = VOICE_BASE): Speech {
     release(v);
   };
 
-  function play(speaker: string, buf: AudioBuffer): void {
+  function play(speaker: string, text: string, buf: AudioBuffer): void {
     const { ctx, speech } = e;
     if (!ctx || !speech) return;
     const m = mannerOf(speaker);
@@ -128,6 +128,7 @@ export function createSpeech(e: AudioEngine, base = VOICE_BASE): Speech {
       release(v);
     };
     src.start();
+    began?.(speaker, text, buf, m.rate);
   }
 
   return {
@@ -137,7 +138,7 @@ export function createSpeech(e: AudioEngine, base = VOICE_BASE): Speech {
       want = id;
       void known().then(() => {
         if (want !== id || !index?.has(id)) return undefined;
-        return load(id).then((buf) => void (buf && want === id && play(speaker, buf)));
+        return load(id).then((buf) => void (buf && want === id && play(speaker, text, buf)));
       });
     },
     ahead(speaker, texts) {

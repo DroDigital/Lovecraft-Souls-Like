@@ -198,6 +198,7 @@ uniform float uEmissive;
 uniform float uVary; // world-space tone variation (0: none)
 uniform float uBomb; // 1: a second, turned sample blends in by a noise mask, so organic ground never repeats
 uniform float uHasMap2; // 1: uMap2 blends in by vSplat (roads)
+uniform float uSeaLevel;
 
 varying vec2 vUv;
 varying vec3 vUvw;
@@ -270,6 +271,19 @@ void main() {
   vec3 col = eldritch(tex * lit);
 #ifdef PANES
   col *= paneLit(vPane, uTime); // lived behind: put out now and then, dimmed as someone passes
+#endif
+#ifdef SHORE
+  {
+    float h = vWorld.y - uSeaLevel;
+    // The water runs up the shore and slips back: the waterline breathes about a quarter of a metre.
+    float surge = 0.22 + 0.2 * sin(uTime * 0.55 + vWorld.x * 0.07 + vWorld.z * 0.05) + 0.07 * sin(uTime * 1.3 + vWorld.z * 0.2);
+    float wet = 1.0 - smoothstep(surge, surge + 0.55, h); // the ground the water has just left, darker
+    col *= mix(1.0, 0.6, wet * step(-0.8, h));
+    float lace = vnoise(vWorld.xz * 1.8 + vec2(uTime * 0.15, 0.0)) * 0.65 + vnoise(vWorld.xz * 5.0 - uTime * 0.3) * 0.35;
+    float line = 1.0 - smoothstep(0.0, 0.22, abs(h - surge - 0.08));
+    float foam = line * smoothstep(0.42, 0.7, lace) * step(-0.4, h);
+    col = mix(col, min(lit, vec3(1.2)) * vec3(0.9, 0.95, 0.93) * 1.1, clamp(foam, 0.0, 0.7));
+  }
 #endif
   gl_FragColor = vec4(mix(col, uFogColor, vFog * uFogAmount), 1.0);
 }

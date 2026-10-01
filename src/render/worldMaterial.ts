@@ -1,7 +1,7 @@
 /** World materials: one shared uniform set (updated once per frame) + a procedural texture each. */
 
 import * as THREE from 'three';
-import { FX, LANTERN, LIGHT, type Vec3 } from '../data/tuning';
+import { FX, LANTERN, LIGHT, WORLD, type Vec3 } from '../data/tuning';
 import type { FxParams } from './fx';
 import { ANOMALY } from './palette';
 import { LAMP_SLOTS, WORLD_FRAG, WORLD_VERT } from './shaders/world';
@@ -45,6 +45,7 @@ export const worldUniforms = {
   uFogFar: { value: 1 },
   uFogAmount: { value: 0 },
   uFogColor: { value: v3(FX.fogColor) },
+  uSeaLevel: { value: WORLD.seaLevel }, // where the sea lies: the shore's waterline (the world shader's SHORE)
 };
 
 export interface WorldMaterialOptions {
@@ -60,6 +61,7 @@ export interface WorldMaterialOptions {
   texture2?: TextureKind; // a second texture blended in by the geometry's aSplat attribute (roads)
   eldritch?: number; // 0..1: how far the body refuses to hold its shape (shaders/eldritch.ts)
   bodyScale?: number; // metres: the body's height, which that is measured in
+  shore?: boolean; // the ground is washed by the sea where it meets it: a wet band and lace of foam, breathing with the swell (round 30)
   panes?: boolean; // lit windows, each lived behind by its aPane seed (paneLife.ts; round 18)
 }
 
@@ -106,7 +108,7 @@ export function createWorldMaterial(o: WorldMaterialOptions): THREE.ShaderMateri
     vertexShader: WORLD_VERT,
     fragmentShader: WORLD_FRAG,
     vertexColors: o.vertexColors ?? false,
-    defines: o.panes ? { PANES: '' } : {},
+    defines: { ...(o.panes && { PANES: '' }), ...(o.shore && { SHORE: '' }) },
   });
   material.userData.emissive = o.emissive ?? 0;
   return material;

@@ -175,15 +175,28 @@ const owls: Spot = { set: 'owl', every: [25, 60] };
 const dogs: Spot = { set: 'farHowl', every: [40, 90] };
 const creaks: Spot = { set: 'creak', every: [18, 45] };
 
+/**
+ * How a bed is played (round 30: crickets droned at one bright level, minute after minute, and wore
+ * on the ear): a tonal bed has its top end softened (`lowpass`, Hz) and breathes (`breath`, 0..1: how
+ * far it falls and rises, over its `every` seconds, each of its two readers on a period of its own),
+ * so it swells and all but fades again instead of holding still. The rest play as recorded.
+ */
+export const BED_MANNER: Readonly<Record<string, { lowpass?: number; breath?: number; every?: [number, number] }>> = {
+  crickets: { lowpass: 3600, breath: 0.75, every: [38, 85] },
+  frogs: { lowpass: 3200, breath: 0.7, every: [30, 70] },
+  alien: { lowpass: 5000, breath: 0.4, every: [45, 90] },
+  murmur: { breath: 0.35, every: [50, 100] },
+};
+
 export const AMBIENCE: Record<string, Ambience> = {
   title: { beds: [], spots: [] }, // the theme plays
   arena: { beds: [['wind', 0.6]], spots: [] },
-  hub: { beds: [['wind', 0.8], ['crickets', 0.22]], spots: [owls, dogs] },
-  arkham: { beds: [['wind', 0.7], ['crickets', 0.27]], spots: [owls, dogs, creaks] },
-  dunwich: { beds: [['crickets', 0.63], ['wind', 0.45]], spots: [{ set: 'whippoorwill', every: [14, 35] }, owls] }, // its thunder follows the lightning (round 18: render/lightning.ts)
-  innsmouth: { beds: [['surf', 0.9], ['frogs', 0.32]], spots: [{ set: 'hull', every: [15, 40] }, { set: 'gurgle', every: [30, 70] }] },
+  hub: { beds: [['wind', 0.8], ['crickets', 0.1]], spots: [owls, dogs] },
+  arkham: { beds: [['wind', 0.7], ['crickets', 0.11]], spots: [owls, dogs, creaks] },
+  dunwich: { beds: [['crickets', 0.22], ['wind', 0.5]], spots: [{ set: 'whippoorwill', every: [14, 35] }, owls] }, // its thunder follows the lightning (round 18: render/lightning.ts)
+  innsmouth: { beds: [['surf', 0.9], ['frogs', 0.14]], spots: [{ set: 'hull', every: [15, 40] }, { set: 'gurgle', every: [30, 70] }] },
   providence: { beds: [['wind', 0.72]], spots: [creaks, dogs, owls] },
-  vermont: { beds: [['leaves', 0.8], ['crickets', 0.32]], spots: [owls, { set: 'farHowl', every: [60, 120] }] },
+  vermont: { beds: [['leaves', 0.8], ['crickets', 0.12]], spots: [owls, { set: 'farHowl', every: [60, 120] }] },
   mountains: { beds: [['wind_cold', 0.75]], spots: [] },
   pnakotus: { beds: [['wind', 0.8], ['wind_ghost', 0.2]], spots: [{ set: 'timber', every: [45, 100] }] },
   kn_yan: { beds: [['cave', 0.8], ['drips', 0.65]], spots: [{ set: 'chains', every: [50, 110] }] },

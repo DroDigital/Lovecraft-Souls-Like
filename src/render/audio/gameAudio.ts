@@ -38,6 +38,7 @@ import type { Drones } from './drones';
 import type { AudioEngine } from './engine';
 import { createFoley } from './foley';
 import { createSampler, setFiles } from './sampler';
+import { voicedCurve } from '../../core/pace';
 import { createSpeech } from './speech';
 import { HEART } from '../feel';
 import { playSound } from './synth';
@@ -155,7 +156,7 @@ export function createGameAudio(e: AudioEngine, drones: Drones, g: Game): GameAu
     call(entity, v, { pitch: 0.78 + 0.1 * Math.random(), gain: 0.9 }); // else its call, deeper
   });
 
-  const speech = createSpeech(e); // the voices of the people and of the horrors that speak
+  const speech = createSpeech(e, undefined, (speaker, text, buf, rate) => g.events.emit('Speaking', { speaker, text, rate, seconds: buf.duration / rate, curve: voicedCurve(buf.getChannelData(0), buf.sampleRate) })); // the voices of the people and of the horrors that speak; a caption is told when and how a line sounds
   g.events.on('Said', ({ speaker, text }) => speech.say(speaker, text));
   g.events.on('Silenced', () => speech.stop());
   g.events.on('Talked', ({ npc, lines }) => speech.ahead(`npc:${npc}`, lines.slice(0, AHEAD))); // their recordings loaded before they are said

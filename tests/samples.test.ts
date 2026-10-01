@@ -101,3 +101,18 @@ describe('playing them (render/audio)', () => {
     expect(surfaceAt(g, mx + road.width * 3 + 20, 0, mz + road.width * 3 + 20)).not.toBe('water');
   });
 });
+
+describe('the insect beds do not wear on the ear (round 30)', () => {
+  it('crickets and frogs are quiet, softened at the top, and breathe', async () => {
+    const { AMBIENCE, BED_MANNER } = await import('../src/data/samples');
+    for (const [file, m] of Object.entries(BED_MANNER)) {
+      expect(m.breath ?? 0, file).toBeLessThan(1);
+      if (m.every) expect(m.every[0], file).toBeGreaterThan(20); // a slow round
+    }
+    for (const k of ['crickets', 'frogs'] as const) {
+      expect(BED_MANNER[k]?.lowpass, k).toBeLessThan(4500);
+      expect(BED_MANNER[k]?.breath, k).toBeGreaterThan(0.5);
+    }
+    for (const [place, a] of Object.entries(AMBIENCE)) for (const [file, gain] of a.beds) if (file === 'crickets' || file === 'frogs') expect(gain, `${place} ${file}`).toBeLessThanOrEqual(0.25);
+  });
+});
