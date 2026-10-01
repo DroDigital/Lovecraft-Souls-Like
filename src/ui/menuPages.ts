@@ -21,7 +21,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
   resolution: ['Resolution', (v) => `${Math.round(RENDER.width * v)}×${Math.round(RENDER.height * v)}`],
   brightness: ['Brightness', pct],
   fog: ['Volumetric fog', (v) => (v > 0 ? pct(v) : 'Off')],
-  shadows: ['Moon shadows', (v) => (v > 0.5 ? 'On' : 'Off')],
+  shadows: ['Shadows', (v) => (v > 0.5 ? 'On' : 'Off')],
   uiScale: ['Text & HUD', (v) => `×${v.toFixed(2)}`],
   shake: ['Screen shake', pct],
   cutscenes: ['Cutscenes', (v) => (v > 0.5 ? 'On' : 'Off')],

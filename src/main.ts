@@ -265,7 +265,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         applyLens(camera, cinema.lensFov(lens.fovDeg), lens.skew);
         updateWorldUniforms(fx, time, camera.position, views.glow ?? noGlow, pipeline.size);
         updatePostUniforms(pipeline.post, fx, time, pipeline.size);
-        if (!veil.covered) (pipeline.render(scene, camera, world && !enclosed && settings.shadows > 0.5 ? at : null), photo.after()); // nothing shows under the veil: its frames go to the making
+        if (!veil.covered) (pipeline.render(scene, camera, world && settings.shadows > 0.5 ? at : null, !enclosed), photo.after()); // nothing shows under the veil: its frames go to the making
         hud.update(camera);
         if (!panel) return;
         panel.refresh();

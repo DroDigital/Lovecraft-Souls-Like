@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { FX, RENDER } from '../data/tuning';
+import { createLanternShadow, type LanternShadow } from './lanternShadow';
 import { createMoonShadow, type MoonShadow } from './moonShadow';
 import { createPostPass, type PostPass } from './postPass';
 import { worldUniforms } from './worldMaterial';
@@ -17,12 +18,14 @@ export interface Pipeline {
   post: PostPass;
   /** The moon's shadows (round 34): `render` says where and whether, and draws the map before the world. */
   shadow: MoonShadow;
+  /** The lantern's shadows (round 34): drawn from the investigator in the way the camera looks, in the open night and under a roof alike. */
+  lantern: LanternShadow;
   /** Internal render size in pixels (low-res target, or full canvas when pixelation is off). */
   size: THREE.Vector2;
   /** `scale` multiplies the low-res target (the settings menu's resolution scale). */
   resize(lowRes: boolean, scale?: number): void;
-  /** `shadowAt`: where the moon's shadow map is centred (the investigator), or null for none (a roof overhead, a dungeon, the setting off: round 34). */
-  render(scene: THREE.Scene, camera: THREE.Camera, shadowAt?: { x: number; y: number; z: number } | null): void;
+  /** `shadowAt`: where the shadow maps are centred (the investigator), or null for none (the setting off, not in the world: round 34); `moon`: the moon is drawn over the open ground too, and not under a roof or in a dungeon. */
+  render(scene: THREE.Scene, camera: THREE.Camera, shadowAt?: { x: number; y: number; z: number } | null, moon?: boolean): void;
   /** Starts compiling every shader the scene and the post pass need; resolves once they can be drawn without a stall. */
   compile(scene: THREE.Scene, camera: THREE.Camera): Promise<void>;
   /** Compiles, then draws a frame (sending the GPU what the scene holds), so the next one shown comes at once. */
@@ -50,14 +53,17 @@ export function createPipeline(parent: HTMLElement): Pipeline {
   });
   const post = createPostPass(target.texture, target.depthTexture);
   const shadow = createMoonShadow();
+  const lantern = createLanternShadow();
   worldUniforms.uMarkCharacters.value = 1; // the post pass reads characters from the target's alpha
   const size = new THREE.Vector2(RENDER.width, RENDER.height);
 
-  const render = (scene: THREE.Scene, camera: THREE.Camera, shadowAt: { x: number; y: number; z: number } | null = null): void => {
+  const render = (scene: THREE.Scene, camera: THREE.Camera, shadowAt: { x: number; y: number; z: number } | null = null, moon = true): void => {
     renderer.info.reset();
     if (shadowAt) shadow.focus.set(shadowAt.x, shadowAt.y, shadowAt.z);
-    shadow.enabled = !!shadowAt;
+    shadow.enabled = !!shadowAt && moon;
     shadow.render(renderer, scene);
+    lantern.enabled = !!shadowAt;
+    lantern.render(renderer, scene, camera, shadowAt ?? shadow.focus);
     renderer.setRenderTarget(target);
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
@@ -77,6 +83,7 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     renderer,
     post,
     shadow,
+    lantern,
     size,
     render,
     compile,

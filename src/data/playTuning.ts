@@ -69,7 +69,7 @@ export const SETTINGS = {
   resolution: [0.5, 2, 0.25, 2], // internal resolution, × RENDER's 400 × 225 (the most, 800 × 450, by default since playtest round 13)
   brightness: [0.7, 1.6, 0.05, 1], // lifts the dark (a gamma, after the grade; round 12)
   fog: [0, 1, 0.25, 1], // the volumetric fog's strength (0: none, for slower machines; round 16)
-  shadows: [0, 1, 1, 1], // 0: the moon casts no shadows (a second pass over the scene each frame, for slower machines; round 34)
+  shadows: [0, 1, 1, 1], // 0: neither the moon nor the lantern casts shadows (a second and a third pass over the scene each frame, for slower machines; round 34)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
   cutscenes: [0, 1, 1, 1], // 0: none play: a new game's wake, a horror's arrival and fall, an ending's (round 20)

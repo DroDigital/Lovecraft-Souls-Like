@@ -43,6 +43,18 @@ export const FLASK = {
   capacity: 8, // flasks drawn at once
 };
 
+/** The lantern's shadows (round 34, render/lanternShadow.ts): where the moon casts none (under a roof, in a dungeon, a moon below the horizon), one depth map is drawn from the investigator's chest in the way the camera looks, of the solid things about them. Lengths in metres. */
+export const LANTERN_SHADOW = {
+  size: 1024, // texels a side
+  fov: 130, // degrees the map looks through: outside it a surface is lit (and the shadows fade out toward its edge)
+  near: 0.35,
+  reach: 2, // how far past the lantern's own range the map looks
+  height: 1.25, // above the investigator's feet that the map is drawn from: their chest, which is never inside a wall
+  strength: 0.88, // the share of the lantern's light a shadow takes away (the rest leaks round: a wall is not black)
+  bias: 0.06, // metres a surface is held from its own shadow, and 1 cm more for each metre from the lantern (a texel grows so)
+  offset: 0.04, // metres a point is pushed off its surface along the normal before it is looked up
+};
+
 /** The moon's shadows (round 34, render/moonShadow.ts): one depth map drawn from the moon over the investigator. Lengths in metres. */
 export const SHADOW = {
   size: 1024, // texels a side: with `range`, a texel is 7 cm

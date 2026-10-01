@@ -52,6 +52,11 @@ export const worldUniforms = {
   uShadowMap: { value: null as THREE.Texture | null }, // the moon's depth map, its matrix and its numbers (moonShadow.ts; round 34)
   uShadowMat: { value: new THREE.Matrix4() },
   uShadow: { value: new THREE.Vector4() },
+  uLShadowMap: { value: null as THREE.Texture | null }, // the lantern's depth map, how it is looked through, and its numbers (lanternShadow.ts; round 34)
+  uLShadowView: { value: new THREE.Matrix4() },
+  uLShadowProj: { value: new THREE.Matrix4() },
+  uLShadowNF: { value: new THREE.Vector2(0.35, 13) }, // its near and far planes
+  uLShadow: { value: new THREE.Vector4() }, // strength (0: none), a texel, the bias, the offset
 };
 
 export interface WorldMaterialOptions {
