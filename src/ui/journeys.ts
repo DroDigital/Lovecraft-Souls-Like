@@ -26,6 +26,7 @@ export interface Journeys {
   /** Each drawn frame, with the chunk jobs still pending. */
   update(pending: number): void;
   readonly still: boolean; // the world waits (no step this frame)
+  readonly busy: boolean; // a journey, an arrival or a fall is under way (the pause menu keeps out of it)
   readonly budget: number; // ms of chunk building this frame
 }
 
@@ -108,6 +109,9 @@ export function createJourneys(g: Game, veil: Veil, ready?: () => Promise<void>)
     },
     get still() {
       return phase === 'covering' || (phase === 'holding' && rise <= 0) || phase === 'readying' || dyingWaits();
+    },
+    get busy() {
+      return phase !== 'idle';
     },
     get budget() {
       return phase === 'holding' || veil.covered ? BUILD_MS : WORLD.sliceMs;

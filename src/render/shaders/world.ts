@@ -53,7 +53,9 @@ vec3 lampLight(vec3 p, vec3 n, float facing) {
     float face = mix(1.0, max(dot(n, to / max(d, 0.001)), 0.0), facing);
     sum += uLampColors[i] * win * win / (1.0 + uLanternDecay * d * d) * face; // the lantern's own falloff
   }
-  return sum;
+  // Many lights at once (a corridor of torches, a hall's braziers) would add up past white and wash the walls to cream (round 31): the sum is eased toward a ceiling.
+  float peak = max(max(sum.r, sum.g), sum.b);
+  return sum / (1.0 + 0.55 * peak);
 }
 `;
 

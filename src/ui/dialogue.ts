@@ -36,7 +36,7 @@ const SAID = 'opacity:1;filter:blur(0);transform:none;letter-spacing:normal';
 const LATE = 600; // ms a line waits for its recording to begin before it is said by the clock instead (no recording, or one still loading)
 
 export function createDialogue(g: Game): Dialogue {
-  const talk = createScreen(8, 'transparent', 'left:50%;bottom:17%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px');
+  const talk = createScreen(8, 'transparent', 'left:50%;bottom:17%;transform:translateX(-50%);width:min(680px,92vw);padding:14px 18px', true, true);
   const read = createScreen(8, '#050506cc', 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,92vw);max-height:84vh;overflow:auto;padding:22px 26px;background:#0e0d0c;border:1px solid #d9d0b833');
 
   /** Closes the talk, and whoever is speaking is cut off (the voices). */

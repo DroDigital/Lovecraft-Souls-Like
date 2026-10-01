@@ -11,7 +11,7 @@
  */
 
 import { useDevice, onDeviceChange } from '../core/device';
-import { activePad, muteHeldPad } from '../core/pads';
+import { activePad, muteHeldPad, type PadReading } from '../core/pads';
 import { BONE, SERIF } from './hudKit';
 import { SCALED_LAYER } from './uiScale';
 
@@ -20,7 +20,7 @@ export interface Page {
   back?: () => void;
   backKeys?: readonly string[]; // keys besides Esc that go back
   keys?: (e: KeyboardEvent) => void; // hears every key pressed while it is open (the map pans and zooms)
-  pad?: (pad: Gamepad) => void; // reads the pad each frame while it is open
+  pad?: (pad: PadReading) => void; // reads the pad each frame while it is open
   redraw?: () => void; // set by the screen that shows it: draws it again, keeping the focus
 }
 
@@ -172,8 +172,8 @@ function startOnce(): void {
   requestAnimationFrame(pollPad);
 }
 
-/** A screen at stacking level `z`; `panelCss` places and styles its panel. */
-export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw);max-height:86vh;overflow:auto;padding:18px;background:#0b0b0d;border:1px solid #d9d0b833', scaled = true): Screen {
+/** A screen at stacking level `z`; `panelCss` places and styles its panel. `keepLock`: the mouse stays captured while it is open (a talk, which is read and answered by key: round 31, so leaving one needs no click to look about again). */
+export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw);max-height:86vh;overflow:auto;padding:18px;background:#0b0b0d;border:1px solid #d9d0b833', scaled = true, keepLock = false): Screen {
   startOnce();
   const root = document.createElement('div');
   root.style.cssText = `position:fixed;inset:0;display:none;z-index:${z};background:${backdrop};font:14px/1.45 ${SERIF};color:${BONE}`;
@@ -212,7 +212,7 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = 'left
         const redraw = (): void => void (entry && self.show(entry.page));
         stack.push((entry = { panel, page, since: performance.now(), redraw }));
       }
-      document.exitPointerLock?.();
+      if (!keepLock) document.exitPointerLock?.();
       focusAt(panel, Math.max(0, at), fresh);
       if (fresh) panel.scrollTop = 0;
     },
