@@ -30,7 +30,7 @@ const ORGANIC = new Set<GroundTexture>(['rot', 'grass', 'mud', 'sand', 'snow', '
 export function groundMaterial(texture: GroundTexture, road: RoadTexture = 'cobble'): THREE.ShaderMaterial {
   const key = `${texture}|${road}`;
   let m = materials.get(key);
-  if (!m) materials.set(key, (m = createWorldMaterial({ texture, texture2: road, vertexColors: true, vary: 0.9, bomb: ORGANIC.has(texture) })));
+  if (!m) materials.set(key, (m = createWorldMaterial({ texture, texture2: road, vertexColors: true, vary: 0.9, bomb: ORGANIC.has(texture), shore: true })));
   return m;
 }
 

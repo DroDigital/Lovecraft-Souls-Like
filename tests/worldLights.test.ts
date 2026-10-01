@@ -1,3 +1,4 @@
+import { FLAME_VERTICES } from '../src/render/sconces';
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { REGIONS } from '../src/data/regions';
@@ -144,7 +145,7 @@ describe('what reports a light', () => {
       let [meshes, spots] = [[] as THREE.Mesh[], [] as LightSpot[]];
       finish(dungeonJob({ ...d, decor: [] }, (m, l) => ([meshes, spots] = [m, l]))); // the walls alone
       const flames = meshes.find((m) => (m.material as THREE.ShaderMaterial).uniforms.uEmissive.value === 1);
-      expect(spots.length, d.layout.def.id).toBe((flames?.geometry.getAttribute('position').count ?? 0) / 24); // a flame is a box
+      expect(spots.length, d.layout.def.id).toBe((flames?.geometry.getAttribute('position').count ?? 0) / FLAME_VERTICES); // a flame is a cone and its core
       expect(spots.every((s) => s.kind === 'torch'), d.layout.def.id).toBe(true);
       total += spots.length;
       let dressed: LightSpot[] = [];

@@ -10,6 +10,7 @@ import type { Game } from '../systems/components';
 import { madnessOf } from '../systems/sanity';
 import type { GameAudio } from './audio/gameAudio';
 import { createBeacons } from './beacons';
+import { SEA } from './sea';
 import { createBossFog } from './bossFog';
 import { createDoors } from './doorViews';
 import { createFauna, type Fauna } from './fauna';
@@ -41,6 +42,13 @@ export interface LifeParts {
   particles: Particles; // dust and grit (round 26: what a colossus throws up)
 }
 
+/** How hard the wind drives the sea: R'lyeh's lies restless, a gale and rain raise any. */
+export function seaChop(g: Game): number {
+  const wx = g.overworld?.weather;
+  const wind = wx ? (wx.kind === 'gale' ? 0.9 : wx.kind === 'rain' ? 0.3 : 0) * wx.amount : 0;
+  return (g.overworld?.region === 'rlyeh' ? 1.5 : g.overworld?.region === 'innsmouth' ? 1.15 : 1) * (1 + wind);
+}
+
 export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, parts: LifeParts): WorldLife {
   const fauna = createFauna(scene, g, (voice, at) => audio.cry(voice, at));
   const sky = createSkyLife(scene, g, fauna, parts.sheet, (voice, at) => audio.cry(voice, at, 1.4));
@@ -65,6 +73,7 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
       night.update(time);
       LIGHT_NERVES.madness = madnessOf(g.mind.sanity); // the flames waver harder in a failing mind's world
       weather.update(camera, time, !outside);
+      SEA.chop.value += (seaChop(g) - SEA.chop.value) * 0.02; // the wind raises the sea, slowly (round 30)
       fog.update(camera, time, !g.overworld);
       doors.update(camera, time, !g.overworld);
       glints.update(camera.position, time, !g.overworld);

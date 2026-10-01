@@ -7,7 +7,7 @@
  * random within its interval.
  */
 
-import { SAMPLE_SETS, type Ambience, type Spot } from '../../data/samples';
+import { BED_MANNER, SAMPLE_SETS, type Ambience, type Spot } from '../../data/samples';
 import { AUDIO } from '../../data/tuning';
 import type { AudioEngine } from './engine';
 import type { Sampler } from './sampler';
@@ -43,8 +43,9 @@ export function createAmbience(e: AudioEngine, sampler: Sampler): AmbienceBeds {
     level.gain.setValueAtTime(0, now);
     level.gain.linearRampToValueAtTime(1, now + AUDIO.fade);
     level.connect(out);
-    const sources: AudioBufferSourceNode[] = [];
+    const sources: (AudioBufferSourceNode | OscillatorNode)[] = [];
     for (const [file, gain] of a.beds) {
+      const manner = BED_MANNER[file.replace(/\.\w+$/, '')] ?? {};
       const buf = sampler.buffer(`amb/${file}`);
       if (!buf || buf.duration < 4 * EDGE) continue;
       for (const side of [-1, 1]) {
@@ -53,10 +54,27 @@ export function createAmbience(e: AudioEngine, sampler: Sampler): AmbienceBeds {
         src.loop = true;
         [src.loopStart, src.loopEnd] = [EDGE, buf.duration - EDGE];
         const g = ctx.createGain();
-        g.gain.value = gain * Math.SQRT1_2; // two unrelated readers sum to the bed's level
+        const top = gain * Math.SQRT1_2; // two unrelated readers sum to the bed's level
+        const breath = manner.breath ?? 0;
+        g.gain.value = top * (1 - breath / 2);
+        if (breath > 0) { // it swells and falls back, never above the bed's level, each reader on its own slow round
+          const lfo = ctx.createOscillator();
+          const [lo, hi] = manner.every ?? [40, 80];
+          lfo.frequency.value = 1 / (lo + (hi - lo) * Math.random());
+          const depth = ctx.createGain();
+          depth.gain.value = (top * breath) / 2;
+          lfo.connect(depth).connect(g.gain);
+          lfo.start(now + Math.random() * 20); // from anywhere in its round
+          sources.push(lfo);
+        }
         const pan = ctx.createStereoPanner();
         pan.pan.value = side * WIDTH;
-        src.connect(g).connect(pan).connect(level);
+        if (manner.lowpass) {
+          const soft = ctx.createBiquadFilter();
+          soft.type = 'lowpass';
+          soft.frequency.value = manner.lowpass;
+          src.connect(g).connect(soft).connect(pan).connect(level);
+        } else src.connect(g).connect(pan).connect(level);
         src.start(now, side < 0 ? EDGE : buf.duration / 2);
         sources.push(src);
       }
