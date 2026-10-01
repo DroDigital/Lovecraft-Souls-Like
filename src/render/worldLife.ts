@@ -24,6 +24,7 @@ import { createPresence } from './presence';
 import type { PostPass } from './postPass';
 import { createSkyLife } from './skyLife';
 import { createWatchers } from './watchers';
+import { createTentacles } from './tentacles';
 import { createWeatherFx } from './weather';
 import type { Skyline } from './skyline';
 import type { SpriteAtlas } from './sprites/atlas';
@@ -60,6 +61,7 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
   const beacons = createBeacons(scene, g); // round 26: pale columns over the Elder Signs not yet found
   const night = createNightFx(g, parts.sky, parts.post); // round 26: the moon's course, and the grey of the last hour
   const weather = createWeatherFx(scene, g, parts.particles); // round 26: rain, gale and motes
+  const deep = createTentacles(scene, g, parts.particles, audio); // round 30: now and then, far out, a tentacle in the water
   const doors = createDoors(scene, g, audio); // round 27: a door in each doorway that has one
   const fog = createBossFog(scene, g, parts.particles, audio); // round 27: a wall of mist before each horror
   return {
@@ -73,6 +75,7 @@ export function createWorldLife(scene: THREE.Scene, g: Game, audio: GameAudio, p
       night.update(time);
       LIGHT_NERVES.madness = madnessOf(g.mind.sanity); // the flames waver harder in a failing mind's world
       weather.update(camera, time, !outside);
+      deep.update(camera, time, !outside);
       SEA.chop.value += (seaChop(g) - SEA.chop.value) * 0.02; // the wind raises the sea, slowly (round 30)
       fog.update(camera, time, !g.overworld);
       doors.update(camera, time, !g.overworld);
