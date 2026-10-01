@@ -6,6 +6,7 @@ import type { FxParams } from './fx';
 import { ANOMALY } from './palette';
 import { LAMP_SLOTS, WORLD_FRAG, WORLD_VERT } from './shaders/world';
 import { generateTexture, TEXTURE_SIZE, UV_PER_TEXTURE, type TextureKind } from './textures';
+import { wetness } from './wetness';
 
 const v3 = (c: Vec3): THREE.Vector3 => new THREE.Vector3(c[0], c[1], c[2]);
 
@@ -47,6 +48,7 @@ export const worldUniforms = {
   uFogColor: { value: v3(FX.fogColor) },
   uSeaLevel: { value: WORLD.seaLevel }, // where the sea lies: the shore's waterline (the world shader's SHORE)
   uWind: { value: 1 }, // how hard the wind blows the leaves and grass (shaders/world.ts SWAY): 1 on a calm night, more in a gale (weather.ts; round 34)
+  uWet: wetness, // how soaked the ground is: 0 dry, 1 after hard rain (shaders/world.ts; weather.ts eases it; round 34)
   uShadowMap: { value: null as THREE.Texture | null }, // the moon's depth map, its matrix and its numbers (moonShadow.ts; round 34)
   uShadowMat: { value: new THREE.Matrix4() },
   uShadow: { value: new THREE.Vector4() },

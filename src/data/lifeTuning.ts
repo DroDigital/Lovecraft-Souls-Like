@@ -79,6 +79,8 @@ export const WEATHER = {
   } as Readonly<Record<string, Readonly<Partial<Record<'rain' | 'gale' | 'motes', number>>>>>,
   quiet: 0.35, // how much of the investigator's noise is lost in it (a rain hushes footsteps; a gale takes them): at its fullest
   rain: 420, // streaks of rain about the lens at its fullest
+  soak: 0.3, // per second, how fast the ground takes the wet of a rain falling (render/weather.ts; round 34)...
+  dry: 0.04, // ...and how slowly it dries once it has passed: puddles are gone in about a minute
 };
 
 /** The sights that cross the dream (round 26; data/wanderers.ts, systems/wanderers.ts). */

@@ -58,8 +58,8 @@ export interface Scene {
   shut?: boolean; // it ends on black: the card that follows comes up out of it
 }
 
-const shot = (s: Partial<Shot> & Pick<Shot, 'dur'>): Shot => ({ on: 'target', yaw: [0, 0], dist: [3, 3], up: [1, 1], look: [1, 1], fov: [56, 56], body: false, ...s });
-const to = (a: number, b: number): readonly [number, number] => [a, b];
+export const shot = (s: Partial<Shot> & Pick<Shot, 'dur'>): Shot => ({ on: 'target', yaw: [0, 0], dist: [3, 3], up: [1, 1], look: [1, 1], fov: [56, 56], body: false, ...s });
+export const to = (a: number, b: number): readonly [number, number] => [a, b];
 
 export type Scale = 'person' | 'large' | 'giant' | 'colossal';
 

@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { WEATHER } from '../data/tuning';
 import type { Game } from '../systems/components';
 import type { Particles } from './particles';
+import { wetness } from './wetness';
 import { worldUniforms } from './worldMaterial';
 
 const BOX = 15; // metres about the lens the rain falls in
@@ -39,7 +40,7 @@ export function createWeatherFx(scene: THREE.Scene, g: Game, particles: Particle
   lines.frustumCulled = false;
   lines.visible = false;
   scene.add(lines);
-  let [last, seeded, owed] = [-1, false, 0];
+  let [last, seeded, owed, wet] = [-1, false, 0, 0];
   const wind = { x: SLANT, z: SLANT * 0.4 };
 
   const seed = (i: number, cam: THREE.Vector3, fresh: boolean): void => {
@@ -57,6 +58,9 @@ export function createWeatherFx(scene: THREE.Scene, g: Game, particles: Particle
       worldUniforms.uWind.value = 1 + (w?.kind === 'gale' ? 2.4 * amount : w?.kind === 'rain' ? 0.7 * amount : 0); // the trees and the grass bend with it (round 34)
       const cam = camera.position;
       const rain = w?.kind === 'rain' && amount > 0;
+      const soak = rain ? Math.min(1, amount * 1.5) : 0; // the ground is soaked before the rain is at its fullest
+      wet = hidden ? 0 : wet + (soak - wet) * Math.min(1, dt * (soak > wet ? WEATHER.soak : WEATHER.dry)); // dry at once under a roof
+      wetness.value = wet;
       lines.visible = rain;
       if (rain) {
         const n = streaksAt(amount, max);

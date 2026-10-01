@@ -163,15 +163,86 @@ export const DOCUMENTS: Readonly<Record<string, Document>> = {
     'It is the law in Ulthar that no man may kill a cat. It has been the law since the old cottager and his wife were found with their bones picked clean, the morning after the caravan left.',
     'A merchant who laughed at the law last spring left town in a hurry. His mule came back without him.',
   ),
+  // Round 34: the far realms had no notes in the open (six of the thirteen); each now has two, and the sparest near ones another.
+  "Lake's Notebook": note(
+    "A field notebook with a split spine, the last page in pencil: \"Specimen 4 is warm to the touch. Dissected the third. Nobody has lit the stove since the dogs began. Gedney says the sixth is no longer on the table.\"",
+    "Under it, in a steadier hand, Danforth's: \"We found eight of them afterwards, set upright in the snow, each in a perfect five-pointed mound. Whoever buried them had a great deal of respect for the dead.\"",
+  ),
+  "A Sledge Driver's Note": note(
+    "Dogs will not go past the ridge. Not for the whip, not for fish. Pierce says it is the wind. I say the wind never played a tune before.",
+    'Someone has added in a thick pencil: "It has a very wide range, the tune. I counted the notes from a sledge and I could not count them all."',
+  ),
+  "Freeborn's Survey Book": note(
+    "Western Australia, 1935. Block 17: basalt, cyclopean, not cut but ground. The sand has been blown off it more than once; the drift shows two kinds of wind. Mackenzie wants to dig. I would rather not.",
+    'On the facing page, in another hand: "Peaslee dreamed of this place for fifteen years before he saw it. At the fork he knew which way the stairs went, and said so, and then asked us to forget he had."',
+  ),
+  "A Receipt in the Archivist's Hand": note(
+    'Received for the Great Race: one mind of the dominant form of the third planet, 1.7 of its years, held for the study of its age. Returned with most of its memory, as agreed. The borrowed body is marked in good condition.',
+    "A line is added in English, a good deal more slowly written: \"The borrower asks it be noted that the exchange student wept at the end of the term, and did not say for what.\"",
+  ),
+  "A Judge's Notice": note(
+    "NOTICE OF THE THIRD HALL. The sitting is adjourned for want of a god. The Judge records that Tulu is again the fashion and the old Serpent unfashionable, and reminds the citizens that the Serpent is unfashionable at its pleasure.",
+    'Below, in a sharper script: "Citizens are asked to leave the lower stair clear. What is kept beneath red Yoth is not our concern, and we would like it to remain so."',
+  ),
+  'Tally of the Red Stairs': note(
+    "Nine steps to red-litten Yoth. The light is warm to the sixth and begins to fail at the seventh. It does not fail further, for what lies below it is not dark, being the absence of any light and so beyond the reach of its dimming.",
+    'A child has scratched a little figure with six arms beside the ninth step, and the words: "He waves."',
+  ),
+  "A Cultist's Chalk": note(
+    "Chalked on a slab, rubbed out, and chalked again, each time a little nearer the sounds: Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn.",
+    'A pencil has been taken to the margin: "The man who wrote this could not say it. He said it nonetheless, and the island came up to hear."',
+  ),
+  'Notice to Mariners': note(
+    'HYDROGRAPHIC OFFICE. A new island, pale and uncharted, is reported in the southern Pacific, with a door in it. Vessels are advised to give it a wide berth. This notice has been withdrawn.',
+    'Withdrawn, a clerk has written beneath, "at the request of a gentleman from the Department who did not give his name, and who did not leave footprints on the stair."',
+  ),
+  'A Surgical Chart': note(
+    'A sheet of thin metal, flayed rather than cut, marked with a diagram of a human head in section. The brain is outlined in red and the line of the incision in green. The legend is in English.',
+    '"Transit time: forty minutes. The patient will not feel the cold. The patient will be asked, on waking, whether it would like to see the Earth from here; it generally would."',
+  ),
+  'Cylinder Labels': note(
+    'A strip of labels, peeled from a long row of metal cases: "H.W.A.", "L. Frodsham, chemist, 1801", "A miner out of Sweden, name not offered", "Madame Z., of the second boat".',
+    'The last label has been left blank, and a mark in the same metal beside it says, in English, that it is not to be opened until it asks.',
+  ),
+  "Erich Zann's Score": note(
+    'Eight pages of viol music in a cramped hand, the bars all wrong in the way a language is wrong. No fingers could play them; a man might almost whistle them, with his breath held.',
+    'The last page stops in the middle of a bar, with a long smear where a bow was dropped, and a note in the margin: "Do not stop. Whatever you do, do not stop."',
+  ),
+  "Carter's Pocket Notebook": note(
+    'A leather notebook with a Boston stationer\'s mark. The last entry reads: "Went beyond the last gate with the Key. The Guide says one does not walk here; one is agreed upon."',
+    '"Left the lantern behind, since there is nothing here to light. I find I do not miss it. This worries me a great deal less than it ought."',
+  ),
+  "Ward's Last Letter": note(
+    'To Dr. Willett. "I have been foolish, and I am afraid I cannot be undone by being sorry. You will find me, if you look, at the farm in Pawtuxet. Do not go down the stair alone."',
+    'The ink changes halfway down the page from blue to black, and the hand from a young man\'s to something steadier and older. The last line is a postscript: "He has read this over my shoulder. He sends his regards."',
+  ),
+  "Rev. Hoag's Sermon Notes": note(
+    'Sermon for the Sunday after the Round Hills groaned: "The Devil is not far from any of us. He is nearer than the hills, and fonder of the Whateleys than the church ever was."',
+    'The sexton has noted in the margin that only six of the congregation stayed to the end, and that the bell rang twice by itself during the benediction.',
+  ),
+  "Wilmarth's Telegram": note(
+    'TOWNSHEND VT. AKELEY HAS CHANGED HIS MIND ABOUT EVERYTHING STOP DO NOT BRING THE PHOTOGRAPHS STOP BRING INSTEAD THE PHONOGRAPH RECORD STOP WILL EXPLAIN STOP',
+    'In the margin of the form, in Wilmarth\'s hand: "He never changed his mind about anything in his life. The man who sent this is very pleased with himself."',
+  ),
+  "The Zoogs' Warning": note(
+    'Chalked on a stone in a wood where the stones are all friendly: do not eat the mushrooms that glow; do not follow the lights; do not tell the cats where we have been.',
+    'Underneath, a smudged paw-print, and, much larger, something that is not a paw-print at all, which the zoogs have drawn a circle around and left alone.',
+  ),
 };
 
 /** The notes' places, by region (metres from the region's south-west corner, like sites.ts). */
 export const NOTE_SITES: Readonly<Record<string, readonly (readonly [name: string, x: number, z: number])[]>> = {
   hub: [['Arkham Advertiser, October 2nd', 244, 232], ["Frank's Letter Home", 92, 446]],
   arkham: [["Officer Riley's Report", 436, 270], ["Ammi Pierce's Letter", 228, 170]],
-  providence: [['Postcard from Kingsport', 444, 134]],
-  dunwich: [["Sheriff's Notebook", 452, 72]],
+  providence: [['Postcard from Kingsport', 444, 134], ["Ward's Last Letter", 104, 286]],
+  dunwich: [["Sheriff's Notebook", 452, 72], ["Rev. Hoag's Sermon Notes", 410, 96]],
   innsmouth: [['Railway Notice', 94, 92], ['Treasury Memorandum', 436, 238]],
-  vermont: [["Akeley's Last Letter", 270, 60]],
-  dreamlands: [['Ordinance of Ulthar', 340, 158]],
+  vermont: [["Akeley's Last Letter", 270, 60], ["Wilmarth's Telegram", 290, 96]],
+  dreamlands: [['Ordinance of Ulthar', 340, 158], ["The Zoogs' Warning", 300, 168]],
+  mountains: [["Lake's Notebook", 294, 86], ["A Sledge Driver's Note", 214, 100]],
+  pnakotus: [["Freeborn's Survey Book", 404, 114], ["A Receipt in the Archivist's Hand", 466, 118]],
+  kn_yan: [["A Judge's Notice", 292, 94], ['Tally of the Red Stairs', 138, 362]],
+  rlyeh: [["A Cultist's Chalk", 128, 88], ['Notice to Mariners', 318, 172]],
+  yuggoth: [['A Surgical Chart', 98, 282], ['Cylinder Labels', 300, 254]],
+  beyond: [["Carter's Pocket Notebook", 224, 78], ["Erich Zann's Score", 120, 242]],
 };

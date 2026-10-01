@@ -1,7 +1,7 @@
 /**
  * The journal (playtest round 1), from the pause menu: the quests under way with the line for what
- * is to be done next (before any, who will ask the first: systems/lead.ts), those done, and every tome and note read, each of which opens again to be
- * reread.
+ * is to be done next (before any, who will ask the first: systems/lead.ts), those done, every tome and note read, each of which opens again to be
+ * reread, and (round 34) the Bestiary: every creature beheld, with its field note (ui/bestiaryPage.ts).
  */
 
 import { DOCUMENTS } from '../data/documents';
@@ -9,6 +9,8 @@ import { QUESTS } from '../data/quests';
 import type { Game } from '../systems/components';
 import { mainLead } from '../systems/lead';
 import { isDone, stageOf, UNSTARTED } from '../systems/quests';
+import { ENTITIES } from '../data/registry';
+import { bestiaryPage, beheld } from './bestiaryPage';
 import { documentPage } from './dialogue';
 import { BONE } from './hudKit';
 import { button, el, heading, title, type Page } from './menuKit';
@@ -36,6 +38,8 @@ export function journalPage(g: Game, back: () => void, show: (p: Page) => void):
       const read = [...(g.overworld?.read ?? [])].filter((n) => DOCUMENTS[n]);
       heading(p, `DOCUMENTS · ${read.length} of ${Object.keys(DOCUMENTS).length}`);
       for (const name of read) button(p, name, () => show(documentPage(name, () => show(page))));
+      heading(p, `BESTIARY · ${beheld(g).length} of ${ENTITIES.length}`);
+      button(p, 'The creatures beheld', () => show(bestiaryPage(g, () => show(page), show)));
       heading(p, '');
       button(p, `Back  (${glyph('back')})`, back);
     },

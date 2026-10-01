@@ -108,6 +108,8 @@ uniform float uVary; // world-space tone variation (0: none)
 uniform float uBomb; // 1: a second, turned sample blends in by a noise mask, so organic ground never repeats
 uniform float uHasMap2; // 1: uMap2 blends in by vSplat (roads)
 uniform float uSeaLevel;
+uniform float uWet; // how soaked the ground is, 0..1 (weather.ts; round 34)
+uniform vec3 uLightColor;
 uniform float uHasMap3; uniform vec2 uPatch; // 1: uMap3 is laid over the ground in patches of the land's own noise, from uPatch.x, softly over uPatch.y (round 32: a field is not one ground)
 
 varying vec2 vUv;
@@ -175,6 +177,13 @@ void main() {
   vec3 toLamp = uLanternPos - vWorld;
   float ld = length(toLamp);
   vec3 n = normalize(vNormal);
+  float pud = 0.0; // rain has soaked the ground: all that stands under the sky is darker for it, and flat ground holds puddles in the heaviest (round 34)
+  if (uWet > 0.01 && uEmissive < 0.5 && uCharacter < 0.5) {
+    float pn = 0.55 * vnoise(vWorld.xz * 0.19 + 7.0) + 0.3 * vnoise(vWorld.xz * 0.55 + 1.0) + 0.15 * vnoise(vWorld.xz * 1.7);
+    float thr = 0.78 - 0.17 * uWet; // they shrink as the ground dries, and are not there in a light rain
+    pud = smoothstep(thr, thr + 0.06, pn) * smoothstep(0.86, 0.97, n.y);
+    tex *= 1.0 - uWet * (0.1 + 0.16 * n.y) - 0.3 * pud;
+  }
   float facing = mix(1.0, max(dot(n, toLamp / max(ld, 0.001)), 0.0), uLanternFacing);
   float self = uCharacter > 1.5 ? 1.0 : 0.0;
   float share = uCharacterLight * mix(1.0, uLanternSelf, self);
@@ -187,6 +196,17 @@ void main() {
   lit *= mix(1.0, min(1.0, uSelfMax / peak), self * max(1.0 - uEmissive, 0.0));
   tex = mix(tex, vec3(1.0), 0.6 * uEmissive); // a lit thing shines through its texture
   vec3 col = eldritch(tex * lit);
+  if (pud > 0.01) { // a puddle throws back the lamps, the sky and the moon at a glancing look, and rings where the drops fall
+    vec3 v = normalize(cameraPosition - vWorld);
+    float mirror = (0.1 + 0.9 * pow(1.0 - max(v.y, 0.0), 4.0)) * 0.6;
+    float glint = pow(max(dot(reflect(-v, vec3(0.0, 1.0, 0.0)), uLightDir), 0.0), 24.0);
+    vec2 cell = floor(vWorld.xz * 1.6);
+    float t = uTime * 0.8 + hash12(cell) * 3.0, beat = floor(t), age = fract(t); // a drop in a cell's turn, not in every turn, and each time elsewhere in it
+    vec2 drop = (cell + 0.2 + 0.6 * vec2(hash12(cell + beat * 7.3), hash12(cell + beat * 3.7 + 9.0))) / 1.6;
+    float ring = step(0.4, hash12(cell * 1.7 + beat * 5.1)) * smoothstep(0.1, 0.0, abs(length(vWorld.xz - drop) * 1.6 - age * 0.5)) * (1.0 - age);
+    col = mix(col, uFogColor * vec3(0.8, 0.9, 1.0) + uLightColor * glint * 1.5, mirror * pud);
+    col += (lamp * 1.1 + vec3(0.2, 0.22, 0.25) * ring) * pud;
+  }
 #ifdef PANES
   col *= paneLit(vPane, uTime); // lived behind: put out now and then, dimmed as someone passes
 #endif
