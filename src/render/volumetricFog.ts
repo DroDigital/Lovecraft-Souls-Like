@@ -7,6 +7,8 @@
  */
 
 import * as THREE from 'three';
+import { getRegion } from '../data/regions';
+import { strewn } from '../world/planFill';
 import { dungeonFogOf, FOGS, type FogDef } from '../data/fogs';
 import { lookOf } from '../data/looks';
 import { FOG } from '../data/tuning';
@@ -18,6 +20,7 @@ export interface FogFrame {
   ground: number; // the investigator's feet
   stress: number; // 0–1: the sanity effects' stress (capped by the FX setting)
   setting: number; // the Fog setting, 0–1
+  wood?: number; // 0–1: how wooded the land underfoot is (world/planFill.ts `strewn`): the mist gathers among the trees (round 35)
 }
 
 export interface VolumetricFog {
@@ -65,11 +68,21 @@ export function createVolumetricFog(post: PostPass): VolumetricFog {
       u.uProjInv.value.copy(camera.projectionMatrixInverse);
       u.uCamWorld.value.copy(camera.matrixWorld);
       u.uCamPos.value.setFromMatrixPosition(camera.matrixWorld);
-      const thick = f.setting * (1 + FOG.madness * f.stress); // a failing mind thickens it
+      const thick = f.setting * (1 + FOG.madness * f.stress) * (1 + 1.1 * (f.wood ?? 0)); // a failing mind thickens it, and a wood
       u.uFog.value.set(now.density * thick, now.height, ground - 0.3, now.patchy);
+      MIST.thickness = f.enclosed ? 0 : now.density * thick;
       u.uFogAir.value.set(now.haze * thick, FOG.hazeHeight, now.moon, 0);
       u.uFogColor.value.set(...now.color);
       u.uFogDrift.value.set(dx, dz, time);
     },
   };
+}
+
+/** How thick the mist is about the investigator now (the density at the ground, as drawn: round 35, for what looks out of it). */
+export const MIST = { thickness: 0 };
+
+/** How wooded the land is where the camera stands (0 in a clearing, and on any ground but grass and leaves), for the mist that gathers among trees (round 35). */
+export function woodOf(region: string | null, x: number, z: number): number {
+  const t = getRegion(region ?? '')?.biome.texture;
+  return t === 'grass' || t === 'leaves' ? strewn(x, z) : 0;
 }

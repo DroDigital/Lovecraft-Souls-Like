@@ -79,3 +79,15 @@ export const SHADOW = {
   bias: 0.07, // metres a surface is held from its own shadow, more where it turns from the moon
   offset: 0.12, // metres a point is pushed off its surface along the normal before it is looked up
 };
+
+/** Eyes out of the mist (round 35, render/creatureViews.ts): in a mist, a creature that sees the investigator shows its eyes from far off, glowing out of it. */
+export const FOG_EYES = {
+  from: 0.03, // the mist's thickness (density at the ground) from which they come
+  span: 0.05, // ...to full over this much more
+  reach: 38, // metres past the usual eye glow range at full mist
+  boost: 0.55, // more glow
+  swell: 0.9, // and a larger halo
+  sees: 0.3, // how plainly it must see the investigator (perception.ts `sight`)
+  rise: 1.4, // per second: the eyes come out over a second...
+  fall: 0.7, // ...and go back over two
+};

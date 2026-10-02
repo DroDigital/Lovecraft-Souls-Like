@@ -252,15 +252,16 @@ export function housePieces(p: Prop, c: Rgb): Piece[] {
     body.push(tileUv(box(1.9, 1.7, 0.7, bx, by + 0.15, wd + 0.3, wallTint), 1.9, 1.7));
     extras.push(box(2.1, 0.1, 0.9, bx, by + 1.05, wd + 0.35, TRIM), box(2.1, 0.1, 0.9, bx, by - 0.7, wd + 0.35, TRIM)); // its roof and sill
     const seed = seedOf(bx, by, wd, wx, wd);
-    if (rng() < 0.35) glowing.push({ geo: paneBox(1.3, 1.0, 0.06, bx, by + 0.15, wd + 0.67, seed), at: [bx, by + 0.15, wd + 1.2], glass: [bx, by + 0.15, wd + 0.67], pane: seed });
+    if (rng() < 0.35) glowing.push({ geo: paneBox(1.3, 1.0, 0.06, bx, by + 0.15, wd + 0.67, seed), at: [bx, by + 0.15, wd + 1.19], glass: [bx, by + 0.15, wd + 0.67], pane: seed });
     else extras.push(box(1.3, 1.0, 0.06, bx, by + 0.15, wd + 0.67, PANE));
   }
   if (style !== 'stone') for (const side of [-1, 1]) { // a small window in each gable, up under the ridge
     const y = top + rh * 0.3;
-    extras.push(box(0.12, 0.74, 0.74, side * (wx + 0.04), y, 0, TRIM)); // its frame, standing off the gable
+    for (const k of [-1, 1]) extras.push(box(0.12, 0.1, 0.76, side * (wx + 0.05), y + k * 0.33, 0, TRIM), box(0.12, 0.56, 0.1, side * (wx + 0.05), y, k * 0.33, TRIM)); // its frame: four bars about the glass, none over it (the depth fight audit)
     const seed = seedOf(side * wx, y, 0, wx, wd);
-    if (rng() < 0.3) glowing.push({ geo: paneBox(0.06, 0.56, 0.56, side * (wx + GLASS + 0.04), y, 0, seed), at: [side * (wx + GLASS + 0.55), y, 0], glass: [side * (wx + GLASS + 0.04), y, 0], pane: seed });
-    else extras.push(box(0.06, 0.56, 0.56, side * (wx + GLASS + 0.04), y, 0, PANE));
+    const gx = side * (wx + GLASS + 0.04);
+    if (rng() < 0.3) glowing.push({ geo: paneBox(0.06, 0.56, 0.56, gx, y, 0, seed), at: [gx + side * 0.52, y, 0], glass: [gx, y, 0], pane: seed });
+    else extras.push(box(0.06, 0.56, 0.56, gx, y, 0, PANE));
   }
   const pieces: Piece[] = [
     { mat: wallMat, geo: mergeGeometries([...body, ...gabs]) },
