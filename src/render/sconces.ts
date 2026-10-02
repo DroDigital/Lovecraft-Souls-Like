@@ -19,7 +19,7 @@ const FLAME: Rgb = [1, 0.78, 0.5];
 const CORE: Rgb = [1, 0.96, 0.8];
 const HEIGHT = 1.95; // metres above the floor: the flame stands a little over a man's head
 const SPAN = [4, 14] as const; // the nearest and the farthest apart two torches stand along a wall
-const EDGE = 1.2; // metres from the end of a stretch of wall (a doorway's jamb, a corner) that a torch keeps
+export const EDGE = 1.2; // metres from the end of a stretch of wall (a doorway's jamb, a corner) that a torch keeps
 
 /** Where along a stretch of wall `len` metres long (from its middle, −len/2 … len/2) the torches stand: evenly, none where `flames` is nothing or the stretch is short. */
 export function torchStops(len: number, flames: number): number[] {

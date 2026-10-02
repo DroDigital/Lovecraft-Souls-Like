@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { kitOf } from '../src/data/kits';
 import { dungeonPieces } from '../src/render/siteMeshes';
 import { facesOf, sconce, torchStops } from '../src/render/sconces';
 import type { LightSpot } from '../src/render/worldLights';
@@ -39,5 +40,21 @@ describe('the torches of the dungeons (round 30)', () => {
       const lowest = Math.min(...rooms.map((r) => Math.min(r.level, r.level + r.rise)));
       for (const l of lights.filter((x) => x.kind === 'torch')) expect(l.y, `${d.layout.def.id}`).toBeGreaterThan(lowest);
     }
-  });
+  }, 30000);
+
+  it('hang in the open, none inside a wall, a pilaster or a stack of shelves (round 37: 1124 of the 1694 lights stood in one, and glowed through it onto the street)', () => {
+    let torches = 0;
+    for (const d of worldLayout().dungeons) {
+      const lights: LightSpot[] = [];
+      for (const _ of dungeonPieces(d, lights)) void _;
+      const mine = lights.filter((x) => x.kind === 'torch');
+      torches += mine.length;
+      for (const l of mine) {
+        const inside = d.parts.filter((q) => q.shape === 'box' && q.solid && q.look !== 'ceiling' && l.x > q.min.x && l.x < q.max.x && l.z > q.min.z && l.z < q.max.z && l.y > q.min.y && l.y < q.max.y);
+        expect(inside.length, `${d.layout.def.id}: a torch at ${l.x.toFixed(1)}, ${l.y.toFixed(1)}, ${l.z.toFixed(1)}`).toBe(0);
+      }
+      if (kitOf(d.layout.def.id).flames >= 0.2 && kitOf(d.layout.def.id).shell !== 'none') expect(mine.length, `${d.layout.def.id} keeps its torches`).toBeGreaterThanOrEqual(12);
+    }
+    expect(torches).toBeGreaterThan(900); // the ones that were buried moved along the wall or to its other face where there was room
+  }, 30000);
 });
