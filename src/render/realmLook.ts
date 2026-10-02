@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 import { LOOKS, lookOf, type Look } from '../data/looks';
-import { SKY, type Vec3 } from '../data/tuning';
+import { NIGHT_DARK, SKY, type Vec3 } from '../data/tuning';
 import type { FxParams } from './fx';
 import type { PostPass } from './postPass';
 import { buildRealmPalette, gradeTints } from './realmPalette';
@@ -20,7 +20,7 @@ export interface RealmLook {
   /** Every realm's own, to be tuned live (the debug panel: `window.look.looks`). */
   readonly looks: typeof LOOKS;
   /** Lays this frame's: eased toward the realm's, or at once when the camera has leapt (a journey) and `snap` says so. */
-  update(time: number, region: string | null, enclosed: boolean, camera?: THREE.Vector3, snap?: boolean): void;
+  update(time: number, region: string | null, enclosed: boolean, camera?: THREE.Vector3, snap?: boolean, dark?: number): void;
   /** What a failing mind drains from the grade (after computeFx, before the reality hooks). */
   apply(fx: FxParams): void;
   /** Lays the realm's own look at once, whatever it was easing from (the debug panel and the tests). */
@@ -57,6 +57,16 @@ export function indoors(look: Look): Look {
   return { ...look, mist: dim(look.mist, 0.55), haze: dim(look.grade[1], 0.6), far: dim(look.far, 0.6) };
 }
 
+/** A look in the dark of the night (round 35): its sky, mist, far land and both lights turned down by how deep the dark is (0: as the realm gives them). */
+export function darkened(look: Look, dark: number): Look {
+  if (dark <= 0) return look;
+  const by = (c: Vec3, floor: number): Vec3 => {
+    const k = 1 - dark * (1 - floor);
+    return [c[0] * k, c[1] * k, c[2] * k];
+  };
+  return { ...look, horizon: by(look.horizon, NIGHT_DARK.sky), zenith: by(look.zenith, NIGHT_DARK.sky), mist: by(look.mist, NIGHT_DARK.mist), haze: by(look.haze, NIGHT_DARK.mist), far: by(look.far, NIGHT_DARK.far), ambient: by(look.ambient, NIGHT_DARK.ambient), moon: by(look.moon, NIGHT_DARK.moon) };
+}
+
 /** How far two looks are apart, for whether the palette must be built again. */
 function apart(a: Look, b: Look): number {
   let sum = Math.abs(a.native - b.native);
@@ -69,19 +79,22 @@ function apart(a: Look, b: Look): number {
 }
 
 export function createRealmLook(post: PostPass): RealmLook {
-  let now = lookOf(null);
+  let eased = lookOf(null); // the realm's look, eased from realm to realm
+  let now = eased; // and as the night leaves it
+  let dark = 0;
   let built: Look | null = null;
-  let want = now;
+  let want = eased;
   let at: readonly [string | null, boolean] = [null, false];
   let last = -1;
   const was = new THREE.Vector3(1e9, 0, 0);
   const u = post.uniforms;
   const publish = (): void => {
-    const tints = gradeTints(now);
+    now = darkened(eased, dark);
+    const tints = gradeTints(eased);
     for (const [v, t] of [[u.uInk, tints[0]], [u.uShade, tints[1]], [u.uMid, tints[2]], [u.uHigh, tints[3]]] as const) v.value.set(t[0], t[1], t[2]);
-    if (!built || apart(now, built) > 0.003) {
-      u.uPalette.value.set(buildRealmPalette(now).flat());
-      built = now;
+    if (!built || apart(eased, built) > 0.003) {
+      u.uPalette.value.set(buildRealmPalette(eased).flat());
+      built = eased;
     }
     worldUniforms.uFogColor.value.set(...now.haze);
     night.ambient.set(...now.ambient);
@@ -93,23 +106,24 @@ export function createRealmLook(post: PostPass): RealmLook {
     get now() {
       return now;
     },
-    update(time, region, enclosed, camera, snap = false) {
+    update(time, region, enclosed, camera, snap = false, deep = 0) {
+      dark = deep;
       const leapt = !!camera && was.distanceToSquared(camera) > SKY.jump * SKY.jump;
       if (camera) was.copy(camera);
       const dt = last < 0 || leapt || snap ? 1e9 : Math.min(0.1, Math.max(0, time - last));
       last = time;
       at = [region, enclosed];
       want = enclosed ? indoors(lookOf(region)) : lookOf(region);
-      now = dt >= 1e9 ? want : easeLook(now, want, Math.min(1, dt / SKY.fade));
+      eased = dt >= 1e9 ? want : easeLook(eased, want, Math.min(1, dt / SKY.fade));
       publish();
     },
     snap() {
       want = at[1] ? indoors(lookOf(at[0])) : lookOf(at[0]);
-      now = want;
+      eased = want;
       publish();
     },
     apply(fx) {
-      const share = 1 - now.native; // the grade's own share, at a lucid mind
+      const share = 1 - eased.native; // the grade's own share, at a lucid mind
       fx.desaturate = share + (1 - share) * fx.desaturate; // FX.desaturate: the further share a failing mind takes
     },
   };

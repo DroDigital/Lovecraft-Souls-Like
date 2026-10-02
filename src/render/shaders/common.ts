@@ -1,3 +1,5 @@
+import { LAMP_SHADOW_GLSL } from './lampShadow';
+
 /**
  * The pieces of GLSL the world, sprite, sea and sign shaders share (split from world.ts, round 34): the
  * player's lantern, the world's lamps, cheap value noise, and where a world point is drawn (the
@@ -33,6 +35,8 @@ float lanternAt(vec3 toLamp) {
  */
 export const LAMP_SLOTS = 12;
 export const LAMPS_GLSL = /* glsl */ `
+${LAMP_SHADOW_GLSL}
+uniform float uLampSlot[${LAMP_SLOTS}]; // which lamp shadow map a lamp has (-1: none; round 35)
 uniform vec4 uLamps[${LAMP_SLOTS}]; // position, range (0: dark)
 uniform vec3 uLampColors[${LAMP_SLOTS}]; // colour × strength
 vec3 lampLight(vec3 p, vec3 n, float facing) {
@@ -46,7 +50,10 @@ vec3 lampLight(vec3 p, vec3 n, float facing) {
     float x2 = x * x;
     float win = 1.0 - x2 * x2;
     float face = mix(1.0, max(dot(n, to / max(d, 0.001)), 0.0), facing);
-    sum += uLampColors[i] * win * win / (1.0 + uLanternDecay * d * d) * face; // the lantern's own falloff
+    float sh = 1.0;
+    float slot = uLampSlot[i];
+    if (slot > -0.5) sh = lampShadowOf(int(slot + 0.5), p, n); // what stands between a point and a lamp takes its light (round 35)
+    sum += uLampColors[i] * win * win / (1.0 + uLanternDecay * d * d) * face * sh; // the lantern's own falloff
   }
   // Many lights at once (a corridor of torches, a hall's braziers) would add up past white and wash the walls to cream (round 31): the sum is eased toward a ceiling.
   float peak = max(max(sum.r, sum.g), sum.b);

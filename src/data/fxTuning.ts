@@ -46,13 +46,28 @@ export const FLASK = {
 /** The lantern's shadows (round 34, render/lanternShadow.ts): where the moon casts none (under a roof, in a dungeon, a moon below the horizon), one depth map is drawn from the investigator's chest in the way the camera looks, of the solid things about them. Lengths in metres. */
 export const LANTERN_SHADOW = {
   size: 1024, // texels a side
-  fov: 130, // degrees the map looks through: outside it a surface is lit (and the shadows fade out toward its edge)
+  fov: 150, // degrees the map looks through: outside it a surface is lit (and the shadows fade out toward its edge)
+  notch: (10 * Math.PI) / 180, // radians the map's aim steps by, and...
+  hold: (17 * Math.PI) / 180, // ...how far the look must go from the aim held before it steps (round 35: so the shadows' edges do not crawl)
   near: 0.35,
   reach: 2, // how far past the lantern's own range the map looks
   height: 1.25, // above the investigator's feet that the map is drawn from: their chest, which is never inside a wall
   strength: 0.88, // the share of the lantern's light a shadow takes away (the rest leaks round: a wall is not black)
   bias: 0.06, // metres a surface is held from its own shadow, and 1 cm more for each metre from the lantern (a texel grows so)
   offset: 0.04, // metres a point is pushed off its surface along the normal before it is looked up
+};
+
+/** The lamps' shadows (round 35, render/lampShadows.ts): the nearest few torches, braziers and street lamps each cast. */
+export const LAMP_SHADOWS = {
+  count: 3, // lamps at a time
+  size: 512, // texels a side
+  fov: 150, // degrees, drawn from the flame toward the investigator
+  near: 0.3,
+  reach: 2, // metres past the lamp's own range the map looks
+  strength: 0.85, // the share of that lamp's light a shadow takes
+  bias: 0.08, // metres a surface is held from its own shadow
+  offset: 0.05, // metres a point is pushed off its surface before it is looked up
+  fade: 0.35, // seconds a lamp's shadow takes to come in
 };
 
 /** The moon's shadows (round 34, render/moonShadow.ts): one depth map drawn from the moon over the investigator. Lengths in metres. */
@@ -63,4 +78,16 @@ export const SHADOW = {
   strength: 0.9, // the share of the moon's light a shadow takes away (the rest is the sky's, and what the land gives back)
   bias: 0.07, // metres a surface is held from its own shadow, more where it turns from the moon
   offset: 0.12, // metres a point is pushed off its surface along the normal before it is looked up
+};
+
+/** Eyes out of the mist (round 35, render/creatureViews.ts): in a mist, a creature that sees the investigator shows its eyes from far off, glowing out of it. */
+export const FOG_EYES = {
+  from: 0.03, // the mist's thickness (density at the ground) from which they come
+  span: 0.05, // ...to full over this much more
+  reach: 38, // metres past the usual eye glow range at full mist
+  boost: 0.55, // more glow
+  swell: 0.9, // and a larger halo
+  sees: 0.3, // how plainly it must see the investigator (perception.ts `sight`)
+  rise: 1.4, // per second: the eyes come out over a second...
+  fall: 0.7, // ...and go back over two
 };

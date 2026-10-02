@@ -44,7 +44,7 @@ const FILL: Readonly<Record<GroundTexture, readonly (readonly [PropKind, number]
 
 /** Metres a fill prop keeps free about it. */
 const ROOM: Partial<Record<PropKind, number>> = { tree: 2.4, bush: 1.2, rock: 1.8, stump: 1.2, log: 1.6, pillar: 2.2, ruin: 2.4, monolith: 2 };
-const FILL_PER_CHUNK = 3.6; // × the biome's density: candidate fill props a chunk, before the land's noise and the occupancy turn some away
+const FILL_PER_CHUNK = 5.4; // × the biome's density: candidate fill props a chunk, before the land's noise and the occupancy turn some away
 
 /** How wooded or strewn the land is at (x, z), 0 in a clearing to 1 in a thicket: slow noise, so each is a hundred metres across. */
 export const strewn = (x: number, z: number): number => Math.min(1, Math.max(0, (fbm(x * 0.012, z * 0.012, 33, 3) - 0.36) / 0.3));
@@ -74,10 +74,10 @@ export function scatterBiome(region: RegionDef, rect: Rect, rng: Rng, occ: Occ, 
     const [x, z] = [rect.x0 + rng() * (rect.x1 - rect.x0), rect.z0 + rng() * (rect.z1 - rect.z0)];
     const f = strewn(x, z);
     if (rng() > 0.12 + 0.88 * f) continue; // a clearing keeps a few
-    const kind = weighted(fill.map(([p, w]) => [p, p === 'tree' ? w * (0.3 + 2.2 * f) : p === 'rock' ? w * (1.6 - 1.2 * f) : w] as const), rng());
+    const kind = weighted(fill.map(([p, w]) => [p, p === 'tree' ? w * (0.3 + 3.4 * f) : p === 'rock' ? w * (1.6 - 1.2 * f) : w] as const), rng());
     if (!occ.free(x, z)) continue;
     props.push(makeProp(kind, x, z, rng));
-    occ.disk(x, z, ROOM[kind] ?? 1.6, true);
+    occ.disk(x, z, (ROOM[kind] ?? 1.6) * (kind === 'tree' ? 1 - 0.3 * f : 1), true); // trees stand closer in a thicket (round 35: forests were groves)
   }
 }
 

@@ -256,6 +256,7 @@ export interface Pilot {
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
   listening: Entity | null; // the person talked with: they face them and the camera frames them until they move or look away (round 12)
   kneeling: { x: number; z: number } | null; // the Elder Sign rested at: they kneel to it until they move or act (round 15)
+  fogPass: { wall: string; from: { x: number; z: number }; to: { x: number; z: number }; frame: number; frames: number } | null; // a boss's fog being walked through (round 35: fogGates.ts)
 }
 
 /** The investigator's mind (spec §3A). */

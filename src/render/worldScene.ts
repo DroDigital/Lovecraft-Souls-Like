@@ -60,6 +60,7 @@ export function createWorldScene(lights?: WorldLights): WorldScene {
   const chunks = new Map<number, THREE.Mesh[]>(); // loaded chunks and the meshes built for them so far
   const all = sites();
   const sea = createSea(); // round 30: waves, not a texture
+  sea.group.name = 'sea'; // the mirrored scene leaves it out (reflection.ts)
   scene.add(sea.group);
   let at = -1; // the investigator's chunk key
 

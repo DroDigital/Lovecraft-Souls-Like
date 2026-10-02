@@ -9,6 +9,8 @@
 import * as THREE from 'three';
 import { FX, RENDER } from '../data/tuning';
 import { createLanternShadow, type LanternShadow } from './lanternShadow';
+import { createLampShadows, type LampShadows } from './lampShadows';
+import { createReflection, type Reflection } from './reflection';
 import { createMoonShadow, type MoonShadow } from './moonShadow';
 import { createPostPass, type PostPass } from './postPass';
 import { worldUniforms } from './worldMaterial';
@@ -20,6 +22,10 @@ export interface Pipeline {
   shadow: MoonShadow;
   /** The lantern's shadows (round 34): drawn from the investigator in the way the camera looks, in the open night and under a roof alike. */
   lantern: LanternShadow;
+  /** The lamps' shadows (round 35): `update` is told the lamps that may cast before the frame is drawn. */
+  lamps: LampShadows;
+  /** The sea's mirror (round 35): drawn before the frame when there is water about. */
+  reflection: Reflection;
   /** Internal render size in pixels (low-res target, or full canvas when pixelation is off). */
   size: THREE.Vector2;
   /** `scale` multiplies the low-res target (the settings menu's resolution scale). */
@@ -54,6 +60,8 @@ export function createPipeline(parent: HTMLElement): Pipeline {
   const post = createPostPass(target.texture, target.depthTexture);
   const shadow = createMoonShadow();
   const lantern = createLanternShadow();
+  const lamps = createLampShadows();
+  const reflection = createReflection();
   worldUniforms.uMarkCharacters.value = 1; // the post pass reads characters from the target's alpha
   const size = new THREE.Vector2(RENDER.width, RENDER.height);
 
@@ -64,6 +72,9 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     shadow.render(renderer, scene);
     lantern.enabled = !!shadowAt;
     lantern.render(renderer, scene, camera, shadowAt ?? shadow.focus);
+    lamps.enabled = !!shadowAt;
+    lamps.render(renderer, scene, shadowAt ?? shadow.focus);
+    reflection.render(renderer, scene, camera);
     renderer.setRenderTarget(target);
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
@@ -84,6 +95,8 @@ export function createPipeline(parent: HTMLElement): Pipeline {
     post,
     shadow,
     lantern,
+    lamps,
+    reflection,
     size,
     render,
     compile,

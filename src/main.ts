@@ -10,6 +10,8 @@
 import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
+import { darkOf, phaseOf } from './systems/clock';
+import { waterAbout } from './render/reflection';
 import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
@@ -25,7 +27,7 @@ import { createShadows } from './render/shadows';
 import { createSignViews } from './render/signViews';
 import { createRealmLook } from './render/realmLook';
 import { createSky } from './render/sky';
-import { createVolumetricFog } from './render/volumetricFog';
+import { createVolumetricFog, woodOf } from './render/volumetricFog';
 import { createWorldLife } from './render/worldLife';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
@@ -199,6 +201,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   let statsAt = performance.now();
 
   building = false;
+  let waterNow = false;
   let heldAt = 0; // when a talk or a menu last held the investigator
   startLoop(
     {
@@ -229,10 +232,10 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         cinema.update(camera, still ? 0 : blend); // over the follow camera's pose
         hud.hide(cinema.active);
         const enclosed = !!world && roofedAt(camera.position.x, camera.position.z); // open ruins keep the sky (round 13)
-        look.update(time, game.overworld?.region ?? null, enclosed, camera.position);
+        look.update(time, game.overworld?.region ?? null, enclosed, camera.position, false, game.overworld ? darkOf(phaseOf(time)) * (enclosed ? 0.35 : 1) : 0);
         sky.update(camera, time, game.overworld?.region ?? null, enclosed);
         const feet = game.ecs.c.transform.get(game.player.id)!.pos.y;
-        mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog });
+        mist.update(camera, time, { region: game.overworld?.region ?? null, enclosed, ground: feet, stress: Math.min(1 - game.mind.sanity / 100, settings.fxCap), setting: settings.fog, wood: world ? woodOf(game.overworld?.region ?? null, camera.position.x, camera.position.z) : 0 });
         skyline.update(camera, time, game.overworld?.region ?? null, enclosed);
         const health = game.ecs.c.health.get(game.player.id);
         HEART.update(time, health ? health.hp / health.max : 1); // near death: the sound, the picture's edge and the health bar keep to it (round 23)
@@ -244,6 +247,9 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         views.update(alpha, time);
         placeLantern(game, alpha);
         lights.update(camera.position, time, views.flame);
+        pipeline.reflection.enabled = !!world && (frames % 30 === 0 ? (waterNow = waterAbout(game.world.ground, camera.position.x, camera.position.z)) : waterNow); // mirrored only where the sea is about (round 35)
+        pipeline.lamps.enabled = !!world && settings.shadows > 0.5;
+        pipeline.lamps.update(lights.casters, 1 / 60); // which lamps cast this frame, before they are drawn (round 35)
         creatures.update(alpha, time, camera);
         hidden.update(time);
         fights.update(alpha, time);

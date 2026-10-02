@@ -29,6 +29,8 @@ export interface GameEvents {
   Died: { entity: Entity; killer: Entity | null; at: V3 };
   Vanished: { entity: Entity; at: V3; struck: boolean }; // a hallucination gone: struck, or faded
   Respawned: { entity: Entity };
+  FogPassing: { wall: string; x: number; z: number }; // the investigator sets out through a boss's fog (round 35)
+  FogPassed: { wall: string; x: number; z: number };
   Echoes: { change: 'earned' | 'dropped' | 'recovered' | 'lost' | 'spent'; amount: number; total: number };
   LevelUp: { attribute: LevelId; level: number; total: number }; // a level bought with Echoes: the attribute's level and the investigator's
   LockChanged: { target: Entity | null };

@@ -5,8 +5,8 @@ import { createWorldGame } from '../src/systems/game';
 import { kindsOf, quietOf, weatherSystem } from '../src/systems/weather';
 
 describe('the night turns (round 26)', () => {
-  it('opens in the gloaming and comes round to it again', () => {
-    expect(hourOf(phaseOf(0))).toBe('gloaming');
+  it('opens in the deep of the night (round 35) and comes round to it again', () => {
+    expect(hourOf(phaseOf(0))).toBe('deep');
     expect(phaseOf(1080)).toBeCloseTo(phaseOf(0), 6);
     expect(hourOf(0.4)).toBe('deep');
     expect(hourOf(0.85)).toBe('waning');

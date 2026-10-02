@@ -15,6 +15,8 @@ import { paneLit } from './paneLife';
 import { LAMP_SLOTS } from './shaders/world';
 import { worldUniforms } from './worldMaterial';
 
+import type { Caster } from './lampShadows';
+
 export interface LightSpot {
   x: number;
   y: number;
@@ -43,6 +45,8 @@ export interface WorldLights {
   lightAt(x: number, y: number, z: number, time: number): number;
   /** Lights the world about the camera at `eye`; `lantern` (the investigator's flame, as drawn) wears its halo (null: none). */
   update(eye: THREE.Vector3, time: number, lantern: THREE.Vector3 | null): void;
+  /** The lamps among the shader's nearest that may cast a shadow (torches, fires, street lamps), nearest first (round 35: lampShadows.ts). */
+  readonly casters: readonly Caster[];
 }
 
 const MAX_HALOS = 400;
@@ -65,8 +69,10 @@ export function createWorldLights(): WorldLights {
   const batch = createHalos(MAX_HALOS, LIGHTS.haloFog);
   const halos = batch.mesh;
   const near: { s: LightSpot; d: number }[] = [];
+  const casters: Caster[] = [];
   return {
     halos,
+    casters,
     add(key, list) {
       if (list.length) spots.set(key, list);
     },
@@ -96,6 +102,7 @@ export function createWorldLights(): WorldLights {
       }
       near.sort((a, b) => a.d - b.d);
       const reach = Math.min(LIGHTS.reach, near[LAMP_SLOTS]?.d ?? Infinity); // the next in line is at nothing
+      casters.length = 0;
       const lamps = worldUniforms.uLamps.value;
       const colors = worldUniforms.uLampColors.value;
       for (let i = 0; i < LAMP_SLOTS; i++) {
@@ -107,6 +114,7 @@ export function createWorldLights(): WorldLights {
           continue;
         }
         lamps[i].set(n.s.x, n.s.y, n.s.z, k.range);
+        if (n.s.kind === 'torch' || n.s.kind === 'fire' || n.s.kind === 'lamp') casters.push({ slot: i, x: n.s.x, y: n.s.y, z: n.s.z, key: `${n.s.x.toFixed(2)},${n.s.y.toFixed(2)},${n.s.z.toFixed(2)}` });
         colors[i].set(...k.color).multiplyScalar(k.strength * weight * waver(n.s, k.flicker, time) * (n.s.pane === undefined ? 1 : paneLit(n.s.pane, time)));
       }
       batch.begin();

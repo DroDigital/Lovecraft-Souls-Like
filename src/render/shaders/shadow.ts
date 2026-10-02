@@ -47,11 +47,12 @@ float lanternLit(vec3 wp, vec3 n) {
   float e = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.0;
   if (e >= 1.0) return 1.0;
   float b = z - (uLShadow.z + 0.01 * z);
-  vec2 t = vec2(uLShadow.y);
-  float lit = step(b, lanternDepth(uv + t * vec2(-0.7, -0.3)))
-            + step(b, lanternDepth(uv + t * vec2(0.3, -0.7)))
-            + step(b, lanternDepth(uv + t * vec2(0.7, 0.3)))
-            + step(b, lanternDepth(uv + t * vec2(-0.3, 0.7)));
-  return mix(1.0, 0.25 * lit, 1.0 - smoothstep(0.72, 0.98, e));
+  vec2 t = vec2(uLShadow.y) * 1.25;
+  // Eight taps in two turns (round 35: four, nearest, made an edge a staircase that crawled as the light moved): the same eight every pixel, so nothing shimmers.
+  float lit = step(b, lanternDepth(uv + t * vec2(-0.9, -0.3))) + step(b, lanternDepth(uv + t * vec2(-0.3, -0.9)))
+            + step(b, lanternDepth(uv + t * vec2(0.3, -0.9))) + step(b, lanternDepth(uv + t * vec2(0.9, -0.3)))
+            + step(b, lanternDepth(uv + t * vec2(0.9, 0.3))) + step(b, lanternDepth(uv + t * vec2(0.3, 0.9)))
+            + step(b, lanternDepth(uv + t * vec2(-0.3, 0.9))) + step(b, lanternDepth(uv + t * vec2(-0.9, 0.3)));
+  return mix(1.0, 0.125 * lit, 1.0 - smoothstep(0.72, 0.98, e));
 }
 `;

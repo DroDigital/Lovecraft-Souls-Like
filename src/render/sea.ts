@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { WORLD } from '../data/tuning';
 import { AMP_SUM, WAVES_GLSL } from './seaWaves';
-import { LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL, SPACE_GLSL } from './shaders/world';
+import { LAMP_SLOTS, LAMPS_GLSL, LANTERN_GLSL, NOISE_GLSL, SPACE_GLSL } from './shaders/world';
 import { worldUniforms } from './worldMaterial';
 
 /** How hard the wind drives the sea: 1 as it lies, raised by weather and by the realm (worldLife.ts). */
@@ -52,6 +52,9 @@ uniform vec3 uFogColor;
 uniform float uFogAmount;
 uniform float uTime;
 uniform float uChop;
+uniform sampler2D uReflect; // the scene mirrored in the sea (reflection.ts; round 35)
+uniform float uReflectOn;
+uniform vec2 uRes;
 varying vec3 vWorld;
 varying vec3 vN;
 varying float vHigh;
@@ -88,13 +91,30 @@ void main() {
   float toMoon = max(dot(rd, normalize(uLightDir)), 0.0);
   vec3 moon = uLightColor * (pow(toMoon, 260.0) * 3.2 + pow(toMoon, 22.0) * 0.28);
   vec3 mirror = sky * 1.25 + moon;
+  if (uReflectOn > 0.5) { // the world itself, turned over, through the ripples (the picture is drawn from a camera mirrored in the surface)
+    vec2 suv = gl_FragCoord.xy / uRes;
+    vec2 ruv = vec2(suv.x, 1.0 - suv.y) + (n.xz - vN.xz) * vec2(0.5, 0.9) + vN.xz * vec2(0.03, 0.05);
+    vec3 world = texture(uReflect, clamp(ruv, vec2(0.002), vec2(0.998))).rgb;
+    mirror = mix(mirror, world * vec3(0.62, 0.72, 0.74) + moon, 0.94); // the water takes a little of it, and gives the moon its glitter
+  }
 
   // The deep, and the body of the swell lit by what shines on it.
   vec3 deep = vec3(0.028, 0.055, 0.062) + uAmbient * vec3(0.16, 0.26, 0.26);
   float slope = 0.5 + 0.5 * dot(n, normalize(uLightDir)); // the swell's faces turned to the moon are lit, those turned away dark
   vec3 body = deep * (0.3 + 1.5 * slope) * (0.75 + 0.6 * vHigh) + uLightColor * vec3(0.05, 0.1, 0.09) * slope * slope + vec3(0.02, 0.06, 0.05) * pow(1.0 - cosv, 2.0) * vHigh; // a crest lets light through
+  // The lamps and the lantern in the water: long glitter, drawn out toward the eye along the swell.
+  vec3 glint = vec3(0.0);
+  for (int i = 0; i < ${LAMP_SLOTS}; i++) {
+    vec4 l = uLamps[i];
+    if (l.w <= 0.0) continue;
+    vec3 toL = l.xyz - vWorld;
+    float dl = length(toL);
+    glint += uLampColors[i] * pow(max(dot(rd, toL / max(dl, 0.001)), 0.0), 140.0) * 2.2 / (1.0 + 0.012 * dl * dl);
+  }
+  vec3 toLantern = uLanternPos - vWorld;
+  glint += uLanternColor * pow(max(dot(rd, normalize(toLantern)), 0.0), 120.0) * 1.2 / (1.0 + 0.03 * dot(toLantern, toLantern));
   vec3 lamp = lampLight(vWorld, n, 0.0) * 0.45 + uLanternColor * lanternFalloff(length(uLanternPos - vWorld)) * 0.5;
-  vec3 col = mix(body, mirror, fres) + lamp * (0.25 + 0.75 * fres) * vec3(0.9, 0.95, 0.95);
+  vec3 col = mix(body, mirror, fres) + lamp * (0.25 + 0.75 * fres) * vec3(0.9, 0.95, 0.95) + glint * (0.35 + 0.65 * fres);
 
   // Foam: white where a crest breaks, torn into lace by noise that drifts with the swell.
   float lace = vnoise(vWorld.xz * 1.1 + vec2(uTime * 0.25, -uTime * 0.18)) * 0.6 + vnoise(vWorld.xz * 3.1 - uTime * 0.4) * 0.4;
