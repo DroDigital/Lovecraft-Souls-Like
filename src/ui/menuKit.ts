@@ -85,7 +85,7 @@ const CSS = `
 [data-menu] input[type=range]:focus{outline:none}
 [data-menu] input[type=range]:focus::-webkit-slider-thumb{background:${GOLD}}
 [data-menu] input[type=range]:focus::-moz-range-thumb{background:${GOLD}}
-[data-menu] .hint{min-height:2.9em;white-space:pre-line;font-size:13px;line-height:1.45;color:${BONE}99}
+[data-menu] .hint{min-height:2.9em;padding-bottom:4px;white-space:pre-line;font-size:13px;line-height:1.45;color:${BONE}99}
 [data-menu]{scrollbar-width:thin;scrollbar-color:${GOLD}55 transparent}
 [data-menu]::-webkit-scrollbar{width:6px}
 [data-menu]::-webkit-scrollbar-thumb{background:${GOLD}44}
@@ -328,6 +328,10 @@ export function tabs(parent: HTMLElement, names: readonly string[], open: number
   const row = el(parent, 'div', '', `display:flex;justify-content:center;flex-wrap:wrap;margin:0 0 12px;border-bottom:1px solid ${GOLD}2a`);
   names.forEach((n, i) => button(row, n, () => pick(i)).classList.add('tab', ...(i === open ? ['on'] : [])));
   page.tab = (by) => pick((open + by + names.length) % names.length);
+  queueMicrotask(() => { // the focus rests on the tab that is open, not the first
+    const on = row.querySelector<HTMLElement>('.on');
+    if (on && (document.activeElement as HTMLElement | null)?.classList.contains('tab')) on.focus({ preventScroll: true });
+  });
 }
 
 /** A page's foot: a hint line (what the chosen line is: set by `data-hint`), and a rule over the keys it answers to. */
