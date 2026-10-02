@@ -156,7 +156,9 @@ vec2 affineUv(vec2 texels) {
   return vUv + off * (min(len, uAffine) / max(len, 1e-4)) / texels;
 }
 
+uniform float uClipY;
 void main() {
+  if (vWorld.y < uClipY) discard; // under the sea's surface, in the mirrored scene (reflection.ts; round 35)
   vec2 uv = affineUv(vec2(textureSize(uMap, 0)));
   vec2 gx = dFdx(vUv);
   vec2 gy = dFdy(vUv);

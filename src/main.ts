@@ -11,6 +11,7 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
 import { darkOf, phaseOf } from './systems/clock';
+import { waterAbout } from './render/reflection';
 import { LIGHT, RENDER, SIM } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
@@ -200,6 +201,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   let statsAt = performance.now();
 
   building = false;
+  let waterNow = false;
   let heldAt = 0; // when a talk or a menu last held the investigator
   startLoop(
     {
@@ -245,6 +247,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         views.update(alpha, time);
         placeLantern(game, alpha);
         lights.update(camera.position, time, views.flame);
+        pipeline.reflection.enabled = !!world && (frames % 30 === 0 ? (waterNow = waterAbout(game.world.ground, camera.position.x, camera.position.z)) : waterNow); // mirrored only where the sea is about (round 35)
         pipeline.lamps.enabled = !!world && settings.shadows > 0.5;
         pipeline.lamps.update(lights.casters, 1 / 60); // which lamps cast this frame, before they are drawn (round 35)
         creatures.update(alpha, time, camera);
