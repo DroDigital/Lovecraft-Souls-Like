@@ -44,7 +44,7 @@ export interface WorldLights {
   /** How well lit the ground at a point is by lamps, fires, torches and windows (0..1) at `time`: each counts within its share of its light's range, and the Elder Signs' glow, an Echo's and the lantern's own do not. */
   lightAt(x: number, y: number, z: number, time: number): number;
   /** Lights the world about the camera at `eye`; `lantern` (the investigator's flame, as drawn) wears its halo (null: none). */
-  update(eye: THREE.Vector3, time: number, lantern: THREE.Vector3 | null): void;
+  update(eye: THREE.Vector3, time: number, lantern: THREE.Vector3 | null, shows?: (s: LightSpot) => boolean): void;
   /** The lamps among the shader's nearest that may cast a shadow (torches, fires, street lamps), nearest first (round 35: lampShadows.ts). */
   readonly casters: readonly Caster[];
 }
@@ -92,7 +92,7 @@ export function createWorldLights(): WorldLights {
       }
       return Math.min(1, sum);
     },
-    update(eye, time, lantern) {
+    update(eye, time, lantern, shows) {
       near.length = 0;
       for (const list of spots.values()) {
         for (const s of list) {
@@ -120,6 +120,7 @@ export function createWorldLights(): WorldLights {
       batch.begin();
       if (lantern) batch.put(lantern.x, lantern.y, lantern.z, LIGHTS.lantern.halo, LIGHTS.lantern.color, LIGHTS.lantern.haloGain * waver({ x: 0, y: 0, z: 0, kind: 'torch' }, 0.05, time));
       for (const { s } of near) {
+        if (shows && !shows(s)) continue; // its glow is behind a wall (lightSight.ts)
         const k: LightDef = LIGHTS.kinds[s.kind];
         if (s.glass) {
           const face = glassFacing(s, eye) * (s.pane === undefined ? 1 : paneLit(s.pane, time));

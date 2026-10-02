@@ -1,15 +1,17 @@
 /**
  * The pause menu (Phase 6): Esc, the pad's Start, or losing the captured mouse (switching away)
  * opens it whenever no other menu is open. The world stands still while it is open (main.ts). It
- * offers Resume, the Map, the Journal, Arms, Settings, Controls and a return to the title screen, and in
+ * offers Resume, the Map, the Journal, Arms, Settings (with the Controls) and a return to the title screen, and in
  * the desktop shell a way out to the desktop (playtest round 12).
  */
 
 import { creditsPage } from './credits';
-import { button, createScreen, menuOpen, onPadStart, title, type Page } from './menuKit';
+import { button, createScreen, el, footer, menuOpen, onPadStart, title, type Page } from './menuKit';
+import { GOLD } from './hudKit';
+import { menuKeys } from './menuKeys';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
-import { controlsPage, settingsPage } from './menuPages';
+import { settingsPage } from './menuPages';
 import type { SettingId, Settings } from './settings';
 
 export interface PauseOptions {
@@ -39,16 +41,21 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
     back: resume,
     build(p) {
       title(p, 'PAUSED');
-      button(p, 'Resume', resume);
-      if (o.map) button(p, 'Map', () => [screen.close(), o.map!()]);
-      if (o.journal) button(p, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))));
-      if (o.arms) button(p, 'Arms', () => screen.show(o.arms!(() => screen.show(main), (pg) => screen.show(pg))));
-      if (o.achievements) button(p, 'Achievements', () => screen.show(o.achievements!(() => screen.show(main))));
-      button(p, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
-      button(p, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
-      button(p, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
-      button(p, 'Quit to title', o.quit);
-      if (desktop) button(p, 'Quit to desktop', () => (saveNow(), void desktop!.quit())); // the shell only: a browser tab is closed by its own hand
+      const list = el(p, 'div');
+      button(list, 'Resume', resume, true, 'Return to the dream.');
+      const rule = (): void => void el(list, 'div', '', `height:1px;margin:7px 14px;background:${GOLD}26`);
+      rule();
+      if (o.map) button(list, 'Map', () => [screen.close(), o.map!()], true, 'The lands you have walked, the signs lit, and the way to travel between them.');
+      if (o.journal) button(list, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))), true, 'What is asked of you, the tomes read, and the creatures beheld.');
+      if (o.arms) button(list, 'Arms', () => screen.show(o.arms!(() => screen.show(main), (pg) => screen.show(pg))), true, 'The weapons you carry, and which is in hand.');
+      if (o.achievements) button(list, 'Achievements', () => screen.show(o.achievements!(() => screen.show(main))), true, 'What you have done, and what remains.');
+      rule();
+      button(list, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main), o.saveKeys)), true, 'Picture, sound, how you play, and the keys.');
+      button(list, 'Credits', () => screen.show(creditsPage(() => screen.show(main))), true, 'Who made this, and with what.');
+      rule();
+      button(list, 'Quit to title', o.quit, true, 'Your progress is kept at the last sign you rested at.');
+      if (desktop) button(list, 'Quit to desktop', () => (saveNow(), void desktop!.quit()), true, 'Close the game.'); // the shell only: a browser tab is closed by its own hand
+      footer(p, 'Return to the dream.', menuKeys());
     },
   };
   const pause = (): void => {
