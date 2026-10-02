@@ -173,6 +173,7 @@ export const LIGHTS = {
   haloReach: 120, // metres: the farthest a halo is drawn (round 32: was 75; a town's windows are seen lit from across the fields)
   haloFog: 0.55, // halos pierce the fog: they fade by only this share of it
   paneHalo: 0.55, // metres: a lit window's glow, on its glass (round 13; the window kind's halo was a ball before the wall)
+  sight: { perFrame: 10, pull: 0.1, lift: 0.4, rise: 12, fall: 16, forget: 1 }, // what the eye sees of them (render/lightSight.ts, round 37): lights looked at a frame, the metres before a light and above it that the ray is sent to, the share's ease in and out (a second), and the seconds out of reach before one starts afresh
   lantern: { color: [1, 0.82, 0.58] as Vec3, halo: 0.34, haloGain: 0.6 }, // the investigator's own, which lights by its own rules (lantern.ts)
   kinds: {
     lamp: { color: [1, 0.8, 0.52], strength: 2.6, range: 11, halo: 1.4, haloGain: 0.8, flicker: 0.03 }, // a pool about six metres across under a lamp three and a half up, and the walls about it

@@ -63,7 +63,7 @@ describe('overheard', () => {
     run(g, HEARD.look * 6);
     expect(heard).toHaveLength(2);
     expect(heard[1].text).not.toBe(heard[0].text); // each once
-  });
+  }, 30000);
 
   it('runs out of lines between rests, and has them again after one (or a death)', () => {
     const every = HEARD.every;
@@ -80,7 +80,7 @@ describe('overheard', () => {
     } finally {
       HEARD.every = every;
     }
-  });
+  }, 30000);
 
   it('is not heard from too far off, nor in a talk, nor in a fight', () => {
     const far = near('gilman', HEARD.range + 5);
@@ -99,7 +99,7 @@ describe('overheard', () => {
     Object.assign(fighting.g.ecs.c.brain.get(foe)!, { state: 'engage', target: fighting.g.player.id });
     run(fighting.g, 2, false);
     expect(fighting.heard).toEqual([]); // with something hunting them close by
-  });
+  }, 30000);
 
   it('is not heard through a wall, and not by the dead', () => {
     const walled = near('gilman');

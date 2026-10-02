@@ -13,9 +13,8 @@ import type { V3 } from '../core/geom';
 import type { DungeonKit, KitTexture } from '../data/kits';
 import { getRegion } from '../data/regions';
 import { DUNGEON } from '../data/tuning';
-import { floorAt, kitOfRoom, roomAt, type DungeonLayout } from '../world/dungeonKit';
-import { DIRS } from '../world/worldMap';
-import { facesOf, sconce, torchStops } from './sconces';
+import { kitOfRoom } from '../world/dungeonKit';
+import { torchStops } from './sconces';
 import { propJob } from './propMeshes';
 import type { Part } from '../world/dungeonParts';
 import { drawn } from '../world/wallJoins';
@@ -26,6 +25,7 @@ import type { ArenaPlace, Dungeon } from '../world/placements';
 import { box, tileUv, tint, worldUv } from './meshKit';
 import { mixRgb, scaleRgb, type Rgb } from './palette';
 import type { LightSpot } from './worldLights';
+import { hangTorches, wallContext, type WallContext } from './wallTorches';
 import { createWorldMaterial } from './worldMaterial';
 
 const STONE: Rgb = [0.9, 0.9, 0.88];
@@ -38,8 +38,6 @@ type Built = { kind: Kind; geo: THREE.BufferGeometry; light?: LightSpot }; // a 
 /** What a piece is drawn with: a kit's texture, or (marked `+`) the same drawn a little nearer than it is, for relief that stands 6 to 15 cm off a wall's face. */
 export type Group = KitTexture | 'glow' | 'cloth+' | `${KitTexture}+`;
 type Origin = { x: number; z: number }; // where a dungeon's world-space UVs count from
-/** What a wall needs to know of its place to hang torches: which face looks into a room (outer walls have one), and the floor each face looks onto. */
-type WallContext = { inner: (alongX: boolean) => number; floor: (x: number, z: number, fallback: number) => number };
 const DARK_WOOD: Rgb = [0.42, 0.36, 0.3];
 const materials = new Map<string, THREE.ShaderMaterial>();
 const material = (group: Group): THREE.ShaderMaterial => {
@@ -57,28 +55,12 @@ const material = (group: Group): THREE.ShaderMaterial => {
 /** The group of each kind in this kit. */
 const textureOf = (k: Kind, kit: DungeonKit): Group => (k === 'wall' ? kit.wall : k === 'floor' ? kit.floor : k === 'trim' ? `${kit.wall}+` : k === 'beam' ? 'wood+' : k === 'cloth' ? 'cloth+' : k);
 
-/** Hangs a torch at each of `stops` along a wall, on a face that looks into a room, at its floor. */
-function torches(glow: Built[], stone: THREE.BufferGeometry[], stops: number[], w: { along: (t: number, across: number) => [number, number]; thick: number; alongX: boolean; base: number }, ctx: WallContext): void {
-  stops.forEach((t, j) => {
-    const across = facesOf(ctx.inner(w.alongX), j);
-    const [x, z] = w.along(t, 0);
-    const [px, pz] = w.along(t, across * (w.thick / 2 + 0.8));
-    const s = sconce({ x, z, across, alongX: w.alongX, floor: ctx.floor(px, pz, w.base) }, w.thick);
+/** Hangs a torch at each of `stops` along a wall (wallTorches.ts). */
+function torches(glow: Built[], stone: THREE.BufferGeometry[], stops: number[], w: Parameters<typeof hangTorches>[1], ctx: WallContext): void {
+  for (const s of hangTorches(stops, w, ctx)) {
     stone.push(s.iron);
     glow.push({ kind: 'glow', geo: s.flame, light: s.light });
-  });
-}
-
-/** A wall part's torch context: the face of an outer wall that looks inward, and the floor under any point. */
-function wallContext(L: DungeonLayout, p: Part): WallContext {
-  const dir = 'outer' in p && p.outer ? DIRS[p.outer] : null;
-  return {
-    inner: (alongX) => (dir ? -(alongX ? dir.z : dir.x) : 0),
-    floor: (x, z, fallback) => {
-      const r = roomAt(L, x, z);
-      return r ? floorAt(r, x, z) : fallback;
-    },
-  };
+  }
 }
 
 /**
@@ -110,7 +92,7 @@ function wallDetail(min: V3, max: V3, c: Rgb, kit: DungeonKit, at: Origin, ctx: 
     const t = -len / 2 + (k * len) / n;
     trim.push(trimSlab(kit.trim === 'timber' ? 0.3 : 0.5, thick + 0.3, h - 0.3, min.y + (h - 0.3) / 2, t, 0.92));
   }
-  torches(glow, stone, torchStops(len, kit.flames), { along, thick, alongX, base: min.y + 0.3 }, ctx);
+  torches(glow, stone, torchStops(len, kit.flames), { along, thick, alongX, base: min.y + 0.3, len }, ctx);
   for (let k = 0; k < Math.floor(len / 3); k++) { // rubble fallen from it
     const r = 0.12 + ((seed * (k + 3)) % 7) * 0.03;
     const t = -len / 2 + ((seed * (k + 1) * 37) % 100) / 100 * len;
@@ -236,10 +218,11 @@ export function* dungeonPieces(d: Dungeon, lights: LightSpot[]): Generator<void,
   const add = (t: Group, geo: THREE.BufferGeometry): void => void (groups.get(t)?.push(geo) ?? groups.set(t, [geo]));
   const at: Origin = { x: Math.round(d.layout.origin.x / 2) * 2, z: Math.round(d.layout.origin.z / 2) * 2 }; // on the texture's grid, so the bricks keep their places
   const seen = drawn(d.layout, d.parts); // walls cut back where two kits meet (round 21: world/wallJoins.ts)
+  const solids = d.parts.filter((q) => q.solid && q.look !== 'ceiling'); // what a torch must not hang inside
   for (let k = 0; k < seen.length; k++) {
     const { part, index } = seen[k];
     const kit = kitOfRoom(d.layout, d.layout.rooms[part.room]); // each room its own kit (round 13)
-    const ctx = wallContext(d.layout, part);
+    const ctx = wallContext(d.layout, part, solids);
     for (const { kind, geo, light } of partGeometry(part, colour(kit), kit, at, ctx)) {
       geo.userData.part = index; // which of the dungeon's parts it is (the depth audit names its finds by it)
       add(textureOf(kind, kit), geo);
