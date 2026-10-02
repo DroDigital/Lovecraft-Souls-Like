@@ -50,4 +50,68 @@ describe('the pad in hand (round 31)', () => {
     t = 2;
     expect(activePad()?.id).toBe('real');
   });
+
+  describe('the desktop shell\u2019s native pads (round 36: Chromium on macOS lists none)', () => {
+    async function withShell(web: () => unknown[], shell: () => unknown[]): Promise<typeof import('../src/core/pads')> {
+      vi.resetModules();
+      vi.stubGlobal('navigator', { getGamepads: web });
+      vi.stubGlobal('desktop', { pads: shell });
+      return import('../src/core/pads');
+    }
+
+    it('reads a pad the browser does not list, once a button is pressed on it', async () => {
+      let down: number[] = [];
+      const { activePad, padReport } = await withShell(() => [null, null, null, null], () => [pad(0, { id: 'Pro Controller', down })]);
+      expect(activePad()).toBeNull();
+      expect(padReport()).toMatch(/1 controller found/);
+      down = [0];
+      const r = activePad()!;
+      expect(r.id).toBe('Pro Controller');
+      expect(r.buttons[0].pressed).toBe(true);
+    });
+
+    it('reads it where the page is refused the browser\u2019s list altogether', async () => {
+      vi.resetModules();
+      vi.stubGlobal('navigator', { getGamepads: () => { throw new Error('blocked by policy'); } });
+      vi.stubGlobal('desktop', { pads: () => [pad(0, { down: [1] })] });
+      const { activePad, padFacts } = await import('../src/core/pads');
+      activePad(); // seen with B already down: ignored until let go
+      expect(padFacts()).toMatch(/blocked by policy/);
+      expect(padFacts()).toMatch(/1 by the shell/);
+    });
+
+    it('hears a pad plugged in later, and none once it is gone', async () => {
+      let shell: unknown[] = [];
+      let down: number[] = [];
+      const { activePad } = await withShell(() => [null], () => shell);
+      expect(activePad()).toBeNull();
+      shell = [pad(0, { id: 'late', down })];
+      expect(activePad()).toBeNull();
+      down = [0];
+      shell = [pad(0, { id: 'late', down })];
+      expect(activePad()?.id).toBe('late');
+      shell = [];
+      expect(activePad()).toBeNull();
+    });
+
+    it('keeps the browser\u2019s own pad, and does not flip to the shell\u2019s reading of the same one', async () => {
+      let down: number[] = [];
+      let t = 1;
+      const { activePad } = await withShell(() => [pad(0, { id: 'same', down, t })], () => [pad(0, { id: 'same (sdl)', down })]);
+      activePad(); // both seen at rest
+      down = [0];
+      t = 5;
+      for (let i = 0; i < 5; i++) expect(activePad()?.id).toBe('same');
+    });
+
+    it('is as before on the web, where there is no bridge', async () => {
+      let down: number[] = [];
+      vi.resetModules();
+      vi.stubGlobal('navigator', { getGamepads: () => [pad(0, { down })] });
+      const { activePad } = await import('../src/core/pads');
+      expect(activePad()).toBeNull();
+      down = [0];
+      expect(activePad()?.buttons[0].pressed).toBe(true);
+    });
+  });
 });

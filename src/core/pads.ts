@@ -2,8 +2,23 @@
  * The pad in hand (playtest round 13; no pad was heard in the desktop shell): Chromium may list a
  * phantom device first (a virtual pad, a headset's buttons, a wheel's driver), and taking the first
  * connected one read that phantom. The pad chosen is the standard-mapped one used most recently,
- * else any pad used most recently.
+ * else any pad used most recently. Round 36: Chromium on macOS lists no pad to the page at all, so the
+ * desktop shell reads them natively (SDL2, desktop/padWorker.js) and hands them over its bridge in the
+ * Gamepad API's own shape; those are read as the browser's are, the browser's list first.
  */
+
+/** A pad as the Gamepad API gives it, and as the desktop shell's bridge does. */
+interface PadLike {
+  readonly index: number;
+  readonly id: string;
+  readonly connected: boolean;
+  readonly mapping: string;
+  readonly timestamp: number;
+  readonly axes: readonly number[];
+  readonly buttons: readonly { readonly pressed: boolean; readonly value: number }[];
+}
+type Source = 'browser' | 'shell';
+const STAY_MS = 4000; // a pad used this lately keeps the hand, whichever list is newer: the same pad may be in both
 
 /** What the game reads of a pad: buttons and sticks as the pad reports them, less what it only ever reports at rest. */
 export interface PadReading {
@@ -31,7 +46,23 @@ const PUSH = 0.5; // how far off its rest an axis must be to count as used
 let report = '';
 let listed = -1; // how many devices the browser lists (-1: it has not been asked)
 let blocked = ''; // why it could not be asked
+let shellPads = 0; // how many the desktop shell's SDL worker reports
 const events: string[] = []; // the pads the browser has said it saw come and go
+let shellIds = new Set<string>();
+let source: Source | null = null; // the list the pad in hand was last read from
+/** The pads the desktop shell reads natively (none on the web, or where its worker could not start). */
+function shellList(): PadLike[] {
+  try {
+    const list = (globalThis as { desktop?: { pads?: () => PadLike[] } }).desktop?.pads?.() ?? [];
+    const ids = new Set(list.map((p) => p.id));
+    for (const id of ids) if (!shellIds.has(id)) events.push(`connected (shell): ${id}`);
+    for (const id of shellIds) if (!ids.has(id)) events.push(`gone (shell): ${id}`);
+    shellIds = ids;
+    return list.filter((p) => p.connected);
+  } catch {
+    return [];
+  }
+}
 if (typeof addEventListener === 'function') {
   addEventListener('gamepadconnected', (e) => void events.push(`connected: ${(e as GamepadEvent).gamepad.id} (${(e as GamepadEvent).gamepad.mapping || 'no mapping'})`));
   addEventListener('gamepaddisconnected', (e) => void events.push(`gone: ${(e as GamepadEvent).gamepad.id}`));
@@ -39,10 +70,10 @@ if (typeof addEventListener === 'function') {
 /** A line for the controls page: what pad is heard, or what to do. */
 export const padReport = (): string => report;
 /** What the browser itself says of pads, for the controls page (round 33: the desktop shell heard none, and nothing said why). */
-export const padFacts = (): string => [blocked ? `the browser refused: ${blocked}` : listed < 0 ? 'not asked yet' : `${listed} device${listed === 1 ? '' : 's'} listed by the browser`, ...events.slice(-3)].join(' · ');
+export const padFacts = (): string => [blocked ? `the browser refused: ${blocked}` : listed < 0 ? 'not asked yet' : `${listed} device${listed === 1 ? '' : 's'} listed by the browser`, `${shellPads} by the shell's SDL`, ...events.slice(-3)].join(' · ');
 
-function read(p: Gamepad): { reading: PadReading; used: number } {
-  const key = `${p.index}:${p.id}`;
+function read(p: PadLike, from: Source): { reading: PadReading; used: number } {
+  const key = `${from}:${p.index}:${p.id}`;
   let s = seen.get(key);
   if (!s) {
     s = { rest: [...p.axes], stuck: new Set(p.buttons.flatMap((b, i) => (b.pressed || b.value > 0.5 ? [i] : []))), armedAt: 0 };
@@ -66,6 +97,23 @@ function read(p: Gamepad): { reading: PadReading; used: number } {
   return { reading: { id: p.id, mapping: p.mapping, axes, buttons }, used: s.armedAt };
 }
 
+/** The best of a list's pads: of those used, the standard-mapped one used most recently, else any used most recently. */
+type Used = { reading: PadReading; used: number };
+function bestOf(list: readonly (PadLike | null)[], from: Source): { best: Used | null; heard: number } {
+  let best: Used | null = null;
+  let heard = 0;
+  for (const p of list) {
+    if (!p || !p.connected) continue;
+    heard++;
+    const r = read(p, from);
+    if (!r.used) continue;
+    const std = r.reading.mapping === 'standard';
+    const bestStd = best?.reading.mapping === 'standard';
+    if (!best || (std && !bestStd) || (std === bestStd && r.used > best.used)) best = r;
+  }
+  return { best, heard };
+}
+
 /** The pad in hand: of those used, the standard-mapped one used most recently, else any used most recently; null while none has been touched. */
 export function activePad(): PadReading | null {
   let list: (Gamepad | null)[] = [];
@@ -76,19 +124,21 @@ export function activePad(): PadReading | null {
     blocked = '';
   } catch (e) {
     blocked = e instanceof Error ? e.message : String(e);
-    return null; // a page not allowed pads (a permissions policy) hears none
+    listed = -1;
   }
-  let best: { reading: PadReading; used: number } | null = null;
-  let heard = 0;
-  for (const p of list) {
-    if (!p || !p.connected) continue;
-    heard++;
-    const r = read(p);
-    if (!r.used) continue;
-    const std = r.reading.mapping === 'standard';
-    const bestStd = best?.reading.mapping === 'standard';
-    if (!best || (std && !bestStd) || (std === bestStd && r.used > best.used)) best = r;
+  const shell = shellList(); // (a page not allowed pads hears none of the browser's, and the shell's still)
+  shellPads = shell.length;
+  const [web, native] = [bestOf(list, 'browser'), bestOf(shell, 'shell')];
+  const [webUsed, nativeUsed] = [web.best, native.best];
+  const now = performance.now();
+  let best = webUsed ?? nativeUsed;
+  if (webUsed && nativeUsed) { // the same pad in both lists: stay with the one in hand (no flipping between two readings of it)
+    const stay = source === 'shell' ? nativeUsed : webUsed;
+    const other = stay === webUsed ? nativeUsed : webUsed;
+    best = now - stay.used < STAY_MS || stay.used >= other.used ? stay : other;
   }
+  source = best ? (best === nativeUsed ? 'shell' : 'browser') : null;
+  const heard = Math.max(web.heard, native.heard); // (the same pad may be in both lists)
   report = best ? `${best.reading.id}${best.reading.mapping === 'standard' ? '' : ' (not a standard layout: some buttons may differ)'}` : heard ? `${heard} controller${heard > 1 ? 's' : ''} found: press a button on the one to use` : '';
   return best?.reading ?? null;
 }
