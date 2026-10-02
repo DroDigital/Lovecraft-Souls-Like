@@ -69,3 +69,40 @@ describe('the people have somewhere to be (round 26)', () => {
     expect(moved).toBeGreaterThan(0.5);
   });
 });
+
+describe('the people are seen to walk (round 35)', () => {
+  it('a person on their round has a step between where they were and are, through the whole game step (the movement system left it alone: they stood in their walk)', async () => {
+    const { stepGame } = await import('../src/systems/game');
+    const { emptyInput } = await import('../src/core/input');
+    const g = night(0.05);
+    const e = npcEntity(g, 'morgan')!;
+    const tr = g.ecs.c.transform.get(e)!;
+    let walked = 0;
+    let longest = 0;
+    for (let i = 0; i < 60 * 90; i++) {
+      stepGame(g, emptyInput());
+      const d = distXZ(tr.prev, tr.pos);
+      if (d > 1e-4) walked++;
+      longest = Math.max(longest, d * SIM.hz);
+    }
+    expect(walked).toBeGreaterThan(60 * 5); // many seconds of walking in a minute and a half
+    expect(longest).toBeLessThan(1.6); // an unhurried walk, m/s
+  }, 60000);
+
+  it('their strolls wander: over a few minutes they go to many different places, and never beyond their hour\'s reach', () => {
+    const g = night(0.05);
+    const e = npcEntity(g, 'morgan')!;
+    const home = npcPlace(npcDef('morgan')!)!;
+    const tr = g.ecs.c.transform.get(e)!;
+    const spots = new Set<string>();
+    let far = 0;
+    for (let i = 0; i < 60 * 200; i++) {
+      g.frame++;
+      npcLife(g, DT);
+      if (i % 60 === 0) spots.add(`${Math.round(tr.pos.x / 1.5)},${Math.round(tr.pos.z / 1.5)}`);
+      far = Math.max(far, distXZ(tr.pos, home));
+    }
+    expect(spots.size).toBeGreaterThan(8);
+    expect(far).toBeLessThanOrEqual(ROUND.gloaming.reach + 1);
+  });
+});

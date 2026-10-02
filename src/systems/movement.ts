@@ -10,11 +10,13 @@ import { REALITY } from '../data/tuning';
 import { resolveCapsule } from '../world/colliders';
 import { inWindow, moveDef } from './actions';
 import { isAbsent, type Game } from './components';
+import { managed } from './npcLife';
 
 export function movementSystem(g: Game, dt: number): void {
   const { transform, body, mover, actor, shove } = g.ecs.c;
   const wading = 1 - REALITY.floodSlow * g.reality.flood;
   for (const [id, tr] of transform) {
+    if (managed(g, id)) continue; // a person on their round: npcLife.ts keeps their prev and their pose of the step (round 35: it was overwritten here, so they never showed as walking)
     tr.prev.x = tr.pos.x;
     tr.prev.y = tr.pos.y;
     tr.prev.z = tr.pos.z;

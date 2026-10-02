@@ -23,7 +23,7 @@ const slab = (w: number, h: number, d: number, x: number, y: number, z: number, 
  * One half of the coat's skirt, a closed flared shell from the belt to the knee that hangs at the hip
  * and swings with its thigh (poses.ts), so a striding leg stays inside the coat.
  */
-function skirtPanel(side: 1 | -1, c: Rgb): THREE.BufferGeometry {
+export function skirtPanel(side: 1 | -1, c: Rgb): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(1, 1, 1);
   const p = g.getAttribute('position');
   for (let i = 0; i < p.count; i++) {

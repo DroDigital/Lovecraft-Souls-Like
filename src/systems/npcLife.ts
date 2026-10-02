@@ -1,7 +1,9 @@
 /**
  * The people have somewhere to be (round 26: everyone stood where they rose, turned to the same sign, all
- * night): in the gloaming each walks a little round of their own about where they stand, stopping at
- * each turn to look about; deep in the night they keep nearer home and stand longer; in the last hour
+ * night; round 35: they went between two fixed points and never seemed to walk, and now wander): in the
+ * gloaming each strolls about where they stand, choosing a place near to go to each time (never beyond
+ * their hour's reach, so they are always to be found), their path a curve and not a line, slowing to turn,
+ * stopping now and then to look about, sometimes only for a breath; deep in the night they keep nearer home and stand longer; in the last hour
  * they stand at their place and do not move, turned to the sign, as if dozing on their feet. Anyone
  * talked with, or with the investigator close by, stands and turns to them, and takes up the round again
  * once they have gone. Their bodies are fixed (nothing hunts them, nothing shoves them), so this
@@ -11,7 +13,7 @@
 
 import type { Entity } from '../core/ecs';
 import { hash2 } from '../core/rng';
-import { distXZ, turnToward, yawOf, type XZ } from '../core/geom';
+import { distXZ, turnToward, wrapAngle, yawOf, type XZ } from '../core/geom';
 import { npcDef } from '../data/npcs';
 import { SIM } from '../data/tuning';
 import { raycast } from '../world/colliders';
@@ -19,23 +21,23 @@ import { hourOf, phaseOf, type Hour } from './clock';
 import type { Game } from './components';
 import { npcPlace } from './npcs';
 
-const SPEED = 1.15; // m/s: an unhurried walk (round 31: 0.9 was a shuffle, and set off and stopped at once)
+const SPEED = 1.1; // m/s: an unhurried walk
 const ACCEL = 1.8; // m/s²: they get up to it, and ease off as they near a turn
-const TURN = 2.2; // rad/s
+const TURN = 2.2; // rad/s, standing
+const STROLL_TURN = 1.7; // rad/s, walking: a path bends, it does not corner
 const HOLD = 4.5; // metres from the investigator within which they stand and face them
 const ARRIVE = 0.25;
 
 /** How wide a round each hour allows (metres), and how long they stand at each turn (seconds). */
 export const ROUND: Readonly<Record<Hour, { reach: number; pause: readonly [number, number] }>> = {
-  gloaming: { reach: 6.5, pause: [3, 8] },
-  deep: { reach: 3.5, pause: [7, 18] },
+  gloaming: { reach: 8, pause: [3, 8] },
+  deep: { reach: 5, pause: [6, 15] },
   waning: { reach: 0, pause: [20, 40] },
 };
 
 interface Walker {
   home: XZ & { yaw: number };
-  turns: XZ[]; // the points of their round: home last
-  next: number; // which they are walking to
+  goal: XZ | null; // where they are strolling to
   wait: number; // seconds to stand before going on
   look: number; // the way they look while they stand
   pace: number; // m/s now
@@ -68,6 +70,16 @@ export function roundOf(g: Game, id: string, home: XZ, reach: number): XZ[] {
   return out;
 }
 
+/** A place to stroll to: some metres from where they are, within `reach` of home, with nothing in the way. */
+function stroll(g: Game, from: XZ, home: XZ, reach: number): XZ {
+  for (let k = 0; k < 8; k++) {
+    const [a, r] = [g.rng() * Math.PI * 2, 1.5 + g.rng() * Math.max(0, reach - 1.5)];
+    const to = { x: home.x + Math.sin(a) * r, z: home.z + Math.cos(a) * r };
+    if (distXZ(to, from) > 2 && clearStep(g, from, to)) return to;
+  }
+  return { x: home.x, z: home.z };
+}
+
 const between = (g: Game, [lo, hi]: readonly [number, number]): number => lo + (hi - lo) * g.rng();
 
 /** Whether `e` lives a round of its own (its turning is its own: npcs.ts leaves it, but for the one being talked with). */
@@ -88,7 +100,7 @@ export function npcLife(g: Game, dt: number): void {
     if (!w) {
       const place = npcPlace(def);
       if (!place) continue;
-      table.set(e, (w = { home: place, turns: [], next: 0, wait: between(g, [1, 6]), look: place.yaw, pace: 0 }));
+      table.set(e, (w = { home: place, goal: null, wait: between(g, [1, 6]), look: place.yaw, pace: 0 }));
     }
     const near = g.player.listening === e || distXZ(tr.pos, me) < HOLD;
     if (near || w.wait > 0) w.pace = 0;
@@ -99,32 +111,39 @@ export function npcLife(g: Game, dt: number): void {
       continue;
     }
     const reach = ROUND[hour].reach;
-    if (!w.turns.length || w.turns.length !== (reach > 0 ? 3 : 1)) w.turns = reach > 0 ? [...roundOf(g, id, w.home, reach), { x: w.home.x, z: w.home.z }] : [{ x: w.home.x, z: w.home.z }];
-    const to = w.turns[Math.min(w.next, w.turns.length - 1)];
     tr.prev = { ...tr.pos };
     tr.prevYaw = tr.yaw;
     if (w.wait > 0) {
       w.wait -= dt;
+      w.pace = 0;
       const face = hour === 'waning' && distXZ(tr.pos, w.home) < 1 ? w.home.yaw : w.look;
       tr.yaw = turnToward(tr.yaw, face, TURN * dt);
       continue;
     }
-    const d = distXZ(tr.pos, to);
+    if (!w.goal || (reach === 0 && distXZ(w.goal, w.home) > 0.01)) w.goal = reach > 0 ? stroll(g, tr.pos, w.home, reach) : { x: w.home.x, z: w.home.z };
+    const d = distXZ(tr.pos, w.goal);
     if (d <= ARRIVE) {
-      w.next = (w.next + 1) % w.turns.length;
-      w.wait = between(g, ROUND[hour].pause) + 0.01;
-      w.look = tr.yaw + (g.rng() - 0.5) * 2.4; // at the turn, they look about
+      w.goal = null;
+      w.pace = 0;
+      w.wait = (g.rng() < 0.35 ? between(g, [0.2, 1.2]) : between(g, ROUND[hour].pause)) + 0.01; // sometimes only a breath, and on
+      w.look = tr.yaw + (g.rng() - 0.5) * 2.4; // at a stop, they look about
       continue;
     }
-    w.pace = Math.min(SPEED, w.pace + ACCEL * dt, 0.35 + d * 1.5); // up to a walk, and down toward the turn
+    const want = yawOf(w.goal.x - tr.pos.x, w.goal.z - tr.pos.z);
+    const off = Math.abs(wrapAngle(want - tr.yaw));
+    tr.yaw = turnToward(tr.yaw, want, (off > 1 ? TURN : STROLL_TURN) * dt);
+    if (off > 1) { // turned away from where they mean to go: they turn where they stand first
+      w.pace = 0;
+      continue;
+    }
+    w.pace = Math.min(SPEED * (1 - 0.5 * Math.min(1, off)), w.pace + ACCEL * dt, 0.3 + d * 1.5); // up to a walk, slower through a bend, and down toward the stop
     const step = Math.min(d, w.pace * dt);
-    const next = { x: tr.pos.x + ((to.x - tr.pos.x) / d) * step, z: tr.pos.z + ((to.z - tr.pos.z) / d) * step };
-    if (!clearStep(g, tr.pos, next)) {
-      w.next = (w.next + 1) % w.turns.length; // something is in the way: on to the next
+    const next = { x: tr.pos.x + Math.sin(tr.yaw) * step, z: tr.pos.z + Math.cos(tr.yaw) * step }; // along the way they face, so the path curves
+    if (!clearStep(g, tr.pos, next) || distXZ(next, w.home) > Math.max(reach + 1, distXZ(tr.pos, w.home))) { // never farther from home than their hour allows (or than they are, going back)
+      w.goal = null; // something is in the way: somewhere else
       w.wait = 1;
       continue;
     }
     tr.pos = { x: next.x, y: g.world.ground(next.x, next.z), z: next.z };
-    tr.yaw = turnToward(tr.yaw, yawOf(to.x - tr.prev.x, to.z - tr.prev.z), TURN * 2 * dt);
   }
 }
