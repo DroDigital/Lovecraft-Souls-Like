@@ -44,7 +44,7 @@ const BONE = '#d9d0b8';
 const DIM = '#8a8474';
 const MAGENTA = '#d80073';
 const PURPLE = '#9a5ad0';
-const GREEN = '#2bffa0';
+const GREEN = '#c9b27a'; // a drop's mark: pale brass (round 36: the neon green was the one loud colour on the map)
 
 interface Veil {
   canvas: HTMLCanvasElement;

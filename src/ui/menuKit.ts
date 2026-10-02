@@ -21,6 +21,7 @@ export interface Page {
   backKeys?: readonly string[]; // keys besides Esc that go back
   keys?: (e: KeyboardEvent) => void; // hears every key pressed while it is open (the map pans and zooms)
   pad?: (pad: PadReading) => void; // reads the pad each frame while it is open
+  tab?: (by: 1 | -1) => void; // PageUp / PageDown, or the pad's bumpers: the neighbouring tab
   redraw?: () => void; // set by the screen that shows it: draws it again, keeping the focus
 }
 
@@ -40,7 +41,7 @@ interface Entry {
 }
 
 const GRACE_MS = 250;
-const PAD = { a: 0, b: 1, select: 8, start: 9, up: 12, down: 13, left: 14, right: 15 };
+const PAD = { a: 0, b: 1, lb: 4, rb: 5, select: 8, start: 9, up: 12, down: 13, left: 14, right: 15 };
 const STICK = 0.6;
 const REPEAT_MS = [380, 110] as const; // a held direction repeats after the first, then every second
 
@@ -58,25 +59,33 @@ export const onPadSelect = (fn: () => void): void => void padSelect.push(fn);
 export const setMenuSound = (fn: () => void): void => void (sound = fn);
 
 const CSS = `
-[data-menu] button{position:relative;display:block;width:100%;margin:1px 0;padding:6px 10px 6px 26px;text-align:left;font:15px ${SERIF};letter-spacing:.6px;color:${BONE}d0;background:none;border:none;border-bottom:1px solid transparent;cursor:pointer;transition:color .15s,border-color .15s}
-[data-menu] button::before{content:'';position:absolute;left:10px;top:50%;width:5px;height:5px;margin-top:-3px;border:1px solid ${GOLD};transform:rotate(45deg) scale(.4);opacity:0;transition:opacity .15s,transform .15s}
+[data-menu] button{position:relative;display:block;width:100%;margin:0;padding:7px 14px 7px 30px;text-align:left;font:15px ${SERIF};letter-spacing:.8px;color:${BONE}c0;background:none;border:none;border-top:1px solid transparent;border-bottom:1px solid transparent;cursor:pointer;transition:color .15s,background .15s,border-color .15s}
+[data-menu] button::before{content:'';position:absolute;left:12px;top:50%;width:5px;height:5px;margin-top:-3px;border:1px solid ${GOLD};transform:rotate(45deg) scale(.3);opacity:0;transition:opacity .15s,transform .15s}
 [data-menu] button:disabled{opacity:.35;cursor:default}
 [data-menu] button.quiet{display:inline-block;width:auto;padding:2px 0;opacity:.55;text-shadow:0 0 6px #000,0 1px 2px #000}
 [data-menu] button.quiet::before{display:none}
-[data-menu] button.quiet:focus,[data-menu] button.quiet:hover:not(:disabled){outline:none;opacity:1;border-color:transparent}
-[data-menu] button:focus,[data-menu] button:hover:not(:disabled){outline:none;color:${PAPER};border-bottom-color:${GOLD}55}
+[data-menu] button.quiet:focus,[data-menu] button.quiet:hover:not(:disabled){outline:none;opacity:1;background:none}
+[data-menu] button:focus,[data-menu] button:hover:not(:disabled),[data-menu] label:focus-within,[data-menu] label:hover{outline:none;color:${PAPER};background:linear-gradient(90deg,${GOLD}26,${GOLD}0d 55%,transparent);border-top-color:${GOLD}2a;border-bottom-color:${GOLD}2a}
 [data-menu] button:focus::before,[data-menu] button:hover:not(:disabled)::before{opacity:1;transform:rotate(45deg) scale(1);background:${GOLD}}
-[data-menu] label{display:flex;gap:12px;align-items:center;margin:9px 0}
-[data-menu] label span:first-child{min-width:13ch}
-[data-menu] label span:last-child{min-width:6ch;text-align:right;opacity:.8}
+[data-menu] button.tab{display:inline-block;width:auto;margin:0 2px;padding:6px 14px;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:${BONE}70;background:none;border-top-color:transparent;border-bottom:2px solid transparent}
+[data-menu] button.tab::before{display:none}
+[data-menu] button.tab.on{color:${PAPER};border-bottom-color:${GOLD}}
+[data-menu] button.tab:focus,[data-menu] button.tab:hover:not(:disabled){color:${PAPER};background:${GOLD}14}
+[data-menu] button.tag{display:inline-block;width:auto;margin:1px 0;padding:2px 8px;border:1px solid ${GOLD}44;text-align:center}
+[data-menu] button.tag::before{display:none}
+[data-menu] label{display:flex;gap:12px;align-items:center;margin:0;padding:6px 14px;border-top:1px solid transparent;border-bottom:1px solid transparent;transition:background .15s,border-color .15s}
+[data-menu] label span:first-child{min-width:14ch}
+[data-menu] label span:last-child{min-width:7ch;text-align:right;opacity:.85}
 [data-menu] input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:16px;background:transparent;cursor:pointer}
-[data-menu] input[type=range]::-webkit-slider-runnable-track{height:1px;background:${GOLD}77}
-[data-menu] input[type=range]::-moz-range-track{height:1px;background:${GOLD}77}
-[data-menu] input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;margin-top:-4px;transform:rotate(45deg);background:#0e0c0b;border:1px solid ${GOLD}}
-[data-menu] input[type=range]::-moz-range-thumb{width:7px;height:7px;transform:rotate(45deg);border-radius:0;background:#0e0c0b;border:1px solid ${GOLD}}
+[data-menu] input[type=range]::-webkit-slider-runnable-track{height:3px;background:linear-gradient(90deg,${GOLD}aa var(--fill,50%),${BONE}22 var(--fill,50%))}
+[data-menu] input[type=range]::-moz-range-track{height:3px;background:${BONE}22}
+[data-menu] input[type=range]::-moz-range-progress{height:3px;background:${GOLD}aa}
+[data-menu] input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;margin-top:-3px;transform:rotate(45deg);background:#0e0c0b;border:1px solid ${GOLD}}
+[data-menu] input[type=range]::-moz-range-thumb{width:8px;height:8px;transform:rotate(45deg);border-radius:0;background:#0e0c0b;border:1px solid ${GOLD}}
 [data-menu] input[type=range]:focus{outline:none}
 [data-menu] input[type=range]:focus::-webkit-slider-thumb{background:${GOLD}}
 [data-menu] input[type=range]:focus::-moz-range-thumb{background:${GOLD}}
+[data-menu] .hint{min-height:2.9em;white-space:pre-line;font-size:13px;line-height:1.45;color:${BONE}99}
 [data-menu]{scrollbar-width:thin;scrollbar-color:${GOLD}55 transparent}
 [data-menu]::-webkit-scrollbar{width:6px}
 [data-menu]::-webkit-scrollbar-thumb{background:${GOLD}44}
@@ -90,7 +99,7 @@ const CSS = `
  * brightened. `alpha` (two hex digits) lets a dialogue's panel show the world through it.
  */
 export function frame(alpha = ''): string {
-  return `padding:24px 30px;background:radial-gradient(ellipse at 50% 0%,#17130f${alpha},#0c0a09${alpha} 75%);border:1px solid ${GOLD}44;box-shadow:inset 0 0 0 5px #0c0a09${alpha},inset 0 0 0 6px ${GOLD}33,0 18px 50px #000c,inset 0 0 70px #000a`;
+  return `padding:22px 26px 16px;background:linear-gradient(180deg,#14110e${alpha},#0b0a09${alpha} 40%),#0b0a09${alpha};border:1px solid ${GOLD}55;box-shadow:inset 0 0 0 4px #0b0a09${alpha},inset 0 0 0 5px ${GOLD}2a,0 20px 60px #000d,inset 0 0 80px #000b`;
 }
 
 const items = (panel: HTMLElement): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input')];
@@ -136,6 +145,15 @@ function onKey(e: KeyboardEvent): void {
   if (e.code === 'Escape' || top.page.backKeys?.includes(e.code)) {
     e.preventDefault();
     if (!e.repeat) back(top);
+  } else if (top.page.tab && !e.repeat && (e.code === 'PageUp' || e.code === 'PageDown')) {
+    e.preventDefault();
+    top.page.tab(e.code === 'PageUp' ? -1 : 1);
+  } else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+    const on = document.activeElement;
+    if (top.page.tab && on instanceof HTMLElement && on.classList.contains('tab')) {
+      e.preventDefault();
+      top.page.tab(e.code === 'ArrowLeft' ? -1 : 1);
+    }
   } else if (e.code === 'ArrowDown' || e.code === 'ArrowUp' || e.code === 'Tab') {
     e.preventDefault();
     move(top.panel, e.code === 'ArrowUp' || (e.code === 'Tab' && e.shiftKey) ? -1 : 1);
@@ -163,6 +181,8 @@ function pollPad(now: number): void {
     }
     const ry = pad?.axes[3] ?? 0; // the right stick scrolls a long page
     if (Math.abs(ry) > STICK) top.panel.scrollTop += ry * 14;
+    if (edge(PAD.lb)) top.page.tab?.(-1);
+    if (edge(PAD.rb)) top.page.tab?.(1);
     if (edge(PAD.left) || (lx < -STICK && !prev.has(-1))) nudge(-1);
     if (edge(PAD.right) || (lx > STICK && !prev.has(-2))) nudge(1);
     if (edge(PAD.a)) {
@@ -193,7 +213,7 @@ function startOnce(): void {
 }
 
 /** A screen at stacking level `z`; `panelCss` places and styles its panel. `keepLock`: the mouse stays captured while it is open (a talk, which is read and answered by key: round 31, so leaving one needs no click to look about again). */
-export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left:50%;top:50%;transform:translate(-50%,-50%);width:min(460px,92vw);max-height:86vh;overflow:auto;${frame()}`, scaled = true, keepLock = false): Screen {
+export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left:50%;top:50%;transform:translate(-50%,-50%);width:min(540px,92vw);max-height:90vh;overflow:auto;${frame()}`, scaled = true, keepLock = false): Screen {
   startOnce();
   const root = document.createElement('div');
   root.style.cssText = `position:fixed;inset:0;display:none;z-index:${z};background:${backdrop};font:14px/1.45 ${SERIF};color:${BONE}`;
@@ -213,6 +233,11 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left
     const i = items(panel).indexOf(e.target as HTMLElement);
     sound();
     queueMicrotask(() => entry && i >= 0 && !panel.contains(document.activeElement) && focusAt(panel, i));
+  });
+  panel.addEventListener('focusin', () => { // what the chosen line is, said in the page's hint
+    const out = panel.querySelector<HTMLElement>('.hint');
+    const on = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-hint]');
+    if (out && on) out.textContent = on.dataset.hint ?? '';
   });
   const self: Screen = {
     get open() {
@@ -272,23 +297,42 @@ export function title(parent: HTMLElement, text: string): HTMLDivElement {
   return box;
 }
 
-export function button(parent: HTMLElement, text: string, run: () => void, enabled = true): HTMLButtonElement {
+export function button(parent: HTMLElement, text: string, run: () => void, enabled = true, hint = ''): HTMLButtonElement {
   const b = el(parent, 'button', text);
+  if (hint) b.dataset.hint = hint;
   b.disabled = !enabled;
   b.addEventListener('click', run);
   return b;
 }
 
 /** A labelled range slider showing its value through `show`. */
-export function slider(parent: HTMLElement, label: string, [min, max, step]: readonly number[], value: number, set: (v: number) => void, show: (v: number) => string): HTMLInputElement {
+export function slider(parent: HTMLElement, label: string, [min, max, step]: readonly number[], value: number, set: (v: number) => void, show: (v: number) => string, hint = ''): HTMLInputElement {
   const row = el(parent, 'label');
+  if (hint) row.dataset.hint = hint;
   el(row, 'span', label);
   const input = el(row, 'input');
   Object.assign(input, { type: 'range', min: String(min), max: String(max), step: String(step), value: String(value) });
   const out = el(row, 'span', show(value));
+  const fill = (): void => void input.style.setProperty('--fill', `${((Number(input.value) - min) / (max - min || 1)) * 100}%`);
+  fill();
   input.addEventListener('input', () => {
+    fill();
     set(Number(input.value));
     out.textContent = show(Number(input.value));
   });
   return input;
+}
+
+/** A row of tabs under a page's title: the one open is lit; choosing another calls `pick`. PageUp and PageDown (the bumpers) step along them. */
+export function tabs(parent: HTMLElement, names: readonly string[], open: number, pick: (i: number) => void, page: Page): void {
+  const row = el(parent, 'div', '', `display:flex;justify-content:center;flex-wrap:wrap;margin:0 0 12px;border-bottom:1px solid ${GOLD}2a`);
+  names.forEach((n, i) => button(row, n, () => pick(i)).classList.add('tab', ...(i === open ? ['on'] : [])));
+  page.tab = (by) => pick((open + by + names.length) % names.length);
+}
+
+/** A page's foot: a hint line (what the chosen line is: set by `data-hint`), and a rule over the keys it answers to. */
+export function footer(parent: HTMLElement, hint: string, keys: readonly (readonly [string, string])[]): void {
+  el(parent, 'div', hint, `margin-top:12px;padding-top:8px;border-top:1px solid ${GOLD}2a`).className = 'hint';
+  const row = el(parent, 'div', '', `display:flex;justify-content:center;gap:20px;white-space:nowrap;margin-top:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${BONE}70`);
+  for (const [key, what] of keys) el(row, 'span', `${key}  ${what}`);
 }

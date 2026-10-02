@@ -195,7 +195,7 @@ void main() {
   float share = uCharacterLight * mix(1.0, uLanternSelf, self);
   float character = min(uCharacter, 1.0);
   vec3 lamp = uLanternColor * lanternFalloff(ld) * mix(facing, share, character) * mix(1.0, lanternLit(vWorld, n), uLShadow.x * (1.0 - self)); // what stands between a point and the lantern takes its light (round 34)
-  lamp += lampLight(vWorld, n, uLanternFacing * (1.0 - character)) * mix(1.0, uCharacterLight, character); // the world's lamps, fires and windows
+  lamp += lampLight(vWorld, n, 0.92 * (1.0 - character)) * mix(1.0, uCharacterLight, character); // the world's lamps, fires and windows: a face turned from a lamp takes little of it (round 36: half, so a torch on the inside of a wall lit the wall's outside)
   lamp *= (1.0 - uEmissive) * vTint;
   vec3 lit = vLight - vMoon * (1.0 - moonLit(vWorld, n, max(dot(n, uLightDir), 0.0))) * uShadow.x + lamp; // what stands between a point and the moon takes the moon's light
   float peak = max(max(lit.r, lit.g), max(lit.b, 0.001));

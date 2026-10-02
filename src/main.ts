@@ -29,6 +29,7 @@ import { createRealmLook } from './render/realmLook';
 import { createSky } from './render/sky';
 import { createVolumetricFog, woodOf } from './render/volumetricFog';
 import { createWorldLife } from './render/worldLife';
+import { createLightSight } from './render/lightSight';
 import { createWorldLights } from './render/worldLights';
 import { createHurtFx } from './render/hurtFx';
 import { createParticles } from './render/particles';
@@ -128,6 +129,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   if (!intro) journeys.arrive(reveal); // names where the investigator wakes while the world is made
   await made(0.1);
   const lights = createWorldLights();
+  const sight = createLightSight(game.world); // which glows show past walls (round 36)
   const world = opts.arena ? null : createWorldScene(lights);
   const scene = world?.scene ?? createArenaScene();
   scene.add(lights.halos);
@@ -246,7 +248,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         journeys.update(world?.pending ?? 0);
         views.update(alpha, time);
         placeLantern(game, alpha);
-        lights.update(camera.position, time, views.flame);
+        lights.update(camera.position, time, views.flame, (s) => sight.sees(s, camera.position, game.frame));
         pipeline.reflection.enabled = !!world && (frames % 30 === 0 ? (waterNow = waterAbout(game.world.ground, camera.position.x, camera.position.z)) : waterNow); // mirrored only where the sea is about (round 35)
         pipeline.lamps.enabled = !!world && settings.shadows > 0.5;
         pipeline.lamps.update(lights.casters, 1 / 60); // which lamps cast this frame, before they are drawn (round 35)

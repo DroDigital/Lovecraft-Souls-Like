@@ -13,7 +13,8 @@ import { saveNow } from './autosave';
 import { desktop } from './desktop';
 import { button, createScreen, el, heading, type Page } from './menuKit';
 import { wordmark } from './logo';
-import { controlsPage, settingsPage } from './menuPages';
+import { menuKeys } from './menuKeys';
+import { settingsPage } from './menuPages';
 import type { SettingId, Settings } from './settings';
 
 export interface TitleOptions {
@@ -74,11 +75,10 @@ export function showTitle(o: TitleOptions): void {
       if (lines[o.active - 1]) button(menu, 'Continue', () => begin(false));
       button(menu, 'New game', () => screen.show(slotPage('new')));
       if (lines.some(Boolean)) button(menu, 'Load', () => screen.show(slotPage('load')));
-      button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main))));
-      button(menu, 'Controls', () => screen.show(controlsPage(() => screen.show(main), o.saveKeys)));
+      button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main), o.saveKeys)));
       button(menu, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
       if (desktop) button(menu, 'Quit', () => (saveNow(), void desktop!.quit())); // the desktop shell only (playtest round 12)
-      el(p, 'div', 'arrows or pad to choose · Enter or A', 'opacity:.3;margin-top:26px');
+      el(p, 'div', menuKeys().map(([k, w]) => `${k} ${w}`).join('   ·   '), 'opacity:.3;margin-top:26px;font-size:11px;letter-spacing:2px;text-transform:uppercase');
     },
   };
   const into = (slot: number, fresh: boolean): void => (o.useSlot(slot), begin(fresh));
