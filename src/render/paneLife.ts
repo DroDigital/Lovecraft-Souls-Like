@@ -52,4 +52,20 @@ float paneLit(float s, float t) {
   float share = windowShare(t);
   return lit * (1.0 - smoothstep(share, share + 0.03, s));
 }
+// Someone behind the glass (round 35): in some windows only, and only for a few seconds in a long round, a dark shape of a head and shoulders crosses the lit pane and is gone. Not to be seen unless looked for.
+float paneFigure(float s, float t, vec2 uv) {
+  if (fract(s * 5.0) > 0.2) return 1.0;
+  float q = fract(t / (95.0 + s * 160.0) + s * 9.0);
+  float span = 0.04;
+  if (q > span) return 1.0;
+  float k = q / span;
+  float x = mix(0.2, 0.8, k);
+  if (fract(s * 3.0) > 0.5) x = 1.0 - x;
+  float bob = 0.012 * sin(k * 20.0);
+  float dx = uv.x - x;
+  float head = 1.0 - smoothstep(0.07, 0.1, length(vec2(dx * 1.3, uv.y - 0.64 - bob)));
+  float body = 1.0 - smoothstep(0.16, 0.2, length(vec2(dx * 0.85, (uv.y - 0.18) * 1.4)));
+  float seen = smoothstep(0.0, 0.14, k) * (1.0 - smoothstep(0.86, 1.0, k));
+  return 1.0 - 0.8 * max(head, body) * seen;
+}
 `;

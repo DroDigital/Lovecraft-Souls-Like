@@ -34,6 +34,8 @@ uniform float uWind;
 #endif
 #ifdef PANES
 attribute float aPane; // a lit window's seed (paneLife.ts; round 18)
+attribute vec2 aPaneUv; // and where on its glass a point is, 0..1 (round 35)
+varying vec2 vPaneUv;
 varying float vPane;
 #endif
 ${ELDRITCH_VERT}
@@ -55,6 +57,7 @@ void main() {
   vWorld = wp.xyz;
 #ifdef PANES
   vPane = aPane;
+  vPaneUv = aPaneUv;
 #endif
 #ifdef SWAY
   float gust = 0.5 + 0.5 * sin(uTime * 0.31 + wp.x * 0.045 - wp.z * 0.03); // gusts roll across the land...
@@ -129,6 +132,7 @@ ${SHADOW_GLSL}
 ${ELDRITCH_FRAG}
 #ifdef PANES
 varying float vPane;
+varying vec2 vPaneUv;
 ${PANE_GLSL}
 #endif
 // Mip levels come from the true mapping's gradients (gx, gy), so none jumps along a face's diagonal.
@@ -208,7 +212,7 @@ void main() {
     col += (lamp * 1.1 + vec3(0.2, 0.22, 0.25) * ring) * pud;
   }
 #ifdef PANES
-  col *= paneLit(vPane, uTime); // lived behind: put out now and then, dimmed as someone passes
+  col *= paneLit(vPane, uTime) * paneFigure(vPane, uTime, vPaneUv); // lived behind: put out now and then, dimmed as someone passes, and now and then someone seen
 #endif
 #ifdef SHORE
   {
