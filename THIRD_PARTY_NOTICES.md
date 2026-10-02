@@ -76,3 +76,10 @@ before a release.
 
 The game is after the fiction of H. P. Lovecraft and the tales he revised or wrote with others. No
 text of theirs is reproduced beyond names and brief allusions.
+
+## Controllers in the desktop shell (gamepad-node, @kmamal/sdl, SDL2)
+
+The desktop shell reads controllers natively (round 36) with `gamepad-node` (ISC licence, Luis Montes),
+over `@kmamal/sdl` (MIT licence, Konstantinos Kamaras), which ships SDL2 (zlib licence, Sam Lantinga and
+the SDL contributors). A packaged build must keep their licence texts (each package's `LICENSE`, and
+SDL's, in the package's `dist`) with it.

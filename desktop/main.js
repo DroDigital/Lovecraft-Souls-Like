@@ -8,9 +8,11 @@
  * Round 12: the window keeps its size, place and fullscreen from one run to the next (window.json),
  * wears the Elder Sign drawn in code (icon.js), and the game's saves, settings and records are files
  * in the user's data folder (saves/, where Steam Cloud can find them), not the browser's storage.
+ * Round 36: controllers are read natively too (padWorker.js, gamepad-node over SDL2), for Chromium on
+ * macOS lists none to the page; the page reads them from the bridge when the browser's list is empty.
  */
 
-import { app, BrowserWindow, ipcMain, nativeImage, protocol, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, protocol, screen, utilityProcess } from 'electron';
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -122,7 +124,29 @@ ipcMain.on('desktop:store-remove', (e, key) => {
 ipcMain.handle('desktop:fullscreen', (e, on) => BrowserWindow.fromWebContents(e.sender)?.setFullScreen(!!on));
 ipcMain.handle('desktop:is-fullscreen', (e) => !!BrowserWindow.fromWebContents(e.sender)?.isFullScreen());
 
+// The controllers, as the SDL worker reports them: kept here, and sent to every window as they change.
+let pads = [];
+let padStarts = 0;
+let quitting = false;
+app.on('before-quit', () => void (quitting = true));
+function startPads() {
+  const worker = utilityProcess.fork(fileURLToPath(new URL('./padWorker.js', import.meta.url)), [], { serviceName: 'Seventy Steps controllers', stdio: 'inherit' });
+  worker.on('message', (m) => {
+    if (m?.type === 'unavailable') console.warn(`controllers: SDL is not available (${m.reason}); the browser's own list is used`);
+    if (m?.type !== 'pads') return;
+    pads = m.pads;
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.send('desktop:pads', pads);
+  });
+  worker.on('exit', (code) => {
+    pads = [];
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.send('desktop:pads', pads);
+    if (!quitting && code !== 0 && padStarts++ < 3) setTimeout(startPads, 1000); // a fault in the native module stops the pads for a moment, not the game
+  });
+}
+ipcMain.handle('desktop:pads-get', () => pads); // a page loaded (or reloaded) after the pads were found asks for them once
+
 void app.whenReady().then(() => {
+  startPads();
   protocol.handle('app', serveFrom(fileURLToPath(new URL('../dist/', import.meta.url))));
   open();
 });
