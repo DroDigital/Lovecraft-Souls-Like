@@ -80,6 +80,20 @@ export const SETTINGS = {
   speech: [0, 1, 0.05, 1], // the people's and the horrors' spoken lines (the voices)
 } satisfies Record<string, readonly [number, number, number, number]>;
 
+/**
+ * How hard the dream is (round 38), chosen once, when a new dream begins, and never after (it is kept in the save and carried into
+ * a second journey): the weight on every enemy's blow. Health, Echoes and everything else are the same at every difficulty.
+ */
+export const DIFFICULTIES = {
+  light: { name: 'Light Slumber', foe: 0.6, note: 'For the story and the dream\u2019s places. Its creatures strike gently; everything else is as it is.' },
+  deep: { name: 'Deep Slumber', foe: 1, note: 'The dream as it was made.' },
+  nightmare: { name: 'Nightmare', foe: 1.5, note: 'Every blow lands half as hard again. For those who have died here before.' },
+} as const;
+export type DifficultyId = keyof typeof DIFFICULTIES;
+export const DIFFICULTY_IDS = Object.keys(DIFFICULTIES) as DifficultyId[];
+export const DEFAULT_DIFFICULTY: DifficultyId = 'deep';
+export const isDifficulty = (v: unknown): v is DifficultyId => typeof v === 'string' && v in DIFFICULTIES;
+
 /** The UI's scale (ui/uiScale.ts): 1 at a window this tall, and never below or above these. */
 export const UI = { baseHeight: 720, least: 1, most: 2.5 };
 

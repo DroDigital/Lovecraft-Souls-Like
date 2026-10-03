@@ -7,8 +7,10 @@
 import { SHOPS, WARES } from '../data/wares';
 import type { Game } from '../systems/components';
 import { buy, canBuy, carried, hasRoom, stockLeft } from '../systems/trade';
-import { fill, glyph } from './glyphs';
-import { button, createScreen, el, heading, title, type Page } from './menuKit';
+import { fill } from './glyphs';
+import { GOLD } from './hudKit';
+import { createScreen, el, footer, option, title, type Page } from './menuKit';
+import { menuKeys } from './menuKeys';
 
 export interface ShopMenu {
   readonly open: boolean;
@@ -22,17 +24,19 @@ export function createShopMenu(g: Game): ShopMenu {
       back: () => screen.close(),
       build(panel) {
         title(panel, name.toUpperCase());
-        el(panel, 'div', `Echoes: ${g.player.echoes}`, 'opacity:.6;margin:2px 0 8px');
+        const stat = el(panel, 'div', `ECHOES ${g.player.echoes}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:3px;color:${GOLD}`);
+        stat.dataset.pin = '';
         for (const id of wares) {
           const w = WARES[id];
           const left = stockLeft(g, id);
+          const ok = canBuy(g, id);
+          const why = left === 0 ? 'Sold out.' : !hasRoom(g, id) ? 'No room to carry it.' : 'Not enough Echoes.';
           const tail = left === 0 ? 'sold out' : !hasRoom(g, id) ? 'no room to carry it' : `${w.price} Echoes${left === undefined ? '' : `  ·  ${left} left`}`; // (a full pocket said nothing, round 24)
-          button(panel, `${w.name}  ·  ${tail}`, () => (buy(g, id), page.redraw?.()), canBuy(g, id));
           const c = carried(g, id);
-          el(panel, 'div', `${fill(w.note)}${c ? `  (Carried: ${c.have} of ${c.most} ${c.unit}.)` : ''}`, 'opacity:.55;font-size:13px;line-height:1.4;margin:0 0 8px 10px'); // what a pocket holds, before it is asked (round 24)
+          const note = `${fill(w.note)}${c ? `  (Carried: ${c.have} of ${c.most} ${c.unit}.)` : ''}`; // what a pocket holds, before it is asked (round 24)
+          option(panel, `${w.name}  ·  ${tail}`, () => (buy(g, id), page.redraw?.()), ok, why, note); // round 38: still a line to choose, so that what it is can be read, and why it cannot be bought
         }
-        heading(panel, '');
-        button(panel, `Leave  (${glyph('back')})`, () => screen.close());
+        footer(panel, '', menuKeys(false, 'Choose'), () => screen.close());
       },
     };
     screen.show(page);

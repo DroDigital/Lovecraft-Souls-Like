@@ -14,7 +14,7 @@ import { getEntity, type Variant } from '../data/registry';
 import { DEEP_ONE, TRAINING_DUMMY } from '../data/placeholders';
 import type { Place } from '../data/arena';
 import { START_SIGN } from '../data/sites';
-import { CAMERA, GUN, LAUDANUM, REAGENT, SIM, WORLD } from '../data/tuning';
+import { CAMERA, DEFAULT_DIFFICULTY, GUN, LAUDANUM, REAGENT, SIM, WORLD, type DifficultyId } from '../data/tuning';
 import { createArenaWorld } from '../world/arena';
 import type { CollisionWorld } from '../world/colliders';
 import { createWorldCollision } from '../world/worldCollision';
@@ -89,7 +89,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     ecs,
     world,
     events: createEventBus<GameEvents>(),
-    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, oil: 0, ammo: GUN.chamber, rounds: GUN.start, gun: 0, cycle: 0, steady: 0, mended: 0, listening: null, kneeling: null, fogPass: null },
+    player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, oil: 0, ammo: GUN.chamber, rounds: GUN.start, gun: 0, difficulty: DEFAULT_DIFFICULTY, cycle: 0, steady: 0, mended: 0, listening: null, kneeling: null, fogPass: null },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },
@@ -111,8 +111,9 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
 }
 
 /** The open world (spec §3D): a new investigator wakes at the Miskatonic Quad; a save puts them back where they were. */
-export function createWorldGame({ seed = WORLD.seed, save, carry }: { seed?: number; save?: SaveData; carry?: Carry } = {}): Game {
+export function createWorldGame({ seed = WORLD.seed, save, carry, difficulty }: { seed?: number; save?: SaveData; carry?: Carry; difficulty?: DifficultyId } = {}): Game {
   const g = baseGame(createWorldCollision(), signPlace(START_SIGN)!.rest, seed);
+  if (difficulty) g.player.difficulty = difficulty; // a new dream's, chosen at the title (a save or a carry brings its own, which replaces it)
   g.overworld = createOverworld(START_SIGN);
   registerOverworld(g);
   registerArms(g);

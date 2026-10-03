@@ -93,7 +93,7 @@ export function settingsPage(s: Settings, change: (id: SettingId, v: number) => 
         const label = (): void => void isFullscreen().then((on) => (b.textContent = `Fullscreen: ${on ? 'on' : 'off'}`));
         label();
       }
-      footer(panel, 'Each change is applied at once and kept.', menuKeys(true));
+      footer(panel, 'Each change is applied at once and kept.', menuKeys(true), page.back);
     },
   };
   return page;
@@ -145,5 +145,5 @@ function controlsTab(panel: HTMLElement, page: Page, waiting: () => Action | nul
   const row = el(panel, 'div', '', 'display:flex;justify-content:space-between;align-items:center;padding:0 14px;margin-top:8px');
   button(row, 'Reset keys', () => (Object.assign(keyLayout, DEFAULT_KEYS), save(), page.redraw?.())).classList.add('tag');
   el(row, 'div', `Pad: ${padReport() || 'none heard (press a button on it)'}`, 'opacity:.45;font-size:11px');
-  footer(panel, refused() ? 'That key is kept (Shift, Tab, Enter, Esc and the arrows belong to the game and its menus). Choose another.' : 'Choose a key, then press its new one.', menuKeys(true));
+  footer(panel, refused() ? 'That key is kept (Shift, Tab, Enter, Esc and the arrows belong to the game and its menus). Choose another.' : 'Choose a key, then press its new one.', menuKeys(true), page.back);
 }

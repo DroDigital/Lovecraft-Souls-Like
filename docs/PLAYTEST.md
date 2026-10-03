@@ -144,3 +144,77 @@ Roughly in the order I would take them.
 | 12 | Shift is kept. |
 | 13 | Still open: it needs a person at a real screen, a pair of speakers and a pad. |
 | 14 | `npm run audit`, `npm run check:all`; `check` runs in under half a minute. |
+
+# Playtest round 38
+
+The game played again after the menus were rebuilt (round 36) and the controllers moved to SDL in the desktop shell
+(round 36): what a person meets first, what they meet most, and what the audits could not see. The headless browser is
+still software GL (two to seven frames a second), so nothing of *feel* is judged here, and nothing of how it sounds.
+
+## How it was played
+
+- **The audits**: `npm run audit` (the soak, the bots that fight every boss and creature, `dungeonView`, `objectView`, `roam`,
+  `balance`): 8 files, 215 tests, clean. The soak widened to 40 seeds of 6000 frames (`SOAK_SEEDS=40 SOAK_FRAMES=6000
+  SOAK_FIRST=100`): clean.
+- **The browser, as a person**: the title (it opens by itself where sound is allowed), New game, the intro, the wake, a
+  conversation by keyboard (Peaslee: the quest begins, the journal says so), a rest at an Elder Sign and a purchase made with
+  Down and Enter, a merchant's wares, a death (UNMADE, its line, the rise), the pause menu, Settings and every tab of it by
+  PageUp, PageDown and the arrows, the journal, the arms, the achievements, the credits.
+- **Every place**: the 102 map places (every Elder Sign, gate, dungeon door and arena) visited one after another with the
+  page's errors and console errors listened for: none. Triangles drawn a frame: 202 000 on average, 540 000 at the hub and
+  640 000 at Whateley's farm (shadow passes included), 63 to 257 draw calls: not a cost that matters on a machine from the
+  last ten years, but the hub and the farm are where it would show first. Five dungeons entered and looked at.
+- **The menus at their worst**: every weapon, tome and creature given (53 documents, 100 creatures, six arms) and each page
+  opened at 960 × 540, at 1280 × 720, at 640 × 360 (the smallest window the shell allows) and at a UI scale of 1.5.
+- **Bots**: a level-0 bot (55% of telegraphed blows rolled) against every creature that is not a scripted boss; the weapons'
+  numbers laid side by side; which creatures the world places.
+
+## Found and fixed
+
+| What | Where | Test |
+| --- | --- | --- |
+| **Long pages ran off the panel**: 53 tomes, 100 creatures, 22 achievements and the Elder Sign's fourteen lines pushed the foot, the keys and Back out of the panel at 960 × 540. | `ui/menuParts.ts` (`footer` pins the title and tabs over a scrolling body and the foot under it) | browser |
+| **No way back for a mouse** from the pages that lost their Back button in round 36. | the foot's Back is clickable | browser |
+| **Tabs trapped the arrows**: with the focus on the tab row, Down went to the next tab (Enter then changed it) instead of into the list. The tab row is one stop; left and right change tabs (keys, pad d-pad and bumpers). | `ui/menuKit.ts` | browser |
+| **A line that could not be taken was unreadable and unreachable** (Echoes short: nearly invisible, and it could not be chosen to be read). Such a line is dimmed, can be chosen, and says why. | `option()` in `menuParts.ts`; the Elder Sign's menu and the merchant | browser |
+| **The Elder Sign's menu was fourteen lines and a sub-page for arms and for travel.** Three tabs (Grow, Arms, Travel) under a line of what is held and what the story asks next. | `ui/signMenu.ts` | browser |
+| **Panels were 90% of the window plus 40 px** (content-box): at 640 × 360 the foot touched the edge. | `ui/menuKit.ts` | browser |
+| **`menuKit.ts` was 342 lines** (the rule is 300). | split: `menuParts.ts` | |
+| **The map's drop marker was a neon green** (`#2bffa0`), the one loud colour left. | `ui/mapPainter.ts` | |
+| **The HUD's words had no halo**: INSIGHT and ECHOES vanished into a pale floor. | `ui/hud.ts` | browser |
+| **The Straight Razor was dominated** (1.5 damage a stamina and 37 a second, against the cane's 1.6 and 41, with the shortest reach). | `data/weapons.ts` | `arms.test.ts` |
+| **Five tests failed by the clock** whenever the machine was busy (a world is built in each). | `vitest.config.ts`: 30 s | |
+
+## Added
+
+- **Difficulty** (chosen once, on a new game: Light Slumber, Deep Slumber, Nightmare; first a slider under Settings › Play, then made a choice that cannot be taken back): `tests/difficulty.test.ts`.
+- **Where you stand, when you return**: the pause menu says what the story asks next; the title's Continue says where that
+  dream was left; the Elder Sign's menu says both.
+- `tests/coverage.test.ts`: every creature, and every entry of every region's spawn table, is placed in the world.
+
+## Checked and found sound
+
+- No page error, console error or failed request in any of the 102 places, the five modes (`?arena`, `?bestiary`, `?look`,
+  `?spawn`, `?debug`), or the menus.
+- Every creature of the roster is met somewhere (a first reading of the *fixed* spawns said five were not; the open ground's
+  are in the region plans, and the new test says so for good). The Being from Beyond cannot be struck at full sanity: it is
+  there only for a mind at 15 or below (`hidden`), as designed.
+- The lesser foes are killed by a level-0 bot in 3 to 13 seconds for 0 to 60 of its 160 health; the greater ones (Shoggoth,
+  Gug, Star-spawn, Dhole) cost it 7 to 10 lives each: the first region is gentle and the later ones are not, which is the shape.
+- The nearest enemy to the first Elder Sign is a hundred metres off (rats, a troglodyte, a corpse): nothing meets a person
+  at the stone.
+- Arkham is 320 m from the first sign: a minute's walk.
+- The weapon table (light chain, damage a second, damage a stamina, reach): cane 41, 1.6, 1.3 m; axe 52, 1.8, 1.5 m; cutlass 55,
+  1.9, 1.25 m; espada 48, 1.8, 1.75 m; razor 42, 1.7, 1.05 m (after this round): each has a reason to be taken up.
+
+## Not judged, and worth a person's hour
+
+1. **Anything of feel, and all sound**, as before, and **the native controller path** (round 36): it was built and run here without
+   a controller. One hour at a real screen with a pad (`npm run desktop`) would say more than another round here.
+2. The **pause menu, the Elder Sign's menu and the settings at 640 × 360 with a UI scale of 1.5** keep every foot on screen but
+   show three or four lines of their body; they scroll. If that window is one anyone plays in, the tabs want fewer lines each.
+3. **Difficulty**: the balance table (`docs/BALANCE.md`) says a perfect bot takes 0.0–0.3 of its health from each boss; a person
+   will take several times that, but how many lives a first-time player spends on each horror is a number only players have.
+   *Foe damage* is the lever a player now has; whether the defaults want to move is for the data.
+4. The hub and Whateley's farm draw the most triangles (shadow passes included); if a slower machine struggles anywhere it
+   will be there (the lamp and moon casters, `render/colliderShadow.ts`, draw 170 000 triangles of proxies at the hub).

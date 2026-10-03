@@ -54,7 +54,7 @@ export interface Hud {
 
 /** `held`: Echoes earned but still on their way to the investigator (render/echoFx.ts): the count rises as they land. */
 export function createHud(g: Game, canvas: HTMLCanvasElement, painter: MapPainter, held: () => number = () => 0): Hud {
-  const root = el(`${PICTURE_LAYER};pointer-events:none;font:13px/1.4 ${SERIF};font-variant-numeric:lining-nums tabular-nums;color:${BONE};z-index:1`); // drawn at the UI scale, in the period face (round 14)
+  const root = el(`${PICTURE_LAYER};pointer-events:none;font:13px/1.4 ${SERIF};font-variant-numeric:lining-nums tabular-nums;color:${BONE};text-shadow:0 0 3px #000,0 1px 2px #000c;z-index:1`); // drawn at the UI scale, in the period face (round 14); a dark halo on all of its words (round 38: INSIGHT and ECHOES vanished into a pale floor)
   const minimap = createMinimap(g, root, painter);
   const hints = createHints(g, root);
   const vitals = el('position:absolute;left:18px;bottom:14px;width:196px', '', root);

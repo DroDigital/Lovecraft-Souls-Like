@@ -12,7 +12,7 @@ import { createInput, emptyInput } from './core/input';
 import { startLoop } from './core/loop';
 import { darkOf, phaseOf } from './systems/clock';
 import { waterAbout } from './render/reflection';
-import { LIGHT, RENDER, SIM } from './data/tuning';
+import { LIGHT, RENDER, SIM, type DifficultyId } from './data/tuning';
 import type { Variant } from './data/registry';
 import { createActorViews } from './render/actorViews';
 import { createGameAudio } from './render/audio/gameAudio';
@@ -62,6 +62,7 @@ import { startLookTest } from './ui/lookTest';
 import { nextFrame, spriteAtlas } from './ui/loading';
 import { createMapPainter } from './ui/mapPainter';
 import { createMapScreen } from './ui/mapScreen';
+import { mainLead } from './systems/lead';
 import { createPauseMenu } from './ui/pauseMenu';
 import { createDialogue } from './ui/dialogue';
 import { showIntro, type Intro } from './ui/intro';
@@ -85,6 +86,7 @@ interface StartOptions {
   arena: boolean; // the combat arena instead of the open world
   fresh?: boolean; // the open world: forget the save and start anew
   intro?: boolean; // show the new game's opening first (not with ?fresh, which is for testing)
+  difficulty?: DifficultyId; // a new game's, chosen at the title (round 38)
   creature?: string;
   variant?: Variant;
 }
@@ -106,7 +108,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
   const store = opts.arena ? null : shell.store;
   if (store && opts.fresh) clearSave(store);
   const carry = store && opts.fresh ? takeCarry(store) : null; // a new journey, begun from an ending (NG+)
-  const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined, carry: carry ?? undefined });
+  const game = opts.arena ? createGame({ creature, variant }) : createWorldGame({ save: (store && loadSave(store)) ?? undefined, carry: carry ?? undefined, difficulty: opts.difficulty });
   if (opts.intro && !opts.arena) wakeKneeling(game); // the wake (render/cinema.ts) begins on one knee
   const capture = (): void => {
     try {
@@ -142,6 +144,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
     arms: (back, show) => armsPage(game, back, show),
+    next: opts.arena ? undefined : () => mainLead(game)?.text ?? null,
     achievements: opts.arena ? undefined : (back) => achievementsPage(store, back),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
     held: () => cinema.active || journeys.busy || building, // a cutscene, the veil or the making of the world has the screen: leaving the window then must not pause (round 31)
@@ -306,6 +309,6 @@ else {
   else if (takeFlag(NEW_GAME_FLAG)) void startGame({ ...opts, fresh: true, intro: true }, createShell()); // begun anew from an ending
   else {
     const shell = createShell();
-    title(shell, (fresh) => void startGame({ ...opts, fresh, intro: fresh }, shell));
+    title(shell, (fresh, difficulty) => void startGame({ ...opts, fresh, intro: fresh, difficulty }, shell));
   }
 }

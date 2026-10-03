@@ -8,6 +8,7 @@
  */
 
 import { TITLE_LINES } from '../data/intro';
+import { DIFFICULTIES, DIFFICULTY_IDS, type DifficultyId } from '../data/tuning';
 import { creditsPage } from './credits';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
@@ -28,17 +29,17 @@ export interface TitleOptions {
   byItself: Promise<void>;
   /** The title opens: its first key press or click, or by itself. */
   open(): void;
-  start(fresh: boolean, close: () => void): void;
+  start(fresh: boolean, close: () => void, difficulty?: DifficultyId): void;
 }
 
 export function showTitle(o: TitleOptions): void {
   const screen = createScreen(5, '#000', 'left:50%;top:47%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:86vh;overflow-x:hidden;overflow-y:auto;text-align:center'); // (a short window scrolls Settings and Controls, which were cut off at the top: playtest round 24)
   const logo = wordmark(); // the name cut in stone over its seventy treads (round 20), made once
   let begun = false;
-  const begin = (fresh: boolean): void => {
+  const begin = (fresh: boolean, difficulty?: DifficultyId): void => {
     if (begun) return;
     begun = true;
-    o.start(fresh, () => screen.close());
+    o.start(fresh, () => screen.close(), difficulty);
   };
   let first = true; // the lines under the name come up once the descent is done, the first time the menu is drawn
   const titleBlock = (p: HTMLElement, rise = false): void => {
@@ -72,7 +73,10 @@ export function showTitle(o: TitleOptions): void {
       first = false;
       const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
       const lines = o.slots();
-      if (lines[o.active - 1]) button(menu, 'Continue', () => begin(false));
+      if (lines[o.active - 1]) {
+        button(menu, 'Continue', () => begin(false));
+        el(menu, 'div', lines[o.active - 1]!, 'margin:-2px 0 8px 30px;font-size:12px;opacity:.5;letter-spacing:.5px'); // where that dream was left (round 38)
+      }
       button(menu, 'New game', () => screen.show(slotPage('new')));
       if (lines.some(Boolean)) button(menu, 'Load', () => screen.show(slotPage('load')));
       button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main), o.saveKeys)));
@@ -81,7 +85,25 @@ export function showTitle(o: TitleOptions): void {
       el(p, 'div', menuKeys().map(([k, w]) => `${k} ${w}`).join('   ·   '), 'opacity:.3;margin-top:26px;font-size:11px;letter-spacing:2px;text-transform:uppercase');
     },
   };
-  const into = (slot: number, fresh: boolean): void => (o.useSlot(slot), begin(fresh));
+  const into = (slot: number, fresh: boolean, difficulty?: DifficultyId): void => (o.useSlot(slot), begin(fresh, difficulty));
+  /** How hard the dream is: chosen here, once, as a new one begins, and never after (round 38). */
+  const difficultyPage = (slot: number): Page => ({
+    focus: DIFFICULTY_IDS.indexOf('deep'), // the dream as made
+    back: () => screen.show(slotPage('new')),
+    build(p) {
+      heading(p, 'HOW DEEP DO YOU SLEEP?');
+      const menu = el(p, 'div', '', 'width:420px;margin:0 auto;text-align:left');
+      for (const id of DIFFICULTY_IDS) {
+        button(menu, DIFFICULTIES[id].name, () => into(slot, true, id), true, DIFFICULTIES[id].note);
+      }
+      el(p, 'div', 'Only the blows of the dream\u2019s creatures change. This is chosen now, and cannot be changed once the dream has begun.', 'opacity:.5;font-size:12px;line-height:1.5;margin:14px auto 0;max-width:420px');
+      const note = el(p, 'div', DIFFICULTIES.deep.note, 'opacity:.75;font-size:13px;line-height:1.5;margin:10px auto 0;max-width:420px;min-height:3em');
+      note.className = 'hint';
+      note.dataset.def = DIFFICULTIES.deep.note;
+      const back = button(menu, 'Back', () => screen.show(slotPage('new')));
+      back.style.marginTop = '8px';
+    },
+  });
   /** The slots: to load one, or to begin a new game in one (a full one is asked about first). */
   const slotPage = (to: 'new' | 'load'): Page => ({
     back: () => screen.show(main),
@@ -92,7 +114,7 @@ export function showTitle(o: TitleOptions): void {
         const slot = k + 1;
         const label = `Slot ${slot}  ·  ${line ?? 'empty'}`;
         if (to === 'load') button(menu, label, () => into(slot, false), !!line);
-        else button(menu, label, () => (line ? screen.show(confirm(slot)) : into(slot, true)));
+        else button(menu, label, () => (line ? screen.show(confirm(slot)) : screen.show(difficultyPage(slot))));
       });
       button(menu, 'Back', () => screen.show(main));
     },
@@ -104,7 +126,7 @@ export function showTitle(o: TitleOptions): void {
       el(p, 'div', `This deletes the dream in slot ${slot}. The endings you have reached are remembered.`, 'opacity:.6;margin-bottom:14px');
       const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
       button(menu, 'No, go back', () => screen.show(slotPage('new')));
-      button(menu, 'Yes, begin anew', () => into(slot, true));
+      button(menu, 'Yes, begin anew', () => screen.show(difficultyPage(slot)));
     },
   });
   screen.show(gate);

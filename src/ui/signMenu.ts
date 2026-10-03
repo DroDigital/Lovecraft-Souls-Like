@@ -11,7 +11,7 @@
 import { getRegion } from '../data/regions';
 import { DESCENT_LINE } from '../data/loreLines';
 import { PLAYER_MOVES } from '../data/moves';
-import { GUN, LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, GUN, LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { WEAPONS } from '../data/weapons';
 import { canReinforce, edgeAt, reinforce, reinforceCost } from '../systems/arms';
 import { ENDINGS } from '../data/endings';
@@ -20,9 +20,13 @@ import { courtEndings, endGame } from '../systems/endings';
 import { canUpgradeGun, gunCost, gunEdge, upgradeGun } from '../systems/gun';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
+import { mainLead } from '../systems/lead';
 import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLevelCost } from '../systems/levels';
 import { worldLayout, type SignPlace } from '../world/placements';
-import { button, createScreen, el, heading, title, type Page } from './menuKit';
+import { deviceInUse } from '../core/device';
+import { GOLD } from './hudKit';
+import { button, createScreen, el, footer, heading, option, tabs, title, type Page } from './menuKit';
+import { menuKeys } from './menuKeys';
 import { keyLayout } from '../core/bindings';
 import { glyph } from './glyphs';
 
@@ -54,37 +58,91 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
   };
   const regionName = (id: string): string => getRegion(id)?.name ?? id;
 
-  function build(panel: HTMLElement): void {
-    const ow = g.overworld!;
-    const here = signPlace(ow.sign);
-    title(panel, (here?.name ?? 'Elder Sign').toUpperCase());
-    el(panel, 'div', 'You rest. Your health, sanity, Laudanum and Reagent are restored, the revolver is loaded from your spare rounds, and the creatures you killed are back.', 'opacity:.6;margin-top:2px');
-    const endings = courtEndings(g, ow.sign); // the choice the whole dream led to comes first (round 12)
-    if (endings.length) heading(panel, 'THE COURT OF AZATHOTH');
-    for (const id of endings) button(panel, ENDINGS[id].choice, () => void (close(), endGame(g, id)));
-    if (here?.dream) {
-      heading(panel, 'THE SLEEPER’S SIGN');
-      if (descentOpen(g)) button(panel, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g), DESCENT_LINE)));
-      else el(panel, 'div', 'The stair will not open while Keziah Mason troubles the sleepers, in the Witch House in Arkham.', 'opacity:.6;margin:4px 0 8px');
-    }
-    heading(panel, `${g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : ''}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  NEXT LEVEL ${nextLevelCost(g)}`);
+  const TABS = ['Grow', 'Arms', 'Travel'];
+  let tab = 0; // the tab open: Grow again at each rest
+  const REST = 'You rest. Your health, sanity, Laudanum and Reagent are restored, the revolver is loaded from your spare rounds, and the creatures you killed are back.';
+
+  /** Levels and the mind's upgrades: what the Echoes and the insight buy. */
+  function grow(panel: HTMLElement): void {
+    heading(panel, `BODY  ·  ECHOES  ·  NEXT LEVEL ${nextLevelCost(g)}`).style.margin = '0 0 4px';
     for (const id of LEVEL_IDS) {
-      button(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id));
+      const full = g.player.levels[id] >= LEVELS[id].max;
+      option(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}  ·  ${full ? 'fully grown' : `${nextLevelCost(g)} Echoes`}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id), full ? `${levelName(id)} is fully grown.` : `Not enough Echoes: the next level costs ${nextLevelCost(g)}, and you carry ${g.player.echoes}.`);
     }
-    heading(panel, `INSIGHT ${g.mind.insight}`);
+    heading(panel, `MIND  ·  INSIGHT ${g.mind.insight}`).style.margin = '12px 0 4px';
     for (const id of Object.keys(UPGRADES) as UpgradeId[]) {
       const u = UPGRADES[id];
       const level = g.mind.upgrades[id];
-      button(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${u.cost} insight`, () => (buyUpgrade(g, id), main.redraw?.()), level < u.max && g.mind.insight >= u.cost);
+      option(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${level < u.max ? `${u.cost} insight` : 'fully grown'}`, () => (buyUpgrade(g, id), main.redraw?.()), level < u.max && g.mind.insight >= u.cost, level >= u.max ? `${upgradeName(id)} is fully grown.` : `Not enough insight: ${u.cost}, and you hold ${g.mind.insight}. Insight comes of tomes, and of what the mind has borne.`);
     }
-    heading(panel, `ARMS  ·  STAR-STONES ${g.player.stones}`);
-    button(panel, 'Reinforce a weapon  ›', () => screen.show(reinforcePage));
+  }
+
+  /** Star-stones set into the weapons owned, and the revolver, a level at a time (round 12; round 38: a tab, no longer a page of its own). */
+  function arms(panel: HTMLElement): void {
+    el(panel, 'div', `Star-stones: ${g.player.stones}. The horrors slain for good leave them; each level set into a weapon adds ${Math.round(REINFORCE.damage * 100)}% to its blows, and into the revolver ${Math.round(GUN.level.damage * 100)}% to its shots, with a truer aim and a longer reach.`, 'opacity:.6;font-size:13px;line-height:1.5;padding:0 14px 8px');
+    const [level, price] = [g.player.gun, gunCost(g)];
+    const shot = (n: number): number => Math.round(PLAYER_MOVES.shoot.shot.damage * might(g, g.player.id) * gunEdge(n));
+    const whole = (n: number): number => GUN.reach.near + n * GUN.level.reach;
+    const gunName = `Revolver +${level}`;
+    option(panel, price === undefined ? `${gunName}  ·  fully set` : `${gunName} → +${level + 1}  ·  ${price} star-stone${price === 1 ? '' : 's'}  ·  shot ${shot(level)} → ${shot(level + 1)}  ·  whole to ${whole(level)} → ${whole(level + 1)} m`, () => (upgradeGun(g), main.redraw?.()), canUpgradeGun(g), price === undefined ? 'The revolver is fully set.' : `Not enough star-stones: ${price}, and you carry ${g.player.stones}.`);
+    for (const id of g.player.arms) {
+      const level = g.player.reinforced[id];
+      const cost = reinforceCost(g, id);
+      const light = (n: number): number => Math.round((WEAPONS[id].moves.light1?.hit?.damage ?? 0) * might(g, g.player.id) * edgeAt(n));
+      const name = `${WEAPONS[id].name} +${level}`;
+      const label = cost === undefined ? `${name}  ·  fully reinforced` : `${name} → +${level + 1}  ·  ${cost} star-stone${cost === 1 ? '' : 's'}  ·  light ${light(level)} → ${light(level + 1)}`;
+      option(panel, label, () => (reinforce(g, id), main.redraw?.()), canReinforce(g, id), cost === undefined ? `${WEAPONS[id].name} is fully reinforced.` : `Not enough star-stones: ${cost}, and you carry ${g.player.stones}.`);
+    }
+  }
+
+  /** The regions with signs found: one line each rather than every sign in one long list (round 12). */
+  function travelTab(panel: HTMLElement): void {
     const regions = found();
-    const count = [...regions.values()].reduce((n, l) => n + l.length, 0);
-    heading(panel, 'TRAVEL');
-    button(panel, count ? `Travel to another Elder Sign  ·  ${count} found` : 'No other Elder Sign found yet', () => screen.show(travelPage), count > 0);
-    heading(panel, '');
-    button(panel, `Leave  (${glyph('interact')})`, close);
+    if (!regions.size) return void el(panel, 'div', 'No other Elder Sign found yet. Each you find, and rest at, can be travelled to from any other.', 'opacity:.6;line-height:1.5;padding:0 14px');
+    el(panel, 'div', 'Choose a region, then the Elder Sign to wake beside.', 'opacity:.6;font-size:13px;padding:0 14px 6px');
+    for (const [region, signs] of regions) {
+      if (signs.length === 1) button(panel, `${regionName(region)}  ·  ${signs[0].name}`, () => journey(signs[0]));
+      else button(panel, `${regionName(region)}  ·  ${signs.length} signs  ›`, () => screen.show(regionPage(region)));
+    }
+  }
+
+  const pinned = (panel: HTMLElement): HTMLElement => {
+    const box = el(panel, 'div');
+    box.dataset.pin = ''; // stays above the tabs' body
+    return box;
+  };
+
+  function build(panel: HTMLElement): void {
+    const ow = g.overworld!;
+    const here = signPlace(ow.sign);
+    panel.dataset.body = '366';
+    title(panel, (here?.name ?? 'Elder Sign').toUpperCase());
+    const lead = `${g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : ''}${g.player.difficulty === DEFAULT_DIFFICULTY ? '' : `${DIFFICULTIES[g.player.difficulty].name.toUpperCase()}  ·  `}`;
+    const stat = el(panel, 'div', `${lead}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  INSIGHT ${g.mind.insight}  ·  STAR-STONES ${g.player.stones}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:2px;color:${GOLD}`);
+    stat.dataset.pin = '';
+    const next = mainLead(g)?.text; // what the story asks next: a resting place is where it is thought of (round 38)
+    if (next) {
+      const line = el(panel, 'div', `NEXT  ·  ${next}`, `margin:-6px 14px 10px;text-align:center;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.7`);
+      [line.title, line.dataset.pin] = [next, ''];
+    }
+    const endings = courtEndings(g, ow.sign); // the choice the whole dream led to comes first (round 12)
+    if (endings.length) {
+      const box = pinned(panel);
+      heading(box, 'THE COURT OF AZATHOTH').style.marginTop = '0';
+      for (const id of endings) button(box, ENDINGS[id].choice, () => void (close(), endGame(g, id)));
+    }
+    if (here?.dream) {
+      const box = pinned(panel);
+      heading(box, 'THE SLEEPER’S SIGN').style.marginTop = '0';
+      if (descentOpen(g)) button(box, 'Descend the Seventy Steps of Light Slumber', () => (close(), go('THE SEVENTY STEPS OF LIGHT SLUMBER', () => dream(g), DESCENT_LINE)));
+      else el(box, 'div', 'The stair will not open while Keziah Mason troubles the sleepers, in the Witch House in Arkham.', 'opacity:.6;margin:4px 0 8px;font-size:13px');
+    }
+    tabs(panel, TABS, tab, (i) => ((tab = i), main.redraw?.()), main);
+    if (tab === 0) grow(panel);
+    else if (tab === 1) arms(panel);
+    else travelTab(panel);
+    const pad = deviceInUse() === 'pad';
+    footer(panel, REST, [...menuKeys(true).slice(0, 3), [pad ? glyph('back') : `${glyph('interact')} / ${glyph('back')}`, 'Back']], close);
   }
 
   // E and Esc leave without reaching the game (E would rest again at once).
@@ -95,54 +153,16 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
       return [keyLayout.interact];
     },
   };
-  /** Star-stones set into the weapons owned, a level at a time (round 12). */
-  const reinforcePage: Page = {
-    back: () => screen.show(main),
-    build(panel) {
-      title(panel, 'REINFORCE');
-      el(panel, 'div', `Star-stones: ${g.player.stones}. The horrors slain for good leave them; each level set into a weapon adds ${Math.round(REINFORCE.damage * 100)}% to its blows, and into the revolver ${Math.round(GUN.level.damage * 100)}% to its shots, with a truer aim and a longer reach.`, 'opacity:.6;margin:2px 0 8px');
-      const [level, price] = [g.player.gun, gunCost(g)];
-      const shot = (n: number): number => Math.round(PLAYER_MOVES.shoot.shot.damage * might(g, g.player.id) * gunEdge(n));
-      const whole = (n: number): number => GUN.reach.near + n * GUN.level.reach;
-      const gunName = `Revolver +${level}`;
-      button(panel, price === undefined ? `${gunName}  ·  fully set` : `${gunName} → +${level + 1}  ·  ${price} star-stone${price === 1 ? '' : 's'}  ·  shot ${shot(level)} → ${shot(level + 1)}  ·  whole to ${whole(level)} → ${whole(level + 1)} m`, () => (upgradeGun(g), reinforcePage.redraw?.()), canUpgradeGun(g));
-      for (const id of g.player.arms) {
-        const level = g.player.reinforced[id];
-        const cost = reinforceCost(g, id);
-        const light = (n: number): number => Math.round((WEAPONS[id].moves.light1?.hit?.damage ?? 0) * might(g, g.player.id) * edgeAt(n));
-        const name = `${WEAPONS[id].name} +${level}`;
-        const label = cost === undefined ? `${name}  ·  fully reinforced` : `${name} → +${level + 1}  ·  ${cost} star-stone${cost === 1 ? '' : 's'}  ·  light ${light(level)} → ${light(level + 1)}`;
-        button(panel, label, () => (reinforce(g, id), reinforcePage.redraw?.()), canReinforce(g, id));
-      }
-      heading(panel, '');
-      button(panel, `Back  (${glyph('back')})`, reinforcePage.back!);
-    },
-  };
-  /** The regions with signs found: one line each rather than every sign in one long list (round 12). */
-  const travelPage: Page = {
-    back: () => screen.show(main),
-    build(panel) {
-      title(panel, 'TRAVEL');
-      el(panel, 'div', 'Choose a region, then the Elder Sign to wake beside.', 'opacity:.6;margin:2px 0 8px');
-      for (const [region, signs] of found()) {
-        if (signs.length === 1) button(panel, `${regionName(region)}  ·  ${signs[0].name}`, () => journey(signs[0]));
-        else button(panel, `${regionName(region)}  ·  ${signs.length} signs  ›`, () => screen.show(regionPage(region)));
-      }
-      heading(panel, '');
-      button(panel, `Back  (${glyph('back')})`, travelPage.back!);
-    },
-  };
   const regionPages = new Map<string, Page>(); // one each, so coming back finds the focus where it was
   const regionPage = (region: string): Page => {
     let p = regionPages.get(region);
     if (!p) {
       const page: Page = {
-        back: () => screen.show(travelPage),
+        back: () => screen.show(main),
         build(panel) {
           title(panel, regionName(region).toUpperCase());
           for (const s of found().get(region) ?? []) button(panel, s.name, () => journey(s));
-          heading(panel, '');
-          button(panel, `Back  (${glyph('back')})`, page.back!);
+          footer(panel, '', menuKeys(), page.back);
         },
       };
       regionPages.set(region, (p = page));
@@ -150,7 +170,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     return p;
   };
 
-  g.events.on('Rested', () => screen.show(main));
+  g.events.on('Rested', () => ((tab = 0), screen.show(main)));
   return {
     get open() {
       return screen.open;

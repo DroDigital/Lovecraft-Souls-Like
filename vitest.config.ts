@@ -17,6 +17,10 @@ export const AUDITS = [
   'tests/balance.test.ts',
 ];
 
+// Round 38: several tests build a whole world (npcLife, worldDeath, worldLights, nightWeather, outerGods, wanderers, overheard) and
+// took longer than the default five seconds whenever the machine was busy (CI, or a browser open beside it): they failed by the clock, not the code.
+const TIMEOUT = 30_000;
+
 export default defineConfig(({ mode }) => ({
-  test: mode === 'audit' ? { include: AUDITS } : mode === 'all' ? {} : { exclude: [...configDefaults.exclude, ...AUDITS] },
+  test: { testTimeout: TIMEOUT, ...(mode === 'audit' ? { include: AUDITS } : mode === 'all' ? {} : { exclude: [...configDefaults.exclude, ...AUDITS] }) },
 }));
