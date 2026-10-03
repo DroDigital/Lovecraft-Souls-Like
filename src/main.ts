@@ -222,6 +222,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
         input.sensitivity = settings.sensitivity;
         input.invertY = settings.invertY > 0.5;
         FEEL.shake = settings.shake;
+        game.assist.foeBlows = settings.foeBlows;
         pipeline.post.uniforms.uGamma.value = 1 / settings.brightness;
         state.cap = settings.fxCap;
         if (lowRes !== state.enabled.pixelate || scale !== settings.resolution) {

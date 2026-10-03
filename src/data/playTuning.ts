@@ -71,6 +71,7 @@ export const SETTINGS = {
   fog: [0, 1, 0.25, 1], // the volumetric fog's strength (0: none, for slower machines; round 16)
   shadows: [0, 1, 1, 1], // 0: neither the moon nor the lantern casts shadows (a second and a third pass over the scene each frame, for slower machines; round 34)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
+  foeBlows: [0.5, 1.5, 0.25, 1], // how hard the dream's creatures strike, × their own (round 38: an assist and a harder road; the Echoes they leave do not change)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
   cutscenes: [0, 1, 1, 1], // 0: none play: a new game's wake, a horror's arrival and fall, an ending's (round 20)
   volume: [0, 1, 0.05, 0.7], // everything

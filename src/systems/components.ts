@@ -289,6 +289,8 @@ export interface Game {
   lock: LockState;
   rng: Rng;
   frame: number;
+  /** What the player has set to make the dream kinder or harder (round 38; main.ts hands it in from the settings): the weight of every enemy's blow. */
+  assist: { foeBlows: number };
   reality: Reality;
   overworld?: Overworld;
   /** How well lit the ground at a point is by the world's lamps, fires and torches, 0..1 (handed in by the renderer, which knows where they are; the dark when absent: sanity.ts mends faster in it). */

@@ -90,6 +90,7 @@ function baseGame(world: CollisionWorld, spawn: Place, seed: number): Game {
     world,
     events: createEventBus<GameEvents>(),
     player: { id, buffer: createBuffer(), dodgeHeld: -1, sprinting: false, blockHeld: false, blockRaised: false, echoes: 0, levels: { vigour: 0, endurance: 0, might: 0 }, arms: ['cane'], weapon: 'cane', stones: 0, reinforced: unreinforced(), checkpoint: { ...spawn }, laudanum: LAUDANUM.doses, reagent: REAGENT.doses, reagentMax: REAGENT.doses, oil: 0, ammo: GUN.chamber, rounds: GUN.start, gun: 0, cycle: 0, steady: 0, mended: 0, listening: null, kneeling: null, fogPass: null },
+    assist: { foeBlows: 1 },
     mind: createMind(),
     camera: createCameraRig(spawn.yaw),
     lock: { target: null, unseen: 0 },

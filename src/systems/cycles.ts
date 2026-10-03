@@ -79,10 +79,10 @@ export function applyCarry(g: Game, c: Carry): void {
 /** How much hardier this journey's foes are than the first's. */
 export const foeHealth = (g: Pick<Game, 'player'>): number => 1 + NEW_GAME_PLUS.health * g.player.cycle;
 
-/** The weight this journey adds to a blow from `attacker` (1 for the investigator and their allies). */
+/** The weight this journey, and the player's setting, put on a blow from `attacker` (1 for the investigator and their allies). */
 export function foeDamage(g: Game, attacker: Entity): number {
-  if (g.player.cycle <= 0 || g.ecs.c.combatant.get(attacker)?.faction !== 'enemy') return 1;
-  return 1 + NEW_GAME_PLUS.damage * g.player.cycle;
+  if (g.ecs.c.combatant.get(attacker)?.faction !== 'enemy') return 1;
+  return g.assist.foeBlows * (1 + NEW_GAME_PLUS.damage * g.player.cycle); // (round 38: the player's own setting, and this journey's weight)
 }
 
 /** The Echoes this journey's foes leave, against the first's. */

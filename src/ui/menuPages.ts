@@ -23,6 +23,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
   fog: ['Volumetric fog', (v) => (v > 0 ? pct(v) : 'Off')],
   shadows: ['Shadows', (v) => (v > 0.5 ? 'On' : 'Off')],
   uiScale: ['Text & HUD', (v) => `×${v.toFixed(2)}`],
+  foeBlows: ['Foe damage', pct],
   shake: ['Screen shake', pct],
   cutscenes: ['Cutscenes', (v) => (v > 0.5 ? 'On' : 'Off')],
   volume: ['Volume', pct],
@@ -35,7 +36,7 @@ const LABELS: Record<SettingId, [label: string, show: (v: number) => string]> = 
 const TABS: readonly (readonly [string, readonly SettingId[]])[] = [
   ['Display', ['resolution', 'brightness', 'fog', 'shadows', 'uiScale']],
   ['Sound', ['volume', 'music', 'sfx', 'ambience', 'speech']],
-  ['Play', ['sensitivity', 'invertY', 'shake', 'fxCap', 'cutscenes']],
+  ['Play', ['sensitivity', 'invertY', 'foeBlows', 'shake', 'fxCap', 'cutscenes']],
 ];
 const TAB_NAMES = [...TABS.map(([n]) => n), 'Controls'];
 const HINTS: Partial<Record<SettingId, string>> = {
@@ -51,6 +52,7 @@ const HINTS: Partial<Record<SettingId, string>> = {
   speech: 'The voices of the people and the horrors who speak.',
   sensitivity: 'How fast the camera turns with the mouse or the stick.',
   invertY: 'Looking up and down, reversed.',
+  foeBlows: 'How hard the dream\u2019s creatures strike, against their own. Less, to walk its story at ease; more, for a harder road. The Echoes they leave are the same.',
   shake: 'How hard the screen shakes at a blow or a roar.',
   fxCap: 'Caps every effect of a failing mind (warping, whispers, wrong stars), for comfort.',
   cutscenes: 'The camera-led scenes: a horror\u2019s arrival and fall, the endings. Esc skips one either way.',
