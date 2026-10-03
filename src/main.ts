@@ -62,6 +62,7 @@ import { startLookTest } from './ui/lookTest';
 import { nextFrame, spriteAtlas } from './ui/loading';
 import { createMapPainter } from './ui/mapPainter';
 import { createMapScreen } from './ui/mapScreen';
+import { mainLead } from './systems/lead';
 import { createPauseMenu } from './ui/pauseMenu';
 import { createDialogue } from './ui/dialogue';
 import { showIntro, type Intro } from './ui/intro';
@@ -142,6 +143,7 @@ async function startGame(opts: StartOptions, shell: Shell): Promise<void> {
     map: opts.arena ? undefined : () => map.show(),
     journal: opts.arena ? undefined : (back, show) => journalPage(game, back, show),
     arms: (back, show) => armsPage(game, back, show),
+    next: opts.arena ? undefined : () => mainLead(game)?.text ?? null,
     achievements: opts.arena ? undefined : (back) => achievementsPage(store, back),
     quit: () => void veil.cover('', 0.8).then(() => (location.href = location.pathname)),
     held: () => cinema.active || journeys.busy || building, // a cutscene, the veil or the making of the world has the screen: leaving the window then must not pause (round 31)

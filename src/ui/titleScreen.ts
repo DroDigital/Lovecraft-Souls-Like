@@ -72,7 +72,10 @@ export function showTitle(o: TitleOptions): void {
       first = false;
       const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
       const lines = o.slots();
-      if (lines[o.active - 1]) button(menu, 'Continue', () => begin(false));
+      if (lines[o.active - 1]) {
+        button(menu, 'Continue', () => begin(false));
+        el(menu, 'div', lines[o.active - 1]!, 'margin:-2px 0 8px 30px;font-size:12px;opacity:.5;letter-spacing:.5px'); // where that dream was left (round 38)
+      }
       button(menu, 'New game', () => screen.show(slotPage('new')));
       if (lines.some(Boolean)) button(menu, 'Load', () => screen.show(slotPage('load')));
       button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main), o.saveKeys)));
