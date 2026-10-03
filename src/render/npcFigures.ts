@@ -128,14 +128,19 @@ export function npcFigure(id: string): Figure {
   const head = [
     box(0.2, 0.24, 0.22, 0, 0.13, 0.01, pale), box(0.04, 0.06, 0.05, 0, 0.11, 0.135, shade(pale, 0.92)), // face, nose
     box(0.17, 0.025, 0.03, 0, 0.18, 0.12, shade(hair, 0.9)), // brow
-    box(0.035, 0.03, 0.02, -0.05, 0.15, 0.121, dark), box(0.035, 0.03, 0.02, 0.05, 0.15, 0.121, dark), // eyes
+    box(0.045, 0.026, 0.02, -0.05, 0.15, 0.121, shade(BASE.bone, 1.15)), box(0.045, 0.026, 0.02, 0.05, 0.15, 0.121, shade(BASE.bone, 1.15)), // eyes: the white of them,
+    box(0.02, 0.024, 0.022, -0.05, 0.15, 0.124, dark), box(0.02, 0.024, 0.022, 0.05, 0.15, 0.124, dark), // and the dark of them
     box(0.03, 0.06, 0.05, -0.108, 0.13, 0, shade(pale, 0.9)), box(0.03, 0.06, 0.05, 0.108, 0.13, 0, shade(pale, 0.9)), // ears
     box(0.17, 0.05, 0.2, 0, 0.03, 0.02, shade(pale, 0.88)), // jaw
     ...hairOf(look.hat === 'none' || who.cut !== 'short' ? who.cut : 'short', hair),
   ];
   if (look.beard) head.push(box(0.19, 0.12, 0.08, 0, 0.02, 0.1, hair), box(0.12, 0.1, 0.07, 0, -0.06, 0.1, shade(hair, 0.95)), box(0.1, 0.03, 0.03, 0, 0.075, 0.14, shade(hair, 1.05)));
   else if (has('moustache')) head.push(box(0.12, 0.03, 0.04, 0, 0.075, 0.135, hair));
-  if (has('spectacles') || look.glasses) head.push(box(0.07, 0.06, 0.012, -0.05, 0.15, 0.13, shade(BASE.charcoal, 1.4)), box(0.07, 0.06, 0.012, 0.05, 0.15, 0.13, shade(BASE.charcoal, 1.4)), box(0.2, 0.012, 0.012, 0, 0.16, 0.13, shade(BASE.charcoal, 1.4)));
+  if (has('spectacles') || look.glasses) { // thin rims round the eyes, a bridge and the arms to the ears (round 38: they were two solid lenses and a bar across the face, and read as sunglasses)
+    const rim = shade(BASE.charcoal, 1.6);
+    for (const x of [-0.05, 0.05]) head.push(box(0.08, 0.008, 0.012, x, 0.18, 0.13, rim), box(0.08, 0.008, 0.012, x, 0.12, 0.13, rim), box(0.008, 0.06, 0.012, x - 0.04, 0.15, 0.13, rim), box(0.008, 0.06, 0.012, x + 0.04, 0.15, 0.13, rim));
+    head.push(box(0.03, 0.008, 0.012, 0, 0.165, 0.13, rim), box(0.01, 0.008, 0.12, -0.1, 0.165, 0.07, rim), box(0.01, 0.008, 0.12, 0.1, 0.165, 0.07, rim));
+  }
   if (has('pipe')) head.push(box(0.025, 0.025, 0.12, 0.04, 0.05, 0.17, leather), box(0.05, 0.06, 0.05, 0.04, 0.08, 0.235, dark));
   part(f, f.head, mergeGeometries(head), 'cloth');
   const h = hat(look, dark, shade(look.coat === 'black' ? BASE.rust : BASE.charcoal, 1.4));

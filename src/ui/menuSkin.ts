@@ -1,16 +1,12 @@
 /**
- * The menus' skins (round 38; the panel was a flat box): a panel is drawn behind its words on a canvas of its
- * own, in the shape of something that belongs to the dream (a sheet of burnt paper, a gothic window, a standing
- * stone, a tattered shroud, a bank of mist), with art that moves while it is open and its own way of opening.
- * The panel itself keeps its words and its scrolling; the skin gives it its padding, its outline and its look.
- * `?skin=<id>` chooses one (and is remembered); `?debug` lets a script seek an opening (`window.skins`).
+ * The menus' skin (round 38; the panel was a flat box): a panel is drawn behind its words on a canvas of its own,
+ * with art that moves while it is open and its own way of opening. Five were made (burnt paper, a gothic window,
+ * a standing stone, a tattered shroud, mist) and one chosen: the mist, which has no frame, no edge and no box, only
+ * a dark ground feathered into drifting mist. The panel itself keeps its words and its scrolling; the skin gives
+ * it its padding and its look. `?debug` lets a script seek an opening (`window.skins`).
  */
 
-import { arch } from './skins/arch';
 import { mist } from './skins/mist';
-import { paper } from './skins/paper';
-import { shroud } from './skins/shroud';
-import { stone } from './skins/stone';
 
 export interface SkinArt {
   /** Draws the art for `ms` since the screen opened; (0,0) is the panel's top left, and the art may reach `bleed` past it. `open` is 0 to 1 over the opening. */
@@ -29,21 +25,8 @@ export interface Skin {
   build(w: number, h: number): SkinArt;
 }
 
-export const SKINS: readonly Skin[] = [paper, arch, stone, shroud, mist];
-const KEY = 'seventy-steps/menu-skin';
-
-/** The skin in use: `?skin=` (kept for next time), else the last chosen, else the first. */
-export function currentSkin(): Skin {
-  let id: string | null = null;
-  try {
-    id = new URLSearchParams(location.search).get('skin');
-    if (id && SKINS.some((s) => s.id === id)) localStorage.setItem(KEY, id);
-    else id = localStorage.getItem(KEY);
-  } catch {
-    // No storage: the first.
-  }
-  return SKINS.find((s) => s.id === id) ?? SKINS[0];
-}
+/** The menus' one skin (round 38: chosen from five that were shown: burnt paper, a gothic window, a standing stone, a shroud, and this). */
+export const SKIN: Skin = mist;
 
 export const BASE = 'translate(-50%,-50%)'; // the panel's resting transform (menuKit's panelCss)
 const FPS = 30;

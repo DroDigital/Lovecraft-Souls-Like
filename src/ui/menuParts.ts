@@ -123,12 +123,20 @@ export function slider(parent: HTMLElement, label: string, [min, max, step]: rea
   return input;
 }
 
+let tabbedAt = -1e9;
+/** Whether a tab was chosen this moment (the page drawn now is its change, not another page). */
+export const tabJustChanged = (): boolean => performance.now() - tabbedAt < 80;
+
 /** A row of tabs under a page's title: the one open is lit; choosing another calls `pick`. PageUp and PageDown (the bumpers) step along them. */
 export function tabs(parent: HTMLElement, names: readonly string[], open: number, pick: (i: number) => void, page: Page): void {
+  const go = (i: number): void => {
+    tabbedAt = performance.now(); // the page drawn next comes in by its body only
+    pick(i);
+  };
   const row = el(parent, 'div', '', `display:flex;justify-content:center;flex-wrap:wrap;margin:0 0 12px;border-bottom:1px solid ${ACCENT}2a`);
   row.dataset.pin = '';
-  names.forEach((n, i) => button(row, n, () => pick(i)).classList.add('tab', ...(i === open ? ['on'] : [])));
-  page.tab = (by) => pick((open + by + names.length) % names.length);
+  names.forEach((n, i) => button(row, n, () => go(i)).classList.add('tab', ...(i === open ? ['on'] : [])));
+  page.tab = (by) => go((open + by + names.length) % names.length);
   queueMicrotask(() => { // the focus rests on the tab that is open, not the first
     const on = row.querySelector<HTMLElement>('.on');
     if (on && (document.activeElement as HTMLElement | null)?.classList.contains('tab')) on.focus({ preventScroll: true });

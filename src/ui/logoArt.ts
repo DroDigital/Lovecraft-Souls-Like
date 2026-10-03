@@ -2,22 +2,20 @@
  * The title's wordmark drawn (playtest round 20; logoPlan.ts says when each part takes light). The
  * letters are the period face's capitals, rasterised once at the wordmark's own coarse pixels and
  * cut like stone: a lit lip along their top and left, a dark one along the bottom and right, grain,
- * pits and chipped edges, a shadow thrown down and to the right, a purple halo about each. The seventy
- * treads are rows of pixels narrowing into the dark; a light comes down them; a small Elder Sign
- * crowns the words; motes climb the flight. Each frame is written straight into the pixels.
+ * pits and chipped edges, a shadow thrown down and to the right, a purple halo about each. A small Elder
+ * Sign crowns the words (round 38: the flight of treads under them is gone). Each frame is written straight into the pixels.
  */
 
 import { fbm } from '../core/noise';
 import { hash2 } from '../core/rng';
 import { SERIF } from './hudKit';
-import { glitchAt, headAt, LOGO, letterLight, sigilLight, tread, treadLight } from './logoPlan';
+import { glitchAt, LOGO, letterLight, sigilLight } from './logoPlan';
 
 const [W, H] = LOGO.size;
 type Rgb = readonly [number, number, number];
 
 const STONE: Rgb = [217, 208, 184]; // the bone of the game's palette
 const GLOW: Rgb = [158, 56, 255]; // Cosmic Purple, brightened
-const mix = (a: Rgb, b: Rgb, t: number): Rgb => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 interface Px {
   i: number;
@@ -138,20 +136,6 @@ function sigil(): { core: number[]; halo: Halo[] } {
   return { core: [...core], halo };
 }
 
-/** The treads: each a row of pixels, wider nearer, its two ends marked, and the riser under it where the next tread lies clear of it. */
-function flight(): { tread: { i: number; edge: boolean }[]; riser: number[] }[] {
-  const rows = Array.from({ length: LOGO.steps }, (_, k) => Math.round(tread(k).y));
-  return rows.map((row, k) => {
-    const { half } = tread(k);
-    const [x0, x1] = [Math.round(W / 2 - half), Math.round(W / 2 + half)];
-    const clear = k < rows.length - 1 && rows[k + 1] - row >= 2;
-    return {
-      tread: Array.from({ length: x1 - x0 + 1 }, (_, n) => ({ i: row * W + x0 + n, edge: n === 0 || x0 + n === x1 })),
-      riser: clear ? Array.from({ length: x1 - x0 + 1 }, (_, n) => (row + 1) * W + x0 + n) : [],
-    };
-  });
-}
-
 export interface LogoArt {
   /** Writes the frame at `t` seconds into RGBA pixels (W × H). */
   paint(data: Uint8ClampedArray, t: number): void;
@@ -160,7 +144,6 @@ export interface LogoArt {
 export function buildLogoArt(): LogoArt {
   const words = letters();
   const crown = sigil();
-  const treads = flight();
   const acc = new Float32Array(W * H * 3);
   const set = (i: number, c: Rgb, k: number): void => void ((acc[i * 3] = c[0] * k), (acc[i * 3 + 1] = c[1] * k), (acc[i * 3 + 2] = c[2] * k));
   const add = (i: number, c: Rgb, k: number): void => void ((acc[i * 3] += c[0] * k), (acc[i * 3 + 1] += c[1] * k), (acc[i * 3 + 2] += c[2] * k));
@@ -169,7 +152,8 @@ export function buildLogoArt(): LogoArt {
   const ambient: Halo[] = []; // the glow behind the words
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const a = Math.exp(-(((x - cx) / 96) ** 2 + ((y - 52) / 34) ** 2));
+      const edge = Math.min(x, W - 1 - x, y, H - 1 - y); // the glow dies before the picture's edge, which must not show as a box
+      const a = Math.exp(-(((x - cx) / 66) ** 2 + ((y - 44) / 30) ** 2)) * Math.min(1, edge / 40) ** 2;
       if (a > 0.02) ambient.push({ i: y * W + x, a });
     }
   }
@@ -179,26 +163,6 @@ export function buildLogoArt(): LogoArt {
       acc.fill(0);
       const lit = Math.min(1, letterLight(0, 0, t) + letterLight(1, 0, t)); // the glow behind the words rises with the first letters
       for (const a of ambient) add(a.i, GLOW, a.a * 0.16 * lit);
-      treads.forEach(({ tread: row, riser }, k) => {
-        const light = treadLight(k, t);
-        if (light <= 0.002) return;
-        const c = mix(STONE, GLOW, (k / (treads.length - 1)) ** 0.8);
-        const fade = 1 - 0.55 * (k / (treads.length - 1));
-        for (const i of riser) dim(i, 0.4); // the shadow the tread throws on the riser below it
-        for (const p of row) add(p.i, c, light * fade * (p.edge ? 1.5 : 1));
-      });
-      const head = headAt(t); // the light coming down, and at the bottom the glow it blooms into
-      if (head > 0) {
-        const { y } = tread(Math.min(head, LOGO.steps - 1));
-        const bloom = head < LOGO.steps ? 1 : 1 + 0.25 * Math.sin(t * 2.4);
-        for (let dy = -7; dy <= 7; dy++) {
-          for (let dx = -7; dx <= 7; dx++) {
-            const [px, py] = [Math.round(cx + dx), Math.round(y + dy)];
-            if (py < 0 || py >= H) continue;
-            add(py * W + px, mix(STONE, GLOW, 0.4), (Math.max(0, 1 - Math.hypot(dx, dy) / 7) ** 2) * 0.9 * bloom);
-          }
-        }
-      }
       const shudder = glitchAt(t);
       const stir = Math.ceil(2.4 * shudder); // pixels the colours part by
       words.forEach((word, w) =>
@@ -221,23 +185,15 @@ export function buildLogoArt(): LogoArt {
         for (const h of crown.halo) add(h.i, GLOW, h.a * 0.9 * Math.min(1, seal));
         for (const i of crown.core) set(i, STONE, Math.min(1.5, seal * 1.1));
       }
-      const climb = Math.min(1, Math.max(0, (t - 3) / 2)); // motes climbing the flight out of the dark
-      if (climb > 0) {
-        for (let j = 0; j < 26; j++) {
-          const s = (t * (0.05 + 0.06 * hash2(j, 3, 7)) + hash2(j, 1, 7)) % 1;
-          const y = 130 - s * 104;
-          const reach = Math.min(88, 3 + Math.max(0, 132 - y) * 1.6);
-          const x = Math.round(cx + (hash2(j, 2, 7) - 0.5) * 1.8 * reach + Math.sin(t * 0.7 + j * 1.7) * 2);
-          const a = Math.min(1, s * 5) * Math.sqrt(1 - s) * 0.7 * climb;
-          if (x >= 0 && x < W) add(Math.round(y) * W + x, mix(STONE, GLOW, hash2(j, 4, 7)), a);
-        }
-      }
       const flicker = 0.97 + 0.03 * hash2(Math.floor(t * 12), 5, 3);
       for (let i = 0; i < W * H; i++) {
-        data[i * 4] = Math.min(255, acc[i * 3] * flicker);
-        data[i * 4 + 1] = Math.min(255, acc[i * 3 + 1] * flicker);
-        data[i * 4 + 2] = Math.min(255, acc[i * 3 + 2] * flicker);
-        data[i * 4 + 3] = 255;
+        const [r, g, b] = [Math.min(255, acc[i * 3] * flicker), Math.min(255, acc[i * 3 + 1] * flicker), Math.min(255, acc[i * 3 + 2] * flicker)];
+        const alpha = Math.min(255, Math.max(r, g, b) * 1.4); // black is clear: the canvas is no box on the dark (round 38)
+        const lift = alpha > 0 ? 255 / alpha : 0; // straight colour, so that over black it is the colour it was
+        data[i * 4] = Math.min(255, r * lift);
+        data[i * 4 + 1] = Math.min(255, g * lift);
+        data[i * 4 + 2] = Math.min(255, b * lift);
+        data[i * 4 + 3] = alpha;
       }
     },
   };

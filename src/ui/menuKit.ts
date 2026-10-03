@@ -13,8 +13,8 @@
 import { useDevice, onDeviceChange } from '../core/device';
 import { activePad, muteHeldPad, type PadReading } from '../core/pads';
 import { SERIF } from './hudKit';
-import { CSS, frame, INK } from './menuParts';
-import { attachSkin, currentSkin } from './menuSkin';
+import { CSS, frame, INK, tabJustChanged } from './menuParts';
+import { attachSkin, SKIN } from './menuSkin';
 import { SCALED_LAYER } from './uiScale';
 
 export interface Page {
@@ -85,6 +85,21 @@ function move(panel: HTMLElement, by: number): void {
   else if (list.length) list[i < 0 ? 0 : (i + by + list.length) % list.length].focus();
   else return;
   sound();
+}
+
+/**
+ * How a page comes in when the screen is already open (round 38): quick and soft, out of a little blur and a little
+ * lower than it will stand, each part a moment after the one above it. A tab changes only the body.
+ */
+function bring(panel: HTMLElement, tab: boolean): void {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const parts = tab ? [...panel.querySelectorAll<HTMLElement>(':scope > .scroll')] : [...panel.children].filter((c): c is HTMLElement => c instanceof HTMLElement);
+  parts.forEach((part, i) =>
+    part.animate(
+      [{ opacity: 0, filter: 'blur(6px)', transform: 'translateY(8px)' }, { opacity: 1, filter: 'blur(0)', transform: 'none' }],
+      { duration: tab ? 150 : 190, delay: tab ? 0 : Math.min(i, 5) * 24, easing: 'cubic-bezier(.2,.7,.25,1)', fill: 'backwards' },
+    ),
+  );
 }
 
 function back(top: Entry): void {
@@ -179,7 +194,7 @@ function startOnce(): void {
 
 /** A screen at stacking level `z`; `panelCss` places and styles its panel. `keepLock`: the mouse stays captured while it is open (a talk, which is read and answered by key: round 31, so leaving one needs no click to look about again). */
 export function createScreen(z: number, backdrop = '#050506dd', panelCss?: string, scaled = true, keepLock = false): Screen {
-  const skin = panelCss === undefined && scaled ? currentSkin() : null; // the standard panel takes the menus' skin (menuSkin.ts); one with its own look does not
+  const skin = panelCss === undefined && scaled ? SKIN : null; // the standard panel takes the menus' skin (menuSkin.ts); one with its own look does not
   panelCss ??= `left:50%;top:50%;transform:translate(-50%,-50%);box-sizing:border-box;width:min(594px,92vw);max-height:${skin ? (skin.maxVh ?? 95) : 90}vh;overflow:auto;${skin ? `padding:${skin.pad}` : frame()}`;
   startOnce();
   const root = document.createElement('div');
@@ -219,6 +234,8 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss?: strin
       page.redraw = () => void (entry?.page === page && self.show(page));
       panel.replaceChildren();
       page.build(panel);
+      const tabbed = tabJustChanged();
+      if (entry && (!same || tabbed)) bring(panel, tabbed); // another page, or another tab: it comes in (round 38)
       root.style.display = 'block';
       if (entry) entry.page = page;
       else {

@@ -1,45 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { glitchAt, headAt, LOGO, letterLight, letterTime, SETTLED, sigilLight, tread, treadLight } from '../src/ui/logoPlan';
+import { glitchAt, LOGO, letterLight, letterTime, SETTLED, sigilLight } from '../src/ui/logoPlan';
 
 const [W, H] = LOGO.size;
 
 describe('the title’s wordmark (round 20: ui/logoPlan.ts)', () => {
-  it('seventy treads run down and in, each within the picture, closing up toward the dark', () => {
-    let [y, half] = [-1, Infinity];
-    let gap = Infinity;
-    for (let k = 0; k < LOGO.steps; k++) {
-      const t = tread(k);
-      expect(t.y).toBeGreaterThanOrEqual(y);
-      expect(t.half).toBeLessThan(half);
-      expect(Math.round(t.y)).toBeGreaterThanOrEqual(0);
-      expect(Math.round(t.y)).toBeLessThan(H);
-      expect(t.half * 2).toBeLessThanOrEqual(W);
-      if (k > 0) {
-        expect(t.y - y).toBeLessThanOrEqual(gap + 1e-9); // each step down a little shorter than the last
-        gap = t.y - y;
-      }
-      [y, half] = [t.y, t.half];
-    }
-    expect(tread(0).y).toBe(LOGO.stair.top);
-    expect(tread(LOGO.steps - 1).y).toBeCloseTo(LOGO.stair.bottom);
-    expect(tread(0).half * 2).toBeCloseTo(LOGO.stair.widest);
-    expect(tread(LOGO.steps - 1).half * 2).toBeCloseTo(LOGO.stair.narrowest);
-    expect(tread(1).y - tread(0).y).toBeGreaterThan(2); // the near steps stand apart: tread, then riser
-  });
-
-  it('the light sets out, goes down all seventy in its time, and no tread is lit before it comes', () => {
-    const { start, seconds } = LOGO.descent;
-    expect(headAt(0)).toBe(0);
-    expect(headAt(start + seconds / 2)).toBeCloseTo(LOGO.steps / 2);
-    expect(headAt(start + seconds)).toBe(LOGO.steps);
-    expect(headAt(99)).toBe(LOGO.steps);
-    for (const k of [0, 20, 69]) {
-      expect(treadLight(k, (start + (k / LOGO.steps) * seconds) - 0.05)).toBe(0);
-      expect(treadLight(k, start + ((k + 0.3) / LOGO.steps) * seconds), `${k}`).toBeGreaterThan(0.5); // it blazes as the light passes
-      expect(treadLight(k, 30)).toBeGreaterThan(0.25); // and rests lit
-    }
-    expect(treadLight(20, 30)).toBeLessThan(0.6);
-    expect(treadLight(69, 30)).toBeGreaterThan(treadLight(20, 30)); // the light pools at the foot of the flight
+  it('the wordmark is two words and a sign, all within the picture, with no flight of steps under them', () => {
+    expect(LOGO.size[1]).toBeLessThan(100);
+    for (const w of LOGO.words) expect(w.baseline).toBeLessThanOrEqual(H);
+    expect(LOGO.sigil.y).toBeLessThan(LOGO.words[0].baseline);
+    expect(W).toBeGreaterThan(H);
+    expect('steps' in LOGO).toBe(false);
   });
 
   it('the letters take fire one after another, SEVENTY before STEPS, each flashing and settling, and the sign last', () => {
@@ -60,7 +30,6 @@ describe('the title’s wordmark (round 20: ui/logoPlan.ts)', () => {
     expect(sigilLight(SETTLED + 10)).toBeGreaterThan(0.7);
     expect(LOGO.sigil.at).toBeGreaterThanOrEqual(letterTime(1, LOGO.words[1].text.length - 1)); // it crowns what is already lit
     expect(SETTLED).toBeGreaterThan(letterTime(1, LOGO.words[1].text.length - 1));
-    expect(SETTLED).toBeGreaterThan(LOGO.descent.start + LOGO.descent.seconds);
   });
 
   it('the letters shudder now and then once it has settled, never while it is being lit', () => {

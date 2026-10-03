@@ -9,6 +9,8 @@
 
 import { TITLE_LINES } from '../data/intro';
 import { DIFFICULTIES, DIFFICULTY_IDS, type DifficultyId } from '../data/tuning';
+import { BONE, SERIF } from './hudKit';
+import { SCALED_LAYER } from './uiScale';
 import { creditsPage } from './credits';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
@@ -33,43 +35,58 @@ export interface TitleOptions {
 }
 
 export function showTitle(o: TitleOptions): void {
-  const screen = createScreen(5, '#000', 'left:50%;top:47%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:86vh;overflow-x:hidden;overflow-y:auto;text-align:center'); // (a short window scrolls Settings and Controls, which were cut off at the top: playtest round 24)
-  const logo = wordmark(); // the name cut in stone over its seventy treads (round 20), made once
+  const screen = createScreen(5, '#000', 'left:50%;top:66%;transform:translate(-50%,-50%);width:min(560px,94vw);max-height:60vh;overflow-x:hidden;overflow-y:auto;text-align:center'); // the menu stands in the lower half; the name has the upper (round 38)
+  const logo = wordmark(); // the name cut in stone (round 20), made once
+  // The name and its two lines: a layer of their own over the upper half, centred in it, so each page of the menu below can stand where it likes.
+  const head = document.createElement('div');
+  head.style.cssText = `position:fixed;inset:0;z-index:6;pointer-events:none;transition:opacity .5s;font:14px/1.45 ${SERIF};color:${BONE}`;
+  const headLayer = el(head, 'div', '', SCALED_LAYER);
+  const headBox = el(headLayer, 'div', '', 'position:absolute;left:0;right:0;top:25%;transform:translateY(-50%);text-align:center');
+  headBox.append(logo.canvas);
+  const headLines = [el(headBox, 'div', TITLE_LINES[0], 'opacity:.6;letter-spacing:2px;margin:6px auto'), el(headBox, 'div', TITLE_LINES[1], 'opacity:.45;font-style:italic;margin:0 auto;max-width:380px')];
+  document.body.append(head);
+  const showHead = (on: boolean): void => void (head.style.opacity = on ? '1' : '0');
+  screen.onClose = () => head.remove();
+  /** Where a page stands, and whether the name is over it: set as the page is built. */
+  const placed = (page: Page, top: string, name: boolean): Page => {
+    const build = page.build.bind(page);
+    page.build = (p) => {
+      p.style.top = top;
+      showHead(name);
+      build(p);
+    };
+    return page;
+  };
   let begun = false;
   const begin = (fresh: boolean, difficulty?: DifficultyId): void => {
     if (begun) return;
     begun = true;
     o.start(fresh, () => screen.close(), difficulty);
   };
-  let first = true; // the lines under the name come up once the descent is done, the first time the menu is drawn
-  const titleBlock = (p: HTMLElement, rise = false): void => {
-    p.append(logo.canvas);
-    const lines = [el(p, 'div', TITLE_LINES[0], 'opacity:.6;letter-spacing:2px;margin:0 auto 6px'), el(p, 'div', TITLE_LINES[1], 'opacity:.45;font-style:italic;margin:0 auto 26px;max-width:380px')];
-    if (rise) lines.forEach((l, k) => l.animate([{ opacity: 0 }, { opacity: l.style.opacity }], { duration: 1600, delay: 4200 + 500 * k, fill: 'backwards', easing: 'ease-out' }));
-  };
+  let first = true; // the lines under the name come up once the lighting is done, the first time the menu is drawn
+  const riseLines = (): void => headLines.forEach((l, k) => l.animate([{ opacity: 0 }, { opacity: l.style.opacity }], { duration: 1600, delay: 2600 + 500 * k, fill: 'backwards', easing: 'ease-out' }));
   let awake = false;
   const wake = (): void => {
     if (awake) return;
     awake = true;
     o.open();
-    logo.play(); // the light sets out down the seventy steps as the dark draws back
+    logo.play(); // the letters take fire as the dark draws back
     removeEventListener('pointerdown', wake, true);
     setTimeout(() => screen.show(main), 350); // a beat, and the waking key or click is spent before the menu stands under it
   };
   void o.byItself.then(wake);
-  const gate: Page = {
+  const gate: Page = placed({
     keys: wake,
     build(p) {
-      titleBlock(p);
       const call = button(el(p, 'div', '', 'width:260px;margin:0 auto'), 'press any key', wake);
       call.style.cssText += ';text-align:center;border-color:transparent;background:none;letter-spacing:3px';
       call.animate([{ opacity: 0.2 }, { opacity: 0.75 }], { duration: 1600, direction: 'alternate', iterations: Infinity, easing: 'ease-in-out' });
     },
-  };
+  }, '66%', true);
   addEventListener('pointerdown', wake, true);
-  const main: Page = {
+  const main: Page = placed({
     build(p) {
-      titleBlock(p, first);
+      if (first) riseLines();
       first = false;
       const menu = el(p, 'div', '', 'width:260px;margin:0 auto;text-align:left');
       const lines = o.slots();
@@ -79,15 +96,15 @@ export function showTitle(o: TitleOptions): void {
       }
       button(menu, 'New game', () => screen.show(slotPage('new')));
       if (lines.some(Boolean)) button(menu, 'Load', () => screen.show(slotPage('load')));
-      button(menu, 'Settings', () => screen.show(settingsPage(o.settings, o.change, () => screen.show(main), o.saveKeys)));
-      button(menu, 'Credits', () => screen.show(creditsPage(() => screen.show(main))));
+      button(menu, 'Settings', () => screen.show(placed(settingsPage(o.settings, o.change, () => screen.show(main), o.saveKeys), '50%', false)));
+      button(menu, 'Credits', () => screen.show(placed(creditsPage(() => screen.show(main)), '50%', false)));
       if (desktop) button(menu, 'Quit', () => (saveNow(), void desktop!.quit())); // the desktop shell only (playtest round 12)
       el(p, 'div', menuKeys().map(([k, w]) => `${k} ${w}`).join('   ·   '), 'opacity:.3;margin-top:26px;font-size:11px;letter-spacing:2px;text-transform:uppercase');
     },
-  };
+  }, '66%', true);
   const into = (slot: number, fresh: boolean, difficulty?: DifficultyId): void => (o.useSlot(slot), begin(fresh, difficulty));
   /** How hard the dream is: chosen here, once, as a new one begins, and never after (round 38). */
-  const difficultyPage = (slot: number): Page => ({
+  const difficultyPage = (slot: number): Page => placed({
     focus: DIFFICULTY_IDS.indexOf('deep'), // the dream as made
     back: () => screen.show(slotPage('new')),
     build(p) {
@@ -103,9 +120,9 @@ export function showTitle(o: TitleOptions): void {
       const back = button(menu, 'Back', () => screen.show(slotPage('new')));
       back.style.marginTop = '8px';
     },
-  });
+  }, '66%', true);
   /** The slots: to load one, or to begin a new game in one (a full one is asked about first). */
-  const slotPage = (to: 'new' | 'load'): Page => ({
+  const slotPage = (to: 'new' | 'load'): Page => placed({
     back: () => screen.show(main),
     build(p) {
       heading(p, to === 'new' ? 'NEW GAME · CHOOSE A SLOT' : 'LOAD');
@@ -118,8 +135,8 @@ export function showTitle(o: TitleOptions): void {
       });
       button(menu, 'Back', () => screen.show(main));
     },
-  });
-  const confirm = (slot: number): Page => ({
+  }, '66%', true);
+  const confirm = (slot: number): Page => placed({
     back: () => screen.show(slotPage('new')),
     build(p) {
       heading(p, 'BEGIN ANEW?');
@@ -128,6 +145,6 @@ export function showTitle(o: TitleOptions): void {
       button(menu, 'No, go back', () => screen.show(slotPage('new')));
       button(menu, 'Yes, begin anew', () => screen.show(difficultyPage(slot)));
     },
-  });
+  }, '66%', true);
   screen.show(gate);
 }

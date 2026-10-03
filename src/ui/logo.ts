@@ -1,9 +1,8 @@
 /**
- * The title's wordmark (playtest round 20): SEVENTY STEPS cut in stone above a flight of seventy
- * treads running down into the dark, a light coming down them (logoPlan.ts says when each part takes
- * light, logoArt.ts draws it). One canvas of coarse pixels, drawn at two screen pixels each, made
- * once and kept: a page of the title that is built again takes the same canvas, so the descent is not
- * played twice. It runs while it is on the page and the tab is showing.
+ * The title's wordmark (playtest round 20): SEVENTY STEPS cut in stone under a small Elder Sign
+ * (logoPlan.ts says when each part takes light, logoArt.ts draws it; round 38: the flight of treads
+ * is gone). One canvas of coarse pixels, drawn at two screen pixels each, made once and kept: a page
+ * of the title that is built again takes the same canvas, so the lighting is not played twice. It runs while it is on the page and the tab is showing.
  */
 
 import { buildLogoArt, type LogoArt } from './logoArt';
@@ -11,7 +10,7 @@ import { LOGO } from './logoPlan';
 
 export interface Logo {
   readonly canvas: HTMLCanvasElement;
-  /** Starts the descent from its beginning (the title has opened). */
+  /** Starts the lighting from its beginning (the title has opened). */
   play(): void;
 }
 
