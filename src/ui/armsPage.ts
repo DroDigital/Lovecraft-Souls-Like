@@ -47,7 +47,7 @@ export function armsPage(g: Game, back: () => void, show: (p: Page) => void): Pa
       el(p, 'div', `shot ${shot}  ·  ${left(6)}% at 6 m  ·  ${left(9)}% at 9 m  ·  ${left(12)}% at 12 m`, 'padding:0 14px;opacity:.55;font-size:12px;font-variant-numeric:lining-nums tabular-nums');
       const unfound = WEAPON_IDS.length - g.player.arms.length;
       if (unfound > 0) el(p, 'div', `${unfound === 1 ? 'One more weapon lies' : `${unfound} more weapons lie`} somewhere in the dream.`, 'opacity:.4;font-style:italic;margin:10px 14px 0;font-size:13px');
-      footer(p, fill('Choose a weapon to take it up. The revolver is loaded with {reload}; its rounds are found in boxes and caches, and sold by those who trade.'), menuKeys(false, 'Choose'));
+      footer(p, fill('Choose a weapon to take it up. The revolver is loaded with {reload}; its rounds are found in boxes and caches, and sold by those who trade.'), menuKeys(), back);
     },
   };
   return page;

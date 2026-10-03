@@ -43,12 +43,17 @@ export function journalPage(g: Game, back: () => void, show: (p: Page) => void, 
       const read = [...(g.overworld?.read ?? [])].filter((n) => DOCUMENTS[n]);
       el(body, 'div', `${read.length} of ${Object.keys(DOCUMENTS).length} found and read`, 'opacity:.45;font-size:12px;letter-spacing:2px;padding:0 14px 6px');
       if (!read.length) el(body, 'div', 'Tomes, notes and letters are kept here once read.', 'opacity:.6;padding:0 14px');
-      for (const name of read) button(body, name, () => show(documentPage(name, () => show(page))));
+      for (const [kind, head] of [['tome', 'TOMES'], ['note', 'NOTES AND LETTERS']] as const) {
+        const some = read.filter((n) => DOCUMENTS[n].kind === kind);
+        if (!some.length) continue;
+        heading(body, `${head} · ${some.length}`).style.margin = '12px 14px 4px';
+        for (const name of some) button(body, name, () => show(documentPage(name, () => show(page))));
+      }
     } else {
       el(body, 'div', `${beheld(g).length} of ${ENTITIES.length} beheld`, 'opacity:.45;font-size:12px;letter-spacing:2px;padding:0 14px 6px');
       button(body, 'The creatures beheld', () => show(bestiaryPage(g, () => show(page), show)), true, 'Each creature met: a field note, its habits, its weakness, and where it is found.');
     }
-    footer(p, '', menuKeys(true));
+    footer(p, '', menuKeys(true), back);
   };
   return page;
 }

@@ -12,7 +12,7 @@ import { loadRecords, noteAchievements } from '../systems/records';
 import type { SaveStore } from '../systems/save';
 import { desktop } from './desktop';
 import { glyph } from './glyphs';
-import { button, el, heading, title, type Page } from './menuKit';
+import { el, footer, title, type Page } from './menuKit';
 
 export function watchAchievements(g: Game, store: SaveStore | null): void {
   let records = loadRecords(store);
@@ -34,15 +34,14 @@ export function achievementsPage(store: SaveStore | null, back: () => void): Pag
     build(p) {
       const held = new Set(loadRecords(store).achievements);
       title(p, 'ACHIEVEMENTS');
-      el(p, 'div', `${ACHIEVEMENT_IDS.filter((id) => held.has(id)).length} of ${ACHIEVEMENT_IDS.length}`, 'opacity:.55;margin:2px 0 10px');
+      el(p, 'div', `${ACHIEVEMENT_IDS.filter((id) => held.has(id)).length} of ${ACHIEVEMENT_IDS.length}`, 'opacity:.5;font-size:12px;letter-spacing:2px;padding:0 4px 6px');
       for (const id of ACHIEVEMENT_IDS) {
         const a = ACHIEVEMENTS[id];
         const got = held.has(id);
-        el(p, 'div', `${got ? '✦' : '·'}  ${a.name}`, `opacity:${got ? 1 : 0.45};margin-top:6px`);
-        el(p, 'div', a.note, `opacity:${got ? 0.6 : 0.35};font-size:12px;margin:0 0 2px 16px`);
+        el(p, 'div', `${got ? '✦' : '·'}  ${a.name}`, `opacity:${got ? 1 : 0.45};margin-top:6px;padding:0 4px`);
+        el(p, 'div', a.note, `opacity:${got ? 0.6 : 0.35};font-size:12px;margin:0 0 2px 20px`);
       }
-      heading(p, '');
-      button(p, `Back  (${glyph('back')})`, back);
+      footer(p, '', [[glyph('back'), 'Back']], back);
     },
   };
 }
