@@ -25,7 +25,7 @@ export const CSS = `
 [data-menu] button.tag{display:inline-block;width:auto;margin:1px 0;padding:2px 8px;border:1px solid ${GOLD}44;text-align:center}
 [data-menu] button.tag::before{display:none}
 [data-menu] label{display:flex;gap:12px;align-items:center;margin:0;padding:6px 14px;border-top:1px solid transparent;border-bottom:1px solid transparent;transition:background .15s,border-color .15s}
-[data-menu] label span:first-child{min-width:14ch}
+[data-menu] label span:first-child{min-width:14ch;text-align:left}
 [data-menu] label span:last-child{min-width:7ch;text-align:right;opacity:.85}
 [data-menu] input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:16px;background:transparent;cursor:pointer}
 [data-menu] input[type=range]::-webkit-slider-runnable-track{height:3px;background:linear-gradient(90deg,${GOLD}aa var(--fill,50%),${BONE}22 var(--fill,50%))}

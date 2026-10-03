@@ -62,7 +62,8 @@ export const setMenuSound = (fn: () => void): void => void (sound = fn);
 /** What scrolls: the body between a page's pinned title and foot, else the whole panel. */
 const scroller = (panel: HTMLElement): HTMLElement => panel.querySelector<HTMLElement>(':scope > .scroll') ?? panel;
 
-const items = (panel: HTMLElement): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input')];
+/** What the arrows step through: the tab row is one stop (the open tab), the others reached by left and right, or by the mouse. */
+const items = (panel: HTMLElement): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input')].filter((e) => !e.classList.contains('tab') || e.classList.contains('on'));
 
 function focusAt(panel: HTMLElement, i: number, preventScroll = false): void {
   const list = items(panel);
@@ -88,8 +89,9 @@ function back(top: Entry): void {
   if (performance.now() - top.since > GRACE_MS) top.page.back?.();
 }
 
-function nudge(by: 1 | -1): void {
+function nudge(by: 1 | -1, page?: Page): void {
   const el = document.activeElement;
+  if (el instanceof HTMLElement && el.classList.contains('tab')) return void page?.tab?.(by); // on the tab row, sideways changes the tab
   if (!(el instanceof HTMLInputElement) || el.type !== 'range') return;
   if (by > 0) el.stepUp();
   else el.stepDown();
@@ -144,8 +146,8 @@ function pollPad(now: number): void {
     if (Math.abs(ry) > STICK) scroller(top.panel).scrollTop += ry * 14;
     if (edge(PAD.lb)) top.page.tab?.(-1);
     if (edge(PAD.rb)) top.page.tab?.(1);
-    if (edge(PAD.left) || (lx < -STICK && !prev.has(-1))) nudge(-1);
-    if (edge(PAD.right) || (lx > STICK && !prev.has(-2))) nudge(1);
+    if (edge(PAD.left) || (lx < -STICK && !prev.has(-1))) nudge(-1, top.page);
+    if (edge(PAD.right) || (lx > STICK && !prev.has(-2))) nudge(1, top.page);
     if (edge(PAD.a)) {
       const el = document.activeElement;
       if (el instanceof HTMLButtonElement && top.panel.contains(el)) el.click();
