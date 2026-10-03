@@ -18,7 +18,10 @@ export type AchievementGoal =
   | { journey: number } // the journey (NG+) under way
   | { met: 'all' } // everyone who can be talked with
   | { kills: number } // foes killed in one dream
-  | { places: number }; // named places found in one dream (round 18)
+  | { places: number } // named places found in one dream (round 18)
+  | { read: number | 'all' } // tomes and notes read in one dream (round 38)
+  | { beheld: number } // creatures beheld in one dream (the bestiary's count)
+  | { arms: 'all' }; // every weapon found
 
 export interface AchievementDef {
   name: string;
@@ -48,6 +51,12 @@ export const ACHIEVEMENTS = {
   people: { name: 'The Other Sleepers', note: 'Talk with everyone in the dream.', goal: { met: 'all' } },
   hundred: { name: 'A Hundred Horrors', note: 'Kill a hundred foes in one dream.', goal: { kills: 100 } },
   again: { name: 'Once More into the Dream', note: 'Begin a second journey, carrying your strength.', goal: { journey: 2 } },
+  growth: { name: 'First Growth', note: 'Spend Echoes on a first level at an Elder Sign.', goal: { level: 2 } },
+  reader: { name: 'A Reader of Dangerous Books', note: 'Read ten tomes and notes.', goal: { read: 10 } },
+  fieldwork: { name: 'Field Notes', note: 'Behold twenty-five of the dream\'s creatures.', goal: { beheld: 25 } },
+  armed: { name: 'A Room of Arms', note: 'Find every weapon in the dream.', goal: { arms: 'all' } },
+  naturalist: { name: 'Natural History of the Dream', note: 'Behold seventy-five of its creatures.', goal: { beheld: 75 } },
+  library: { name: 'The Whole Library', note: 'Read every tome and note.', goal: { read: 'all' } },
   searcher: { name: 'Searcher After Horror', note: 'Find fifty of the dream\'s named places.', goal: { places: 50 } },
 } satisfies Record<string, AchievementDef>;
 

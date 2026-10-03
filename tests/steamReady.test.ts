@@ -82,3 +82,34 @@ describe('achievements (round 12)', () => {
     expect(ACHIEVEMENT_IDS.length).toBeGreaterThanOrEqual(20);
   });
 });
+
+describe('achievements for the first hours and for collectors (round 38)', () => {
+  it('start unearned, and are earned by a level bought, tomes read, creatures beheld and every weapon found', async () => {
+    const { DOCUMENTS } = await import('../src/data/documents');
+    const { ENTITIES } = await import('../src/data/registry');
+    const { WEAPON_IDS } = await import('../src/data/weapons');
+    const g = createWorldGame();
+    const early = ['growth', 'reader', 'fieldwork', 'armed', 'naturalist', 'library'];
+    expect(newlyEarned(g, new Set(), 0).filter((id) => early.includes(id))).toEqual([]);
+    g.player.levels.vigour = 1;
+    expect(newlyEarned(g, new Set(), 0)).toEqual(['growth']);
+    g.overworld!.read.add('Cartridges: hub 1'); // what is taken is not a tome read
+    for (const n of Object.keys(DOCUMENTS).slice(0, 9)) g.overworld!.read.add(n);
+    expect(goalMet(g, ACHIEVEMENTS.reader.goal, 0)).toBe(false);
+    g.overworld!.read.add(Object.keys(DOCUMENTS)[9]);
+    expect(goalMet(g, ACHIEVEMENTS.reader.goal, 0)).toBe(true);
+    expect(goalMet(g, ACHIEVEMENTS.library.goal, 0)).toBe(false);
+    for (const n of Object.keys(DOCUMENTS)) g.overworld!.read.add(n);
+    expect(goalMet(g, ACHIEVEMENTS.library.goal, 0)).toBe(true);
+    for (const e of ENTITIES.slice(0, 24)) g.mind.seen.add(e.id);
+    expect(goalMet(g, ACHIEVEMENTS.fieldwork.goal, 0)).toBe(false);
+    g.mind.seen.add(ENTITIES[24].id);
+    expect(goalMet(g, ACHIEVEMENTS.fieldwork.goal, 0)).toBe(true);
+    expect(goalMet(g, ACHIEVEMENTS.naturalist.goal, 0)).toBe(false);
+    for (const e of ENTITIES.slice(0, 75)) g.mind.seen.add(e.id);
+    expect(goalMet(g, ACHIEVEMENTS.naturalist.goal, 0)).toBe(true);
+    expect(goalMet(g, ACHIEVEMENTS.armed.goal, 0)).toBe(false);
+    g.player.arms = [...WEAPON_IDS];
+    expect(goalMet(g, ACHIEVEMENTS.armed.goal, 0)).toBe(true);
+  });
+});

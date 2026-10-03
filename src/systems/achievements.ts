@@ -5,7 +5,9 @@
  */
 
 import { ACHIEVEMENT_IDS, ACHIEVEMENTS, type AchievementGoal, type AchievementId } from '../data/achievements';
+import { DOCUMENTS } from '../data/documents';
 import { NPCS } from '../data/npcs';
+import { WEAPON_IDS } from '../data/weapons';
 import type { Game } from './components';
 import { levelsBought } from './levels';
 import { sealsBroken } from './sealCount';
@@ -25,6 +27,9 @@ export function goalMet(g: Game, goal: AchievementGoal, endings: number): boolea
   if ('journey' in goal) return g.player.cycle + 1 >= goal.journey;
   if ('met' in goal) return NPCS.every((n) => ow.met.has(n.id));
   if ('places' in goal) return ow.places.size >= goal.places;
+  if ('read' in goal) return [...ow.read].filter((n) => n in DOCUMENTS).length >= (goal.read === 'all' ? Object.keys(DOCUMENTS).length : goal.read); // (what is taken for good is kept there too: a vial, a cache, a weapon)
+  if ('beheld' in goal) return g.mind.seen.size >= goal.beheld;
+  if ('arms' in goal) return g.player.arms.length >= WEAPON_IDS.length;
   return ow.tally.kills >= goal.kills;
 }
 
