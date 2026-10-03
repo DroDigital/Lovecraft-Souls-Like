@@ -136,7 +136,7 @@ export function footer(parent: HTMLElement, hint: string, keys: readonly (readon
   const body = el(parent, 'div');
   body.className = 'scroll';
   body.append(...rest);
-  if (parent.dataset.body) [body.style.minHeight, parent.dataset.body] = [`${parent.dataset.body}px`, '']; // a page with tabs keeps one height, whichever tab is open
+  if (parent.dataset.body) [body.style.flex, parent.dataset.body] = [`1 1 ${parent.dataset.body}px`, '']; // a page with tabs keeps one height, whichever tab is open (it is a size to start from, not a least: a small window still shrinks it)
   const line = el(parent, 'div', hint, `margin-top:12px;padding-top:8px;border-top:1px solid ${GOLD}2a`);
   line.className = 'hint';
   line.dataset.def = hint; // what it says when the chosen line has nothing of its own to say

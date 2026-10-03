@@ -101,9 +101,9 @@ export const WEAPONS = {
     name: 'Straight Razor',
     note: "A barber's razor from the Witch House. Four cuts before a cane finishes two; mind the short reach.",
     moves: {
-      light1: cut([60, -60], 'light2', 'slash', 13),
-      light2: cut([-60, 60], 'light3', 'backhand', 13),
-      light3: cut([50, -50], 'light4', 'slash', 14),
+      light1: cut([60, -60], 'light2', 'slash', 15),
+      light2: cut([-60, 60], 'light3', 'backhand', 15),
+      light3: cut([50, -50], 'light4', 'slash', 16), // round 38: 13, 13, 14 and 20: a chain of 60 in 96 frames, 1.5 a stamina, against the cane's 41 a second and 1.6, and a shorter reach: nothing a person would keep it for
       light4: {
         frames: 30,
         anim: 'thrust',
@@ -113,7 +113,7 @@ export const WEAPONS = {
         combo: { light: 'light1', heavy: 'heavy1' },
         track: { window: [0, 8], rate: 8 },
         motion: { window: [4, 12], distance: 0.7, dir: 'facing' },
-        hit: { window: [10, 13], damage: 20, poise: 12, guard: 14, hitstop: 2, reach: 1.25, radius: 0.35, height: 1.2, arc: [0, 0] },
+        hit: { window: [10, 13], damage: 22, poise: 12, guard: 14, hitstop: 2, reach: 1.25, radius: 0.35, height: 1.2, arc: [0, 0] },
       },
       heavy1: {
         frames: 40,

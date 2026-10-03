@@ -176,7 +176,7 @@ function startOnce(): void {
 }
 
 /** A screen at stacking level `z`; `panelCss` places and styles its panel. `keepLock`: the mouse stays captured while it is open (a talk, which is read and answered by key: round 31, so leaving one needs no click to look about again). */
-export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left:50%;top:50%;transform:translate(-50%,-50%);width:min(540px,92vw);max-height:90vh;overflow:auto;${frame()}`, scaled = true, keepLock = false): Screen {
+export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left:50%;top:50%;transform:translate(-50%,-50%);box-sizing:border-box;width:min(594px,92vw);max-height:90vh;overflow:auto;${frame()}`, scaled = true, keepLock = false): Screen {
   startOnce();
   const root = document.createElement('div');
   root.style.cssText = `position:fixed;inset:0;display:none;z-index:${z};background:${backdrop};font:14px/1.45 ${SERIF};color:${BONE}`;
