@@ -8,8 +8,7 @@ import { SHOPS, WARES } from '../data/wares';
 import type { Game } from '../systems/components';
 import { buy, canBuy, carried, hasRoom, stockLeft } from '../systems/trade';
 import { fill } from './glyphs';
-import { GOLD } from './hudKit';
-import { createScreen, el, footer, option, title, type Page } from './menuKit';
+import { ACCENT, createScreen, el, footer, option, title, type Page } from './menuKit';
 import { menuKeys } from './menuKeys';
 
 export interface ShopMenu {
@@ -24,7 +23,7 @@ export function createShopMenu(g: Game): ShopMenu {
       back: () => screen.close(),
       build(panel) {
         title(panel, name.toUpperCase());
-        const stat = el(panel, 'div', `ECHOES ${g.player.echoes}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:3px;color:${GOLD}`);
+        const stat = el(panel, 'div', `ECHOES ${g.player.echoes}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:3px;color:${ACCENT}`);
         stat.dataset.pin = '';
         for (const id of wares) {
           const w = WARES[id];

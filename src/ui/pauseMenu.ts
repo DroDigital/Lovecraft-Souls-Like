@@ -6,8 +6,7 @@
  */
 
 import { creditsPage } from './credits';
-import { button, createScreen, el, footer, menuOpen, onPadStart, title, type Page } from './menuKit';
-import { GOLD } from './hudKit';
+import { ACCENT, button, createScreen, el, footer, menuOpen, onPadStart, title, type Page } from './menuKit';
 import { menuKeys } from './menuKeys';
 import { saveNow } from './autosave';
 import { desktop } from './desktop';
@@ -49,7 +48,7 @@ export function createPauseMenu(o: PauseOptions): PauseMenu {
       }
       const list = el(p, 'div');
       button(list, 'Resume', resume, true, 'Return to the dream.');
-      const rule = (): void => void el(list, 'div', '', `height:1px;margin:3px 14px;background:${GOLD}26`);
+      const rule = (): void => void el(list, 'div', '', `height:1px;margin:3px 14px;background:${ACCENT}26`);
       rule();
       if (o.map) button(list, 'Map', () => [screen.close(), o.map!()], true, 'The lands you have walked, the signs lit, and the way to travel between them.');
       if (o.journal) button(list, 'Journal', () => screen.show(o.journal!(() => screen.show(main), (pg) => screen.show(pg))), true, 'What is asked of you, the tomes read, and the creatures beheld.');

@@ -24,8 +24,7 @@ import { mainLead } from '../systems/lead';
 import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLevelCost } from '../systems/levels';
 import { worldLayout, type SignPlace } from '../world/placements';
 import { deviceInUse } from '../core/device';
-import { GOLD } from './hudKit';
-import { button, createScreen, el, footer, heading, option, tabs, title, type Page } from './menuKit';
+import { ACCENT, button, createScreen, el, footer, heading, option, tabs, title, type Page } from './menuKit';
 import { menuKeys } from './menuKeys';
 import { keyLayout } from '../core/bindings';
 import { glyph } from './glyphs';
@@ -118,7 +117,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     panel.dataset.body = '366';
     title(panel, (here?.name ?? 'Elder Sign').toUpperCase());
     const lead = `${g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : ''}${g.player.difficulty === DEFAULT_DIFFICULTY ? '' : `${DIFFICULTIES[g.player.difficulty].name.toUpperCase()}  ·  `}`;
-    const stat = el(panel, 'div', `${lead}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  INSIGHT ${g.mind.insight}  ·  STAR-STONES ${g.player.stones}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:2px;color:${GOLD}`);
+    const stat = el(panel, 'div', `${lead}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  INSIGHT ${g.mind.insight}  ·  STAR-STONES ${g.player.stones}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:2px;color:${ACCENT}`);
     stat.dataset.pin = '';
     const next = mainLead(g)?.text; // what the story asks next: a resting place is where it is thought of (round 38)
     if (next) {
