@@ -96,7 +96,7 @@ export function button(parent: HTMLElement, text: string, run: () => void, enabl
  */
 export function option(parent: HTMLElement, text: string, run: () => void, ok: boolean, why: string, hint = ''): HTMLButtonElement {
   const b = button(parent, text, () => (ok ? run() : void (b.closest('[data-menu]')?.querySelector('.hint') as HTMLElement | null)?.replaceChildren(why)), true, hint);
-  if (!ok) b.style.opacity = '.5';
+  if (!ok) b.style.opacity = '.65';
   return b;
 }
 
@@ -136,6 +136,7 @@ export function footer(parent: HTMLElement, hint: string, keys: readonly (readon
   const body = el(parent, 'div');
   body.className = 'scroll';
   body.append(...rest);
+  if (parent.dataset.body) [body.style.minHeight, parent.dataset.body] = [`${parent.dataset.body}px`, '']; // a page with tabs keeps one height, whichever tab is open
   const line = el(parent, 'div', hint, `margin-top:12px;padding-top:8px;border-top:1px solid ${GOLD}2a`);
   line.className = 'hint';
   line.dataset.def = hint; // what it says when the chosen line has nothing of its own to say

@@ -20,6 +20,7 @@ import { courtEndings, endGame } from '../systems/endings';
 import { canUpgradeGun, gunCost, gunEdge, upgradeGun } from '../systems/gun';
 import type { Game } from '../systems/components';
 import { buyUpgrade, upgradeName } from '../systems/insight';
+import { mainLead } from '../systems/lead';
 import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLevelCost } from '../systems/levels';
 import { worldLayout, type SignPlace } from '../world/placements';
 import { deviceInUse } from '../core/device';
@@ -63,12 +64,12 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
 
   /** Levels and the mind's upgrades: what the Echoes and the insight buy. */
   function grow(panel: HTMLElement): void {
-    heading(panel, `BODY  ·  ECHOES  ·  NEXT LEVEL ${nextLevelCost(g)}`).style.marginTop = '0';
+    heading(panel, `BODY  ·  ECHOES  ·  NEXT LEVEL ${nextLevelCost(g)}`).style.margin = '0 0 4px';
     for (const id of LEVEL_IDS) {
       const full = g.player.levels[id] >= LEVELS[id].max;
       option(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}  ·  ${full ? 'fully grown' : `${nextLevelCost(g)} Echoes`}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id), full ? `${levelName(id)} is fully grown.` : `Not enough Echoes: the next level costs ${nextLevelCost(g)}, and you carry ${g.player.echoes}.`);
     }
-    heading(panel, `MIND  ·  INSIGHT ${g.mind.insight}`);
+    heading(panel, `MIND  ·  INSIGHT ${g.mind.insight}`).style.margin = '12px 0 4px';
     for (const id of Object.keys(UPGRADES) as UpgradeId[]) {
       const u = UPGRADES[id];
       const level = g.mind.upgrades[id];
@@ -114,10 +115,16 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
   function build(panel: HTMLElement): void {
     const ow = g.overworld!;
     const here = signPlace(ow.sign);
+    panel.dataset.body = '366';
     title(panel, (here?.name ?? 'Elder Sign').toUpperCase());
     const lead = g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : '';
     const stat = el(panel, 'div', `${lead}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  INSIGHT ${g.mind.insight}  ·  STAR-STONES ${g.player.stones}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:2px;color:${GOLD}`);
     stat.dataset.pin = '';
+    const next = mainLead(g)?.text; // what the story asks next: a resting place is where it is thought of (round 38)
+    if (next) {
+      const line = el(panel, 'div', `NEXT  ·  ${next}`, `margin:-6px 14px 10px;text-align:center;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.7`);
+      [line.title, line.dataset.pin] = [next, ''];
+    }
     const endings = courtEndings(g, ow.sign); // the choice the whole dream led to comes first (round 12)
     if (endings.length) {
       const box = pinned(panel);

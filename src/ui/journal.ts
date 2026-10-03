@@ -22,9 +22,10 @@ export function journalPage(g: Game, back: () => void, show: (p: Page) => void, 
   const page: Page = { back, build() {} };
   const open = (i: number): void => show(journalPage(g, back, show, i));
   page.build = (p) => {
+    p.dataset.body = '300'; // one height for the three tabs
     title(p, 'JOURNAL');
     tabs(p, TABS, at, open, page);
-    const body = el(p, 'div', '', 'min-height:230px');
+    const body = el(p, 'div');
     if (at === 0) {
       const begun = Object.keys(QUESTS).filter((id) => stageOf(g, id) !== UNSTARTED);
       const now = begun.filter((id) => !isDone(g, id)).sort((a, b) => Number(!!QUESTS[b].main) - Number(!!QUESTS[a].main));
