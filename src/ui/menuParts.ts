@@ -12,7 +12,7 @@ import type { Page } from './menuKit';
 export const CSS = `
 [data-menu] button{position:relative;display:block;width:100%;margin:0;padding:7px 14px 7px 30px;text-align:left;font:15px ${SERIF};letter-spacing:.8px;color:${BONE}c0;background:none;border:none;border-top:1px solid transparent;border-bottom:1px solid transparent;cursor:pointer;transition:color .15s,background .15s,border-color .15s}
 [data-menu] button::before{content:'';position:absolute;left:12px;top:50%;width:5px;height:5px;margin-top:-3px;border:1px solid ${GOLD};transform:rotate(45deg) scale(.3);opacity:0;transition:opacity .15s,transform .15s}
-[data-menu] button:disabled{opacity:.35;cursor:default}
+[data-menu] button:disabled{opacity:.5;cursor:default}
 [data-menu] button.quiet{display:inline-block;width:auto;padding:2px 0;opacity:.55;text-shadow:0 0 6px #000,0 1px 2px #000}
 [data-menu] button.quiet::before{display:none}
 [data-menu] button.quiet:focus,[data-menu] button.quiet:hover:not(:disabled){outline:none;opacity:1;background:none}
@@ -89,6 +89,17 @@ export function button(parent: HTMLElement, text: string, run: () => void, enabl
   return b;
 }
 
+/**
+ * A choice that may not be taken now (round 38: a line that was disabled could not be reached, so what it was,
+ * and why it could not be taken, could not be read): it stays a line to choose, dimmed, and choosing it says
+ * `why` in the page's foot instead of doing anything. `hint` is what the foot says while it is the chosen line.
+ */
+export function option(parent: HTMLElement, text: string, run: () => void, ok: boolean, why: string, hint = ''): HTMLButtonElement {
+  const b = button(parent, text, () => (ok ? run() : void (b.closest('[data-menu]')?.querySelector('.hint') as HTMLElement | null)?.replaceChildren(why)), true, hint);
+  if (!ok) b.style.opacity = '.5';
+  return b;
+}
+
 /** A labelled range slider showing its value through `show`. */
 export function slider(parent: HTMLElement, label: string, [min, max, step]: readonly number[], value: number, set: (v: number) => void, show: (v: number) => string, hint = ''): HTMLInputElement {
   const row = el(parent, 'label');
@@ -128,6 +139,7 @@ export function footer(parent: HTMLElement, hint: string, keys: readonly (readon
   const line = el(parent, 'div', hint, `margin-top:12px;padding-top:8px;border-top:1px solid ${GOLD}2a`);
   line.className = 'hint';
   line.dataset.def = hint; // what it says when the chosen line has nothing of its own to say
+  if (!hint && !body.querySelector('[data-hint]')) [line.className, line.style.minHeight] = ['', '0']; // nothing to say (a list of tomes): no room kept for it
   const row = el(parent, 'div', '', `display:flex;justify-content:center;gap:20px;white-space:nowrap;margin-top:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${BONE}70`);
   for (const [key, what] of keys) {
     const s = el(row, 'span', `${key}  ${what}`);

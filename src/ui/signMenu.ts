@@ -24,7 +24,7 @@ import { buyLevel, canLevel, LEVEL_IDS, levelName, levelsBought, might, nextLeve
 import { worldLayout, type SignPlace } from '../world/placements';
 import { deviceInUse } from '../core/device';
 import { GOLD } from './hudKit';
-import { button, createScreen, el, footer, heading, tabs, title, type Page } from './menuKit';
+import { button, createScreen, el, footer, heading, option, tabs, title, type Page } from './menuKit';
 import { menuKeys } from './menuKeys';
 import { keyLayout } from '../core/bindings';
 import { glyph } from './glyphs';
@@ -66,13 +66,13 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     heading(panel, `BODY  ·  ECHOES  ·  NEXT LEVEL ${nextLevelCost(g)}`).style.marginTop = '0';
     for (const id of LEVEL_IDS) {
       const full = g.player.levels[id] >= LEVELS[id].max;
-      button(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}  ·  ${full ? 'fully grown' : `${nextLevelCost(g)} Echoes`}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id));
+      option(panel, `${levelName(id)}  ${g.player.levels[id]}/${LEVELS[id].max}  ·  ${GAINS[id]}  ·  ${full ? 'fully grown' : `${nextLevelCost(g)} Echoes`}`, () => (buyLevel(g, id), main.redraw?.()), canLevel(g, id), full ? `${levelName(id)} is fully grown.` : `Not enough Echoes: the next level costs ${nextLevelCost(g)}, and you carry ${g.player.echoes}.`);
     }
     heading(panel, `MIND  ·  INSIGHT ${g.mind.insight}`);
     for (const id of Object.keys(UPGRADES) as UpgradeId[]) {
       const u = UPGRADES[id];
       const level = g.mind.upgrades[id];
-      button(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${level < u.max ? `${u.cost} insight` : 'fully grown'}`, () => (buyUpgrade(g, id), main.redraw?.()), level < u.max && g.mind.insight >= u.cost);
+      option(panel, `${upgradeName(id)}  ${level}/${u.max}  ·  ${GAINS[id]}  ·  ${level < u.max ? `${u.cost} insight` : 'fully grown'}`, () => (buyUpgrade(g, id), main.redraw?.()), level < u.max && g.mind.insight >= u.cost, level >= u.max ? `${upgradeName(id)} is fully grown.` : `Not enough insight: ${u.cost}, and you hold ${g.mind.insight}. Insight comes of tomes, and of what the mind has borne.`);
     }
   }
 
@@ -83,14 +83,14 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     const shot = (n: number): number => Math.round(PLAYER_MOVES.shoot.shot.damage * might(g, g.player.id) * gunEdge(n));
     const whole = (n: number): number => GUN.reach.near + n * GUN.level.reach;
     const gunName = `Revolver +${level}`;
-    button(panel, price === undefined ? `${gunName}  ·  fully set` : `${gunName} → +${level + 1}  ·  ${price} star-stone${price === 1 ? '' : 's'}  ·  shot ${shot(level)} → ${shot(level + 1)}  ·  whole to ${whole(level)} → ${whole(level + 1)} m`, () => (upgradeGun(g), main.redraw?.()), canUpgradeGun(g));
+    option(panel, price === undefined ? `${gunName}  ·  fully set` : `${gunName} → +${level + 1}  ·  ${price} star-stone${price === 1 ? '' : 's'}  ·  shot ${shot(level)} → ${shot(level + 1)}  ·  whole to ${whole(level)} → ${whole(level + 1)} m`, () => (upgradeGun(g), main.redraw?.()), canUpgradeGun(g), price === undefined ? 'The revolver is fully set.' : `Not enough star-stones: ${price}, and you carry ${g.player.stones}.`);
     for (const id of g.player.arms) {
       const level = g.player.reinforced[id];
       const cost = reinforceCost(g, id);
       const light = (n: number): number => Math.round((WEAPONS[id].moves.light1?.hit?.damage ?? 0) * might(g, g.player.id) * edgeAt(n));
       const name = `${WEAPONS[id].name} +${level}`;
       const label = cost === undefined ? `${name}  ·  fully reinforced` : `${name} → +${level + 1}  ·  ${cost} star-stone${cost === 1 ? '' : 's'}  ·  light ${light(level)} → ${light(level + 1)}`;
-      button(panel, label, () => (reinforce(g, id), main.redraw?.()), canReinforce(g, id));
+      option(panel, label, () => (reinforce(g, id), main.redraw?.()), canReinforce(g, id), cost === undefined ? `${WEAPONS[id].name} is fully reinforced.` : `Not enough star-stones: ${cost}, and you carry ${g.player.stones}.`);
     }
   }
 

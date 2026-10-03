@@ -9,7 +9,7 @@ import type { Game } from '../systems/components';
 import { buy, canBuy, carried, hasRoom, stockLeft } from '../systems/trade';
 import { fill } from './glyphs';
 import { GOLD } from './hudKit';
-import { button, createScreen, el, footer, title, type Page } from './menuKit';
+import { createScreen, el, footer, option, title, type Page } from './menuKit';
 import { menuKeys } from './menuKeys';
 
 export interface ShopMenu {
@@ -34,8 +34,7 @@ export function createShopMenu(g: Game): ShopMenu {
           const tail = left === 0 ? 'sold out' : !hasRoom(g, id) ? 'no room to carry it' : `${w.price} Echoes${left === undefined ? '' : `  ·  ${left} left`}`; // (a full pocket said nothing, round 24)
           const c = carried(g, id);
           const note = `${fill(w.note)}${c ? `  (Carried: ${c.have} of ${c.most} ${c.unit}.)` : ''}`; // what a pocket holds, before it is asked (round 24)
-          const row = button(panel, `${w.name}  ·  ${tail}`, () => (ok ? (buy(g, id), page.redraw?.()) : void (panel.querySelector('.hint')!.textContent = why)), true, note);
-          if (!ok) row.style.opacity = '.5'; // round 38: still a line to choose, so that what it is can be read, and why it cannot be bought
+          option(panel, `${w.name}  ·  ${tail}`, () => (buy(g, id), page.redraw?.()), ok, why, note); // round 38: still a line to choose, so that what it is can be read, and why it cannot be bought
         }
         footer(panel, '', menuKeys(false, 'Choose'), () => screen.close());
       },

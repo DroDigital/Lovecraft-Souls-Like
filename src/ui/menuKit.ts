@@ -236,4 +236,4 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left
   return self;
 }
 
-export { button, el, footer, frame, heading, slider, tabs, title } from './menuParts';
+export { button, el, footer, frame, heading, option, slider, tabs, title } from './menuParts';
