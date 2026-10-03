@@ -187,7 +187,7 @@ still software GL (two to seven frames a second), so nothing of *feel* is judged
 
 ## Added
 
-- **Foe damage** (Settings › Play, 50–150%): the dream had no assist and no harder road but the next journey. `tests/assist.test.ts`.
+- **Difficulty** (chosen once, on a new game: Light Slumber, Deep Slumber, Nightmare; first a slider under Settings › Play, then made a choice that cannot be taken back): `tests/difficulty.test.ts`.
 - **Where you stand, when you return**: the pause menu says what the story asks next; the title's Continue says where that
   dream was left; the Elder Sign's menu says both.
 - `tests/coverage.test.ts`: every creature, and every entry of every region's spawn table, is placed in the world.

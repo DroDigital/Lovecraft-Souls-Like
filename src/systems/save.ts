@@ -12,7 +12,7 @@ import { ENDING_IDS } from '../data/endings';
 import { QUESTS } from '../data/quests';
 import { WARES } from '../data/wares';
 import { START_SIGN } from '../data/sites';
-import { GUN, LEVELS, NEW_GAME_PLUS, OIL, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { DEFAULT_DIFFICULTY, GUN, isDifficulty, LEVELS, NEW_GAME_PLUS, OIL, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { regionAt } from '../world/worldMap';
 import { signPlace, teleport } from './checkpoints';
 import type { Game } from './components';
@@ -56,6 +56,7 @@ export interface SaveData {
   rounds?: number;
   gun?: number;
   cycle?: number; // the journey through the dream (NG+; round 12)
+  difficulty?: string; // chosen when the dream began (round 38; none: the default)
   named?: number; // times Hastur's name has appeared
   called?: string[]; // bosses called into the world
   watched?: string[]; // horrors whose arrival has been shown (round 20)
@@ -111,6 +112,7 @@ export function snapshot(g: Game): SaveData {
     rounds: g.player.rounds,
     gun: g.player.gun,
     cycle: g.player.cycle,
+    difficulty: g.player.difficulty,
     named: ow.named,
     called: [...ow.called],
     watched: [...ow.watched],
@@ -206,6 +208,7 @@ export function applySave(g: Game, s: SaveData): void {
   g.player.gun = clampInt(s.gun ?? 0, 0, GUN.level.max);
   g.player.rounds = clampInt(s.rounds ?? GUN.start, 0, GUN.carry);
   g.player.ammo = clampInt(s.ammo ?? GUN.chamber, 0, GUN.chamber); // a save from before the revolver's limits: a full cylinder
+  g.player.difficulty = isDifficulty(s.difficulty) ? s.difficulty : DEFAULT_DIFFICULTY;
   g.player.cycle = clampInt(s.cycle ?? 0, 0, NEW_GAME_PLUS.most); // before the world fills: its foes are this journey's
   if (s.drop && s.drop.amount > 0) spawnDrop(g, Math.round(s.drop.amount), { x: s.drop.x, y: s.drop.y, z: s.drop.z });
   teleport(g, regionAt(s.at.x, s.at.z) ? s.at : g.player.checkpoint);

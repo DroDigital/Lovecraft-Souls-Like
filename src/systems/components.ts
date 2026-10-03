@@ -8,7 +8,7 @@ import type { HiddenPieceDef, Place } from '../data/arena';
 import type { MoveSet } from '../data/moves';
 import type { BrainDef } from '../data/archetypes';
 import type { AssemblyRecipe, Tier } from '../data/schema';
-import type { LevelId, UpgradeId } from '../data/tuning';
+import type { DifficultyId, LevelId, UpgradeId } from '../data/tuning';
 import type { WeaponId } from '../data/weapons';
 import type { Collider, CollisionWorld } from '../world/colliders';
 import type { CameraRig } from './camera';
@@ -251,6 +251,7 @@ export interface Pilot {
   ammo: number; // rounds in the revolver's cylinder (round 22)...
   rounds: number; // ...and the spare rounds carried (gun.ts)
   gun: number; // levels of star-stones set into the revolver (gun.ts)
+  difficulty: DifficultyId; // chosen when the dream began, never after (round 38; data/playTuning.ts)
   cycle: number; // the journey through the dream, 0 the first (NG+, cycles.ts; round 12)
   steady: number; // frames left in which a swallow of Laudanum holds the mind: no sanity lost to auras, roars, gazes or the void
   mended: number; // frames left in which a shot of Reagent holds the body: lingering hurts (pools, the void) do no harm
@@ -289,8 +290,6 @@ export interface Game {
   lock: LockState;
   rng: Rng;
   frame: number;
-  /** What the player has set to make the dream kinder or harder (round 38; main.ts hands it in from the settings): the weight of every enemy's blow. */
-  assist: { foeBlows: number };
   reality: Reality;
   overworld?: Overworld;
   /** How well lit the ground at a point is by the world's lamps, fires and torches, 0..1 (handed in by the renderer, which knows where they are; the dark when absent: sanity.ts mends faster in it). */

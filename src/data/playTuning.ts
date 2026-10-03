@@ -71,7 +71,6 @@ export const SETTINGS = {
   fog: [0, 1, 0.25, 1], // the volumetric fog's strength (0: none, for slower machines; round 16)
   shadows: [0, 1, 1, 1], // 0: neither the moon nor the lantern casts shadows (a second and a third pass over the scene each frame, for slower machines; round 34)
   uiScale: [0.75, 1.5, 0.05, 1], // × the scale the window's height gives (ui/uiScale.ts; round 12)
-  foeBlows: [0.5, 1.5, 0.25, 1], // how hard the dream's creatures strike, × their own (round 38: an assist and a harder road; the Echoes they leave do not change)
   shake: [0, 1, 0.25, 1], // the camera's jolts when struck and at hitstop (round 12)
   cutscenes: [0, 1, 1, 1], // 0: none play: a new game's wake, a horror's arrival and fall, an ending's (round 20)
   volume: [0, 1, 0.05, 0.7], // everything
@@ -80,6 +79,20 @@ export const SETTINGS = {
   ambience: [0, 1, 0.05, 1], // the drones and the recorded ambience
   speech: [0, 1, 0.05, 1], // the people's and the horrors' spoken lines (the voices)
 } satisfies Record<string, readonly [number, number, number, number]>;
+
+/**
+ * How hard the dream is (round 38), chosen once, when a new dream begins, and never after (it is kept in the save and carried into
+ * a second journey): the weight on every enemy's blow. Health, Echoes and everything else are the same at every difficulty.
+ */
+export const DIFFICULTIES = {
+  light: { name: 'Light Slumber', foe: 0.6, note: 'For the story and the dream\u2019s places. Its creatures strike gently; everything else is as it is.' },
+  deep: { name: 'Deep Slumber', foe: 1, note: 'The dream as it was made.' },
+  nightmare: { name: 'Nightmare', foe: 1.5, note: 'Every blow lands half as hard again. For those who have died here before.' },
+} as const;
+export type DifficultyId = keyof typeof DIFFICULTIES;
+export const DIFFICULTY_IDS = Object.keys(DIFFICULTIES) as DifficultyId[];
+export const DEFAULT_DIFFICULTY: DifficultyId = 'deep';
+export const isDifficulty = (v: unknown): v is DifficultyId => typeof v === 'string' && v in DIFFICULTIES;
 
 /** The UI's scale (ui/uiScale.ts): 1 at a window this tall, and never below or above these. */
 export const UI = { baseHeight: 720, least: 1, most: 2.5 };

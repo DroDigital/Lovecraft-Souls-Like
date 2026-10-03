@@ -11,7 +11,7 @@
 import { getRegion } from '../data/regions';
 import { DESCENT_LINE } from '../data/loreLines';
 import { PLAYER_MOVES } from '../data/moves';
-import { GUN, LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, GUN, LEVELS, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
 import { WEAPONS } from '../data/weapons';
 import { canReinforce, edgeAt, reinforce, reinforceCost } from '../systems/arms';
 import { ENDINGS } from '../data/endings';
@@ -117,7 +117,7 @@ export function createSignMenu(g: Game, go: (words: string, jump: () => void, li
     const here = signPlace(ow.sign);
     panel.dataset.body = '366';
     title(panel, (here?.name ?? 'Elder Sign').toUpperCase());
-    const lead = g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : '';
+    const lead = `${g.player.cycle ? `JOURNEY ${g.player.cycle + 1}  ·  ` : ''}${g.player.difficulty === DEFAULT_DIFFICULTY ? '' : `${DIFFICULTIES[g.player.difficulty].name.toUpperCase()}  ·  `}`;
     const stat = el(panel, 'div', `${lead}LEVEL ${levelsBought(g) + 1}  ·  ECHOES ${g.player.echoes}  ·  INSIGHT ${g.mind.insight}  ·  STAR-STONES ${g.player.stones}`, `margin:-6px 0 12px;text-align:center;font-size:11px;letter-spacing:2px;color:${GOLD}`);
     stat.dataset.pin = '';
     const next = mainLead(g)?.text; // what the story asks next: a resting place is where it is thought of (round 38)

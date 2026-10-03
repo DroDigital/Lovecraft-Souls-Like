@@ -7,7 +7,7 @@
  */
 
 import type { Entity } from '../core/ecs';
-import { GUN, LEVELS, NEW_GAME_PLUS, REAGENT, REINFORCE, UPGRADES, type LevelId, type UpgradeId } from '../data/tuning';
+import { DEFAULT_DIFFICULTY, DIFFICULTIES, GUN, isDifficulty, LEVELS, NEW_GAME_PLUS, REAGENT, REINFORCE, UPGRADES, type DifficultyId, type LevelId, type UpgradeId } from '../data/tuning';
 import { isWeapon, WEAPON_IDS, type WeaponId } from '../data/weapons';
 import { equip } from './arms';
 import type { Game } from './components';
@@ -15,6 +15,7 @@ import { applyLevels, LEVEL_IDS } from './levels';
 
 export interface Carry {
   cycle: number; // the journey it carries into (1: the second)
+  difficulty: DifficultyId; // the difficulty goes with it: it is chosen once
   levels: Record<LevelId, number>;
   arms: WeaponId[];
   weapon: WeaponId;
@@ -29,6 +30,7 @@ export interface Carry {
 /** What the investigator carries into the next journey. */
 export const carryOf = (g: Game): Carry => ({
   cycle: Math.min(NEW_GAME_PLUS.most, g.player.cycle + 1),
+  difficulty: g.player.difficulty,
   levels: { ...g.player.levels },
   arms: [...g.player.arms],
   weapon: g.player.weapon,
@@ -52,6 +54,7 @@ export function parseCarry(raw: unknown): Carry | null {
   const weapon = typeof o.weapon === 'string' && isWeapon(o.weapon) && arms.includes(o.weapon) ? o.weapon : 'cane';
   return {
     cycle: num(o.cycle, 1, NEW_GAME_PLUS.most),
+    difficulty: isDifficulty(o.difficulty) ? o.difficulty : DEFAULT_DIFFICULTY,
     levels: counts(o.levels, LEVEL_IDS, (k) => LEVELS[k].max),
     arms,
     weapon,
@@ -67,7 +70,7 @@ export function parseCarry(raw: unknown): Carry | null {
 /** Puts a carried strength into a new dream's investigator. */
 export function applyCarry(g: Game, c: Carry): void {
   const p = g.player;
-  Object.assign(p, { cycle: c.cycle, levels: { ...c.levels }, arms: [...c.arms], reinforced: { ...c.reinforced }, stones: c.stones, gun: c.gun, echoes: c.echoes });
+  Object.assign(p, { cycle: c.cycle, difficulty: c.difficulty, levels: { ...c.levels }, arms: [...c.arms], reinforced: { ...c.reinforced }, stones: c.stones, gun: c.gun, echoes: c.echoes });
   Object.assign(g.mind.upgrades, c.upgrades);
   [p.reagentMax, p.reagent] = [c.reagentMax, c.reagentMax];
   applyLevels(g);
@@ -79,10 +82,10 @@ export function applyCarry(g: Game, c: Carry): void {
 /** How much hardier this journey's foes are than the first's. */
 export const foeHealth = (g: Pick<Game, 'player'>): number => 1 + NEW_GAME_PLUS.health * g.player.cycle;
 
-/** The weight this journey, and the player's setting, put on a blow from `attacker` (1 for the investigator and their allies). */
+/** The weight this journey, and the difficulty chosen, put on a blow from `attacker` (1 for the investigator and their allies). */
 export function foeDamage(g: Game, attacker: Entity): number {
   if (g.ecs.c.combatant.get(attacker)?.faction !== 'enemy') return 1;
-  return g.assist.foeBlows * (1 + NEW_GAME_PLUS.damage * g.player.cycle); // (round 38: the player's own setting, and this journey's weight)
+  return DIFFICULTIES[g.player.difficulty].foe * (1 + NEW_GAME_PLUS.damage * g.player.cycle); // (round 38: the difficulty chosen at the start, and this journey's weight)
 }
 
 /** The Echoes this journey's foes leave, against the first's. */

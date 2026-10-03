@@ -23,6 +23,7 @@ export interface Page {
   keys?: (e: KeyboardEvent) => void; // hears every key pressed while it is open (the map pans and zooms)
   pad?: (pad: PadReading) => void; // reads the pad each frame while it is open
   tab?: (by: 1 | -1) => void; // PageUp / PageDown, or the pad's bumpers: the neighbouring tab
+  focus?: number; // the choice the focus begins on when it is first opened (else the first)
   redraw?: () => void; // set by the screen that shows it: draws it again, keeping the focus
 }
 
@@ -209,7 +210,7 @@ export function createScreen(z: number, backdrop = '#050506dd', panelCss = `left
     show(page) {
       const same = entry?.page === page;
       const fresh = !same && !memory.has(page); // a page first opened is read from its top
-      const at = same ? focused() : (memory.get(page) ?? 0);
+      const at = same ? focused() : (memory.get(page) ?? page.focus ?? 0);
       if (entry && !same) memory.set(entry.page, Math.max(0, focused()));
       page.redraw = () => void (entry?.page === page && self.show(page));
       panel.replaceChildren();
